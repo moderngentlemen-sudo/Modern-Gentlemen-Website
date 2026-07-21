@@ -2,8 +2,8 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "cdn.sanity.io" },
-      { protocol: "https", hostname: "cdn.shopify.com" },
+      // Supabase Storage — replace with your project's storage host.
+      { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
 };

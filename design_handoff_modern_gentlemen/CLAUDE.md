@@ -1,6 +1,8 @@
 # CLAUDE.md — Modern Gentlemen
 
 > Authoritative baseline for this project. Every color, token, font, spacing value, and component below is the **source of truth**. Do not deviate, simplify, or "improve" — match the handoff bundle and the reference screenshots in `handoff/screenshots/` exactly. When making any future change, keep it consistent with these tokens.
+>
+> **⚠️ SUPERSEDED (data layer only):** the "Framework decision" line below says CMS = Sanity, commerce = Shopify. That is no longer the plan — the backend is now **Supabase for everything + Stripe for payments** (see **`06_SUPABASE.md`** and `/EXECUTION_PLAN.md §0`). All the design-token / layout / motion / commerce-rule content in this file is unchanged and still authoritative.
 
 ## What this project is
 Modern Gentlemen — a men's editorial + lifestyle brand (style, grooming, watches, culture, film) with an integrated store. Dark, editorial, luxury-automotive aesthetic. Racing-red accent, monochrome photography, serif/mono/grotesk type mix. **Default theme is light**; persistent light/dark toggle in the header.

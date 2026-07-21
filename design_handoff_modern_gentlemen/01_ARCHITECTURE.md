@@ -1,5 +1,7 @@
 # 01 — Architecture
 
+> **⚠️ SUPERSEDED (data layer):** the Sanity + Shopify recommendation below is no longer the plan. The data layer is now **Supabase for everything (content, products, auth/members, orders, newsletter, cart, storage) + Stripe for payments.** See **`06_SUPABASE.md`** and `/EXECUTION_PLAN.md §0`. The folder-structure, theme, and accessibility guidance here still applies; ignore the Sanity/Shopify specifics.
+
 ## Stack
 - **Next.js (App Router) + TypeScript** — SSR/SSG for editorial SEO, route handlers for commerce.
 - **React + Tailwind CSS** — see `02_DESIGN_TOKENS.md` for the theme config.

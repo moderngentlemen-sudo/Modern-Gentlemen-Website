@@ -26,6 +26,7 @@ design_handoff_modern_gentlemen/   ← the complete design handoff bundle
 ├── IMPLEMENTATION_BRIEF.md        ← the "build exactly this" brief + screenshot manifest
 ├── VERIFICATION_REPORT.md         ← what's fully specified vs. ambiguous, and how to handle it
 ├── 01_ARCHITECTURE.md … 05_SECTION_BUILDER.md   ← detailed specs
+├── 06_SUPABASE.md                 ← DATA LAYER: Supabase (everything) + Stripe — the authoritative backend spec
 ├── MODULE_MAP.md                  ← Section Library module → React block mapping
 ├── design-tokens.json             ← machine-readable colors/fonts/spacing
 ├── design_files/                  ← the HIGH-FIDELITY PROTOTYPES (*.dc.html) = structure/copy source of truth
@@ -72,11 +73,11 @@ See **`RAILWAY_DEPLOYMENT.md`**. Short version: point a Railway service at this 
 ## Stack (decided)
 
 - **Next.js (App Router) + React + TypeScript + Tailwind CSS** — already set up in `starter/`.
-- **Content for v1: hardcoded from the prototypes** (fast, self-contained, deploys anywhere). A Sanity CMS seam exists but is **optional / later** — see `EXECUTION_PLAN.md §Deferred`.
-- **Store for v1: the built-in local cart** (localStorage) behind a swappable `CartApi`. Real checkout (Shopify/Stripe) is **optional / later**, no rework needed to add it.
-- **Hosting: Railway.**
+- **Backend: Supabase (everything)** — content, products, users/members, orders, newsletter, cart sync, and image storage all live in one Supabase (Postgres) project. **This replaces Sanity and Shopify.** Full spec: **`design_handoff_modern_gentlemen/06_SUPABASE.md`** (schema + seed + client stubs already scaffolded in `starter/supabase/` and `starter/lib/supabase/`).
+- **Payments: Stripe** — real checkout; a Stripe webhook writes paid orders into Supabase.
+- **Hosting: Railway** (the Next.js app). Supabase is a separate managed service the app connects to.
 
-Why defer the CMS/commerce backends? The brief is a pixel-perfect replica you can ship on Railway. Hardcoded content + the local cart gets you a fully working, identical-looking site with zero external services. The code already has the seams to plug real backends in later.
+**Build order still matters:** get every page **pixel-perfect on demo data first** (no backend needed — it runs today), then swap the data source to Supabase behind the seams already in the code (`SectionRenderer` `Block[]`, `lib/cart` `CartApi`, `lib/queries.ts`). The two tracks don't block each other.
 
 ---
 

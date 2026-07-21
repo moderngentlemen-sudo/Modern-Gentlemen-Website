@@ -64,9 +64,20 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 
 - …
 
-## Deferred (Phase 2 backlog — see `EXECUTION_PLAN.md §9`)
-- [ ] Sanity CMS wiring
-- [ ] Shopify/Stripe real checkout
-- [ ] Member auth / real subscriptions
-- [ ] Newsletter POST to ESP
+## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
+- [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
+- [ ] Env vars set (Supabase URL/anon/service-role + Stripe secret/publishable/webhook) locally + Railway
+- [ ] Content/products switched from demo arrays to `lib/queries.ts`
+- [ ] Auth (`@supabase/ssr` + `middleware.ts` + account area); `is_member` drives 15% discount
+- [ ] Supabase cart adapter behind `CartApi` (guest localStorage → merge on login)
+- [ ] Stripe checkout route + webhook writing `orders`/`order_items`; confirmation reads from Supabase
+- [ ] Membership = Stripe subscription → webhook sets `is_member`
+- [ ] Supabase Storage buckets + `next.config.mjs` remote host; real imagery uploaded
+- [ ] Section-builder admin loads/saves `pages.sections` JSONB (auth-gated) — net-new scope
+- [ ] Legacy Sanity scaffold removed (`sanity/`, `lib/sanity/`, `sanity.config.ts`, `@sanity/*` deps)
+
+## Still deferred
+- [ ] Real membership subscriptions vs. flag-only
+- [ ] Newsletter ESP integration (Supabase capture works standalone)
+- [ ] Production imagery/video + rights
 - [ ] Remaining article templates & Section Library modules

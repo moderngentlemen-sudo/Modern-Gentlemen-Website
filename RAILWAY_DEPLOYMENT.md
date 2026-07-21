@@ -43,17 +43,24 @@ Next.js `next start` automatically listens on the port Railway provides via the 
 
 ## Environment variables
 
-**v1: none required.** The site runs on hardcoded content + the local cart.
+**Pixel-perfect UI on demo data needs none** — the scaffold runs with zero env vars, so you can deploy and iterate on the visual build immediately.
 
-Only when you add the optional backends (see `EXECUTION_PLAN.md §9`):
+**The Supabase + Stripe data layer needs these** (add in Railway → service → **Variables**; full detail in `design_handoff_modern_gentlemen/06_SUPABASE.md`):
+
 | Variable | For |
 |---|---|
-| `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET` | Sanity CMS |
-| `NEXT_PUBLIC_SHOPIFY_DOMAIN`, `SHOPIFY_STOREFRONT_TOKEN` | Shopify commerce |
-| `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe checkout (alt) |
-| ESP key (Klaviyo/Mailchimp) | Newsletter POST |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase public (RLS-guarded) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | **server-only** — Stripe webhook / admin writes (never expose) |
+| `STRIPE_SECRET_KEY` | Stripe API (server) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe.js (client) |
+| `STRIPE_WEBHOOK_SECRET` | verify the Stripe webhook signature |
 
-Add them in Railway → service → **Variables**. `starter/.env.example` lists them; never commit real values.
+`starter/.env.example` lists them; **never commit real values.**
+
+### Supabase & Stripe are separate services
+- **Supabase** is its own managed project (or self-host it as a second Railway service via Railway's Supabase template). Railway hosts only the **Next.js app**; it connects to Supabase over the network using the vars above.
+- **Stripe webhook:** after the app is live, register `https://<your-railway-domain>/api/webhooks/stripe` in the Stripe dashboard and put the resulting signing secret in `STRIPE_WEBHOOK_SECRET`.
 
 ---
 

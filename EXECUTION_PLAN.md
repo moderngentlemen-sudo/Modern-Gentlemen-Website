@@ -6,20 +6,23 @@ This is the master build plan for the next engineer/Claude session. Read `README
 
 ---
 
-## 0. Stack decision (final for v1)
+## 0. Stack decision (final)
 
-| Concern | v1 decision | Later (optional) |
+| Concern | Decision | Notes |
 |---|---|---|
-| Framework | **Next.js (App Router) + React 19 + TypeScript** (already scaffolded in `starter/`) | — |
+| Framework | **Next.js (App Router) + React 19 + TypeScript** (scaffolded in `starter/`) | — |
 | Styling | **Tailwind CSS 3.4** + CSS variables (tokens already wired) | — |
-| Content | **Hardcoded from the prototypes** (in-repo TS data / demo arrays) | Sanity CMS (seam already present in `lib/sanity/`) |
-| Store data | **Ported catalog** in `lib/catalog.ts` (16 products) | Shopify Storefront API |
-| Cart / checkout | **Local cart** (localStorage) behind `CartApi`; demo checkout | Shopify/Stripe hosted checkout behind the same seam |
-| Hosting | **Railway** (see `RAILWAY_DEPLOYMENT.md`) | — |
+| Backend (all data) | **Supabase** — content, products, users/members, orders, newsletter, cart sync, image storage | One Postgres project. **Replaces Sanity + Shopify.** Spec: `design_handoff_modern_gentlemen/06_SUPABASE.md` |
+| Payments | **Stripe** — hosted checkout / Elements; webhook writes paid orders to Supabase | — |
+| Content model | Supabase `pages.sections` (JSONB) = the `Block[]` `SectionRenderer` already renders | Section-builder admin edits this JSONB (custom — no Sanity Studio) |
+| Store data | Supabase `products` (seeded from `lib/catalog.ts`'s 16) | `lib/queries.ts` returns the same `Product` shape |
+| Hosting | **Railway** (Next.js app); Supabase is a separate managed service | `RAILWAY_DEPLOYMENT.md` |
 
-**Why defer Sanity + Shopify:** the brief is a pixel-perfect, deployable replica. Hardcoded content + the local cart produce an identical-looking, fully working, self-contained site with **no external accounts or keys** — ideal for Railway. The scaffold already isolates both behind seams (`lib/cart/types.ts#CartApi`, the commented `sanityFetch` calls), so adding them later needs **no UI rework**. Do not let CMS/commerce wiring block the pixel-perfect work.
+**Two tracks, run in this order but they don't block each other:**
+- **Track A — pixel-perfect UI (priority #1).** Build every page to match the screenshots **on demo data** (the scaffold runs today with no backend). This is the bulk of the work and the core of the brief.
+- **Track B — data layer.** Stand up Supabase + Stripe (schema/seed/stubs already scaffolded) and swap each page's data source to `lib/queries.ts` / the Supabase cart adapter — **no UI rework**, because it slots behind the existing seams (`SectionRenderer` `Block[]`, `lib/cart/types.ts#CartApi`).
 
-> If the project owner says they want the CMS or real payments in v1, jump to `§9 Deferred / optional` — the hooks are ready — but still finish the visual fidelity first.
+Do not let backend wiring block the visual fidelity. Full backend detail is in `06_SUPABASE.md`; the phase checklist is `§9`.
 
 ---
 
@@ -162,13 +165,22 @@ The module picker/gallery. Build the picker UI to match `section-library.png`; w
 
 ---
 
-## 9. Deferred / optional (Phase 2 — only if the owner asks)
+## 9. Data layer — Supabase + Stripe (Track B)
 
-- **Sanity CMS:** uncomment `sanityFetch` in the page files, add schemas (already stubbed in `sanity/schemas/`), move hardcoded content into the CMS. Env: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`.
-- **Shopify/Stripe checkout:** implement an adapter satisfying `lib/cart/types.ts#CartApi`; swap it into `CartProvider`; either redirect to hosted checkout after step 3 or embed Stripe Elements in the Payment step. Never build a raw card form without a PCI provider.
-- **Member auth / real subscriptions, newsletter POST (ESP), production imagery & video** (current media are placeholders — confirm rights before launch), remaining article templates, remaining Section Library modules.
+Full spec + exact schema/RLS/flow: **`design_handoff_modern_gentlemen/06_SUPABASE.md`**. Scaffolding already in the repo: `starter/supabase/migrations/0001_init.sql`, `starter/supabase/seed.sql`, `starter/lib/supabase/{client,server,admin}.ts`, `starter/lib/queries.ts`.
 
-All are documented in `HANDOFF_CHECKLIST.md`. None block v1.
+- [ ] **Provision Supabase** (managed project). Apply `migrations/0001_init.sql` + `seed.sql`; confirm `getProducts()` returns the 16 rows. Set your admin (`update profiles set role='admin'…`).
+- [ ] **Env:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (local `.env.local` + Railway Variables).
+- [ ] **Switch content/products** from demo arrays to `lib/queries.ts` (`getPage('home')`, `getProducts()`, `getProduct()`, `getCategory()`, `getArticle()`).
+- [ ] **Auth:** `@supabase/ssr` clients (already stubbed) + `middleware.ts` session refresh + a minimal account area; member state from `profiles.is_member` drives the 15% discount.
+- [ ] **Cart:** add the Supabase cart adapter behind `CartApi` (guest = localStorage, signed-in = `carts`; merge on login).
+- [ ] **Checkout/Stripe:** `app/api/checkout/route.ts` (create session, server-recomputed total) + `app/api/webhooks/stripe/route.ts` (service-role writes `orders`/`order_items`, marks paid, clears cart); confirmation reads the order from Supabase. Membership = Stripe subscription → webhook sets `is_member`.
+- [ ] **Storage:** buckets for product/editorial imagery; update `next.config.mjs` `images.remotePatterns` to your Supabase host; keep placeholders until real photography.
+- [ ] **Remove the legacy Sanity scaffold** (`sanity/`, `lib/sanity/`, `sanity.config.ts`, the `sanity` npm script + `@sanity/*`/`styled-components` deps) once nothing imports it.
+
+**Section-builder admin (net-new scope):** replacing Sanity means the drag-and-drop editor (`components/builder/SectionEditor.tsx`, dnd-kit) must load/save `pages.sections` JSONB via Supabase behind an admin auth gate. Budget for it — see `06_SUPABASE.md §Scope flag`.
+
+**Still deferred beyond this:** real membership subscriptions vs. flag-only, newsletter ESP integration (Supabase capture works standalone), production imagery/video rights, remaining article templates + Section Library modules. See `HANDOFF_CHECKLIST.md`.
 
 ---
 
