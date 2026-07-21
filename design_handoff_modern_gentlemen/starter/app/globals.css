@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme tokens (see 02_DESIGN_TOKENS.md). Dark is the base; light overrides. */
+:root {
+  --mg-bg: #0d0d0d;
+  --mg-fg: #f4f4f4;
+  --mg-surface: #131315;
+  --mg-bd: #ffffff;
+  --mg-accent: #c8102e;
+  --mg-accent-serif: #ff4d5e;
+}
+html[data-mgtheme="light"] {
+  --mg-bg: #f4f4f4;
+  --mg-fg: #141414;
+  --mg-surface: #ffffff;
+  --mg-bd: #141414;
+  --mg-accent-serif: #c8102e;
+}
+
+/* Dark bands stay dark in both themes (hero scrims, red CTA bands). */
+[data-darkband] {
+  --mg-fg: #f4f4f4;
+  --mg-bd: #ffffff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background: var(--mg-bg);
+  color: var(--mg-fg);
+  overflow-x: clip;
+  overscroll-behavior: none;
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+/* Centered 1320px content column. Full-bleed bands opt out with .bleed. */
+.container-mg {
+  width: 100%;
+  padding-inline: max(48px, calc((100% - 1320px) / 2));
+}
+
+a { color: inherit; }
+a:hover { color: var(--mg-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Overlay entrance animations (drawer / bag / search) */
+@keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth;overflow-x:clip;}
+body{margin:0;background:#0d0d0d;color:var(--mg-fg,#f4f4f4);-webkit-font-smoothing:antialiased;}
+a{color:var(--mg-fg,#f4f4f4);text-decoration:none;}
+a:hover{color:#ff4d5e;}
+[data-prod]{transition:transform .2s ease,border-color .2s ease;}
+[data-prod]:hover{transform:translateY(-5px);border-color:color-mix(in srgb,var(--mg-bd,#ffffff) 20%,transparent);}
+[data-prod] [data-pimg]{transition:transform .5s cubic-bezier(.2,.7,.2,1);}
+[data-prod]:hover [data-pimg]{transform:scale(1.06);}
+[data-addbig]{transition:filter .18s ease,transform .1s ease;cursor:pointer;}
+[data-addbig]:hover{filter:brightness(1.08);}
+[data-addbig]:active{transform:translateY(1px);}
+[data-qtybtn]{transition:color .18s ease,background .18s ease;cursor:pointer;}
+[data-qtybtn]:hover{color:var(--mg-fg,#f4f4f4);background:color-mix(in srgb,var(--mg-fg,#f4f4f4) 10%,transparent);}
+[data-thumb]{transition:border-color .2s ease,opacity .2s ease;opacity:0.6;}
+[data-thumb]:hover{opacity:1;}
+[data-thumb][data-on="true"]{opacity:1;border-color:#C8102E!important;}
+@media (max-width:1024px) and (min-width:721px){[data-pgrid]{grid-template-columns:repeat(2,1fr)!important;}}
+@media (max-width:820px){
+  [data-pdp]{grid-template-columns:1fr!important;gap:32px!important;}
+  [data-pdp] [data-gallery]{position:static!important;}
+  [data-pdp] h1{font-size:34px!important;}
+  [data-story]{grid-template-columns:1fr!important;gap:14px!important;}
+  [data-specgrid]{grid-template-columns:1fr!important;}
+}
+@media (max-width:720px){[data-pgrid]{grid-template-columns:1fr 1fr!important;gap:12px!important;}}
+@media (max-width:460px){[data-pgrid]{grid-template-columns:1fr!important;}}
+
+[data-page]{--mg-fg:#f4f4f4;}
+html[data-mgtheme="light"] [data-page]{background:#f4f4f4!important;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;}
+html[data-mgtheme="light"]{background:#f4f4f4;}
+html[data-mgtheme="light"] body{background:#f4f4f4;color:#141414;}
+@media (max-width:680px){#mg-header-skeleton{padding-left:20px!important;padding-right:20px!important;}}
+html[data-mgtheme="light"] #mg-header-skeleton{color:#141414!important;}
+html[data-mgtheme="light"] #mg-header-skeleton img{filter:invert(1)!important;}
+html[data-mgtheme="light"] #mg-header-skeleton [data-skburger] span:nth-child(1){background:#141414!important;}
+#mg-header-skeleton + * .sc-placeholder,#mg-header-skeleton + .sc-placeholder{display:none!important;}
+@media (max-width:680px){[data-page] section{padding-left:22px!important;padding-right:22px!important;}}
+[data-page][data-narrow="true"] > section{max-width:1320px;}
+html[data-mgtheme="dark"]{background:#0d0d0d;}
+</style>
+<script src="mg-catalog.js"></script>
+<script src="mg-bag.js"></script>
+<script>try{document.documentElement.setAttribute('data-mgtheme',(localStorage.getItem('mg-theme')||'light'));}catch(e){}</script>
+</helmet>
+<div data-page data-narrow="{{ narrowShop }}" style="min-height:100vh;background:#0d0d0d;">
+  <div id="mg-header-skeleton" style="position:fixed;top:0;left:0;right:0;z-index:59;height:72px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:2px max(48px, calc((100% - 1320px) / 2)) 0;background:transparent;pointer-events:none;color:#fff;"><div style="display:flex;align-items:center;gap:14px;flex-shrink:0;"><span data-skburger style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;width:22px;"><span style="width:22px;height:2px;border-radius:2px;background:#f4f4f4;display:block;"></span><span style="width:13px;height:2px;border-radius:2px;background:#C8102E;display:block;box-shadow:0 0 8px 0 rgba(200,16,46,0.45);"></span></span><img src="mg-logo.svg" alt="" style="height:20px;width:auto;display:block;"></div><span data-skicon style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg></span></div>
+  <dc-import name="MG Header" hint-size="100%,64px" dark-mode="{{ darkMode }}" sharp-corners="{{ sharpCorners }}" header-style="{{ headerStyle }}" header-scheme="{{ headerScheme }}" invert-header="{{ invertHeader }}" header-scale="{{ headerScale }}" header-height="{{ headerHeight }}" shrink-on-scroll="{{ shrinkOnScroll }}" shrunk-height="{{ shrunkHeight }}" nav-motion="{{ navMotion }}" hide-on-scroll="{{ hideOnScroll }}" always-frosted="{{ alwaysFrosted }}" header-divider="{{ headerDivider }}" burger-variant="{{ burgerVariant }}" burger-hover="{{ burgerHover }}" menu-hover="{{ menuHover }}" icon-bubbles="{{ iconBubbles }}" icon-bubble-hover="{{ iconBubbleHover }}" icon-hover="{{ iconHover }}" sidebar-entry="{{ sidebarEntry }}" dropdown-anim="{{ dropdownAnim }}" dropdown-exit="{{ dropdownExit }}" sidebar-bubbles="{{ sidebarBubbles }}" chevron-bubbles="{{ chevronBubbles }}" sidebar-tagline="{{ sidebarTagline }}" sidebar-logo="{{ sidebarLogo }}" bag-style="{{ bagStyle }}"></dc-import>
+
+  <section data-screen-label="Product" style="box-sizing:border-box;margin:0 auto;padding:120px max(48px, calc((100% - 1320px) / 2)) 96px;">
+    <sc-if value="{{ notFound }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:90px 0;text-align:center;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:#ff4d5e;margin-bottom:18px;">NOT FOUND</div>
+        <h1 style="margin:0 0 26px;font:600 40px/1.05 'Space Grotesk',sans-serif;letter-spacing:-0.03em;">We couldn’t find that product.</h1>
+        <a href="MG Store.dc.html" style="display:inline-flex;align-items:center;padding:14px 30px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 22%,transparent);border-radius:100px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">← BACK TO STORE</a>
+      </div>
+    </sc-if>
+    <sc-if value="{{ found }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.16em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);margin-bottom:30px;">
+        <a href="MG Store.dc.html">STORE</a><span>/</span><a href="{{ catHref }}">{{ catLabel }}</a><span>/</span><span style="color:var(--mg-fg,#f4f4f4);">{{ nameUpper }}</span>
+      </div>
+
+      <div data-pdp style="display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:start;">
+        <div data-gallery style="position:sticky;top:96px;">
+          <div style="position:relative;aspect-ratio:4/5;border-radius:14px;overflow:hidden;background-color:#0d0d0d;background-image:{{ mainBg }};background-size:cover;background-position:center;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+            <sc-if value="{{ tag }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:16px;left:16px;font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:#fff;background:rgba(200,16,46,0.92);padding:5px 12px;border-radius:100px;">{{ tag }}</span></sc-if>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:12px;">
+            <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="3">
+              <button data-thumb data-on="{{ t.on }}" onClick="{{ t.select }}" aria-label="View image" style="flex:1;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background-color:#0d0d0d;background-image:{{ t.bg }};background-size:cover;background-position:center;border:1.5px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);cursor:pointer;padding:0;"></button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:#ff4d5e;">{{ catLabel }}</div>
+          <h1 style="margin:14px 0 0;font:600 44px/1.04 'Space Grotesk',sans-serif;letter-spacing:-0.035em;">{{ name }}</h1>
+          <div style="display:flex;align-items:baseline;gap:16px;margin-top:18px;">
+            <span style="font:500 30px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ priceFmt }}</span>
+            <span style="font:400 12px 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">{{ memberNote }}</span>
+          </div>
+          <p style="margin:24px 0 0;max-width:460px;font:400 20px/1.5 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 82%,transparent);">{{ blurb }}</p>
+          <div style="margin-top:20px;font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.06em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">{{ material }}</div>
+
+          <div style="margin-top:32px;display:flex;align-items:center;gap:14px;">
+            <div style="display:flex;align-items:center;gap:4px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 22%,transparent);border-radius:100px;padding:5px;">
+              <button data-qtybtn onClick="{{ dec }}" aria-label="Decrease quantity" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:none;border:none;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);cursor:pointer;padding:0;font:400 20px/1 'Space Grotesk',sans-serif;">−</button>
+              <span style="min-width:30px;text-align:center;font:500 15px 'Space Grotesk',sans-serif;">{{ qty }}</span>
+              <button data-qtybtn onClick="{{ inc }}" aria-label="Increase quantity" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:none;border:none;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);cursor:pointer;padding:0;font:400 19px/1 'Space Grotesk',sans-serif;">+</button>
+            </div>
+            <button data-addbig onClick="{{ addToBag }}" style="flex:1;padding:16px 28px;border:none;border-radius:100px;background:#C8102E;color:#fff;font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">{{ addLabel }}</button>
+          </div>
+
+          <div style="margin-top:28px;display:grid;gap:13px;padding-top:26px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+            <sc-for list="{{ assurances }}" as="a" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;font:400 12px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6L9 17l-5-5"></path></svg>
+                <span>{{ a.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <section data-story style="margin-top:96px;padding-top:56px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);display:grid;grid-template-columns:220px 1fr;gap:40px;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:#ff4d5e;">THE STORY</div>
+        <div style="max-width:660px;display:grid;gap:22px;">
+          <sc-for list="{{ storyParas }}" as="p" hint-placeholder-count="2">
+            <p style="margin:0;font:400 18px/1.7 'Space Grotesk',sans-serif;font-weight:300;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 84%,transparent);text-wrap:pretty;">{{ p.text }}</p>
+          </sc-for>
+        </div>
+      </section>
+
+      <section data-story style="margin-top:72px;padding-top:56px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);display:grid;grid-template-columns:220px 1fr;gap:40px;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:#ff4d5e;">SPECIFICATIONS</div>
+        <div data-specgrid style="display:grid;grid-template-columns:1fr 1fr;gap:0 56px;max-width:720px;">
+          <sc-for list="{{ specs }}" as="s" hint-placeholder-count="6">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 9%,transparent);">
+              <span style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.12em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">{{ s.k }}</span>
+              <span style="font:500 13px 'Space Grotesk',sans-serif;text-align:right;">{{ s.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="margin-top:80px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:26px;">
+          <h2 style="margin:0;font:600 26px/1 'Space Grotesk',sans-serif;letter-spacing:-0.025em;">You might also like</h2>
+          <a href="MG Store.dc.html" style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 60%,transparent);">ALL PRODUCTS →</a>
+        </div>
+        <div data-pgrid style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
+          <sc-for list="{{ related }}" as="p" hint-placeholder-count="4">
+            <div data-prod style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:var(--mg-surface,#131315);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 9%,transparent);">
+              <a href="{{ p.href }}" style="position:relative;overflow:hidden;aspect-ratio:4/5;display:block;">
+                <div data-pimg style="position:absolute;inset:0;background-color:#0d0d0d;background-image:{{ p.bg }};background-size:cover;background-position:center;"></div>
+              </a>
+              <div style="padding:16px 16px 18px;display:flex;flex-direction:column;flex:1;">
+                <div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">{{ p.catLabel }}</div>
+                <h3 style="margin:7px 0 0;font:500 15px/1.15 'Space Grotesk',sans-serif;letter-spacing:-0.01em;"><a href="{{ p.href }}" style="color:var(--mg-fg,#f4f4f4);">{{ p.name }}</a></h3>
+                <span style="margin-top:12px;font:500 14px 'Space Grotesk',sans-serif;">{{ p.price }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+  </section>
+
+  <dc-import name="MG Footer" hint-size="100%,320px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:1500},&quot;narrowShop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;bagStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Slide-in drawer&quot;,&quot;options&quot;:[&quot;Slide-in drawer&quot;,&quot;Dropdown&quot;,&quot;Full page&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Bag&quot;},&quot;sidebarLogo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Wordmark&quot;,&quot;options&quot;:[&quot;MG monogram&quot;,&quot;Wordmark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;}}">
+class Component extends DCLogic {
+  state = { slug: null, ready: false, img: 0, qty: 1, added: false };
+
+  chromeProps() {
+    return {
+      darkMode: this.props.darkMode ?? false,
+      sharpCorners: this.props.sharpCorners ?? true,
+      headerStyle: this.props.headerStyle ?? 'Frosted',
+      headerScheme: this.props.headerScheme ?? 'Auto',
+      invertHeader: this.props.invertHeader ?? false,
+      headerScale: this.props.headerScale ?? 1,
+      headerHeight: this.props.headerHeight ?? 72,
+      shrinkOnScroll: this.props.shrinkOnScroll ?? true,
+      shrunkHeight: this.props.shrunkHeight ?? 58,
+      navMotion: this.props.navMotion ?? 'Frost only',
+      hideOnScroll: this.props.hideOnScroll ?? true,
+      alwaysFrosted: this.props.alwaysFrosted ?? false,
+      headerDivider: this.props.headerDivider ?? false,
+      burgerVariant: this.props.burgerVariant ?? 'Sq thin pair',
+      burgerHover: this.props.burgerHover ?? 'Staircase',
+      menuHover: this.props.menuHover ?? 'Underline',
+      iconBubbles: this.props.iconBubbles ?? false,
+      iconBubbleHover: this.props.iconBubbleHover ?? false,
+      iconHover: this.props.iconHover ?? 'Circle',
+      sidebarEntry: this.props.sidebarEntry ?? 'Fade',
+      dropdownAnim: this.props.dropdownAnim ?? 'Curtain',
+      dropdownExit: this.props.dropdownExit ?? 'Collapse',
+      sidebarLogo: this.props.sidebarLogo ?? 'MG monogram',
+      sidebarBubbles: this.props.sidebarBubbles ?? false,
+      chevronBubbles: this.props.chevronBubbles ?? false,
+      sidebarTagline: this.props.sidebarTagline ?? 'The Men\u2019s Lifestyle Guide',
+      bagStyle: this.props.bagStyle ?? 'Slide-in drawer',
+      narrowShop: this.props.narrowShop ? 'true' : 'false'
+    };
+  }
+
+  componentDidMount() {
+    this._onBag = () => this.forceUpdate();
+    window.addEventListener('mg-bag-change', this._onBag);
+    window.addEventListener('mg-bag-ready', this._onBag);
+    let slug = null;
+    try { slug = new URLSearchParams(location.search).get('p'); } catch (e) {}
+    this.setState({ slug: slug, ready: true });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('mg-bag-change', this._onBag);
+    window.removeEventListener('mg-bag-ready', this._onBag);
+    clearTimeout(this._t);
+  }
+
+  renderVals() {
+    const base = this.chromeProps();
+    const cat = window.MGCatalog;
+    const bag = window.MGBag;
+    const fmt = (n) => (cat ? cat.format(n) : ('£' + n));
+    const p = (cat && this.state.slug) ? cat.get(this.state.slug) : null;
+    if (!p) {
+      // Before mount resolves the slug, assume valid to avoid a not-found flash.
+      const pending = !this.state.ready;
+      return Object.assign({}, base, { found: pending, notFound: !pending });
+    }
+    const imgs = p.images || [];
+    const idx = Math.min(this.state.img, Math.max(0, imgs.length - 1));
+    const memberPrice = Math.round(p.price * (1 - (bag ? bag.memberRate : 0.15)));
+    return Object.assign({}, base, {
+      found: true,
+      notFound: false,
+      name: p.name,
+      nameUpper: (p.name || '').toUpperCase(),
+      catLabel: p.catLabel,
+      catHref: 'MG Store.dc.html?cat=' + p.cat,
+      priceFmt: fmt(p.price),
+      memberNote: 'Members ' + fmt(memberPrice),
+      blurb: p.blurb,
+      material: p.material,
+      tag: p.tag,
+      mainBg: 'url(' + (imgs[idx] || '') + ')',
+      thumbs: imgs.map((im, i) => ({ bg: 'url(' + im + ')', on: i === idx ? 'true' : 'false', select: () => this.setState({ img: i }) })),
+      qty: this.state.qty,
+      dec: () => this.setState((s) => ({ qty: Math.max(1, s.qty - 1) })),
+      inc: () => this.setState((s) => ({ qty: s.qty + 1 })),
+      addLabel: this.state.added ? 'ADDED TO BAG \u2713' : 'ADD TO BAG',
+      addToBag: () => {
+        if (bag) bag.add(p.slug, this.state.qty);
+        this.setState({ added: true });
+      },
+      assurances: [
+        { text: 'Free shipping on UK orders over £50' },
+        { text: '30-day no-fuss returns' },
+        { text: 'Members save 15% at checkout' }
+      ],
+      storyParas: (p.story || '').split('\n\n').map((t) => ({ text: t })),
+      specs: (p.specs || []).map((s) => ({ k: s[0], v: s[1] })),
+      related: cat.related(p.slug, 4).map((r) => ({
+        name: r.name, catLabel: r.catLabel, price: fmt(r.price),
+        bg: 'url(' + r.images[0] + ')', href: 'MG Product.dc.html?p=' + r.slug
+      }))
+    });
+  }
+}
+</script>
+</body>
+</html>

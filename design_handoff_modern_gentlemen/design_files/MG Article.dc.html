@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth;overflow-x:clip;}
+body{margin:0;background:#0d0d0d;color:var(--mg-fg,#f4f4f4);-webkit-font-smoothing:antialiased;}
+a{color:#ff4d5e;text-decoration:none;}
+a:hover{color:#C8102E;}
+[data-body] p{margin:0 0 22px;}
+[data-lede]::first-letter{float:left;font:500 74px/0.72 'Space Grotesk',sans-serif;padding:6px 12px 0 0;color:#C8102E;}
+[data-relcard]{transition:transform .2s ease;}
+[data-relcard]:hover{transform:translateY(-4px);}
+[data-scrim]{background:linear-gradient(180deg,rgba(10,10,11,0.28) 0%,transparent 34%,transparent 48%,rgba(10,10,11,0.88) 100%);}
+[data-galcell]{overflow:hidden;}
+[data-galcell] div{transition:transform .4s cubic-bezier(.2,.7,.2,1);}
+[data-galcell]:hover div{transform:scale(1.05);}
+[data-specrow]:nth-child(even){background:color-mix(in srgb,var(--mg-bd,#ffffff) 2%,transparent);}
+@media (max-width:820px){
+  [data-title-xl]{font-size:52px!important;}
+  [data-title-lg]{font-size:46px!important;}
+  [data-split]{grid-template-columns:1fr!important;}
+  [data-split] [data-splitimg]{min-height:320px!important;order:-1;}
+  [data-gal]{grid-template-columns:1fr 1fr!important;}
+  [data-listrow]{grid-template-columns:1fr!important;}
+  [data-listrow] [data-listimg]{min-height:200px!important;}
+}
+@media (max-width:680px){
+  [data-hero-media]{height:62vh!important;min-height:420px;}
+  [data-title-xl]{font-size:40px!important;}
+  [data-title-lg]{font-size:36px!important;}
+  [data-body]{font-size:17px!important;}
+  [data-figure]{margin-left:0!important;margin-right:0!important;}
+  [data-manrow]{font-size:34px!important;}
+  [data-specwrap]{overflow-x:auto;}
+}
+
+/* ===== Light theme (driven by shared MG Header toggle) ===== */
+[data-page]{--mg-fg:#f4f4f4;}
+html[data-mgtheme="light"] [data-page]{background:#f4f4f4!important;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;}
+html[data-mgtheme="light"] [data-page] [data-darkband]{--mg-fg:#f4f4f4;--mg-bd:#ffffff;color:#f4f4f4;}
+
+html[data-mgtheme="light"]{background:#f4f4f4;}
+html[data-mgtheme="light"] body{background:#f4f4f4;color:#141414;}
+/* minimal neutral skeleton: only guaranteed-correct elements (burger + logo + search) */
+@media (max-width:680px){#mg-header-skeleton{padding-left:20px!important;padding-right:20px!important;}}
+html[data-mgtheme="light"] #mg-header-skeleton{color:#141414!important;}
+html[data-mgtheme="light"] #mg-header-skeleton img{filter:invert(1)!important;}
+html[data-mgtheme="light"] #mg-header-skeleton [data-skburger] span:nth-child(1){background:#141414!important;}
+/* hide the dc-import loading placeholder box for MG Header — the skeleton covers it */
+#mg-header-skeleton + * .sc-placeholder,#mg-header-skeleton + .sc-placeholder{display:none!important;}
+html[data-mgtheme="dark"]{background:#0d0d0d;}
+</style>
+<script>try{document.documentElement.setAttribute('data-mgtheme',(localStorage.getItem('mg-theme')||'light'));}catch(e){}</script>
+
+</helmet>
+<div data-template="{{ template }}" data-hk="{{ heroKind }}" data-bk="{{ bodyKind }}" data-page style="min-height:100vh;background:#0d0d0d;">
+
+  <div style="position:fixed;top:0;left:0;right:0;height:3px;z-index:80;background:color-mix(in srgb,var(--mg-bd,#ffffff) 6%,transparent);">
+    <div ref="{{ setProgressRef }}" style="height:100%;width:0;background:#C8102E;transition:width .1s linear;"></div>
+  </div>
+
+  <!-- instant static header (removed by MG Header on mount) prevents a blank bar on navigation -->
+  <div id="mg-header-skeleton" style="position:fixed;top:0;left:0;right:0;z-index:59;height:72px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:2px max(48px, calc((100% - 1320px) / 2)) 0;background:transparent;pointer-events:none;color:#fff;"><div style="display:flex;align-items:center;gap:14px;flex-shrink:0;"><span data-skburger style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;width:22px;"><span style="width:22px;height:2px;border-radius:2px;background:#f4f4f4;display:block;"></span><span style="width:13px;height:2px;border-radius:2px;background:#C8102E;display:block;box-shadow:0 0 8px 0 rgba(200,16,46,0.45);"></span></span><img src="mg-logo.svg" alt="" style="height:20px;width:auto;display:block;"></div><span data-skicon style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg></span></div>
+  <dc-import name="MG Header" hint-size="100%,64px" dark-mode="{{ darkMode }}" sharp-corners="{{ sharpCorners }}" header-style="{{ headerStyle }}" header-scheme="{{ headerScheme }}" invert-header="{{ invertHeader }}" header-scale="{{ headerScale }}" header-height="{{ headerHeight }}" shrink-on-scroll="{{ shrinkOnScroll }}" shrunk-height="{{ shrunkHeight }}" nav-motion="{{ navMotion }}" hide-on-scroll="{{ hideOnScroll }}" always-frosted="{{ alwaysFrosted }}" header-divider="{{ headerDivider }}" burger-variant="{{ burgerVariant }}" burger-hover="{{ burgerHover }}" menu-hover="{{ menuHover }}" icon-bubbles="{{ iconBubbles }}" icon-bubble-hover="{{ iconBubbleHover }}" icon-hover="{{ iconHover }}" sidebar-entry="{{ sidebarEntry }}" dropdown-anim="{{ dropdownAnim }}" dropdown-exit="{{ dropdownExit }}" sidebar-bubbles="{{ sidebarBubbles }}" chevron-bubbles="{{ chevronBubbles }}" sidebar-tagline="{{ sidebarTagline }}" sidebar-logo="{{ sidebarLogo }}"></dc-import>
+
+  <!-- ============================ HERO VARIANTS ============================ -->
+
+  <sc-if value="{{ hkFull }}" hint-placeholder-val="{{ true }}">
+    <div style="position:relative;">
+      <div data-hero-media style="position:relative;height:80vh;min-height:540px;overflow:hidden;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-hero" src="{{ heroImg }}" shape="rect" placeholder="Drop the cover image" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+        <div data-scrim style="position:absolute;inset:0;pointer-events:none;"></div>
+      </div>
+      <div data-darkband style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 60px;text-align:center;">
+        <div style="max-width:960px;margin:0 auto;">
+          <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:18px;">{{ kicker }}</div>
+          <h1 data-title-xl style="margin:0;font:600 74px/0.98 'Space Grotesk',sans-serif;letter-spacing:-0.045em;">{{ title }}</h1>
+          <p style="margin:22px auto 0;max-width:620px;font:400 21px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);">{{ dek }}</p>
+          <div style="margin-top:26px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 62%,transparent);">{{ byline }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkContained }}" hint-placeholder-val="{{ false }}">
+    <div style="box-sizing:border-box;max-width:1120px;margin:0 auto;padding:120px 24px 0;">
+      <div style="max-width:760px;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:16px;">{{ kicker }}</div>
+        <h1 data-title-lg style="margin:0;font:600 56px/1 'Space Grotesk',sans-serif;letter-spacing:-0.04em;">{{ title }}</h1>
+        <p style="margin:20px 0 0;max-width:600px;font:400 20px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">{{ dek }}</p>
+        <div style="margin-top:22px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">{{ byline }}</div>
+      </div>
+      <div data-hero-media style="position:relative;height:52vh;min-height:360px;margin-top:36px;border-radius:12px;overflow:hidden;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-hero" src="{{ heroImg }}" shape="rect" placeholder="Drop the cover image" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkCover }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;">
+      <div data-hero-media style="position:relative;height:90vh;min-height:600px;overflow:hidden;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-hero" src="{{ heroImg }}" shape="rect" placeholder="Drop the cover image" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+        <div data-scrim style="position:absolute;inset:0;pointer-events:none;"></div>
+      </div>
+      <div data-darkband style="position:absolute;left:0;right:0;bottom:0;box-sizing:border-box;max-width:1320px;margin:0 auto;padding:0 max(24px,calc((100% - 1320px)/2)) 56px;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:16px;">{{ kicker }}</div>
+        <h1 data-title-xl style="margin:0;max-width:12ch;font:700 108px/0.9 'Space Grotesk',sans-serif;letter-spacing:-0.05em;">{{ title }}</h1>
+        <p style="margin:22px 0 0;max-width:520px;font:400 21px/1.4 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);">{{ dek }}</p>
+        <div style="margin-top:22px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 62%,transparent);">{{ byline }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkWide }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;">
+      <div data-hero-media style="position:relative;height:62vh;min-height:440px;overflow:hidden;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-hero" src="{{ heroImg }}" shape="rect" placeholder="Drop the cover image" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+        <div data-scrim style="position:absolute;inset:0;pointer-events:none;"></div>
+      </div>
+      <div data-darkband style="text-align:center;box-sizing:border-box;max-width:900px;margin:-90px auto 0;position:relative;padding:0 24px;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:16px;">{{ kicker }}</div>
+        <h1 data-title-xl style="margin:0;font:600 64px/0.98 'Space Grotesk',sans-serif;letter-spacing:-0.045em;">{{ title }}</h1>
+        <p style="margin:20px auto 0;max-width:560px;font:400 20px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 82%,transparent);">{{ dek }}</p>
+        <div style="margin-top:20px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">{{ byline }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkPortrait }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;">
+      <div data-hero-media style="position:relative;height:74vh;min-height:520px;overflow:hidden;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-hero" src="{{ heroImg }}" shape="rect" placeholder="Drop the portrait" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+        <div data-scrim style="position:absolute;inset:0;pointer-events:none;"></div>
+      </div>
+      <div data-darkband style="position:absolute;left:0;right:0;bottom:0;box-sizing:border-box;max-width:1120px;margin:0 auto;padding:0 24px 54px;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:16px;">{{ kicker }}</div>
+        <h1 data-title-lg style="margin:0;max-width:16ch;font:600 62px/0.98 'Space Grotesk',sans-serif;letter-spacing:-0.045em;">{{ title }}</h1>
+        <div style="margin-top:20px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 62%,transparent);">{{ byline }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkSplit }}" hint-placeholder-val="{{ false }}">
+    <div data-split style="box-sizing:border-box;max-width:1320px;margin:0 auto;padding:120px max(24px,calc((100% - 1320px)/2)) 20px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;">
+      <div>
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:16px;">{{ kicker }}</div>
+        <h1 data-title-lg style="margin:0;font:600 60px/0.98 'Space Grotesk',sans-serif;letter-spacing:-0.045em;">{{ title }}</h1>
+        <p style="margin:20px 0 0;font:400 20px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 72%,transparent);">{{ dek }}</p>
+        <div style="margin-top:22px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">{{ byline }}</div>
+      </div>
+      <div data-splitimg style="position:relative;height:60vh;min-height:440px;border-radius:12px;overflow:hidden;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-hero" src="{{ heroImg }}" shape="rect" placeholder="Drop the portrait" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkMasthead }}" hint-placeholder-val="{{ false }}">
+    <div style="box-sizing:border-box;max-width:900px;margin:0 auto;padding:150px 24px 8px;">
+      <div style="width:54px;height:3px;background:#C8102E;margin-bottom:30px;"></div>
+      <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:20px;">{{ kicker }}</div>
+      <h1 data-title-xl style="margin:0;font:600 72px/1.0 'Space Grotesk',sans-serif;letter-spacing:-0.045em;">{{ title }}</h1>
+      <p style="margin:26px 0 0;max-width:640px;font:400 23px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 75%,transparent);">{{ dek }}</p>
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">{{ byline }}</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkCentered }}" hint-placeholder-val="{{ false }}">
+    <div style="box-sizing:border-box;max-width:820px;margin:0 auto;padding:150px 24px 8px;text-align:center;">
+      <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:20px;">{{ kicker }}</div>
+      <h1 data-title-lg style="margin:0;font:600 60px/1.0 'Space Grotesk',sans-serif;letter-spacing:-0.04em;">{{ title }}</h1>
+      <p style="margin:24px auto 0;max-width:560px;font:400 22px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 75%,transparent);">{{ dek }}</p>
+      <div style="margin-top:24px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">{{ byline }}</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hkVideo }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;">
+      <div data-hero-media style="position:relative;height:80vh;min-height:540px;overflow:hidden;background:#000;">{{ heroMedia }}
+        <div data-scrim style="position:absolute;inset:0;pointer-events:none;"></div>
+      </div>
+      <div data-darkband style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 56px;text-align:center;">
+        <div style="max-width:900px;margin:0 auto;">
+          <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.26em;color:#ff4d5e;margin-bottom:16px;">{{ kicker }}</div>
+          <h1 data-title-xl style="margin:0;font:600 68px/0.98 'Space Grotesk',sans-serif;letter-spacing:-0.045em;">{{ title }}</h1>
+          <div style="margin-top:22px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 62%,transparent);">{{ byline }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============================ BODY VARIANTS ============================ -->
+
+  <sc-if value="{{ bkProse }}" hint-placeholder-val="{{ true }}">
+    <article style="box-sizing:border-box;max-width:720px;margin:0 auto;padding:72px 24px 40px;">
+      <div data-body style="font:300 19px/1.72 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">
+        <p data-lede>There is a particular kind of composure that belongs to the man who is never rushed. He arrives before the room fills, orders without hurry, and leaves the impression that time is something he keeps rather than chases. It is not a trick of the diary. It is a discipline — and, increasingly, a rarity.</p>
+        <p>We have confused speed with seriousness. The faster the reply, the more we assume it matters; the busier the calendar, the more important the man. But urgency is cheap, and it flatters no one for long. What endures is the opposite instinct: the willingness to move deliberately, to let a thing take the time it actually requires.</p>
+        <h2 style="margin:44px 0 18px;font:600 30px/1.1 'Space Grotesk',sans-serif;letter-spacing:-0.03em;color:var(--mg-fg,#f4f4f4);">Patience as a Material</h2>
+        <p>Consider the objects that outlast us — a well-made watch, a hand-welted shoe, a car built to be kept rather than replaced. None of them were made quickly. Their quality is inseparable from the hours poured into them, and we recognise it instantly, even when we cannot name what we are looking at.</p>
+        <figure data-figure style="margin:40px -40px;">
+          <div style="position:relative;height:420px;border-radius:12px;overflow:hidden;">
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="article-inline" src="images/film-workshop.jpg" shape="rect" placeholder="Drop an inline image" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
+          </div>
+          <figcaption style="margin-top:12px;font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 40%,transparent);text-align:center;">Slow work, kept honest — the coachbuilder's floor, unhurried.</figcaption>
+        </figure>
+        <blockquote style="margin:48px 0;font:400 34px/1.25 'Instrument Serif',serif;font-style:italic;color:var(--mg-fg,#f4f4f4);text-align:center;"><span style="color:#C8102E;">“</span>The gentleman who arrives early has already decided that his attention is worth protecting.<span style="color:#C8102E;">”</span></blockquote>
+        <p>To arrive early is to refuse the small panic that governs most days. It buys a margin — a few unclaimed minutes in which to notice the room, gather a thought, and greet the person in front of you as if they were the only appointment that mattered. That margin is the whole point.</p>
+        <p>None of this requires a slower world. It requires a slower self, held steady inside a fast one. Choose the things worth waiting for, give them the hours they deserve, and let everything else move at whatever speed it likes.</p>
+      </div>
+      <div style="margin-top:52px;padding-top:28px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);display:flex;gap:18px;align-items:center;">
+        <div style="width:52px;height:52px;border-radius:50%;flex-shrink:0;background:#C8102E;display:flex;align-items:center;justify-content:center;font:500 18px 'Space Grotesk',sans-serif;color:#fff;">{{ authorInitial }}</div>
+        <div><div style="font:500 15px 'Space Grotesk',sans-serif;color:var(--mg-fg,#f4f4f4);">{{ author }}</div><div style="margin-top:3px;font:400 13px/1.5 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">Contributing editor, on style, stewardship, and the considered life.</div></div>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkEssay }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:740px;margin:0 auto;padding:64px 24px 40px;">
+      <div data-body style="font:300 19px/1.74 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">
+        <p data-lede>The fastest car on the road is rarely the most interesting one in the room. Somewhere between the spec sheet and the driveway, we started mistaking acceleration for character — as if a machine's worth could be read off a stopwatch.</p>
+        <p>It cannot. The cars that hold us are the ones that ask something of the driver: a heel-and-toe downshift, a corner taken on trust, a engine that rewards patience rather than punishing hesitation. Speed is a number. Involvement is a relationship.</p>
+        <h2 style="margin:46px 0 16px;font:600 28px/1.12 'Space Grotesk',sans-serif;letter-spacing:-0.03em;color:var(--mg-fg,#f4f4f4);">The tyranny of the number</h2>
+        <p>Zero to sixty has become the only figure anyone quotes, and it flatters the wrong virtues. It rewards mass, electronics and grip — never feel, never sound, never the slow bloom of confidence that comes from knowing a machine well.</p>
+        <h2 style="margin:46px 0 16px;font:600 28px/1.12 'Space Grotesk',sans-serif;letter-spacing:-0.03em;color:var(--mg-fg,#f4f4f4);">In praise of the slow car, driven fast</h2>
+        <p>Give a man a modest car and an honest road and he will find more joy than any hypercar offers in traffic. The lesson travels well beyond driving: the good life is not the quickest one. It is the one you are actually present for.</p>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkLetter }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:680px;margin:0 auto;padding:56px 24px 40px;">
+      <div data-body style="font:300 20px/1.8 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">
+        <p>Dear reader,</p>
+        <p>We started Modern Gentlemen with a small, stubborn belief: that taste is not nostalgia, and that caring about how things are made is not the same as living in the past. This issue is our argument for that belief, told through the men and workshops who prove it every day.</p>
+        <p>You will find no life hacks here. No ten-step routines, no productivity gospel. Only a few things worth doing properly, described as honestly as we know how. If a single page sends you to the barber you've been meaning to try, or the watchmaker who services rather than sells, it will have done its job.</p>
+        <p>Read it slowly. That is rather the point.</p>
+      </div>
+      <div style="margin-top:40px;">
+        <div style="font:400 34px/1 'Instrument Serif',serif;font-style:italic;color:var(--mg-fg,#f4f4f4);">{{ author }}</div>
+        <div style="margin-top:8px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">EDITOR-IN-CHIEF · MODERN GENTLEMEN</div>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkQa }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:720px;margin:0 auto;padding:64px 24px 40px;">
+      <p style="margin:0 0 40px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">We spent a morning on the workshop floor with a man who shapes aluminium by hand and eye. What follows has been edited only for length.</p>
+      <sc-for list="{{ qa }}" as="row" hint-placeholder-count="4">
+        <div style="margin:0 0 30px;">
+          <p style="margin:0 0 12px;font:500 19px/1.4 'Space Grotesk',sans-serif;letter-spacing:-0.01em;color:#ff4d5e;">{{ row.q }}</p>
+          <p style="margin:0;font:300 18px/1.72 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">{{ row.a }}</p>
+        </div>
+      </sc-for>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkAsk }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:720px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 36px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">Every week our editors answer the questions readers actually send. This week: knots, cologne, and when to break a rule.</p>
+      <sc-for list="{{ qa }}" as="row" hint-placeholder-count="4">
+        <div style="margin:0 0 28px;padding:0 0 28px;border-bottom:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+          <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);margin-bottom:10px;">{{ row.who }}</div>
+          <p style="margin:0 0 12px;font:500 20px/1.35 'Space Grotesk',sans-serif;letter-spacing:-0.015em;color:var(--mg-fg,#f4f4f4);">{{ row.q }}</p>
+          <p style="margin:0;font:300 17px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 82%,transparent);">{{ row.a }}</p>
+        </div>
+      </sc-for>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkProfile }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:1120px;margin:0 auto;padding:56px 24px 40px;display:grid;grid-template-columns:260px 1fr;gap:48px;align-items:start;">
+      <aside style="position:sticky;top:90px;display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mg-bd,#ffffff) 9%,transparent);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 9%,transparent);border-radius:12px;overflow:hidden;">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="background:var(--mg-surface,#0d0d0d);padding:18px 20px;"><div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">{{ s.k }}</div><div style="margin-top:6px;font:500 17px 'Space Grotesk',sans-serif;color:var(--mg-fg,#f4f4f4);">{{ s.v }}</div></div>
+        </sc-for>
+      </aside>
+      <div data-body style="font:300 19px/1.72 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">
+        <p data-lede>He works in a shed that smells of linseed and hot metal, in a village most maps forget. For four decades he has restored the cars other people gave up on — and turned away more commissions than he has accepted.</p>
+        <p>&ldquo;A car tells you how it wants to be saved,&rdquo; he says, without looking up. &ldquo;Your job is to listen and not to hurry it.&rdquo; It is a philosophy that has made him quietly famous among the people who matter and comfortably invisible to everyone else.</p>
+        <p>What he sells is not speed or shine. It is continuity — the sense that an object can outlive the hands that made it, and the hands that saved it, and still mean something to whoever comes next.</p>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkReview }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:760px;margin:0 auto;padding:56px 24px 40px;">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;margin:0 0 40px;padding:26px 30px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);border-radius:12px;background:var(--mg-surface,#161618);">
+        <div><div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.22em;color:#ff4d5e;margin-bottom:10px;">THE VERDICT</div><div style="font:400 19px/1.4 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 82%,transparent);">{{ verdict }}</div></div>
+        <div style="text-align:center;flex-shrink:0;"><div style="font:600 52px/1 'Space Grotesk',sans-serif;letter-spacing:-0.04em;color:#C8102E;">{{ score }}</div><div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 40%,transparent);margin-top:4px;">OUT OF 10</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 36px;">
+        <div style="border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);border-radius:10px;padding:20px 22px;"><div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:#4ade80;margin-bottom:12px;">FOR</div><div style="font:300 15px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent);">Beautifully finished. Ages honestly. The kind of thing you stop noticing you own, in the best way.</div></div>
+        <div style="border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);border-radius:10px;padding:20px 22px;"><div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:#ff4d5e;margin-bottom:12px;">AGAINST</div><div style="font:300 15px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent);">Priced for patience. The waiting list is real, and the colours you actually want are always the slow ones.</div></div>
+      </div>
+      <div data-body style="font:300 19px/1.72 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">
+        <p data-lede>We lived with it for a month before writing a word — the only honest way to review anything meant to last years. The first impression flatters; the fourth week tells the truth.</p>
+        <p>It passed. Not because it is flawless, but because its flaws are the interesting kind — the compromises of something made with a point of view rather than a focus group. You buy it once. That is rather the review.</p>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkSpec }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:960px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 36px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);max-width:640px;">Three watches, one honest question: which earns the place on your wrist for the next decade? We put them side by side.</p>
+      <div data-specwrap style="border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);border-radius:12px;overflow:hidden;">
+        <sc-for list="{{ spec }}" as="r" hint-placeholder-count="6">
+          <div data-specrow style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:16px;padding:16px 22px;border-bottom:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 8%,transparent);align-items:center;">
+            <div style="font:400 {{ r.size }} '{{ r.font }}',sans-serif;letter-spacing:0.04em;color:{{ r.labelColor }};">{{ r.label }}</div>
+            <div style="font:400 14px 'Space Grotesk',sans-serif;color:{{ r.valColor }};">{{ r.a }}</div>
+            <div style="font:400 14px 'Space Grotesk',sans-serif;color:{{ r.valColor }};">{{ r.b }}</div>
+            <div style="font:400 14px 'Space Grotesk',sans-serif;color:{{ r.valColor }};">{{ r.c }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkPhoto }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:1000px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 40px;font:300 21px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 72%,transparent);max-width:640px;">Dawn at the coachbuilder's. Photographed over one quiet morning, before the tools warmed and the phones started.</p>
+      <sc-for list="{{ photos }}" as="p" hint-placeholder-count="3">
+        <figure style="margin:0 0 44px;">
+          <div style="position:relative;height:64vh;min-height:420px;border-radius:12px;overflow:hidden;background:#0d0d0d;background-image:{{ p.bg }};background-size:cover;background-position:center;"></div>
+          <figcaption style="margin-top:14px;font:400 12px 'IBM Plex Mono',monospace;letter-spacing:0.12em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">{{ p.cap }}</figcaption>
+        </figure>
+      </sc-for>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkGallery }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:1120px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 32px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 72%,transparent);max-width:600px;">A visual index of the season's objects — everything here earns its place, nothing here shouts.</p>
+      <div data-gal style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+        <sc-for list="{{ gallery }}" as="g" hint-placeholder-count="6">
+          <figure data-galcell style="margin:0;border-radius:10px;overflow:hidden;">
+            <div style="height:300px;background:#0d0d0d;background-image:{{ g.bg }};background-size:cover;background-position:center;"></div>
+            <figcaption style="padding:12px 4px 0;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.12em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">{{ g.cap }}</figcaption>
+          </figure>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkFilm }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:820px;margin:0 auto;padding:60px 24px 40px;">
+      <div data-body style="font:300 19px/1.72 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 86%,transparent);">
+        <p data-lede>Twelve minutes on the last men shaping aluminium by hand. No narration, no music you'll remember — just the sound of a craft that refuses to be hurried.</p>
+        <p>We filmed across three mornings and cut almost none of it. What you're watching is roughly the pace of the work itself, which was rather the point.</p>
+      </div>
+      <div style="margin-top:36px;padding-top:26px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+        <div><div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">DIRECTED BY</div><div style="margin-top:6px;font:500 15px 'Space Grotesk',sans-serif;">D. Whitfield</div></div>
+        <div><div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">RUNTIME</div><div style="margin-top:6px;font:500 15px 'Space Grotesk',sans-serif;">12:04</div></div>
+        <div><div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">SERIES</div><div style="margin-top:6px;font:500 15px 'Space Grotesk',sans-serif;">MG Film · No. 12</div></div>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkList }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:820px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 40px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);max-width:600px;">Five things we'd buy again without hesitating — ranked, argued, and photographed on the desk that tested them.</p>
+      <div style="display:flex;flex-direction:column;gap:22px;">
+        <sc-for list="{{ list }}" as="it" hint-placeholder-count="5">
+          <div data-listrow style="display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:center;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);border-radius:12px;overflow:hidden;background:var(--mg-surface,#131315);">
+            <div data-listimg style="position:relative;min-height:180px;height:100%;background:#0d0d0d;background-image:{{ it.bg }};background-size:cover;background-position:center;"></div>
+            <div style="padding:22px 26px 22px 0;">
+              <div style="display:flex;align-items:center;gap:12px;"><span style="font:600 30px/1 'Space Grotesk',sans-serif;letter-spacing:-0.04em;color:#C8102E;">{{ it.rank }}</span><span style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">{{ it.tag }}</span></div>
+              <h3 style="margin:10px 0 0;font:500 22px/1.15 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ it.name }}</h3>
+              <p style="margin:8px 0 0;font:300 14.5px/1.6 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 62%,transparent);">{{ it.blurb }}</p>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkSteps }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:720px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 44px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">Buying a first proper suit is simpler than the shops make it feel. Five steps, in order, and one thing to ignore entirely.</p>
+      <div style="display:flex;flex-direction:column;">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:22px;padding:24px 0;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+            <div style="width:44px;height:44px;border-radius:50%;border:1px solid #C8102E;color:#C8102E;display:flex;align-items:center;justify-content:center;font:500 17px 'Space Grotesk',sans-serif;flex-shrink:0;">{{ s.n }}</div>
+            <div><h3 style="margin:6px 0 0;font:500 21px/1.2 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ s.title }}</h3><p style="margin:10px 0 0;font:300 16px/1.65 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">{{ s.body }}</p></div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkRegimen }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:720px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 40px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">Seven honest minutes, four products, done before the coffee's cold. The short regimen that actually holds.</p>
+      <div style="display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mg-bd,#ffffff) 9%,transparent);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 9%,transparent);border-radius:12px;overflow:hidden;">
+        <sc-for list="{{ regimen }}" as="r" hint-placeholder-count="4">
+          <div style="background:var(--mg-surface,#0d0d0d);display:grid;grid-template-columns:78px 1fr auto;gap:18px;align-items:center;padding:20px 24px;">
+            <div style="font:600 26px/1 'Space Grotesk',sans-serif;letter-spacing:-0.03em;color:#C8102E;">{{ r.time }}</div>
+            <div><div style="font:500 17px 'Space Grotesk',sans-serif;letter-spacing:-0.015em;">{{ r.step }}</div><div style="margin-top:4px;font:300 14px/1.5 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 58%,transparent);">{{ r.note }}</div></div>
+            <div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.16em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 40%,transparent);">{{ r.tag }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkTimeline }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:760px;margin:0 auto;padding:56px 24px 40px;">
+      <p style="margin:0 0 44px;font:300 20px/1.7 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">How a stopwatch bolted to a wrist became the most quietly useful object a man can own. Five moments that mattered.</p>
+      <div style="display:flex;flex-direction:column;">
+        <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:110px 1fr;gap:26px;padding:0 0 30px;">
+            <div style="font:600 22px/1 'Space Grotesk',sans-serif;letter-spacing:-0.02em;color:#C8102E;">{{ t.year }}</div>
+            <div style="border-left:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 14%,transparent);padding:0 0 4px 24px;position:relative;">
+              <span style="position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:#C8102E;"></span>
+              <h3 style="margin:0;font:500 20px/1.2 'Space Grotesk',sans-serif;letter-spacing:-0.015em;">{{ t.title }}</h3>
+              <p style="margin:8px 0 0;font:300 15px/1.65 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 68%,transparent);">{{ t.body }}</p>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkRundown }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:760px;margin:0 auto;padding:56px 24px 40px;">
+      <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);margin-bottom:26px;">FILED {{ issue }} · 4 THINGS WORTH YOUR ATTENTION</div>
+      <div style="display:flex;flex-direction:column;">
+        <sc-for list="{{ rundown }}" as="r" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;padding:22px 0;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+            <span style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:#C8102E;padding-top:5px;">{{ r.tag }}</span>
+            <div><h3 style="margin:0;font:500 20px/1.25 'Space Grotesk',sans-serif;letter-spacing:-0.015em;">{{ r.title }}</h3><p style="margin:8px 0 0;font:300 15.5px/1.62 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);">{{ r.body }}</p></div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <sc-if value="{{ bkManifesto }}" hint-placeholder-val="{{ false }}">
+    <article style="box-sizing:border-box;max-width:900px;margin:0 auto;padding:64px 24px 40px;text-align:center;">
+      <div style="display:flex;flex-direction:column;gap:44px;">
+        <sc-for list="{{ manifesto }}" as="m" hint-placeholder-count="4">
+          <p data-manrow style="margin:0;font:400 40px/1.24 'Instrument Serif',serif;font-style:italic;color:var(--mg-fg,#f4f4f4);">{{ m.text }}</p>
+        </sc-for>
+      </div>
+    </article>
+  </sc-if>
+
+  <!-- ============================ RELATED (shared) ============================ -->
+  <section style="box-sizing:border-box;max-width:1120px;margin:0 auto;padding:40px 24px 80px;">
+    <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:#C8102E;margin-bottom:22px;">KEEP READING</div>
+    <div data-gal style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;">
+      <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
+        <a data-relcard data-darkband href="MG Article.dc.html?a={{ r.slug }}" style="position:relative;border-radius:10px;overflow:hidden;display:block;min-height:230px;color:#fff;">
+          <div style="position:absolute;inset:0;background:#0d0d0d;background-image:{{ r.bg }};background-size:cover;background-position:center;"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,13,13,0) 45%,rgba(13,13,13,0.6) 100%);"></div>
+          <div data-darkband style="position:absolute;left:0;right:0;bottom:0;padding:14px 18px;background:rgba(16,16,18,0.45);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 14%,transparent);">
+            <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:#ff4d5e;">{{ r.tag }}</div>
+            <h3 style="margin:6px 0 0;font:500 19px/1.15 'Space Grotesk',sans-serif;letter-spacing:-0.02em;color:#fff;">{{ r.title }}</h3>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <dc-import name="MG Footer" hint-size="100%,320px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120,&quot;height&quot;:1000},&quot;template&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Feature&quot;,&quot;options&quot;:[&quot;Feature&quot;,&quot;Feature — Standard&quot;,&quot;Cover Story&quot;,&quot;The Big Read&quot;,&quot;Op-Ed&quot;,&quot;Letter from the Editor&quot;,&quot;Interview&quot;,&quot;Profile&quot;,&quot;Ask MG&quot;,&quot;Review&quot;,&quot;Spec Comparison&quot;,&quot;Photo Essay&quot;,&quot;Gallery&quot;,&quot;Film Feature&quot;,&quot;The List&quot;,&quot;Field Guide&quot;,&quot;The Regimen&quot;,&quot;A Brief History&quot;,&quot;The Rundown&quot;,&quot;Manifesto&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Template&quot;},&quot;category&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Culture&quot;,&quot;options&quot;:[&quot;Culture&quot;,&quot;Style&quot;,&quot;Watches&quot;,&quot;Grooming&quot;,&quot;Film&quot;,&quot;Opinion&quot;,&quot;Motoring&quot;,&quot;The Debrief&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Article&quot;},&quot;heroImage&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Article&quot;},&quot;heroVideoUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Article&quot;},&quot;score&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;8.6&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;verdict&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Beautifully made and quietly confident — a keeper, not a talking point.&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;darkMode&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;sharpCorners&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;headerStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Frosted&quot;,&quot;options&quot;:[&quot;Frosted&quot;,&quot;Glass rail&quot;,&quot;Bordered&quot;,&quot;Underline&quot;,&quot;Smoke&quot;,&quot;Mono line&quot;,&quot;Smoked glass&quot;,&quot;Bottom glow&quot;,&quot;Tinted red&quot;,&quot;Deep blur&quot;,&quot;Edge fade&quot;,&quot;Double rule&quot;,&quot;Hairline&quot;,&quot;Minimal&quot;,&quot;Cinema&quot;,&quot;Gradient fade&quot;,&quot;Vignette&quot;,&quot;Solid&quot;,&quot;Floating&quot;,&quot;Blur pill&quot;,&quot;Ink slab&quot;,&quot;Racing bar&quot;,&quot;Charcoal&quot;,&quot;Onyx&quot;,&quot;Contrast&quot;,&quot;Floating solid&quot;,&quot;Capsule&quot;,&quot;Tab&quot;,&quot;Notch&quot;,&quot;Marquee&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerScheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Auto&quot;,&quot;options&quot;:[&quot;Auto&quot;,&quot;Ink on paper&quot;,&quot;Paper on ink&quot;,&quot;Red on black&quot;,&quot;Black on red&quot;,&quot;White on red&quot;,&quot;Cream&quot;,&quot;Charcoal&quot;,&quot;Sand on navy&quot;,&quot;Mono light&quot;,&quot;Mono dark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;invertHeader&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.8,&quot;max&quot;:1.4,&quot;step&quot;:0.05,&quot;unit&quot;:&quot;×&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerHeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:72,&quot;min&quot;:56,&quot;max&quot;:110,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;shrinkOnScroll&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;shrunkHeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:58,&quot;min&quot;:20,&quot;max&quot;:90,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;navMotion&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Frost only&quot;,&quot;options&quot;:[&quot;Smooth&quot;,&quot;Spring&quot;,&quot;Snappy&quot;,&quot;Gentle&quot;,&quot;Frost only&quot;,&quot;Glide&quot;,&quot;Elastic&quot;,&quot;Molasses&quot;,&quot;Instant&quot;,&quot;Bounce&quot;,&quot;Silk&quot;,&quot;Crisp&quot;,&quot;Lazy&quot;,&quot;Taut&quot;,&quot;Fluid&quot;,&quot;Quartz&quot;,&quot;Drift&quot;,&quot;Punch&quot;,&quot;Feather&quot;,&quot;Hydraulic&quot;,&quot;Magnetic&quot;,&quot;Cinema&quot;,&quot;Rubber&quot;,&quot;Precision&quot;,&quot;Velvet&quot;,&quot;Coil&quot;,&quot;Anchor&quot;,&quot;Breeze&quot;,&quot;Piston&quot;,&quot;Whisper&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;hideOnScroll&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;alwaysFrosted&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerDivider&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;burgerVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Sq thin pair&quot;,&quot;options&quot;:[&quot;Signal&quot;,&quot;Even bars&quot;,&quot;Descending&quot;,&quot;Beacon&quot;,&quot;Dots&quot;,&quot;Centered&quot;,&quot;Ascending&quot;,&quot;Staircase&quot;,&quot;Wide top&quot;,&quot;Pinch&quot;,&quot;Bulge&quot;,&quot;Rail&quot;,&quot;Ember&quot;,&quot;Split bar&quot;,&quot;Notch&quot;,&quot;Squares&quot;,&quot;Blocks&quot;,&quot;Left rail&quot;,&quot;Right rail&quot;,&quot;Wedge&quot;,&quot;Ladder&quot;,&quot;Heavy&quot;,&quot;Thin&quot;,&quot;Pillbars&quot;,&quot;Red top&quot;,&quot;Red base&quot;,&quot;Offset&quot;,&quot;Tapered&quot;,&quot;Morse&quot;,&quot;Compact&quot;,&quot;Dot trio&quot;,&quot;Dot ascending&quot;,&quot;Dot descending&quot;,&quot;Dot pinch&quot;,&quot;Dot bulge&quot;,&quot;Dot red top&quot;,&quot;Dot red base&quot;,&quot;Dot pair&quot;,&quot;Dot wide&quot;,&quot;Dot ring&quot;,&quot;Sq trio&quot;,&quot;Sq ascending&quot;,&quot;Sq descending&quot;,&quot;Sq pinch&quot;,&quot;Sq bulge&quot;,&quot;Sq red top&quot;,&quot;Sq red base&quot;,&quot;Sq pair&quot;,&quot;Sq wide&quot;,&quot;Sq ring&quot;,&quot;Sq stack&quot;,&quot;Sq mixed&quot;,&quot;Sq tiny&quot;,&quot;Sq big&quot;,&quot;Sq diagonal&quot;,&quot;Sq thin trio&quot;,&quot;Sq thin asc&quot;,&quot;Sq thin desc&quot;,&quot;Sq thin pinch&quot;,&quot;Sq thin bulge&quot;,&quot;Sq thin pair&quot;,&quot;Sq thin ring&quot;,&quot;Sq thin red top&quot;,&quot;Sq thin wide&quot;,&quot;Sq thin stack&quot;,&quot;Sq thin duo&quot;,&quot;Sq thin micro&quot;,&quot;Sq thin mid&quot;,&quot;Sq thin col&quot;,&quot;Sq thin step&quot;,&quot;Sq thin split&quot;,&quot;Sq thin dash&quot;,&quot;Sq thin nudge&quot;,&quot;Sq thin frame&quot;,&quot;Sq thin twin&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;burgerHover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Staircase&quot;,&quot;options&quot;:[&quot;Align&quot;,&quot;Converge&quot;,&quot;Nudge&quot;,&quot;Pulse&quot;,&quot;Spin&quot;,&quot;Spread&quot;,&quot;Collapse&quot;,&quot;Expand&quot;,&quot;Rotate CCW&quot;,&quot;Tilt&quot;,&quot;Skew&quot;,&quot;Lift&quot;,&quot;Sink&quot;,&quot;Grow&quot;,&quot;Shrink&quot;,&quot;Redden&quot;,&quot;Whiten&quot;,&quot;Staircase&quot;,&quot;Invert stair&quot;,&quot;Center pinch&quot;,&quot;Bulge&quot;,&quot;Slide right&quot;,&quot;Slide left&quot;,&quot;Arrow&quot;,&quot;Zigzag&quot;,&quot;Bounce&quot;,&quot;Compress&quot;,&quot;Fatten&quot;,&quot;Glow all&quot;,&quot;Rock&quot;,&quot;Fan&quot;,&quot;Drift&quot;,&quot;Wobble&quot;,&quot;Snap left&quot;,&quot;Pop&quot;,&quot;Fold&quot;,&quot;Thin out&quot;,&quot;Spread wide&quot;,&quot;Twist&quot;,&quot;Ripple&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;menuHover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Underline&quot;,&quot;options&quot;:[&quot;Underline&quot;,&quot;Highlight&quot;,&quot;Slide&quot;,&quot;Lift&quot;,&quot;Color&quot;,&quot;Bubble&quot;,&quot;Glow&quot;,&quot;Boxed&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;iconBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;iconBubbleHover&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;sidebarEntry&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Fade&quot;,&quot;options&quot;:[&quot;Slide&quot;,&quot;Fade&quot;,&quot;Scale&quot;,&quot;Swing door&quot;,&quot;Reveal&quot;,&quot;Blur&quot;,&quot;Drop&quot;,&quot;Zoom&quot;,&quot;Flip&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;dropdownAnim&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Curtain&quot;,&quot;options&quot;:[&quot;Stagger up&quot;,&quot;Cascade fade&quot;,&quot;Unfold&quot;,&quot;Slide in&quot;,&quot;Slide right&quot;,&quot;Zoom in&quot;,&quot;Zoom out&quot;,&quot;Flip X&quot;,&quot;Flip Y&quot;,&quot;Swing&quot;,&quot;Blur in&quot;,&quot;Skew&quot;,&quot;Rise far&quot;,&quot;Drop bounce&quot;,&quot;Spring&quot;,&quot;Pop&quot;,&quot;Glide left&quot;,&quot;Tilt&quot;,&quot;Curtain&quot;,&quot;Clip reveal&quot;,&quot;Peel&quot;,&quot;Float&quot;,&quot;Elastic&quot;,&quot;Rotate in&quot;,&quot;Fade down&quot;,&quot;Expand&quot;,&quot;Drift&quot;,&quot;Snap&quot;,&quot;Wave&quot;,&quot;Ripple&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;dropdownExit&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Collapse&quot;,&quot;options&quot;:[&quot;Collapse&quot;,&quot;Fade&quot;,&quot;Slide up&quot;,&quot;Slide left&quot;,&quot;Zoom out&quot;,&quot;Curtain&quot;,&quot;Blur out&quot;,&quot;Fold&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;sidebarBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;chevronBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;sidebarTagline&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;The Men’s Lifestyle Guide&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;iconHover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Circle&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;,&quot;options&quot;:[&quot;Circle&quot;,&quot;Circle bright&quot;,&quot;Ring&quot;,&quot;Scale&quot;,&quot;Lift&quot;,&quot;Rotate&quot;,&quot;Redden&quot;,&quot;Glow&quot;,&quot;None&quot;]},&quot;sidebarLogo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Wordmark&quot;,&quot;options&quot;:[&quot;MG monogram&quot;,&quot;Wordmark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;}}">
+class Component extends DCLogic {
+  setProgressRef = (el) => { this._bar = el; };
+
+  state = { tplOverride: null };
+
+  slugify(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'default'; }
+
+  defaultTplFor(slug) {
+    const map = {
+      'the-art-of-arriving-early': 'Feature',
+      'speed-considered': 'Cover Story',
+      'racing-green-is-the-new-navy': 'Feature \u2014 Standard',
+      'why-dial-symmetry-matters': 'Review',
+      'the-case-against-12-step-routines': 'The Regimen',
+      'the-analog-weekend': 'Photo Essay',
+      'the-slow-car-fast-philosophy': 'The Big Read',
+      'the-coachbuilders-floor': 'Film Feature',
+      'inside-the-watchmakers-bench': 'Spec Comparison',
+      'the-only-dive-watch-you-need': 'Review'
+    };
+    if (map[slug]) return map[slug];
+    const keys = Object.keys(this.config());
+    let h = 0; for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) >>> 0;
+    return keys[h % keys.length];
+  }
+
+  componentDidMount() {
+    this._onScroll = () => {
+      if (!this._bar) return;
+      const h = document.documentElement;
+      const max = (h.scrollHeight - h.clientHeight) || 1;
+      const pct = Math.min(100, Math.max(0, (h.scrollTop || document.body.scrollTop) / max * 100));
+      this._bar.style.width = pct + '%';
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+    try {
+      this._aid = ((new URLSearchParams(location.search)).get('a') || 'default').toLowerCase();
+      const saved = localStorage.getItem('mg-atpl::' + this._aid);
+      this.setState({ tplOverride: saved || this.defaultTplFor(this._aid) });
+    } catch (e) {}
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps && prevProps.template !== this.props.template && this.props.template) {
+      try { localStorage.setItem('mg-atpl::' + (this._aid || 'default'), this.props.template); } catch (e) {}
+      this.setState({ tplOverride: this.props.template });
+    }
+  }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); }
+
+  buildHeroVideo(url) {
+    const R = React.createElement;
+    return R('video', {
+      src: url, autoPlay: true, muted: true, loop: true, playsInline: true,
+      ref: (el) => { if (!el) return; el.muted = true; el.defaultMuted = true; const p = el.play(); if (p && p.catch) p.catch(() => {}); },
+      style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', background: '#000' }
+    });
+  }
+
+  config() {
+    return {
+      'Feature':                { hk: 'Full',     bk: 'Prose',     cat: 'Culture', no: '042', title: 'The Art of Arriving Early', dek: 'On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.', author: 'A. Bellamy', read: '6 MIN', img: 'images/hero-cover.jpg' },
+      'Feature — Standard':     { hk: 'Contained', bk: 'Prose',    cat: 'Culture', no: '042', title: 'The Art of Arriving Early', dek: 'On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.', author: 'A. Bellamy', read: '6 MIN', img: 'images/hero-cover.jpg' },
+      'Cover Story':            { hk: 'Cover',    bk: 'Prose',     cat: 'Culture', no: '042', title: 'Slow Down', dek: 'The cover essay on doing fewer things, properly.', author: 'A. Bellamy', read: '8 MIN', img: 'images/hero-cover.jpg' },
+      'The Big Read':           { hk: 'Wide',     bk: 'Essay',     cat: 'Motoring', no: '041', title: 'The Slow Car, Fast Philosophy', dek: 'Why involvement, not acceleration, is the measure of a machine — and a life.', author: 'C. Vance', read: '12 MIN', img: 'images/watch-gear.jpg' },
+      'Op-Ed':                  { hk: 'Masthead', bk: 'Essay',     cat: 'Opinion', no: '041', title: 'Stop Quoting Zero to Sixty', dek: 'An argument against the only number anyone remembers.', author: 'C. Vance', read: '5 MIN', img: '' },
+      'Letter from the Editor': { hk: 'Centered', bk: 'Letter',    cat: 'The Debrief', no: '042', title: 'A Letter from the Editor', dek: 'On what this issue is for, and what it refuses to be.', author: 'A. Bellamy', read: '3 MIN', img: '' },
+      'Interview':              { hk: 'Portrait', bk: 'Qa',        cat: 'Culture', no: '040', title: 'In Conversation: The Coachbuilder', dek: '', author: 'M. Laurent', read: '14 MIN', img: 'images/film-workshop.jpg' },
+      'Profile':                { hk: 'Split',    bk: 'Profile',   cat: 'Culture', no: '040', title: 'The Man Who Saves Cars', dek: 'Four decades, one shed, and a waiting list he mostly ignores.', author: 'M. Laurent', read: '9 MIN', img: 'images/film-tailor.jpg' },
+      'Ask MG':                 { hk: 'Centered', bk: 'Ask',       cat: 'Style', no: '039', title: 'Ask MG', dek: 'Your questions, answered plainly — knots, cologne, and rules worth breaking.', author: 'The Editors', read: '4 MIN', img: '' },
+      'Review':                 { hk: 'Contained', bk: 'Review',   cat: 'Watches', no: '041', title: 'The Everyday Chronograph, Reviewed', dek: 'We lived with it for a month before writing a word.', author: 'C. Vance', read: '7 MIN', img: 'images/watch-gear.jpg' },
+      'Spec Comparison':        { hk: 'Masthead', bk: 'Spec',      cat: 'Watches', no: '041', title: 'Three Watches, One Wrist', dek: 'A side-by-side for the decision that lasts a decade.', author: 'C. Vance', read: '6 MIN', img: '' },
+      'Photo Essay':            { hk: 'Full',     bk: 'Photo',     cat: 'Film', no: '012', title: 'Dawn at the Coachbuilder', dek: 'One quiet morning, before the tools warmed.', author: 'E. Marlowe', read: '4 MIN', img: 'images/film-workshop.jpg' },
+      'Gallery':                { hk: 'Contained', bk: 'Gallery',  cat: 'Style', no: '040', title: 'The Objects of the Season', dek: 'A visual index — nothing here shouts.', author: 'E. Marlowe', read: '3 MIN', img: 'images/style-mono.jpg' },
+      'Film Feature':           { hk: 'Video',    bk: 'Film',      cat: 'Film', no: '012', title: 'Inside a Coachbuilder\u2019s Workshop', dek: '', author: 'D. Whitfield', read: '12 MIN', img: 'images/film-workshop.jpg' },
+      'The List':               { hk: 'Masthead', bk: 'List',      cat: 'Style', no: '040', title: 'Five We\u2019d Buy Again', dek: 'Ranked, argued, photographed on the desk that tested them.', author: 'S. Okafor', read: '6 MIN', img: '' },
+      'Field Guide':            { hk: 'Masthead', bk: 'Steps',     cat: 'Style', no: '039', title: 'How to Buy Your First Proper Suit', dek: 'Five steps, in order, and one thing to ignore entirely.', author: 'S. Okafor', read: '7 MIN', img: '' },
+      'The Regimen':            { hk: 'Contained', bk: 'Regimen',  cat: 'Grooming', no: '039', title: 'The Seven-Minute Standard', dek: 'Four products, done before the coffee\u2019s cold.', author: 'J. Rees', read: '4 MIN', img: 'images/grooming.jpg' },
+      'A Brief History':        { hk: 'Masthead', bk: 'Timeline',  cat: 'Watches', no: '038', title: 'A Brief History of the Chronograph', dek: 'How a stopwatch on a wrist became indispensable.', author: 'C. Vance', read: '6 MIN', img: '' },
+      'The Rundown':            { hk: 'Masthead', bk: 'Rundown',   cat: 'The Debrief', no: '042', title: 'The Rundown', dek: 'Four things worth your attention this week.', author: 'The Editors', read: '3 MIN', img: '' },
+      'Manifesto':              { hk: 'Centered', bk: 'Manifesto', cat: 'Culture', no: '001', title: 'What We Believe', dek: '', author: 'Modern Gentlemen', read: '2 MIN', img: '' }
+    };
+  }
+
+  chromeProps() {
+    return {
+      darkMode: this.props.darkMode ?? false,
+      sharpCorners: this.props.sharpCorners ?? true,
+      headerStyle: this.props.headerStyle ?? 'Frosted',
+      headerScheme: this.props.headerScheme ?? 'Auto',
+      invertHeader: this.props.invertHeader ?? false,
+      headerScale: this.props.headerScale ?? 1,
+      headerHeight: this.props.headerHeight ?? 72,
+      shrinkOnScroll: this.props.shrinkOnScroll ?? true,
+      shrunkHeight: this.props.shrunkHeight ?? 58,
+      navMotion: this.props.navMotion ?? 'Frost only',
+      hideOnScroll: this.props.hideOnScroll ?? true,
+      alwaysFrosted: this.props.alwaysFrosted ?? false,
+      headerDivider: this.props.headerDivider ?? false,
+      burgerVariant: this.props.burgerVariant ?? 'Sq thin pair',
+      burgerHover: this.props.burgerHover ?? 'Staircase',
+      menuHover: this.props.menuHover ?? 'Underline',
+      iconBubbles: this.props.iconBubbles ?? false,
+      iconBubbleHover: this.props.iconBubbleHover ?? false,
+      iconHover: this.props.iconHover ?? 'Circle',
+      sidebarEntry: this.props.sidebarEntry ?? 'Fade',
+      dropdownAnim: this.props.dropdownAnim ?? 'Curtain',
+      dropdownExit: this.props.dropdownExit ?? 'Collapse',
+      sidebarLogo: this.props.sidebarLogo ?? 'MG monogram',
+      sidebarBubbles: this.props.sidebarBubbles ?? false,
+      chevronBubbles: this.props.chevronBubbles ?? false,
+      sidebarTagline: this.props.sidebarTagline ?? 'The Men’s Lifestyle Guide',
+    };
+  }
+
+  renderVals() {
+    const cfg = this.config();
+    const chosen = (this.state && this.state.tplOverride) || this.props.template;
+    const tpl = (chosen && cfg[chosen]) ? chosen : 'Feature';
+    const d = cfg[tpl];
+    const cat = this.props.category ?? d.cat;
+    const author = this.props.author ?? d.author;
+    const read = this.props.readTime ?? d.read;
+    const heroImg = this.props.heroImage || d.img || 'images/hero-cover.jpg';
+    const byline = 'WORDS · ' + author.toUpperCase() + '  ·  ' + read + ' READ' + (d.img ? '  ·  PHOTOGRAPHY · E. MARLOWE' : '');
+    const heroVideoUrl = this.props.heroVideoUrl || 'https://upload.wikimedia.org/wikipedia/commons/d/de/The_Earth-_4K_Extended_Edition.webm';
+
+    const hkFlags = {}; ['Full','Contained','Cover','Wide','Portrait','Split','Masthead','Centered','Video'].forEach((k) => { hkFlags['hk' + k] = d.hk === k; });
+    const bkFlags = {}; ['Prose','Essay','Letter','Qa','Ask','Profile','Review','Spec','Photo','Gallery','Film','List','Steps','Regimen','Timeline','Rundown','Manifesto'].forEach((k) => { bkFlags['bk' + k] = d.bk === k; });
+
+    const specRows = [
+      { label: 'MODEL', font: 'IBM Plex Mono', size: '10px', labelColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent)', valColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent)', a: 'THE FIELD', b: 'THE DRESS', c: 'THE DIVER' },
+      { label: 'Case', font: 'IBM Plex Mono', size: '11px', labelColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent)', valColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent)', a: '38mm steel', b: '36mm steel', c: '40mm steel' },
+      { label: 'Movement', font: 'IBM Plex Mono', size: '11px', labelColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent)', valColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent)', a: 'Automatic', b: 'Manual', c: 'Automatic' },
+      { label: 'Water resist.', font: 'IBM Plex Mono', size: '11px', labelColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent)', valColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent)', a: '100m', b: '30m', c: '300m' },
+      { label: 'Wears best', font: 'IBM Plex Mono', size: '11px', labelColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent)', valColor: 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent)', a: 'Everywhere', b: 'Black tie', c: 'Off the cuff' },
+      { label: 'The verdict', font: 'IBM Plex Mono', size: '11px', labelColor: '#ff4d5e', valColor: '#f4f4f4', a: 'The one', b: 'The heirloom', c: 'The tool' }
+    ];
+
+    return Object.assign({}, this.chromeProps(), hkFlags, bkFlags, {
+      template: tpl, heroKind: d.hk, bodyKind: d.bk,
+      kicker: (cat + ' · No. ' + d.no).toUpperCase(),
+      title: this.props.title ?? d.title,
+      dek: this.props.dek ?? d.dek,
+      byline: byline,
+      author: author,
+      authorInitial: (author.trim()[0] || 'M').toUpperCase(),
+      heroImg: heroImg,
+      issue: d.no,
+      heroMedia: this.buildHeroVideo(heroVideoUrl),
+      score: this.props.score ?? '8.6',
+      verdict: this.props.verdict ?? 'Beautifully made and quietly confident — a keeper, not a talking point.',
+      qa: d.bk === 'Ask' ? [
+        { who: 'FROM J. IN LEEDS', q: 'Four-in-hand or half-Windsor?', a: 'Four-in-hand, almost always. It\u2019s slightly asymmetric, which reads as considered rather than corporate. Save the Windsor for a spread collar and a reason.' },
+        { who: 'FROM T. IN GLASGOW', q: 'How many fragrances should a man own?', a: 'Two. One quiet for daylight, one with more to say after six. A third only when you\u2019ve worn the first two long enough to miss them.' },
+        { who: 'FROM R. IN BRISTOL', q: 'When is it acceptable to break a style rule?', a: 'Once you can state the rule precisely and say why it exists. Knowledge earns the exception; ignorance just looks like a mistake.' },
+        { who: 'FROM D. IN LONDON', q: 'Brown shoes with a navy suit?', a: 'Yes — it\u2019s the most useful combination you own. Keep the brown rich and the polish honest.' }
+      ] : [
+        { q: 'You turn down more work than you take. Why?', a: 'Because a car you rush is a car you ruin. I\u2019d rather do six properly than sixty badly. The list is long, but nobody on it is in a hurry — that\u2019s how I know they\u2019re the right people.' },
+        { q: 'How do you know when a restoration is finished?', a: 'When it looks like nothing was ever wrong. The best work is invisible. If you can see where I\u2019ve been, I haven\u2019t finished.' },
+        { q: 'What have four decades taught you?', a: 'That patience isn\u2019t slowness. It\u2019s paying attention for longer than most people are willing to. The hurry is where the mistakes live.' },
+        { q: 'Will anyone still do this in thirty years?', a: 'Someone will. Fewer of us, but the good ones don\u2019t vanish — they get quieter and more expensive. As they should.' }
+      ],
+      stats: [
+        { k: 'CRAFT', v: 'Coachbuilder' }, { k: 'BASED', v: 'The Cotswolds' }, { k: 'PRACTISING SINCE', v: '1984' }, { k: 'COMMISSIONS / YR', v: 'Six, at most' }
+      ],
+      spec: specRows,
+      photos: [
+        { bg: 'url(images/film-workshop.jpg)', cap: 'FIG. 01 — The floor at 06:40, before the tools warmed.' },
+        { bg: 'url(images/film-tailor.jpg)', cap: 'FIG. 02 — Forty years of muscle memory, one panel at a time.' },
+        { bg: 'url(images/film-watchmaker.jpg)', cap: 'FIG. 03 — The last light check before the doors opened.' }
+      ],
+      gallery: [
+        { bg: 'url(images/style-mono.jpg)', cap: 'THE OVERCOAT' }, { bg: 'url(images/watch-gear.jpg)', cap: 'THE CHRONOGRAPH' }, { bg: 'url(images/grooming.jpg)', cap: 'THE KIT' },
+        { bg: 'url(images/hero-cover.jpg)', cap: 'THE MACHINE' }, { bg: 'url(images/film-tailor.jpg)', cap: 'THE CLOTH' }, { bg: 'url(images/film-watchmaker.jpg)', cap: 'THE MOVEMENT' }
+      ],
+      list: [
+        { rank: '1', tag: 'WATCHES', name: 'The Everyday Field Watch', blurb: 'One watch that suits the office, the weekend and everything careless in between.', bg: 'url(images/watch-gear.jpg)' },
+        { rank: '2', tag: 'STYLE', name: 'The Unstructured Blazer', blurb: 'The single most useful thing you can add to a wardrobe of jeans and shirts.', bg: 'url(images/style-mono.jpg)' },
+        { rank: '3', tag: 'GROOMING', name: 'Cedar & Vetiver, 50ml', blurb: 'Quiet in daylight, warmer by evening. The scent people ask about but can\u2019t place.', bg: 'url(images/grooming.jpg)' },
+        { rank: '4', tag: 'ACCESSORIES', name: 'The Full-Grain Card Holder', blurb: 'It will look better in five years than it does today. Buy the brown.', bg: 'url(images/film-tailor.jpg)' },
+        { rank: '5', tag: 'CULTURE', name: 'A Weekend Without a Screen', blurb: 'Free, and the hardest thing on this list to actually do.', bg: 'url(images/hero-cover.jpg)' }
+      ],
+      steps: [
+        { n: '1', title: 'Buy navy or charcoal, first', body: 'Both are quiet enough to wear often and forgiving enough to dress up or down. Colour and pattern come later, once you own a suit you actually reach for.' },
+        { n: '2', title: 'Fit the shoulders, tailor the rest', body: 'The shoulder is the one thing a tailor can\u2019t fix. Everything else — sleeves, waist, hem — is adjustable, so let it be a touch generous off the rack.' },
+        { n: '3', title: 'Half-canvassed is the honest middle', body: 'Fully fused is disposable; fully bespoke is years away. Half-canvassed drapes properly and lasts, without pretending to be something it isn\u2019t.' },
+        { n: '4', title: 'Trousers break, or they don\u2019t', body: 'A single slight break reads modern and considered. Ask for it, then leave the shop and live in them before you touch anything again.' },
+        { n: '5', title: 'Ignore the trend forecast', body: 'Lapel widths drift by millimetres and mean nothing. Buy classic proportions and you\u2019ll never own a suit that looks like a specific year.' }
+      ],
+      regimen: [
+        { time: '0:00', step: 'Cleanse', note: 'Lukewarm water, a pea of gentle wash. Thirty seconds, no scrubbing.', tag: 'STEP 01' },
+        { time: '2:00', step: 'Treat', note: 'A single active — vitamin C by day, retinol by night. Never both.', tag: 'STEP 02' },
+        { time: '4:00', step: 'Moisturise', note: 'While the skin\u2019s still damp. A little on the neck, which everyone forgets.', tag: 'STEP 03' },
+        { time: '6:00', step: 'Protect', note: 'SPF, every morning, weather regardless. This is the whole game.', tag: 'STEP 04' }
+      ],
+      timeline: [
+        { year: '1816', title: 'The first chronograph', body: 'Built to time horse races — a stopwatch that dropped ink to mark the seconds, hence the name: \u201Ctime writer.\u201D' },
+        { year: '1913', title: 'It reaches the wrist', body: 'The wristwatch chronograph arrives, and with it the idea that timing should travel with the man, not the instrument.' },
+        { year: '1963', title: 'Born on the grid', body: 'Motorsport makes the chronograph iconic — the tachymeter bezel becomes shorthand for speed and competence alike.' },
+        { year: '1969', title: 'The automatic movement', body: 'Self-winding chronographs end the daily ritual of the crown, and the complication becomes something you simply wear.' },
+        { year: 'Today', title: 'Useful, still', body: 'Most owners never time a lap. They keep it because it does one thing beautifully — the definition of a good object.' }
+      ],
+      rundown: [
+        { tag: 'STYLE', title: 'The overcoat is back, properly', body: 'Not the cropped thing — a real one, mid-calf, in a cloth heavy enough to hang. Buy it before the weather makes you.' },
+        { tag: 'WATCH', title: 'A quiet re-issue worth watching', body: 'A 1960s field watch returns at 38mm, on a strap, without a press release. The good ones rarely shout.' },
+        { tag: 'CULTURE', title: 'A film about doing one thing well', body: 'Twelve minutes on a coachbuilder\u2019s floor. Watch it with your phone in another room.' },
+        { tag: 'SHOP', title: 'The card holder we keep restocking', body: 'It sells out because it deserves to. Full grain, brown, better with age.' }
+      ],
+      manifesto: [
+        { text: 'Buy fewer things, and buy them properly.' },
+        { text: 'Speed is cheap. Attention is the luxury.' },
+        { text: 'The best objects outlive the hands that made them.' },
+        { text: 'Considered, not hurried — it was always the better way.' }
+      ],
+      related: [
+        { tag: 'STYLE · 041', title: 'Racing Green Is the New Navy', bg: 'url(images/style-mono.jpg)' },
+        { tag: 'WATCHES · 040', title: 'Why Dial Symmetry Matters', bg: 'url(images/watch-gear.jpg)' },
+        { tag: 'GROOMING · 039', title: 'The Case Against 12-Step Routines', bg: 'url(images/grooming.jpg)' }
+      ].map((r) => Object.assign({}, r, { slug: this.slugify(r.title) }))
+    });
+  }
+}
+</script>
+</body>
+</html>

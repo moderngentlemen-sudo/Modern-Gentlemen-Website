@@ -1,0 +1,22 @@
+# Node / Next.js build artifacts (app lives in design_handoff_modern_gentlemen/starter)
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+**/out/
+dist/
+**/dist/
+.sanity/
+**/.sanity/
+
+# Env & secrets — never commit real values
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# Logs & OS cruft
+*.log
+.DS_Store

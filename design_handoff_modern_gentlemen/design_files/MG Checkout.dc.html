@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth;overflow-x:clip;}
+body{margin:0;background:#0d0d0d;color:var(--mg-fg,#f4f4f4);-webkit-font-smoothing:antialiased;}
+a{color:var(--mg-fg,#f4f4f4);text-decoration:none;}
+a:hover{color:#ff4d5e;}
+[data-field]{width:100%;box-sizing:border-box;background:color-mix(in srgb,var(--mg-fg,#f4f4f4) 5%,transparent);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 16%,transparent);border-radius:10px;padding:14px 16px;color:var(--mg-fg,#f4f4f4);font:400 15px 'Space Grotesk',sans-serif;outline:none;transition:border-color .18s ease;}
+[data-field]:focus{border-color:#C8102E;}
+[data-field]::placeholder{color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 38%,transparent);}
+[data-field][data-invalid="true"]{border-color:#ff4d5e;background:rgba(255,77,94,0.06);}
+[data-addbig]{transition:filter .18s ease,transform .1s ease;cursor:pointer;}
+[data-addbig]:hover{filter:brightness(1.08);}
+[data-addbig]:active{transform:translateY(1px);}
+[data-ghost]{transition:border-color .18s ease,color .18s ease;cursor:pointer;}
+[data-ghost]:hover{border-color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);}
+[data-steplink][data-clickable="true"]{cursor:pointer;}
+@media (max-width:900px){
+  [data-cogrid]{grid-template-columns:1fr!important;gap:36px!important;}
+  [data-cogrid] [data-summary]{position:static!important;order:-1;}
+  [data-row2]{grid-template-columns:1fr!important;}
+}
+[data-page]{--mg-fg:#f4f4f4;}
+html[data-mgtheme="light"] [data-page]{background:#f4f4f4!important;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;}
+html[data-mgtheme="light"]{background:#f4f4f4;}
+html[data-mgtheme="light"] body{background:#f4f4f4;color:#141414;}
+@media (max-width:680px){#mg-header-skeleton{padding-left:20px!important;padding-right:20px!important;}}
+html[data-mgtheme="light"] #mg-header-skeleton{color:#141414!important;}
+html[data-mgtheme="light"] #mg-header-skeleton img{filter:invert(1)!important;}
+html[data-mgtheme="light"] #mg-header-skeleton [data-skburger] span:nth-child(1){background:#141414!important;}
+#mg-header-skeleton + * .sc-placeholder,#mg-header-skeleton + .sc-placeholder{display:none!important;}
+@media (max-width:680px){[data-page] section{padding-left:22px!important;padding-right:22px!important;}}
+[data-page][data-narrow="true"] > section{max-width:1160px;}
+html[data-mgtheme="dark"]{background:#0d0d0d;}
+</style>
+<script src="mg-catalog.js"></script>
+<script src="mg-bag.js"></script>
+<script>try{document.documentElement.setAttribute('data-mgtheme',(localStorage.getItem('mg-theme')||'light'));}catch(e){}</script>
+</helmet>
+<div data-page data-narrow="{{ narrowShop }}" style="min-height:100vh;display:flex;flex-direction:column;background:#0d0d0d;">
+  <div id="mg-header-skeleton" style="position:fixed;top:0;left:0;right:0;z-index:59;height:72px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:2px max(48px, calc((100% - 1320px) / 2)) 0;background:transparent;pointer-events:none;color:#fff;"><div style="display:flex;align-items:center;gap:14px;flex-shrink:0;"><span data-skburger style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;width:22px;"><span style="width:22px;height:2px;border-radius:2px;background:#f4f4f4;display:block;"></span><span style="width:13px;height:2px;border-radius:2px;background:#C8102E;display:block;box-shadow:0 0 8px 0 rgba(200,16,46,0.45);"></span></span><img src="mg-logo.svg" alt="" style="height:20px;width:auto;display:block;"></div><span data-skicon style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg></span></div>
+  <dc-import name="MG Header" hint-size="100%,64px" dark-mode="{{ darkMode }}" sharp-corners="{{ sharpCorners }}" header-style="{{ headerStyle }}" header-scheme="{{ headerScheme }}" invert-header="{{ invertHeader }}" header-scale="{{ headerScale }}" header-height="{{ headerHeight }}" shrink-on-scroll="{{ shrinkOnScroll }}" shrunk-height="{{ shrunkHeight }}" nav-motion="{{ navMotion }}" hide-on-scroll="{{ hideOnScroll }}" always-frosted="{{ alwaysFrosted }}" header-divider="{{ headerDivider }}" burger-variant="{{ burgerVariant }}" burger-hover="{{ burgerHover }}" menu-hover="{{ menuHover }}" icon-bubbles="{{ iconBubbles }}" icon-bubble-hover="{{ iconBubbleHover }}" icon-hover="{{ iconHover }}" sidebar-entry="{{ sidebarEntry }}" dropdown-anim="{{ dropdownAnim }}" dropdown-exit="{{ dropdownExit }}" sidebar-bubbles="{{ sidebarBubbles }}" chevron-bubbles="{{ chevronBubbles }}" sidebar-tagline="{{ sidebarTagline }}" sidebar-logo="{{ sidebarLogo }}" bag-style="{{ bagStyle }}"></dc-import>
+
+  <section data-screen-label="Checkout" style="box-sizing:border-box;flex:1;width:100%;margin:0 auto;padding:120px max(48px, calc((100% - 1320px) / 2)) 96px;">
+
+    <sc-if value="{{ placed }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:620px;margin:20px auto 0;text-align:center;">
+        <div style="width:74px;height:74px;margin:0 auto 28px;border-radius:50%;background:rgba(200,16,46,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:#ff4d5e;margin-bottom:14px;">ORDER CONFIRMED</div>
+        <h1 style="margin:0;font:600 40px/1.05 'Space Grotesk',sans-serif;letter-spacing:-0.035em;">Thank you.</h1>
+        <p style="margin:20px auto 0;max-width:440px;font:400 17px/1.6 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 78%,transparent);">Your order is in. A confirmation is on its way to {{ order.email }}.</p>
+
+        <div style="margin-top:36px;text-align:left;border-radius:14px;background:var(--mg-surface,#131315);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);padding:26px 28px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:18px;border-bottom:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+            <div>
+              <div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">ORDER</div>
+              <div style="margin-top:5px;font:500 16px 'Space Grotesk',sans-serif;">{{ order.orderNo }}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">SHIPPING TO</div>
+              <div style="margin-top:5px;max-width:240px;font:400 13px/1.4 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 80%,transparent);">{{ order.address }}</div>
+            </div>
+          </div>
+          <div style="padding:8px 0 4px;">
+            <sc-for list="{{ order.items }}" as="it" hint-placeholder-count="2">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font:400 13px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 82%,transparent);">
+                <span>{{ it.line }}</span><span>{{ it.lineTotalFmt }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:10px;padding-top:16px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font:500 14px 'Space Grotesk',sans-serif;">Total paid</span>
+            <span style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ order.totalFmt }}</span>
+          </div>
+        </div>
+
+        <a data-addbig href="MG Store.dc.html" style="display:inline-flex;align-items:center;justify-content:center;margin-top:30px;padding:15px 34px;border-radius:100px;background:#C8102E;color:#fff;font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">CONTINUE SHOPPING →</a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ emptyState }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:70px 0 90px;text-align:center;">
+        <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:#ff4d5e;margin-bottom:16px;">NOTHING TO CHECK OUT</div>
+        <h1 style="margin:0 0 26px;font:600 36px/1.05 'Space Grotesk',sans-serif;letter-spacing:-0.03em;">Your bag is empty.</h1>
+        <a href="MG Store.dc.html" style="display:inline-flex;align-items:center;padding:14px 30px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 22%,transparent);border-radius:100px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">BROWSE THE STORE →</a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ checkoutState }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:34px;">
+        <h1 style="margin:0;font:600 40px/1 'Space Grotesk',sans-serif;letter-spacing:-0.035em;">Checkout</h1>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+            <div data-steplink data-clickable="{{ s.clickable }}" onClick="{{ s.go }}" style="display:flex;align-items:center;gap:9px;">
+              <span style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:500 12px 'Space Grotesk',sans-serif;background:{{ s.dotBg }};color:{{ s.dotColor }};border:1px solid {{ s.dotBorder }};">{{ s.badge }}</span>
+              <span style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:{{ s.labelColor }};">{{ s.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div data-cogrid style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:52px;align-items:start;">
+        <div>
+          <sc-if value="{{ isContact }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;gap:18px;max-width:520px;">
+              <div style="font:500 20px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">Contact</div>
+              <div>
+                <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">EMAIL</label>
+                <input data-field data-invalid="{{ iv.email }}" name="email" type="email" value="{{ f.email }}" onInput="{{ onField }}" placeholder="you@example.com">
+                <sc-if value="{{ err.email }}" hint-placeholder-val="{{ false }}"><div style="margin-top:7px;font:400 11px 'Space Grotesk',sans-serif;color:#ff4d5e;">{{ err.email }}</div></sc-if>
+              </div>
+              <div>
+                <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">PHONE (OPTIONAL)</label>
+                <input data-field name="phone" type="tel" value="{{ f.phone }}" onInput="{{ onField }}" placeholder="+44 …">
+              </div>
+              <label style="display:flex;align-items:center;gap:10px;margin-top:2px;font:400 12px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 70%,transparent);cursor:pointer;">
+                <input type="checkbox" checked="{{ f.news }}" name="news" onChange="{{ onCheck }}" style="width:16px;height:16px;accent-color:#C8102E;">
+                <span>Email me The Debrief — our weekly note.</span>
+              </label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isShipping }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;gap:18px;max-width:520px;">
+              <div style="font:500 20px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">Shipping address</div>
+              <div data-row2 style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">FIRST NAME</label>
+                  <input data-field data-invalid="{{ iv.firstName }}" name="firstName" value="{{ f.firstName }}" onInput="{{ onField }}" placeholder="First">
+                </div>
+                <div>
+                  <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">LAST NAME</label>
+                  <input data-field data-invalid="{{ iv.lastName }}" name="lastName" value="{{ f.lastName }}" onInput="{{ onField }}" placeholder="Last">
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">ADDRESS</label>
+                <input data-field data-invalid="{{ iv.address }}" name="address" value="{{ f.address }}" onInput="{{ onField }}" placeholder="Street and number">
+              </div>
+              <div data-row2 style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">CITY</label>
+                  <input data-field data-invalid="{{ iv.city }}" name="city" value="{{ f.city }}" onInput="{{ onField }}" placeholder="City">
+                </div>
+                <div>
+                  <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">POSTCODE</label>
+                  <input data-field data-invalid="{{ iv.postcode }}" name="postcode" value="{{ f.postcode }}" onInput="{{ onField }}" placeholder="Postcode">
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">COUNTRY</label>
+                <select data-field name="country" value="{{ f.country }}" onChange="{{ onField }}">
+                  <sc-for list="{{ countries }}" as="c" hint-placeholder-count="5"><option value="{{ c }}">{{ c }}</option></sc-for>
+                </select>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isPayment }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;gap:18px;max-width:520px;">
+              <div style="font:500 20px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">Payment</div>
+              <div style="display:flex;align-items:center;gap:10px;padding:12px 15px;border-radius:10px;background:color-mix(in srgb,var(--mg-fg,#f4f4f4) 5%,transparent);font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.06em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 60%,transparent);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+                <span>Demo checkout — no real card is charged.</span>
+              </div>
+              <div>
+                <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">NAME ON CARD</label>
+                <input data-field data-invalid="{{ iv.cardName }}" name="cardName" value="{{ f.cardName }}" onInput="{{ onField }}" placeholder="Full name">
+              </div>
+              <div>
+                <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">CARD NUMBER</label>
+                <input data-field data-invalid="{{ iv.cardNumber }}" name="cardNumber" inputmode="numeric" value="{{ f.cardNumber }}" onInput="{{ onField }}" placeholder="1234 5678 9012 3456">
+              </div>
+              <div data-row2 style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">EXPIRY</label>
+                  <input data-field data-invalid="{{ iv.cardExp }}" name="cardExp" value="{{ f.cardExp }}" onInput="{{ onField }}" placeholder="MM / YY">
+                </div>
+                <div>
+                  <label style="display:block;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:8px;">CVC</label>
+                  <input data-field data-invalid="{{ iv.cardCvc }}" name="cardCvc" inputmode="numeric" value="{{ f.cardCvc }}" onInput="{{ onField }}" placeholder="123">
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;gap:20px;max-width:560px;">
+              <div style="font:500 20px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">Review &amp; place order</div>
+              <sc-for list="{{ reviewBlocks }}" as="b" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:18px 20px;border-radius:12px;background:var(--mg-surface,#131315);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+                  <div>
+                    <div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);margin-bottom:8px;">{{ b.label }}</div>
+                    <div style="font:400 14px/1.5 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);white-space:pre-line;">{{ b.value }}</div>
+                  </div>
+                  <button data-steplink data-clickable="true" onClick="{{ b.edit }}" style="flex-shrink:0;background:none;border:none;color:#ff4d5e;cursor:pointer;padding:0;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;">EDIT</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="margin-top:34px;display:flex;align-items:center;gap:16px;">
+            <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+              <button data-ghost onClick="{{ back }}" style="padding:15px 26px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 22%,transparent);border-radius:100px;background:none;color:var(--mg-fg,#f4f4f4);font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;">← BACK</button>
+            </sc-if>
+            <button data-addbig onClick="{{ primary }}" style="flex:1;max-width:340px;padding:16px 30px;border:none;border-radius:100px;background:#C8102E;color:#fff;font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">{{ primaryLabel }}</button>
+          </div>
+        </div>
+
+        <aside data-summary style="position:sticky;top:96px;border-radius:14px;background:var(--mg-surface,#131315);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);padding:26px 24px;">
+          <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:18px;">IN YOUR BAG</div>
+          <div style="display:grid;gap:14px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+            <sc-for list="{{ items }}" as="it" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="position:relative;flex-shrink:0;width:46px;height:56px;border-radius:7px;overflow:hidden;background-color:#0d0d0d;background-image:{{ it.bg }};background-size:cover;background-position:center;">
+                  <span style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;box-sizing:border-box;padding:0 5px;display:flex;align-items:center;justify-content:center;background:#C8102E;color:#fff;border-radius:100px;font:600 10px/1 'Space Grotesk',sans-serif;">{{ it.qty }}</span>
+                </div>
+                <div style="flex:1;min-width:0;font:500 12.5px/1.25 'Space Grotesk',sans-serif;">{{ it.name }}</div>
+                <div style="font:500 12.5px 'Space Grotesk',sans-serif;white-space:nowrap;">{{ it.lineTotalFmt }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding-top:16px;display:grid;gap:9px;">
+            <div style="display:flex;justify-content:space-between;font:400 12.5px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 75%,transparent);"><span>Subtotal</span><span>{{ subtotalFmt }}</span></div>
+            <sc-if value="{{ isMember }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font:400 12.5px 'Space Grotesk',sans-serif;color:#ff4d5e;"><span>Member 15%</span><span>{{ discountFmt }}</span></div></sc-if>
+            <div style="display:flex;justify-content:space-between;font:400 12.5px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 75%,transparent);"><span>Shipping</span><span>{{ shippingFmt }}</span></div>
+          </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font:500 13px 'Space Grotesk',sans-serif;">Total</span>
+            <span style="font:600 21px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ totalFmt }}</span>
+          </div>
+        </aside>
+      </div>
+    </sc-if>
+
+  </section>
+
+  <dc-import name="MG Footer" hint-size="100%,320px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1160,&quot;height&quot;:1000},&quot;narrowShop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;bagStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Slide-in drawer&quot;,&quot;options&quot;:[&quot;Slide-in drawer&quot;,&quot;Dropdown&quot;,&quot;Full page&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Bag&quot;},&quot;sidebarLogo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Wordmark&quot;,&quot;options&quot;:[&quot;MG monogram&quot;,&quot;Wordmark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;}}">
+class Component extends DCLogic {
+  state = {
+    ready: false,
+    step: 0,
+    maxStep: 0,
+    placed: false,
+    order: null,
+    errors: {},
+    form: { email: '', phone: '', news: true, firstName: '', lastName: '', address: '', city: '', postcode: '', country: 'United Kingdom', cardName: '', cardNumber: '', cardExp: '', cardCvc: '' }
+  };
+
+  chromeProps() {
+    return {
+      darkMode: this.props.darkMode ?? false,
+      sharpCorners: this.props.sharpCorners ?? true,
+      headerStyle: this.props.headerStyle ?? 'Frosted',
+      headerScheme: this.props.headerScheme ?? 'Auto',
+      invertHeader: this.props.invertHeader ?? false,
+      headerScale: this.props.headerScale ?? 1,
+      headerHeight: this.props.headerHeight ?? 72,
+      shrinkOnScroll: this.props.shrinkOnScroll ?? true,
+      shrunkHeight: this.props.shrunkHeight ?? 58,
+      navMotion: this.props.navMotion ?? 'Frost only',
+      hideOnScroll: this.props.hideOnScroll ?? true,
+      alwaysFrosted: this.props.alwaysFrosted ?? false,
+      headerDivider: this.props.headerDivider ?? false,
+      burgerVariant: this.props.burgerVariant ?? 'Sq thin pair',
+      burgerHover: this.props.burgerHover ?? 'Staircase',
+      menuHover: this.props.menuHover ?? 'Underline',
+      iconBubbles: this.props.iconBubbles ?? false,
+      iconBubbleHover: this.props.iconBubbleHover ?? false,
+      iconHover: this.props.iconHover ?? 'Circle',
+      sidebarEntry: this.props.sidebarEntry ?? 'Fade',
+      dropdownAnim: this.props.dropdownAnim ?? 'Curtain',
+      dropdownExit: this.props.dropdownExit ?? 'Collapse',
+      sidebarLogo: this.props.sidebarLogo ?? 'MG monogram',
+      sidebarBubbles: this.props.sidebarBubbles ?? false,
+      chevronBubbles: this.props.chevronBubbles ?? false,
+      sidebarTagline: this.props.sidebarTagline ?? 'The Men\u2019s Lifestyle Guide',
+      bagStyle: this.props.bagStyle ?? 'Slide-in drawer',
+      narrowShop: this.props.narrowShop ? 'true' : 'false'
+    };
+  }
+
+  componentDidMount() {
+    this._onBag = () => this.forceUpdate();
+    window.addEventListener('mg-bag-change', this._onBag);
+    window.addEventListener('mg-bag-ready', this._onBag);
+    this.setState({ ready: true });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('mg-bag-change', this._onBag);
+    window.removeEventListener('mg-bag-ready', this._onBag);
+  }
+
+  setField = (name, value) => {
+    this.setState((s) => {
+      const errs = Object.assign({}, s.errors); delete errs[name];
+      return { form: Object.assign({}, s.form, { [name]: value }), errors: errs };
+    });
+  };
+
+  calc() {
+    const cat = window.MGCatalog, bag = window.MGBag;
+    const items = bag ? bag.items() : [];
+    const sub = bag ? bag.subtotal() : 0;
+    const isMember = bag ? bag.isMember() : false;
+    const rate = bag ? bag.memberRate : 0.15;
+    const discount = isMember ? Math.round(sub * rate) : 0;
+    const payable = sub - discount;
+    const shipping = (payable === 0 || payable >= 50) ? 0 : 495;
+    return { items, count: bag ? bag.count() : 0, sub, isMember, discount, payable, shipping, total: payable + shipping, fmt: (n) => (cat ? cat.format(n) : ('£' + n)) };
+  }
+
+  validate(step) {
+    const f = this.state.form; const e = {};
+    if (step === 0) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((f.email || '').trim())) e.email = 'Enter a valid email address.';
+    } else if (step === 1) {
+      ['firstName', 'lastName', 'address', 'city', 'postcode'].forEach((k) => { if (!(f[k] || '').trim()) e[k] = 'Required'; });
+    } else if (step === 2) {
+      if (!(f.cardName || '').trim()) e.cardName = 'Required';
+      if ((f.cardNumber || '').replace(/\D/g, '').length < 12) e.cardNumber = 'Enter a valid card number.';
+      if (!/^\d{1,2}\s*\/?\s*\d{2}$/.test((f.cardExp || '').trim())) e.cardExp = 'MM / YY';
+      if ((f.cardCvc || '').replace(/\D/g, '').length < 3) e.cardCvc = 'CVC';
+    }
+    return e;
+  }
+
+  next = () => {
+    const e = this.validate(this.state.step);
+    if (Object.keys(e).length) { this.setState({ errors: e }); return; }
+    this.setState((s) => ({ step: s.step + 1, maxStep: Math.max(s.maxStep, s.step + 1), errors: {} }));
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); }
+  };
+
+  back = () => {
+    this.setState((s) => ({ step: Math.max(0, s.step - 1), errors: {} }));
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); }
+  };
+
+  goStep = (i) => {
+    if (i <= this.state.maxStep) { this.setState({ step: i, errors: {} }); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) {} }
+  };
+
+  placeOrder = () => {
+    const bag = window.MGBag; if (!bag) return;
+    const c = this.calc(); const f = this.state.form;
+    const order = {
+      orderNo: 'MG-' + Date.now().toString(36).toUpperCase().slice(-6),
+      email: (f.email || '').trim(),
+      address: [f.firstName + ' ' + f.lastName, f.address, (f.city + ' ' + f.postcode).trim(), f.country].filter((x) => x && x.trim()).join('\n'),
+      items: c.items.map((it) => ({ line: it.qty + ' × ' + it.name, lineTotalFmt: c.fmt(it.lineTotal) })),
+      totalFmt: c.fmt(c.total)
+    };
+    bag.clear();
+    this.setState({ placed: true, order: order });
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); }
+  };
+
+  renderVals() {
+    const base = this.chromeProps();
+    const c = this.calc();
+    const f = this.state.form;
+    const errs = this.state.errors;
+    const step = this.state.step;
+
+    if (this.state.placed) {
+      return Object.assign({}, base, { placed: true, emptyState: false, checkoutState: false, order: this.state.order });
+    }
+    if (this.state.ready && c.count === 0) {
+      return Object.assign({}, base, { placed: false, emptyState: true, checkoutState: false });
+    }
+
+    const labels = ['Contact', 'Shipping', 'Payment', 'Review'];
+    const fg = base.darkMode ? '#f4f4f4' : '#141414';
+    const steps = labels.map((label, i) => {
+      const done = i < step;
+      const active = i === step;
+      return {
+        label: label,
+        badge: done ? '✓' : String(i + 1),
+        dotBg: active ? '#C8102E' : (done ? 'rgba(200,16,46,0.16)' : 'transparent'),
+        dotColor: active ? '#fff' : (done ? '#ff4d5e' : 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent)'),
+        dotBorder: active ? '#C8102E' : (done ? 'rgba(200,16,46,0.4)' : 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 25%,transparent)'),
+        labelColor: (active || done) ? 'var(--mg-fg,#f4f4f4)' : 'color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent)',
+        clickable: i <= this.state.maxStep ? 'true' : 'false',
+        go: () => this.goStep(i)
+      };
+    });
+
+    const iv = {};
+    ['email', 'firstName', 'lastName', 'address', 'city', 'postcode', 'cardName', 'cardNumber', 'cardExp', 'cardCvc'].forEach((k) => { iv[k] = errs[k] ? 'true' : 'false'; });
+
+    const reviewBlocks = [
+      { label: 'CONTACT', value: (f.email || '—') + (f.phone ? ('\n' + f.phone) : ''), edit: () => this.goStep(0) },
+      { label: 'SHIP TO', value: [f.firstName + ' ' + f.lastName, f.address, (f.city + ' ' + f.postcode).trim(), f.country].filter((x) => x && x.trim()).join('\n') || '—', edit: () => this.goStep(1) },
+      { label: 'PAYMENT', value: f.cardNumber ? ('Card ending ' + f.cardNumber.replace(/\D/g, '').slice(-4)) : '—', edit: () => this.goStep(2) }
+    ];
+
+    return Object.assign({}, base, {
+      placed: false,
+      emptyState: false,
+      checkoutState: true,
+      steps: steps,
+      isContact: step === 0,
+      isShipping: step === 1,
+      isPayment: step === 2,
+      isReview: step === 3,
+      showBack: step > 0,
+      primaryLabel: step === 3 ? 'PLACE ORDER' : 'CONTINUE →',
+      primary: step === 3 ? this.placeOrder : this.next,
+      back: this.back,
+      f: f,
+      iv: iv,
+      err: errs,
+      onField: (e) => this.setField(e.target.name, e.target.value),
+      onCheck: (e) => this.setField(e.target.name, e.target.checked),
+      countries: ['United Kingdom', 'Ireland', 'France', 'Germany', 'United States', 'Canada', 'Australia'],
+      reviewBlocks: reviewBlocks,
+      items: c.items.map((it) => ({ name: it.name, qty: it.qty, bg: 'url(' + it.image + ')', lineTotalFmt: c.fmt(it.lineTotal) })),
+      subtotalFmt: c.fmt(c.sub),
+      isMember: c.isMember && c.discount > 0,
+      discountFmt: '– ' + c.fmt(c.discount),
+      shippingFmt: c.shipping === 0 ? 'Free' : c.fmt(c.shipping),
+      totalFmt: c.fmt(c.total)
+    });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "$comment": "Modern Gentlemen design tokens — authoritative. See CLAUDE.md and 02_DESIGN_TOKENS.md.",
+  "theme": { "default": "light", "attribute": "data-mgtheme", "storageKey": "mg-theme" },
+  "color": {
+    "bg":          { "light": "#f4f4f4", "dark": "#0d0d0d" },
+    "fg":          { "light": "#141414", "dark": "#f4f4f4" },
+    "surface":     { "light": "#ffffff", "dark": "#131315" },
+    "border":      { "light": "#141414", "dark": "#ffffff" },
+    "accent":      { "light": "#C8102E", "dark": "#C8102E" },
+    "accentSerif": { "light": "#C8102E", "dark": "#ff4d5e" }
+  },
+  "darkBand": { "$comment": "regions dark in both themes", "fg": "#f4f4f4", "border": "#ffffff" },
+  "font": {
+    "grotesk": { "family": "Space Grotesk", "weights": [300,400,500,600,700], "role": "headings + body" },
+    "serif":   { "family": "Instrument Serif", "style": "italic", "role": "eyebrows, accents, quotes" },
+    "mono":    { "family": "IBM Plex Mono", "weights": [400,500], "role": "labels, meta, counts" },
+    "nav":     { "stack": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif", "role": "nav items" }
+  },
+  "layout": {
+    "contentMaxWidth": "1320px",
+    "contentPadding": "max(48px, calc((100% - 1320px)/2))",
+    "checkoutInnerMax": "1160px",
+    "spacingRhythm": 8,
+    "radius": "minimal"
+  },
+  "motion": {
+    "navUnderlineOffset": "6px",
+    "overlayDuration": "260ms",
+    "topScrim": { "height": "85px", "gradient": "linear-gradient(180deg, rgba(8,8,9,0.34) 0%, rgba(8,8,9,0.14) 52%, transparent 100%)" },
+    "respectsReducedMotion": true
+  },
+  "commerce": {
+    "memberDiscount": 0.15,
+    "freeShippingThreshold": 50,
+    "flatShipping": 4.95,
+    "currency": "GBP",
+    "storageKeys": ["mg-bag", "mg-member"]
+  }
+}

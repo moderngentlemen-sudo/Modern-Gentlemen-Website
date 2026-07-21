@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth;overflow-x:clip;}
+body{margin:0;background:#0d0d0d;color:#f4f4f4;-webkit-font-smoothing:antialiased;}
+a{color:#f4f4f4;text-decoration:none;}
+a:hover{color:#ff4d5e;}
+[data-chnav]::-webkit-scrollbar{display:none;}
+[data-chnav]{scrollbar-width:none;}
+[data-navlink]{position:relative;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 62%,transparent);transition:color .18s ease;}
+[data-navlink]:hover,[data-navlink][data-active="true"]{color:#f4f4f4;}
+[data-navlink]::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:#C8102E;transform:scaleX(0);transform-origin:left;transition:transform .22s ease;}
+[data-navlink]:hover::after,[data-navlink][data-active="true"]::after{transform:scaleX(1);}
+[data-card]{transition:transform .2s ease;}
+[data-card]:hover{transform:translateY(-5px);}
+[data-card] [data-cimg]{transition:transform .5s cubic-bezier(.2,.7,.2,1);}
+[data-card]:hover [data-cimg]{transform:scale(1.05);}
+[data-chip]{transition:background .18s ease,border-color .18s ease,color .18s ease;}
+[data-chip]:hover{background:#C8102E;border-color:#C8102E;color:#fff;}
+[data-cta]{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;}
+[data-cta]:hover{transform:translateY(-2px);box-shadow:0 10px 30px -8px rgba(200,16,46,0.6);filter:brightness(1.06);color:#fff;}
+@media (max-width:820px){
+  [data-chnav]{gap:20px!important;}
+  [data-headcta]{display:none!important;}
+}
+@media (max-width:680px){
+  [data-cathead] h1{font-size:52px!important;}
+  [data-lead]{grid-template-columns:1fr!important;}
+  [data-lead] [data-leadimg]{min-height:280px!important;}
+  [data-grid]{grid-template-columns:1fr!important;}
+  [data-foot-row]{flex-direction:column;align-items:flex-start!important;gap:14px!important;}
+}
+@media (max-width:1024px) and (min-width:681px){
+  [data-grid]{grid-template-columns:repeat(2,1fr)!important;}
+}
+
+/* ===== Light theme (driven by shared MG Header toggle) ===== */
+[data-page]{--mg-fg:#f4f4f4;}
+html[data-mgtheme="light"] [data-page]{background:#f4f4f4!important;--mg-fg:#141414;}
+html[data-mgtheme="light"] [data-page] [data-darkband]{--mg-fg:#f4f4f4;color:#f4f4f4;}
+html[data-mgtheme="light"] [data-page] [data-card]{background:#ffffff!important;border-color:rgba(20,20,20,0.10)!important;color:#141414!important;}
+html[data-mgtheme="light"] [data-page] [data-chip]:not([data-darkband] *){border-color:rgba(20,20,20,0.20)!important;color:#141414!important;}
+
+html[data-mgtheme="light"]{background:#f4f4f4;}
+html[data-mgtheme="light"] body{background:#f4f4f4;color:#141414;}
+/* minimal neutral skeleton: only guaranteed-correct elements (burger + logo + search) */
+@media (max-width:680px){#mg-header-skeleton{padding-left:20px!important;padding-right:20px!important;}}
+html[data-mgtheme="light"] #mg-header-skeleton{color:#141414!important;}
+html[data-mgtheme="light"] #mg-header-skeleton img{filter:invert(1)!important;}
+html[data-mgtheme="light"] #mg-header-skeleton [data-skburger] span:nth-child(1){background:#141414!important;}
+/* hide the dc-import loading placeholder box for MG Header — the skeleton covers it */
+#mg-header-skeleton + * .sc-placeholder,#mg-header-skeleton + .sc-placeholder{display:none!important;}
+[data-page][data-narrow="true"] > section:not([data-cathead]),[data-page][data-narrow="true"] [data-cathead] > div{max-width:1180px;margin-left:auto;margin-right:auto;}
+html[data-mgtheme="dark"]{background:#0d0d0d;}
+</style>
+<script>try{document.documentElement.setAttribute('data-mgtheme',(localStorage.getItem('mg-theme')||'light'));}catch(e){}</script>
+
+</helmet>
+<div data-page data-narrow="{{ narrowLayout }}" style="min-height:100vh;background:#0d0d0d;">
+
+  <!-- instant static header (removed by MG Header on mount) prevents a blank bar on navigation -->
+  <div id="mg-header-skeleton" style="position:fixed;top:0;left:0;right:0;z-index:59;height:72px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:2px max(48px, calc((100% - 1320px) / 2)) 0;background:transparent;pointer-events:none;color:#fff;"><div style="display:flex;align-items:center;gap:14px;flex-shrink:0;"><span data-skburger style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;width:22px;"><span style="width:22px;height:2px;border-radius:2px;background:#f4f4f4;display:block;"></span><span style="width:13px;height:2px;border-radius:2px;background:#C8102E;display:block;box-shadow:0 0 8px 0 rgba(200,16,46,0.45);"></span></span><img src="mg-logo.svg" alt="" style="height:20px;width:auto;display:block;"></div><span data-skicon style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg></span></div>
+  <dc-import name="MG Header" hint-size="100%,64px" dark-mode="{{ darkMode }}" sharp-corners="{{ sharpCorners }}" header-style="{{ headerStyle }}" header-scheme="{{ headerScheme }}" invert-header="{{ invertHeader }}" header-scale="{{ headerScale }}" header-height="{{ headerHeight }}" shrink-on-scroll="{{ shrinkOnScroll }}" shrunk-height="{{ shrunkHeight }}" nav-motion="{{ navMotion }}" hide-on-scroll="{{ hideOnScroll }}" always-frosted="{{ alwaysFrosted }}" header-divider="{{ headerDivider }}" burger-variant="{{ burgerVariant }}" burger-hover="{{ burgerHover }}" menu-hover="{{ menuHover }}" icon-bubbles="{{ iconBubbles }}" icon-bubble-hover="{{ iconBubbleHover }}" icon-hover="{{ iconHover }}" sidebar-entry="{{ sidebarEntry }}" dropdown-anim="{{ dropdownAnim }}" dropdown-exit="{{ dropdownExit }}" sidebar-bubbles="{{ sidebarBubbles }}" chevron-bubbles="{{ chevronBubbles }}" sidebar-tagline="{{ sidebarTagline }}" sidebar-logo="{{ sidebarLogo }}"></dc-import>
+
+  <!-- ===== category hero ===== -->
+  <section data-darkband data-cathead data-screen-label="Category hero" style="position:relative;overflow:hidden;">
+    <div data-cimg style="position:absolute;inset:0;background-color:#141414;background-image:{{ heroBg }};background-size:cover;background-position:center;filter:grayscale(0.15);"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,13,13,0.32) 0%,rgba(13,13,13,0.32) 45%,rgba(13,13,13,0.92) 100%);"></div>
+    <div style="position:relative;box-sizing:border-box;padding:120px max(48px, calc((100% - 1320px) / 2)) 56px;">
+      <div style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.28em;color:#ff4d5e;margin-bottom:20px;">MODERN GENTLEMEN · {{ sectionNo }}</div>
+      <h1 style="margin:0;font:600 84px/0.92 'Space Grotesk',sans-serif;letter-spacing:-0.05em;">{{ catName }}</h1>
+      <p style="margin:24px 0 0;max-width:560px;font:400 22px/1.45 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 82%,transparent);">{{ blurb }}</p>
+      <div style="margin-top:30px;display:flex;flex-wrap:wrap;gap:10px;">
+        <sc-for list="{{ subcats }}" as="s" hint-placeholder-count="5">
+          <a data-chip href="{{ s.href }}" style="padding:9px 17px;border:1px solid rgba(255,255,255,0.22);border-radius:100px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.16em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);">{{ s.label }}</a>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== featured lead ===== -->
+  <section data-screen-label="Featured lead" style="box-sizing:border-box;padding:64px max(48px, calc((100% - 1320px) / 2)) 0;">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:26px;">
+      <span style="width:26px;height:2px;background:#C8102E;display:block;"></span>
+      <span style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.22em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">THE LEAD</span>
+    </div>
+    <a data-card data-lead href="MG Article.dc.html?a={{ leadSlug }}" style="display:grid;grid-template-columns:1.15fr 1fr;gap:0;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:#131315;color:#f4f4f4;">
+      <div data-leadimg style="position:relative;overflow:hidden;min-height:420px;">
+        <div data-cimg style="position:absolute;inset:0;background-color:#0d0d0d;background-image:{{ leadBg }};background-size:cover;background-position:center;"></div>
+      </div>
+      <div style="padding:44px 46px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:#ff4d5e;">{{ catUpper }} · {{ lead.no }}</div>
+        <h2 style="margin:16px 0 0;font:600 40px/1.02 'Space Grotesk',sans-serif;letter-spacing:-0.035em;">{{ lead.title }}</h2>
+        <p style="margin:18px 0 0;font:300 16px/1.6 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 66%,transparent);">{{ lead.dek }}</p>
+        <div style="margin-top:26px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">WORDS · {{ lead.author }} &nbsp;·&nbsp; {{ lead.read }}</div>
+      </div>
+    </a>
+  </section>
+
+  <!-- ===== article grid ===== -->
+  <section data-screen-label="Article grid" style="box-sizing:border-box;padding:52px max(48px, calc((100% - 1320px) / 2)) 0;">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:26px;">
+      <span style="width:26px;height:2px;background:#C8102E;display:block;"></span>
+      <span style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.22em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">MORE IN {{ catUpper }}</span>
+    </div>
+    <div data-grid style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+      <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+        <a data-card href="MG Article.dc.html?a={{ c.slug }}" style="display:block;border-radius:11px;overflow:hidden;background:#131315;border:1px solid rgba(255,255,255,0.09);color:#f4f4f4;">
+          <div style="position:relative;overflow:hidden;height:230px;">
+            <div data-cimg style="position:absolute;inset:0;background-color:#0d0d0d;background-image:{{ c.bg }};background-size:cover;background-position:center;"></div>
+          </div>
+          <div style="padding:20px 22px 26px;">
+            <div style="font:400 9.5px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:#ff4d5e;">{{ c.tag }}</div>
+            <h3 style="margin:11px 0 0;font:500 22px/1.12 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ c.title }}</h3>
+            <div style="margin-top:16px;font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.16em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 42%,transparent);">{{ c.read }}</div>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:44px;">
+      <a data-chip href="#" style="padding:14px 34px;border:1px solid rgba(255,255,255,0.24);border-radius:100px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);">LOAD MORE STORIES</a>
+    </div>
+  </section>
+
+  <!-- ===== newsletter ===== -->
+  <section data-darkband data-screen-label="Newsletter" style="box-sizing:border-box;margin:80px auto 0;padding:0 max(48px, calc((100% - 1320px) / 2));">
+    <div style="border-radius:14px;overflow:hidden;background:#C8102E;color:#fff;padding:56px 48px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:28px;">
+      <div style="max-width:520px;">
+        <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:rgba(255,255,255,0.8);">THE DEBRIEF</div>
+        <h2 style="margin:12px 0 0;font:600 34px/1.05 'Space Grotesk',sans-serif;letter-spacing:-0.03em;">The best of {{ catName }}, every Sunday.</h2>
+      </div>
+      <form onSubmit="{{ onSubmit }}" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:280px;max-width:440px;">
+        <input type="email" placeholder="you@email.com" style="flex:1;min-width:180px;box-sizing:border-box;padding:15px 20px;border-radius:100px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.12);color:#fff;font:400 14px 'Space Grotesk',sans-serif;outline:none;">
+        <button type="submit" style="padding:15px 26px;border-radius:100px;border:none;background:#0d0d0d;color:#fff;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;cursor:pointer;">{{ subscribeLabel }}</button>
+      </form>
+    </div>
+  </section>
+
+  <dc-import name="MG Footer" hint-size="100%,320px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:1000},&quot;narrowLayout&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;category&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Style&quot;,&quot;options&quot;:[&quot;Style&quot;,&quot;Grooming&quot;,&quot;Watches&quot;,&quot;Culture&quot;,&quot;Film&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Category&quot;},&quot;darkMode&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;sharpCorners&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;headerStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Frosted&quot;,&quot;options&quot;:[&quot;Frosted&quot;,&quot;Glass rail&quot;,&quot;Bordered&quot;,&quot;Underline&quot;,&quot;Smoke&quot;,&quot;Mono line&quot;,&quot;Smoked glass&quot;,&quot;Bottom glow&quot;,&quot;Tinted red&quot;,&quot;Deep blur&quot;,&quot;Edge fade&quot;,&quot;Double rule&quot;,&quot;Hairline&quot;,&quot;Minimal&quot;,&quot;Cinema&quot;,&quot;Gradient fade&quot;,&quot;Vignette&quot;,&quot;Solid&quot;,&quot;Floating&quot;,&quot;Blur pill&quot;,&quot;Ink slab&quot;,&quot;Racing bar&quot;,&quot;Charcoal&quot;,&quot;Onyx&quot;,&quot;Contrast&quot;,&quot;Floating solid&quot;,&quot;Capsule&quot;,&quot;Tab&quot;,&quot;Notch&quot;,&quot;Marquee&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerScheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Auto&quot;,&quot;options&quot;:[&quot;Auto&quot;,&quot;Ink on paper&quot;,&quot;Paper on ink&quot;,&quot;Red on black&quot;,&quot;Black on red&quot;,&quot;White on red&quot;,&quot;Cream&quot;,&quot;Charcoal&quot;,&quot;Sand on navy&quot;,&quot;Mono light&quot;,&quot;Mono dark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;invertHeader&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.8,&quot;max&quot;:1.4,&quot;step&quot;:0.05,&quot;unit&quot;:&quot;×&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerHeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:72,&quot;min&quot;:56,&quot;max&quot;:110,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;shrinkOnScroll&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;shrunkHeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:58,&quot;min&quot;:20,&quot;max&quot;:90,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;navMotion&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Frost only&quot;,&quot;options&quot;:[&quot;Smooth&quot;,&quot;Spring&quot;,&quot;Snappy&quot;,&quot;Gentle&quot;,&quot;Frost only&quot;,&quot;Glide&quot;,&quot;Elastic&quot;,&quot;Molasses&quot;,&quot;Instant&quot;,&quot;Bounce&quot;,&quot;Silk&quot;,&quot;Crisp&quot;,&quot;Lazy&quot;,&quot;Taut&quot;,&quot;Fluid&quot;,&quot;Quartz&quot;,&quot;Drift&quot;,&quot;Punch&quot;,&quot;Feather&quot;,&quot;Hydraulic&quot;,&quot;Magnetic&quot;,&quot;Cinema&quot;,&quot;Rubber&quot;,&quot;Precision&quot;,&quot;Velvet&quot;,&quot;Coil&quot;,&quot;Anchor&quot;,&quot;Breeze&quot;,&quot;Piston&quot;,&quot;Whisper&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;hideOnScroll&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;alwaysFrosted&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerDivider&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;burgerVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Sq thin pair&quot;,&quot;options&quot;:[&quot;Signal&quot;,&quot;Even bars&quot;,&quot;Descending&quot;,&quot;Beacon&quot;,&quot;Dots&quot;,&quot;Centered&quot;,&quot;Ascending&quot;,&quot;Staircase&quot;,&quot;Wide top&quot;,&quot;Pinch&quot;,&quot;Bulge&quot;,&quot;Rail&quot;,&quot;Ember&quot;,&quot;Split bar&quot;,&quot;Notch&quot;,&quot;Squares&quot;,&quot;Blocks&quot;,&quot;Left rail&quot;,&quot;Right rail&quot;,&quot;Wedge&quot;,&quot;Ladder&quot;,&quot;Heavy&quot;,&quot;Thin&quot;,&quot;Pillbars&quot;,&quot;Red top&quot;,&quot;Red base&quot;,&quot;Offset&quot;,&quot;Tapered&quot;,&quot;Morse&quot;,&quot;Compact&quot;,&quot;Dot trio&quot;,&quot;Dot ascending&quot;,&quot;Dot descending&quot;,&quot;Dot pinch&quot;,&quot;Dot bulge&quot;,&quot;Dot red top&quot;,&quot;Dot red base&quot;,&quot;Dot pair&quot;,&quot;Dot wide&quot;,&quot;Dot ring&quot;,&quot;Sq trio&quot;,&quot;Sq ascending&quot;,&quot;Sq descending&quot;,&quot;Sq pinch&quot;,&quot;Sq bulge&quot;,&quot;Sq red top&quot;,&quot;Sq red base&quot;,&quot;Sq pair&quot;,&quot;Sq wide&quot;,&quot;Sq ring&quot;,&quot;Sq stack&quot;,&quot;Sq mixed&quot;,&quot;Sq tiny&quot;,&quot;Sq big&quot;,&quot;Sq diagonal&quot;,&quot;Sq thin trio&quot;,&quot;Sq thin asc&quot;,&quot;Sq thin desc&quot;,&quot;Sq thin pinch&quot;,&quot;Sq thin bulge&quot;,&quot;Sq thin pair&quot;,&quot;Sq thin ring&quot;,&quot;Sq thin red top&quot;,&quot;Sq thin wide&quot;,&quot;Sq thin stack&quot;,&quot;Sq thin duo&quot;,&quot;Sq thin micro&quot;,&quot;Sq thin mid&quot;,&quot;Sq thin col&quot;,&quot;Sq thin step&quot;,&quot;Sq thin split&quot;,&quot;Sq thin dash&quot;,&quot;Sq thin nudge&quot;,&quot;Sq thin frame&quot;,&quot;Sq thin twin&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;burgerHover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Staircase&quot;,&quot;options&quot;:[&quot;Align&quot;,&quot;Converge&quot;,&quot;Nudge&quot;,&quot;Pulse&quot;,&quot;Spin&quot;,&quot;Spread&quot;,&quot;Collapse&quot;,&quot;Expand&quot;,&quot;Rotate CCW&quot;,&quot;Tilt&quot;,&quot;Skew&quot;,&quot;Lift&quot;,&quot;Sink&quot;,&quot;Grow&quot;,&quot;Shrink&quot;,&quot;Redden&quot;,&quot;Whiten&quot;,&quot;Staircase&quot;,&quot;Invert stair&quot;,&quot;Center pinch&quot;,&quot;Bulge&quot;,&quot;Slide right&quot;,&quot;Slide left&quot;,&quot;Arrow&quot;,&quot;Zigzag&quot;,&quot;Bounce&quot;,&quot;Compress&quot;,&quot;Fatten&quot;,&quot;Glow all&quot;,&quot;Rock&quot;,&quot;Fan&quot;,&quot;Drift&quot;,&quot;Wobble&quot;,&quot;Snap left&quot;,&quot;Pop&quot;,&quot;Fold&quot;,&quot;Thin out&quot;,&quot;Spread wide&quot;,&quot;Twist&quot;,&quot;Ripple&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;menuHover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Underline&quot;,&quot;options&quot;:[&quot;Underline&quot;,&quot;Highlight&quot;,&quot;Slide&quot;,&quot;Lift&quot;,&quot;Color&quot;,&quot;Bubble&quot;,&quot;Glow&quot;,&quot;Boxed&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;iconBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;iconBubbleHover&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;sidebarEntry&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Fade&quot;,&quot;options&quot;:[&quot;Slide&quot;,&quot;Fade&quot;,&quot;Scale&quot;,&quot;Swing door&quot;,&quot;Reveal&quot;,&quot;Blur&quot;,&quot;Drop&quot;,&quot;Zoom&quot;,&quot;Flip&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;dropdownAnim&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Curtain&quot;,&quot;options&quot;:[&quot;Stagger up&quot;,&quot;Cascade fade&quot;,&quot;Unfold&quot;,&quot;Slide in&quot;,&quot;Slide right&quot;,&quot;Zoom in&quot;,&quot;Zoom out&quot;,&quot;Flip X&quot;,&quot;Flip Y&quot;,&quot;Swing&quot;,&quot;Blur in&quot;,&quot;Skew&quot;,&quot;Rise far&quot;,&quot;Drop bounce&quot;,&quot;Spring&quot;,&quot;Pop&quot;,&quot;Glide left&quot;,&quot;Tilt&quot;,&quot;Curtain&quot;,&quot;Clip reveal&quot;,&quot;Peel&quot;,&quot;Float&quot;,&quot;Elastic&quot;,&quot;Rotate in&quot;,&quot;Fade down&quot;,&quot;Expand&quot;,&quot;Drift&quot;,&quot;Snap&quot;,&quot;Wave&quot;,&quot;Ripple&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;dropdownExit&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Collapse&quot;,&quot;options&quot;:[&quot;Collapse&quot;,&quot;Fade&quot;,&quot;Slide up&quot;,&quot;Slide left&quot;,&quot;Zoom out&quot;,&quot;Curtain&quot;,&quot;Blur out&quot;,&quot;Fold&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;sidebarBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;chevronBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;sidebarTagline&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;The Men’s Lifestyle Guide&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;iconHover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Circle&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;,&quot;options&quot;:[&quot;Circle&quot;,&quot;Circle bright&quot;,&quot;Ring&quot;,&quot;Scale&quot;,&quot;Lift&quot;,&quot;Rotate&quot;,&quot;Redden&quot;,&quot;Glow&quot;,&quot;None&quot;]},&quot;sidebarLogo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Wordmark&quot;,&quot;options&quot;:[&quot;MG monogram&quot;,&quot;Wordmark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;}}">
+class Component extends DCLogic {
+  state = { cat: null, subscribed: false };
+
+  componentDidMount() {
+    try {
+      const q = new URLSearchParams(window.location.search).get('cat');
+      if (q) {
+        const norm = q.charAt(0).toUpperCase() + q.slice(1).toLowerCase();
+        this.setState({ cat: norm });
+      }
+    } catch (e) {}
+  }
+
+  data() {
+    return {
+      Style: {
+        no: 'SEC. 01', hero: 'images/style-mono.jpg',
+        blurb: 'Tailoring, denim and the small decisions that separate dressing from getting dressed.',
+        subs: ['Tailoring', 'Denim', 'Footwear', 'Accessories', 'The Uniform'],
+        lead: { no: '041', title: 'Racing Green Is the New Navy', dek: 'The quiet case for the one colour every man already owns but never wears with intent.', author: 'A. Bellamy', read: '7 MIN READ', img: 'images/style-mono.jpg' },
+        cards: [
+          { tag: 'TAILORING · 040', title: 'The Case for the Unstructured Blazer', read: '5 MIN', img: 'images/hero-cover.jpg' },
+          { tag: 'FOOTWEAR · 039', title: 'How to Buy Shoes You Keep for a Decade', read: '6 MIN', img: 'images/film-tailor.jpg' },
+          { tag: 'DENIM · 038', title: 'Raw Denim, and the Virtue of Patience', read: '4 MIN', img: 'images/grooming.jpg' },
+          { tag: 'ACCESSORIES · 037', title: 'One Watch, One Belt, One Bag', read: '5 MIN', img: 'images/watch-gear.jpg' },
+          { tag: 'THE UNIFORM · 036', title: 'Building a Wardrobe of Ten Things', read: '8 MIN', img: 'images/film-watchmaker.jpg' },
+          { tag: 'STYLE · 035', title: 'The Return of the Proper Overcoat', read: '6 MIN', img: 'images/film-workshop.jpg' }
+        ]
+      },
+      Grooming: {
+        no: 'SEC. 02', hero: 'images/grooming.jpg',
+        blurb: 'Skin, scent and the ritual of looking after yourself without making a project of it.',
+        subs: ['Skincare', 'Fragrance', 'Hair', 'Shaving', 'The Regimen'],
+        lead: { no: '041', title: 'The Case Against 12-Step Routines', dek: 'Why the shortest regimen is usually the one that actually works — and lasts.', author: 'J. Rees', read: '5 MIN READ', img: 'images/grooming.jpg' },
+        cards: [
+          { tag: 'FRAGRANCE · 040', title: 'A Signature Scent Is a Trap', read: '4 MIN', img: 'images/style-mono.jpg' },
+          { tag: 'SKINCARE · 039', title: 'The Three Products You Actually Need', read: '5 MIN', img: 'images/hero-cover.jpg' },
+          { tag: 'SHAVING · 038', title: 'The Lost Art of the Wet Shave', read: '6 MIN', img: 'images/film-tailor.jpg' },
+          { tag: 'HAIR · 037', title: 'Finding a Barber Worth Keeping', read: '4 MIN', img: 'images/film-workshop.jpg' },
+          { tag: 'THE REGIMEN · 036', title: 'Morning Rituals of Considered Men', read: '7 MIN', img: 'images/watch-gear.jpg' },
+          { tag: 'GROOMING · 035', title: 'On Ageing, Gracefully', read: '5 MIN', img: 'images/film-watchmaker.jpg' }
+        ]
+      },
+      Watches: {
+        no: 'SEC. 03', hero: 'images/watch-gear.jpg',
+        blurb: 'Movements, dials and the objects a man buys once and hands down.',
+        subs: ['Dive', 'Dress', 'Chronograph', 'Vintage', 'Watch of the Week'],
+        lead: { no: '041', title: 'Why Dial Symmetry Matters', dek: 'The invisible geometry that makes one watch look right and another look wrong.', author: 'C. Vance', read: '8 MIN READ', img: 'images/watch-gear.jpg' },
+        cards: [
+          { tag: 'DIVE · 040', title: 'The Only Dive Watch You Need', read: '6 MIN', img: 'images/hero-cover.jpg' },
+          { tag: 'VINTAGE · 039', title: 'Buying Your First Vintage Piece', read: '7 MIN', img: 'images/film-watchmaker.jpg' },
+          { tag: 'DRESS · 038', title: 'The Quiet Power of a Thin Watch', read: '5 MIN', img: 'images/style-mono.jpg' },
+          { tag: 'CHRONOGRAPH · 037', title: 'What a Chronograph Is Actually For', read: '4 MIN', img: 'images/film-workshop.jpg' },
+          { tag: 'WATCH OF THE WEEK · 036', title: 'The 300SL, in Studio', read: '5 MIN', img: 'images/grooming.jpg' },
+          { tag: 'WATCHES · 035', title: 'Servicing, and When Not to Bother', read: '6 MIN', img: 'images/film-tailor.jpg' }
+        ]
+      },
+      Culture: {
+        no: 'SEC. 04', hero: 'images/hero-cover.jpg',
+        blurb: 'Motoring, travel, design and the conversations worth having after dinner.',
+        subs: ['Motoring', 'Travel', 'Design', 'Interviews', 'Long Reads'],
+        lead: { no: '042', title: 'The Art of Arriving Early', dek: 'On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.', author: 'A. Bellamy', read: '6 MIN READ', img: 'images/hero-cover.jpg' },
+        cards: [
+          { tag: 'MOTORING · 041', title: 'The Slow Car, Fast Philosophy', read: '7 MIN', img: 'images/watch-gear.jpg' },
+          { tag: 'TRAVEL · 040', title: 'Cities Best Seen on Foot', read: '5 MIN', img: 'images/style-mono.jpg' },
+          { tag: 'DESIGN · 039', title: 'The Objects That Earn Their Place', read: '6 MIN', img: 'images/grooming.jpg' },
+          { tag: 'INTERVIEWS · 038', title: 'What I\u2019ve Learned: A Coachbuilder', read: '9 MIN', img: 'images/film-workshop.jpg' },
+          { tag: 'LONG READS · 037', title: 'The Restoration', read: '11 MIN', img: 'images/film-tailor.jpg' },
+          { tag: 'CULTURE · 036', title: 'A Brief History of the Aperitivo', read: '5 MIN', img: 'images/film-watchmaker.jpg' }
+        ]
+      },
+      Film: {
+        no: 'SEC. 05', hero: 'images/film-workshop.jpg',
+        blurb: 'Short documentaries and long conversations, filmed in the workshops where taste is made.',
+        subs: ['Documentary', 'Series', 'Interviews', 'Behind the Scenes'],
+        lead: { no: '012', title: 'The Coachbuilder\u2019s Floor', dek: 'A twelve-minute film on the last men shaping aluminium by hand — and eye.', author: 'MG Film', read: '12 MIN FILM', img: 'images/film-workshop.jpg' },
+        cards: [
+          { tag: 'DOCUMENTARY · 011', title: 'The Tailor of Savile Row', read: '9 MIN', img: 'images/film-tailor.jpg' },
+          { tag: 'SERIES · 010', title: 'Inside the Watchmaker\u2019s Bench', read: '14 MIN', img: 'images/film-watchmaker.jpg' },
+          { tag: 'INTERVIEWS · 009', title: 'A Conversation on Restraint', read: '18 MIN', img: 'images/style-mono.jpg' },
+          { tag: 'BEHIND THE SCENES · 008', title: 'Shooting the Aston, at Dawn', read: '6 MIN', img: 'images/hero-cover.jpg' },
+          { tag: 'DOCUMENTARY · 007', title: 'The Grooming Ritual, Filmed', read: '7 MIN', img: 'images/grooming.jpg' },
+          { tag: 'FILM · 006', title: 'Objects of Desire, in Motion', read: '10 MIN', img: 'images/watch-gear.jpg' }
+        ]
+      }
+    };
+  }
+
+  chromeProps() {
+    return {
+      darkMode: this.props.darkMode ?? false,
+      sharpCorners: this.props.sharpCorners ?? true,
+      headerStyle: this.props.headerStyle ?? 'Frosted',
+      headerScheme: this.props.headerScheme ?? 'Auto',
+      invertHeader: this.props.invertHeader ?? false,
+      headerScale: this.props.headerScale ?? 1,
+      headerHeight: this.props.headerHeight ?? 72,
+      shrinkOnScroll: this.props.shrinkOnScroll ?? true,
+      shrunkHeight: this.props.shrunkHeight ?? 58,
+      navMotion: this.props.navMotion ?? 'Frost only',
+      hideOnScroll: this.props.hideOnScroll ?? true,
+      alwaysFrosted: this.props.alwaysFrosted ?? false,
+      headerDivider: this.props.headerDivider ?? false,
+      burgerVariant: this.props.burgerVariant ?? 'Sq thin pair',
+      burgerHover: this.props.burgerHover ?? 'Staircase',
+      menuHover: this.props.menuHover ?? 'Underline',
+      iconBubbles: this.props.iconBubbles ?? false,
+      iconBubbleHover: this.props.iconBubbleHover ?? false,
+      iconHover: this.props.iconHover ?? 'Circle',
+      sidebarEntry: this.props.sidebarEntry ?? 'Fade',
+      dropdownAnim: this.props.dropdownAnim ?? 'Curtain',
+      dropdownExit: this.props.dropdownExit ?? 'Collapse',
+      sidebarLogo: this.props.sidebarLogo ?? 'MG monogram',
+      sidebarBubbles: this.props.sidebarBubbles ?? false,
+      chevronBubbles: this.props.chevronBubbles ?? false,
+      sidebarTagline: this.props.sidebarTagline ?? 'The Men’s Lifestyle Guide',
+    };
+  }
+
+  slugify(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'default'; }
+
+  renderVals() {
+    const narrowLayout = this.props.narrowLayout ?? false;
+    const all = this.data();
+    const cat = (this.state.cat && all[this.state.cat]) ? this.state.cat : (this.props.category ?? 'Style');
+    const d = all[cat] || all.Style;
+    const upper = cat.toUpperCase();
+    const navCats = ['Style', 'Grooming', 'Watches', 'Culture', 'Film'];
+    const navItems = navCats.map((c) => ({
+      label: c.toUpperCase(), href: 'MG Category.dc.html?cat=' + c, active: c === cat ? 'true' : 'false'
+    })).concat([{ label: 'Store', href: 'MG Store.dc.html', active: 'false' }]);
+    return {
+      ...this.chromeProps(),
+      narrowLayout: narrowLayout,
+      catName: cat,
+      catUpper: upper,
+      sectionNo: d.no,
+      blurb: d.blurb,
+      heroBg: 'url(' + d.hero + ')',
+      leadBg: 'url(' + d.lead.img + ')',
+      lead: d.lead,
+      leadSlug: this.slugify(d.lead.title),
+      subcats: d.subs.map((s) => ({ label: s, href: '#' })),
+      cards: d.cards.map((c) => ({ tag: c.tag, title: c.title, read: c.read, bg: 'url(' + c.img + ')', slug: this.slugify(c.title) })),
+      navItems: navItems,
+      subscribeLabel: this.state.subscribed ? 'SUBSCRIBED ✓' : 'SUBSCRIBE',
+      onSubmit: (e) => { e.preventDefault(); this.setState({ subscribed: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

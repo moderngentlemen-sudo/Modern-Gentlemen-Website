@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth;overflow-x:clip;}
+body{margin:0;background:#0d0d0d;color:var(--mg-fg,#f4f4f4);-webkit-font-smoothing:antialiased;}
+a{color:var(--mg-fg,#f4f4f4);text-decoration:none;}
+a:hover{color:#ff4d5e;}
+[data-addbig]{transition:filter .18s ease,transform .1s ease;cursor:pointer;}
+[data-addbig]:hover{filter:brightness(1.08);}
+[data-addbig]:active{transform:translateY(1px);}
+[data-qtybtn]{transition:color .18s ease,background .18s ease;cursor:pointer;}
+[data-qtybtn]:hover{color:var(--mg-fg,#f4f4f4);background:color-mix(in srgb,var(--mg-fg,#f4f4f4) 10%,transparent);}
+[data-bagremove]{transition:color .18s ease;cursor:pointer;}
+[data-bagremove]:hover{color:#ff4d5e;}
+@media (max-width:900px){
+  [data-bagpage]{grid-template-columns:1fr!important;gap:36px!important;}
+  [data-bagpage] [data-summary]{position:static!important;}
+  [data-bagrow]{grid-template-columns:88px 1fr!important;}
+  [data-bagrow] [data-rowright]{grid-column:1 / -1!important;padding-left:0!important;}
+}
+[data-page]{--mg-fg:#f4f4f4;}
+html[data-mgtheme="light"] [data-page]{background:#f4f4f4!important;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;}
+html[data-mgtheme="light"]{background:#f4f4f4;}
+html[data-mgtheme="light"] body{background:#f4f4f4;color:#141414;}
+@media (max-width:680px){#mg-header-skeleton{padding-left:20px!important;padding-right:20px!important;}}
+html[data-mgtheme="light"] #mg-header-skeleton{color:#141414!important;}
+html[data-mgtheme="light"] #mg-header-skeleton img{filter:invert(1)!important;}
+html[data-mgtheme="light"] #mg-header-skeleton [data-skburger] span:nth-child(1){background:#141414!important;}
+#mg-header-skeleton + * .sc-placeholder,#mg-header-skeleton + .sc-placeholder{display:none!important;}
+@media (max-width:680px){[data-page] section{padding-left:22px!important;padding-right:22px!important;}}
+[data-page][data-narrow="true"] > section{max-width:1320px;}
+html[data-mgtheme="dark"]{background:#0d0d0d;}
+</style>
+<script src="mg-catalog.js"></script>
+<script src="mg-bag.js"></script>
+<script>try{document.documentElement.setAttribute('data-mgtheme',(localStorage.getItem('mg-theme')||'light'));}catch(e){}</script>
+</helmet>
+<div data-page data-narrow="{{ narrowShop }}" style="min-height:100vh;background:#0d0d0d;">
+  <div id="mg-header-skeleton" style="position:fixed;top:0;left:0;right:0;z-index:59;height:72px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:2px max(48px, calc((100% - 1320px) / 2)) 0;background:transparent;pointer-events:none;color:#fff;"><div style="display:flex;align-items:center;gap:14px;flex-shrink:0;"><span data-skburger style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;width:22px;"><span style="width:22px;height:2px;border-radius:2px;background:#f4f4f4;display:block;"></span><span style="width:13px;height:2px;border-radius:2px;background:#C8102E;display:block;box-shadow:0 0 8px 0 rgba(200,16,46,0.45);"></span></span><img src="mg-logo.svg" alt="" style="height:20px;width:auto;display:block;"></div><span data-skicon style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg></span></div>
+  <dc-import name="MG Header" hint-size="100%,64px" dark-mode="{{ darkMode }}" sharp-corners="{{ sharpCorners }}" header-style="{{ headerStyle }}" header-scheme="{{ headerScheme }}" invert-header="{{ invertHeader }}" header-scale="{{ headerScale }}" header-height="{{ headerHeight }}" shrink-on-scroll="{{ shrinkOnScroll }}" shrunk-height="{{ shrunkHeight }}" nav-motion="{{ navMotion }}" hide-on-scroll="{{ hideOnScroll }}" always-frosted="{{ alwaysFrosted }}" header-divider="{{ headerDivider }}" burger-variant="{{ burgerVariant }}" burger-hover="{{ burgerHover }}" menu-hover="{{ menuHover }}" icon-bubbles="{{ iconBubbles }}" icon-bubble-hover="{{ iconBubbleHover }}" icon-hover="{{ iconHover }}" sidebar-entry="{{ sidebarEntry }}" dropdown-anim="{{ dropdownAnim }}" dropdown-exit="{{ dropdownExit }}" sidebar-bubbles="{{ sidebarBubbles }}" chevron-bubbles="{{ chevronBubbles }}" sidebar-tagline="{{ sidebarTagline }}" sidebar-logo="{{ sidebarLogo }}" bag-style="{{ bagStyle }}"></dc-import>
+
+  <section data-screen-label="Bag" style="box-sizing:border-box;margin:0 auto;padding:120px max(48px, calc((100% - 1320px) / 2)) 96px;">
+    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:36px;">
+      <h1 style="margin:0;font:600 46px/1 'Space Grotesk',sans-serif;letter-spacing:-0.04em;">Your Bag</h1>
+      <span style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);">{{ countLabel }}</span>
+    </div>
+
+    <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:70px 0 90px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb,var(--mg-fg,#f4f4f4) 30%,transparent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 8h11l-1 12h-9l-1-12Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>
+        <div style="font:400 24px/1.4 'Instrument Serif',serif;font-style:italic;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 72%,transparent);">Your bag is empty.</div>
+        <a href="MG Store.dc.html" style="display:inline-flex;align-items:center;padding:15px 32px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 22%,transparent);border-radius:100px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">BROWSE THE STORE →</a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasItems }}" hint-placeholder-val="{{ true }}">
+      <div data-bagpage style="display:grid;grid-template-columns:1.5fr 0.5fr;gap:56px;align-items:start;">
+        <div>
+          <div style="border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);">
+            <sc-for list="{{ items }}" as="it" hint-placeholder-count="3">
+              <div data-bagrow style="display:grid;grid-template-columns:104px 1fr auto;gap:22px;padding:24px 0;border-bottom:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);align-items:start;">
+                <a href="{{ it.href }}" style="width:104px;aspect-ratio:4/5;border-radius:10px;overflow:hidden;background-color:#0d0d0d;background-image:{{ it.bg }};background-size:cover;background-position:center;display:block;"></a>
+                <div style="min-width:0;display:flex;flex-direction:column;">
+                  <div style="font:400 9px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">{{ it.catLabel }}</div>
+                  <a href="{{ it.href }}" style="margin:7px 0 0;font:500 18px/1.25 'Space Grotesk',sans-serif;letter-spacing:-0.015em;color:var(--mg-fg,#f4f4f4);">{{ it.name }}</a>
+                  <div style="margin-top:6px;font:400 12px 'IBM Plex Mono',monospace;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);">{{ it.eachFmt }} each</div>
+                  <div style="margin-top:16px;display:flex;align-items:center;gap:18px;">
+                    <div style="display:flex;align-items:center;gap:2px;border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 22%,transparent);border-radius:100px;padding:3px;">
+                      <button data-qtybtn onClick="{{ it.dec }}" aria-label="Decrease quantity" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:none;border:none;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);cursor:pointer;padding:0;font:400 17px/1 'Space Grotesk',sans-serif;">−</button>
+                      <span style="min-width:26px;text-align:center;font:500 13px 'Space Grotesk',sans-serif;">{{ it.qty }}</span>
+                      <button data-qtybtn onClick="{{ it.inc }}" aria-label="Increase quantity" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:none;border:none;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 85%,transparent);cursor:pointer;padding:0;font:400 16px/1 'Space Grotesk',sans-serif;">+</button>
+                    </div>
+                    <button data-bagremove onClick="{{ it.remove }}" style="background:none;border:none;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 50%,transparent);cursor:pointer;padding:0;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.14em;">REMOVE</button>
+                  </div>
+                </div>
+                <div data-rowright style="text-align:right;font:500 17px 'Space Grotesk',sans-serif;letter-spacing:-0.01em;white-space:nowrap;">{{ it.lineTotalFmt }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <a href="MG Store.dc.html" style="display:inline-flex;align-items:center;gap:8px;margin-top:26px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.18em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 65%,transparent);">← CONTINUE SHOPPING</a>
+        </div>
+
+        <aside data-summary style="position:sticky;top:96px;border-radius:14px;background:var(--mg-surface,#131315);border:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);padding:28px 26px;">
+          <div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.24em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 55%,transparent);margin-bottom:20px;">ORDER SUMMARY</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font:400 13px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 78%,transparent);">
+            <span>Subtotal</span><span>{{ subtotalFmt }}</span>
+          </div>
+          <sc-if value="{{ isMember }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font:400 13px 'Space Grotesk',sans-serif;color:#ff4d5e;">
+              <span>Member discount (15%)</span><span>{{ discountFmt }}</span>
+            </div>
+          </sc-if>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font:400 13px 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 78%,transparent);">
+            <span>Shipping</span><span>{{ shippingFmt }}</span>
+          </div>
+          <div style="margin:14px 0;height:1px;background:color-mix(in srgb,var(--mg-bd,#ffffff) 12%,transparent);"></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px;">
+            <span style="font:500 14px 'Space Grotesk',sans-serif;">Total</span>
+            <span style="font:600 24px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;">{{ totalFmt }}</span>
+          </div>
+          <a data-addbig href="MG Checkout.dc.html" style="display:flex;align-items:center;justify-content:center;padding:16px;border-radius:100px;background:#C8102E;color:#fff;font:400 11px 'IBM Plex Mono',monospace;letter-spacing:0.2em;">CHECKOUT →</a>
+          <sc-if value="{{ showMemberCta }}" hint-placeholder-val="{{ false }}">
+            <a href="MG Membership.dc.html" style="display:block;text-align:center;margin-top:16px;font:400 11px/1.5 'Space Grotesk',sans-serif;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 60%,transparent);">Members save 15% — <span style="color:#ff4d5e;">become a member</span></a>
+          </sc-if>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid color-mix(in srgb,var(--mg-bd,#ffffff) 10%,transparent);display:flex;align-items:center;gap:9px;font:400 10px 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:color-mix(in srgb,var(--mg-fg,#f4f4f4) 45%,transparent);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+            <span>SECURE CHECKOUT</span>
+          </div>
+        </aside>
+      </div>
+    </sc-if>
+  </section>
+
+  <dc-import name="MG Footer" hint-size="100%,320px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:900},&quot;narrowShop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;bagStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Slide-in drawer&quot;,&quot;options&quot;:[&quot;Slide-in drawer&quot;,&quot;Dropdown&quot;,&quot;Full page&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Bag&quot;},&quot;sidebarLogo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Wordmark&quot;,&quot;options&quot;:[&quot;MG monogram&quot;,&quot;Wordmark&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sidebar&quot;}}">
+class Component extends DCLogic {
+  chromeProps() {
+    return {
+      darkMode: this.props.darkMode ?? false,
+      sharpCorners: this.props.sharpCorners ?? true,
+      headerStyle: this.props.headerStyle ?? 'Frosted',
+      headerScheme: this.props.headerScheme ?? 'Auto',
+      invertHeader: this.props.invertHeader ?? false,
+      headerScale: this.props.headerScale ?? 1,
+      headerHeight: this.props.headerHeight ?? 72,
+      shrinkOnScroll: this.props.shrinkOnScroll ?? true,
+      shrunkHeight: this.props.shrunkHeight ?? 58,
+      navMotion: this.props.navMotion ?? 'Frost only',
+      hideOnScroll: this.props.hideOnScroll ?? true,
+      alwaysFrosted: this.props.alwaysFrosted ?? false,
+      headerDivider: this.props.headerDivider ?? false,
+      burgerVariant: this.props.burgerVariant ?? 'Sq thin pair',
+      burgerHover: this.props.burgerHover ?? 'Staircase',
+      menuHover: this.props.menuHover ?? 'Underline',
+      iconBubbles: this.props.iconBubbles ?? false,
+      iconBubbleHover: this.props.iconBubbleHover ?? false,
+      iconHover: this.props.iconHover ?? 'Circle',
+      sidebarEntry: this.props.sidebarEntry ?? 'Fade',
+      dropdownAnim: this.props.dropdownAnim ?? 'Curtain',
+      dropdownExit: this.props.dropdownExit ?? 'Collapse',
+      sidebarLogo: this.props.sidebarLogo ?? 'MG monogram',
+      sidebarBubbles: this.props.sidebarBubbles ?? false,
+      chevronBubbles: this.props.chevronBubbles ?? false,
+      sidebarTagline: this.props.sidebarTagline ?? 'The Men\u2019s Lifestyle Guide',
+      bagStyle: this.props.bagStyle ?? 'Slide-in drawer',
+      narrowShop: this.props.narrowShop ? 'true' : 'false'
+    };
+  }
+
+  componentDidMount() {
+    this._onBag = () => this.forceUpdate();
+    window.addEventListener('mg-bag-change', this._onBag);
+    window.addEventListener('mg-bag-ready', this._onBag);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('mg-bag-change', this._onBag);
+    window.removeEventListener('mg-bag-ready', this._onBag);
+  }
+
+  renderVals() {
+    const base = this.chromeProps();
+    const cat = window.MGCatalog;
+    const bag = window.MGBag;
+    const fmt = (n) => (cat ? cat.format(n) : ('£' + n));
+    const items = bag ? bag.items() : [];
+    const count = bag ? bag.count() : 0;
+    const sub = bag ? bag.subtotal() : 0;
+    const isMember = bag ? bag.isMember() : false;
+    const rate = bag ? bag.memberRate : 0.15;
+    const discount = isMember ? Math.round(sub * rate) : 0;
+    const payable = sub - discount;
+    const shipping = (payable === 0 || payable >= 50) ? 0 : 495;
+    const total = payable + shipping;
+    return Object.assign({}, base, {
+      empty: count === 0,
+      hasItems: count > 0,
+      countLabel: count === 0 ? 'EMPTY' : (count + (count === 1 ? ' ITEM' : ' ITEMS')),
+      items: items.map((it) => ({
+        name: it.name, catLabel: it.catLabel, qty: it.qty,
+        bg: 'url(' + it.image + ')',
+        href: 'MG Product.dc.html?p=' + it.slug,
+        eachFmt: fmt(it.price),
+        lineTotalFmt: fmt(it.lineTotal),
+        inc: () => { if (bag) bag.add(it.slug, 1); },
+        dec: () => { if (bag) bag.setQty(it.slug, it.qty - 1); },
+        remove: () => { if (bag) bag.remove(it.slug); }
+      })),
+      subtotalFmt: fmt(sub),
+      isMember: isMember && discount > 0,
+      discountFmt: '– ' + fmt(discount),
+      shippingFmt: shipping === 0 ? 'Free' : fmt(shipping),
+      totalFmt: fmt(total),
+      showMemberCta: !isMember
+    });
+  }
+}
+</script>
+</body>
+</html>
