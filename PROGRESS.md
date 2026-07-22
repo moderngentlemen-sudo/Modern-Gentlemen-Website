@@ -8,21 +8,22 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** `claude/project-setup-docs-xfx8td` (all work committed + pushed here; **no PR opened** — a new session continues on this branch). **Deploy:** live on Railway, running on demo data. **Last milestone:** M2 (store flow).
+**Branch:** `claude/continue-previous-work-lykdt2` (Milestone 3 committed here). M1+M2 were **merged to `main` via PR #1** (from `claude/project-setup-docs-xfx8td`); this branch started even with that merged content. **Deploy:** live on Railway, running on demo data. **Last milestone:** M3 (editorial pages).
 
 ### Progress snapshot
 | Phase / Milestone | Scope | Status |
 |---|---|---|
 | Phase 0 — Setup & deploy | deps + `package-lock.json`, clean build, Railway pipeline | ✅ done, **live** |
 | Milestone 1 — Homepage + chrome | foundation, all chrome (header/mega/drawer/search/bag/footer/theme), 7 homepage section blocks, homepage | ✅ done, screenshot-verified |
-| Milestone 2 — Store flow | Shop, Product/PDP, Bag, Checkout + shared `components/store/*` primitives | ✅ done, screenshot-verified |
+| Milestone 2 — Store flow | Shop, Product/PDP, Bag, Checkout + shared `components/store/*` primitives | ✅ done, merged (PR #1) |
+| Milestone 3 — Editorial pages | Category ×5, About, Membership + 9 new section blocks + 2 shared UI primitives (`ui/RailLabel`, `ui/HairlineGrid`) + `lib/editorial.ts` | ✅ done, screenshot-verified |
 
-Key commits: `5f9bc1d` Phase 0 → `d127c94` M1 → `ad99224` Railway build fix → `4610288` M2.
+Key commits: `5f9bc1d` Phase 0 → `d127c94` M1 → `ad99224` Railway build fix → `4610288` M2 (→ merged as PR #1) → M3 editorial pages (this branch).
 
 ### What runs today
-Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_handoff_modern_gentlemen/starter && npm install && npm run dev`). Live: the **Homepage** and the full **Store** journey (Shop → Product → Bag → Checkout, plus the header bag drawer, member-discount math, and demo checkout).
+Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_handoff_modern_gentlemen/starter && npm install && npm run dev`). Live: the **Homepage**, the full **Store** journey (Shop → Product → Bag → Checkout, header bag drawer, member-discount math, demo checkout), the 5 **Category** landings (`/style /grooming /watches /culture /film`), **About**, and **Membership** (billing toggle + tiers + FAQ + join-sets-member-flag).
 
-**Reachable but still scaffold** (the natural next work): the `[category]` pages (the STYLE/GROOMING/WATCHES/CULTURE/FILM nav links land on a near-empty title band), **About** (one placeholder block), **Membership** (fully functional but not pixel-polished), **Article** (placeholder).
+**Reachable but still scaffold** (the natural next work): **Article** (`/article/[slug]` — placeholder; the category lead + grid cards already link into it via `/article/{slug}`).
 
 ### Architecture & patterns to REUSE (don't reinvent)
 - **Page content = an ordered `Block[]`** rendered by `components/SectionRenderer.tsx` via `components/sections/registry.ts`; one component per archetype, **variants via a `variant` prop**. `app/page.tsx` `DEMO_SECTIONS` is the reference pattern.
@@ -38,13 +39,13 @@ Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_han
 - Railway **Root Directory must stay `design_handoff_modern_gentlemen/starter`** (the repo root has no app).
 
 ### Next phase (recommended order)
-1. **Editorial pages** (next milestone) — **Category** (compose a demo `Block[]` per category + a full-bleed category hero + `narrowLayout` inner column); **About** (pure section-composition — copy is fixed in `MG About.dc.html`; needs a small stat band + masthead grid); **Membership** (already works — pixel-polish + align copy to `MG Membership.dc.html`; optionally extract a reusable `membershipTiers` block).
-2. **Article** (heavier, its own milestone) — a template engine: `HERO_BY_TEMPLATE` (9 hero variants) × body variants + a reading-progress bar + a body/portable-text renderer. Build only the ~10 templates used; the reference screenshots show **"Letter from the Editor"** (Centered hero + Letter body) — do that first.
+1. ~~**Editorial pages**~~ ✅ **DONE (M3)** — Category ×5, About, Membership built + screenshot-verified. See the new blocks in `components/sections/` and demo data in `lib/editorial.ts`.
+2. **Article** (next milestone) — `app/article/[slug]/page.tsx` is still a scaffold; the category lead + grid cards already link to `/article/{slugify(title)}`. Build a template engine: `HERO_BY_TEMPLATE` (9 hero variants) × body variants + a reading-progress bar + a body/portable-text renderer. Build only the ~10 templates used; the reference screenshots show **"Letter from the Editor"** (Centered hero + Letter body) — do that first. Reuse `ui/RailLabel`, `PullQuote`, `CtaBand` where they fit.
 3. **Phase 6** — Section Library picker + drag-and-drop builder (`components/builder/SectionEditor.tsx`; dnd-kit already installed).
 4. **Phase 7** — global QA: per-route SEO metadata, Product JSON-LD, sitemap/robots, full a11y + responsive + dark sweep, Lighthouse.
 5. **Track B** — Supabase + Stripe (see the Track B checklist below + `06_SUPABASE.md`): provision, apply `supabase/migrations/0001_init.sql` + `seed.sql`, swap demo arrays → `lib/queries.ts`, add auth + a Supabase cart adapter + real Stripe checkout/webhook, then remove the legacy Sanity scaffold. (A Supabase MCP integration is connected in-session for provisioning.)
 
-Missing section archetypes to build when a page needs them: `membershipTiers`, `specTable`, `heroVogue01…10`.
+Missing section archetypes to build when a page needs them: `specTable`, `heroVogue01…10` (`membershipTiers` deferred — Membership is a bespoke in-place page).
 
 ### How to run & verify
 - **Dev:** `cd design_handoff_modern_gentlemen/starter && npm install && npm run dev` → http://localhost:3000.
@@ -79,14 +80,14 @@ Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md`
 - [x] Theme toggle persists + no flash
 
 ## Phase 3 — Section blocks  (ref: `05_SECTION_BUILDER.md`, `MODULE_MAP.md`)
-- [~] 13 scaffolded blocks brought to fidelity (as pages need them) — homepage's 7 done to fidelity (heroCoverStar, latestGrid `sixUp`, featureSplit `fullBleed`, twoUpCategory, storyBand, filmStills, newsletter); the other 6 as their pages are built
-- [ ] TODO archetypes built when needed: `specTable`, `membershipTiers`, `heroVogue01…10`
+- [~] Section blocks brought to fidelity as pages need them — homepage's 7 done (heroCoverStar, latestGrid `sixUp`, featureSplit `fullBleed`, twoUpCategory, storyBand, filmStills, newsletter). Editorial milestone added **9 new blocks** (`categoryHero`, `featuredLead`, `articleGrid`, `ctaBand`, `editorialHero`, `manifesto`, `coverCards`, `pullQuote`, `masthead`) + a `statsBand` `cards` variant, all registered in `registry.ts`/`blockCatalog`, plus 2 shared primitives (`ui/RailLabel`, `ui/HairlineGrid`)
+- [ ] TODO archetypes built when needed: `specTable`, `heroVogue01…10` (`membershipTiers` deferred — Membership was polished in-place as a bespoke client page; extract a reusable block only when a CMS page needs tiers, per `MODULE_MAP.md`)
 
 ## Phase 4 — Editorial pages
 - [x] Homepage — `homepage-desktop.png` + `01–04-homepage.png` (7 sections, verbatim copy; screenshot-verified at 1440/909/375 + dark)
-- [ ] Category ×5 (Style/Grooming/Watches/Culture/Film) — `01–02-category-desktop.png`
-- [ ] About — `01–02-about-desktop.png`
-- [ ] Membership (billing toggle, 3 tiers, FAQ) — `01–03-membership-desktop.png`
+- [x] Category ×5 (Style/Grooming/Watches/Culture/Film) — `01–02-category-desktop.png` (full-bleed hero + subcategory chips, THE LEAD, article grid, red newsletter; article-driven from `lib/editorial.ts`; unknown slug → 404; screenshot-verified 1440/909/375 + dark)
+- [x] About — `01–02-about-desktop.png` (hero, manifesto, By-the-Numbers stat cards, What-we-cover, pull quote, masthead, join band; verbatim copy; screenshot-verified 1440/909/375 + dark)
+- [x] Membership (billing toggle, 3 tiers, FAQ) — `01–03-membership-desktop.png` (Reader/Member/Patron £0·£9/£86·£22/£211, MOST-POPULAR featured tier, benefits grid, testimonial, FAQ, join band; toggle + accordion + member-flag verified)
 - [ ] Article (templates used in refs first) — `01–02-article-desktop.png`
 
 ## Phase 5 — Store
@@ -124,6 +125,13 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - Shop filter is synced to the URL `?cat=` via a Suspense-wrapped `useSearchParams`.
 - PDP not-found is a **styled client fallback** (pixel-matches the reference PNG) rather than server `notFound()`, since the page stays client for `useCart`; real-404 status deferred to SEO/Track B.
 - Checkout payment is **demo-only** (no card charged); real Stripe checkout + the `cart.checkoutUrl()` seam is Track B.
+- Milestone 3 (editorial pages): Category/About/Membership built. Reuse-first — 9 new section blocks + a `statsBand` `cards` variant + 2 shared UI primitives (`RailLabel`, `HairlineGrid`); no Sanity schema added (superseded by Supabase; pages render from demo `Block[]`).
+- Category demo articles live in `lib/editorial.ts` (verbatim from `MG Category.dc.html`, all 5 categories); `culture`/`film` have no store products so category pages are **article-driven**, not `productRow`. Article cards link `/article/{slugify(title)}` (Article page still scaffold).
+- Category page uses server `notFound()` for unknown slugs (real 404) — cleaner than the PDP's styled client fallback, since the category page is a server component (no `useCart`).
+- Editorial mono hero-eyebrows/kickers/tags are the bright accent **#ff4d5e** (hardcoded, matching the prototypes/screenshots), not the light-theme `--mg-accent-serif` (#c8102e).
+- About/Membership sections use the prototypes' **22px** side gutters (via inline `paddingInline: max(22px, calc((100% - W)/2))` for W = 1320/1180/900/820), not `.container-mg`'s 48px (which Category correctly uses, matching its prototype).
+- Membership polished **in place** as a bespoke `"use client"` page (billing toggle drives all 3 tiers); featured "MEMBER" CTA keeps the `useCart().setMember(true)` seam (15% off store-wide). Copy fix: tiers Reader/Debrief/Concierge → **Reader/Member/Patron**, "save 25%" → **SAVE 20%**.
+- `ctaBand` is one block with 3 variants (`split` Category newsletter / `centered` Membership join / `link` About join) + a `gutter` prop (48 default, 22 for About/Membership); CTAs are dark pills (`#0d0d0d`), not the red `Button`. Email/newsletter submits stay demo-only (label flips to ✓).
 
 ## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
 - [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
