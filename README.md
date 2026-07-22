@@ -4,6 +4,8 @@ This repository is a **build-ready handoff**. The goal is a **1:1, pixel-perfect
 
 If you are the engineer (or the next Claude Code session) picking this up: **read this file, then `EXECUTION_PLAN.md`, then start building.** Everything you need is in this repo.
 
+> **📍 Current status (Milestones 1–2 done, live on Railway).** The homepage + shared chrome and the full store flow (Shop → Product → Bag → Checkout) are built to pixel fidelity and deployed on demo data. **If you're resuming in a new session, start from the "Current Status & Session Handoff" section at the very top of [`PROGRESS.md`](PROGRESS.md)** — it lists exactly what's done, the patterns/files to reuse, the setup/deploy gotchas already fixed, and the next steps. Work continues on branch `claude/project-setup-docs-xfx8td`.
+
 ---
 
 ## The one rule

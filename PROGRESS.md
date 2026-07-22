@@ -6,11 +6,61 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 
 ---
 
+## 📍 Current Status & Session Handoff — READ FIRST
+
+**Branch:** `claude/project-setup-docs-xfx8td` (all work committed + pushed here; **no PR opened** — a new session continues on this branch). **Deploy:** live on Railway, running on demo data. **Last milestone:** M2 (store flow).
+
+### Progress snapshot
+| Phase / Milestone | Scope | Status |
+|---|---|---|
+| Phase 0 — Setup & deploy | deps + `package-lock.json`, clean build, Railway pipeline | ✅ done, **live** |
+| Milestone 1 — Homepage + chrome | foundation, all chrome (header/mega/drawer/search/bag/footer/theme), 7 homepage section blocks, homepage | ✅ done, screenshot-verified |
+| Milestone 2 — Store flow | Shop, Product/PDP, Bag, Checkout + shared `components/store/*` primitives | ✅ done, screenshot-verified |
+
+Key commits: `5f9bc1d` Phase 0 → `d127c94` M1 → `ad99224` Railway build fix → `4610288` M2.
+
+### What runs today
+Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_handoff_modern_gentlemen/starter && npm install && npm run dev`). Live: the **Homepage** and the full **Store** journey (Shop → Product → Bag → Checkout, plus the header bag drawer, member-discount math, and demo checkout).
+
+**Reachable but still scaffold** (the natural next work): the `[category]` pages (the STYLE/GROOMING/WATCHES/CULTURE/FILM nav links land on a near-empty title band), **About** (one placeholder block), **Membership** (fully functional but not pixel-polished), **Article** (placeholder).
+
+### Architecture & patterns to REUSE (don't reinvent)
+- **Page content = an ordered `Block[]`** rendered by `components/SectionRenderer.tsx` via `components/sections/registry.ts`; one component per archetype, **variants via a `variant` prop**. `app/page.tsx` `DEMO_SECTIONS` is the reference pattern.
+- **Shared primitives:** `components/ui/*` (`Button`, `Eyebrow`/`MonoLabel`, `clsx`) and `components/store/*` (`ProductCard`, `QtyStepper`, `OrderSummary`, `Field`/`SelectField`).
+- **Tokens/layout:** `.container-mg` (1320px), the `mg.*` Tailwind tokens, `[data-darkband]` (pins the full dark token set), and the `.mg-underline` grow-underline utility — in `app/globals.css` / `tailwind.config.ts`.
+- **Cart + catalog are FINISHED — do not rebuild:** `lib/cart/CartProvider.tsx` (`useCart()`), `lib/cart/types.ts` (`CartApi`), `lib/catalog.ts` (16 products + `allProducts/byGroup/getProduct/related/formatGBP`, `groups`). Commerce rules (15% member, free-ship ≥£50 else £4.95, qty-0-removes) are correct.
+- **Chrome is built once** in `app/layout.tsx`; every page inherits it. The homepage hero bleeds behind the fixed 72px header via `-mt-[72px]`.
+- **Decisions to respect** live in the **Deviations & decisions log** at the bottom of this file (frost-only header, square corners / `sharpCorners`, STORE label + `/shop` route, `?cat=` sync, demo payment, styled PDP not-found, footer always dark…).
+
+### Setup/deploy gotchas ALREADY FIXED (don't re-hit)
+- `package-lock.json` is committed (Railway's `npm ci` needs it).
+- `starter/railway.json` buildCommand is **`npm run build`** only — Nixpacks already runs `npm ci`; a second one hits `EBUSY`.
+- Railway **Root Directory must stay `design_handoff_modern_gentlemen/starter`** (the repo root has no app).
+
+### Next phase (recommended order)
+1. **Editorial pages** (next milestone) — **Category** (compose a demo `Block[]` per category + a full-bleed category hero + `narrowLayout` inner column); **About** (pure section-composition — copy is fixed in `MG About.dc.html`; needs a small stat band + masthead grid); **Membership** (already works — pixel-polish + align copy to `MG Membership.dc.html`; optionally extract a reusable `membershipTiers` block).
+2. **Article** (heavier, its own milestone) — a template engine: `HERO_BY_TEMPLATE` (9 hero variants) × body variants + a reading-progress bar + a body/portable-text renderer. Build only the ~10 templates used; the reference screenshots show **"Letter from the Editor"** (Centered hero + Letter body) — do that first.
+3. **Phase 6** — Section Library picker + drag-and-drop builder (`components/builder/SectionEditor.tsx`; dnd-kit already installed).
+4. **Phase 7** — global QA: per-route SEO metadata, Product JSON-LD, sitemap/robots, full a11y + responsive + dark sweep, Lighthouse.
+5. **Track B** — Supabase + Stripe (see the Track B checklist below + `06_SUPABASE.md`): provision, apply `supabase/migrations/0001_init.sql` + `seed.sql`, swap demo arrays → `lib/queries.ts`, add auth + a Supabase cart adapter + real Stripe checkout/webhook, then remove the legacy Sanity scaffold. (A Supabase MCP integration is connected in-session for provisioning.)
+
+Missing section archetypes to build when a page needs them: `membershipTiers`, `specTable`, `heroVogue01…10`.
+
+### How to run & verify
+- **Dev:** `cd design_handoff_modern_gentlemen/starter && npm install && npm run dev` → http://localhost:3000.
+- **Prod/Railway check:** `npm run build` (must stay clean — it's what Railway runs).
+- **Screenshot-diff loop** (the definition of done): drive the running app with the **preinstalled** global Playwright (`require('/opt/node22/lib/node_modules/playwright')`; Chromium auto-found via `/opt/pw-browsers` — never run `playwright install`), capture at 1440 / 909 / 375 + a dark pass, and diff against `design_handoff_modern_gentlemen/handoff/screenshots/*.png`. Fix every visible diff before ticking a box here.
+
+### A new session's first actions
+Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md` (tokens/rules — read every session) → for the page you're building, `03_PAGES_AND_COMPONENTS.md` + its `design_files/MG *.dc.html` prototype + the matching `handoff/screenshots/*.png`. Then build on `claude/project-setup-docs-xfx8td`, screenshot-verify, and tick this file as you go.
+
+---
+
 ## Phase 0 — Smoke test & deploy pipeline
 - [x] `npm install` + `npm run dev` renders the scaffold locally (HTTP 200, full nav chrome + sections render on demo data); `npm run build` (Railway's command) also passes clean; `package-lock.json` generated & committed
-- [ ] Railway project created, Root Directory = `design_handoff_modern_gentlemen/starter` — needs the owner's Railway account
-- [ ] Scaffold deployed live on a Railway URL — needs the owner's Railway account
-- [ ] Auto-redeploy on push confirmed — after first deploy
+- [x] Railway project created, Root Directory = `design_handoff_modern_gentlemen/starter`
+- [x] Scaffold deployed live on a Railway URL (runs on demo data, zero env vars)
+- [x] Auto-redeploy on push confirmed
 
 ## Phase 1 — Foundation
 - [x] Fonts wired (Space Grotesk / Instrument Serif / IBM Plex Mono / Futura stack)
