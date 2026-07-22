@@ -2,73 +2,92 @@
 
 import Link from "next/link";
 import { useCart, formatGBP } from "@/lib/cart/CartProvider";
+import { QtyStepper } from "@/components/store/QtyStepper";
+import { OrderSummary } from "@/components/store/OrderSummary";
 
 export default function BagPage() {
   const cart = useCart();
-
-  if (cart.lines.length === 0) {
-    return (
-      <div className="container-mg py-32 text-center">
-        <h1 className="font-grotesk text-3xl">Your bag is empty.</h1>
-        <Link href="/shop" className="inline-block mt-6 font-mono text-xs uppercase tracking-[0.2em] text-mg-accent">Continue shopping →</Link>
-      </div>
-    );
-  }
+  const label = cart.count === 0 ? "Empty" : `${cart.count} item${cart.count === 1 ? "" : "s"}`;
 
   return (
-    <div className="container-mg py-12 md:py-16 grid lg:grid-cols-[1fr_360px] gap-12">
-      {/* Line items */}
-      <div>
-        <h1 className="font-grotesk font-semibold text-3xl mb-8">Your Bag</h1>
-        <ul className="divide-y divide-mg-bd/10">
-          {cart.lines.map((l) => (
-            <li key={l.slug} className="flex gap-4 py-5">
-              <div className="h-24 w-20 shrink-0 overflow-hidden bg-mg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={"/" + l.product.images[0]} alt={l.product.name} className="h-full w-full object-cover" />
-              </div>
-              <div className="flex-1">
-                <Link href={`/product/${l.slug}`} className="font-grotesk">{l.product.name}</Link>
-                <p className="font-mono text-xs text-mg-fg/50 mt-1">{formatGBP(l.product.price)} each</p>
-                <div className="flex items-center gap-3 mt-3">
-                  <div className="flex items-center border border-mg-bd/30">
-                    <button className="px-3" onClick={() => cart.setQty(l.slug, l.qty - 1)}>–</button>
-                    <span className="px-3 font-mono text-sm">{l.qty}</span>
-                    <button className="px-3" onClick={() => cart.setQty(l.slug, l.qty + 1)}>+</button>
-                  </div>
-                  <button className="font-mono text-xs text-mg-fg/50 hover:text-mg-accent" onClick={() => cart.remove(l.slug)}>Remove</button>
-                </div>
-              </div>
-              <div className="font-mono text-sm">{formatGBP(l.lineTotal)}</div>
-            </li>
-          ))}
-        </ul>
+    <div className="container-mg py-12 md:py-16">
+      <div className="mb-8 flex items-baseline gap-4">
+        <h1 className="font-grotesk font-semibold text-3xl md:text-4xl">Your Bag</h1>
+        <span className="font-mono uppercase text-xs tracking-[0.2em] text-mg-fg/50">{label}</span>
       </div>
 
-      {/* Summary */}
-      <aside className="lg:sticky lg:top-24 self-start border border-mg-bd/15 p-6">
-        <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-mg-accent mb-4">Order Summary</h2>
-        <Row label="Subtotal" value={formatGBP(cart.subtotal)} />
-        {cart.memberDiscount > 0 && <Row label="Member discount" value={`– ${formatGBP(cart.memberDiscount)}`} />}
-        <Row label="Shipping" value={cart.shipping === 0 ? "Free" : formatGBP(cart.shipping)} />
-        <div className="border-t border-mg-bd/15 mt-3 pt-3">
-          <Row label="Total" value={formatGBP(cart.total)} bold />
+      {cart.lines.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <BagIcon />
+          <p className="mt-6 font-serif italic text-2xl text-mg-fg/70">Your bag is empty.</p>
+          <Link
+            href="/shop"
+            className="mt-6 inline-block border border-mg-bd/30 px-6 py-3 font-mono uppercase text-xs tracking-[0.2em] transition-colors hover:bg-mg-fg hover:text-mg-bg"
+          >
+            Browse the store →
+          </Link>
         </div>
-        <Link href="/checkout" className="mt-6 block text-center bg-mg-accent text-white py-3 font-mono text-xs uppercase tracking-[0.2em]">Checkout</Link>
-        {!cart.isMember && (
-          <Link href="/membership" className="mt-3 block text-center font-mono text-xs text-mg-fg/60 hover:text-mg-accent">Save 15% — become a member</Link>
-        )}
-        <p className="mt-4 font-mono text-[10px] text-mg-fg/40 text-center">Free shipping over £50 · secure checkout</p>
-      </aside>
+      ) : (
+        <div className="grid gap-12 min-[901px]:grid-cols-[1.5fr_0.5fr]">
+          {/* Line items */}
+          <div>
+            <ul className="divide-y divide-mg-bd/10 border-y border-mg-bd/10">
+              {cart.lines.map((l) => (
+                <li key={l.slug} className="flex gap-5 py-6">
+                  <Link href={`/product/${l.slug}`} className="h-[130px] w-[104px] shrink-0 overflow-hidden bg-mg-surface">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={"/" + l.product.images[0]} alt={l.product.name} className="h-full w-full object-cover" />
+                  </Link>
+                  <div className="flex flex-1 flex-col">
+                    <span className="font-mono uppercase text-[10px] tracking-[0.2em] text-mg-fg/45">{l.product.catLabel}</span>
+                    <Link href={`/product/${l.slug}`} className="mt-1 font-grotesk text-lg hover:text-mg-accent">{l.product.name}</Link>
+                    <p className="mt-1 font-mono text-xs text-mg-fg/50">{formatGBP(l.product.price)} each</p>
+                    <div className="mt-auto flex items-center gap-4 pt-4">
+                      <QtyStepper qty={l.qty} onDec={() => cart.setQty(l.slug, l.qty - 1)} onInc={() => cart.setQty(l.slug, l.qty + 1)} />
+                      <button
+                        onClick={() => cart.remove(l.slug)}
+                        className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accent"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  <div className="font-mono text-sm">{formatGBP(l.lineTotal)}</div>
+                </li>
+              ))}
+            </ul>
+            <Link href="/shop" className="mt-6 inline-block font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">← Continue shopping</Link>
+          </div>
+
+          {/* Summary */}
+          <div className="self-start min-[901px]:sticky min-[901px]:top-24">
+            <OrderSummary
+              heading="Order Summary"
+              cta={{ label: "Checkout →", href: "/checkout" }}
+              secondary={
+                !cart.isMember ? (
+                  <Link
+                    href="/membership"
+                    className="mt-3 block text-center font-mono uppercase text-[11px] tracking-[0.12em] text-mg-fg/60 hover:text-mg-accent"
+                  >
+                    Members save 15% — become a member
+                  </Link>
+                ) : undefined
+              }
+              footNote="Secure checkout"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function BagIcon() {
   return (
-    <div className={`flex justify-between py-1 ${bold ? "font-grotesk text-lg" : "text-sm text-mg-fg/70"}`}>
-      <span>{label}</span>
-      <span className="font-mono">{value}</span>
-    </div>
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-mg-fg/40">
+      <path d="M6 8h12l-1 12H7L6 8z" />
+      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+    </svg>
   );
 }

@@ -99,6 +99,6 @@ export function useCart(): CartApi {
   return ctx;
 }
 
-export function formatGBP(n: number): string {
-  return "£" + Math.round(n).toLocaleString("en-GB");
-}
+// Money formatting has a single source of truth in lib/catalog; re-export it so
+// callers importing from here keep working AND shipping renders £4.95 (not £5).
+export { formatGBP } from "@/lib/catalog";

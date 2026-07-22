@@ -1,9 +1,13 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { getProduct, related, formatGBP } from "@/lib/catalog";
 import { useCart } from "@/lib/cart/CartProvider";
+import { QtyStepper } from "@/components/store/QtyStepper";
+import { ProductCard } from "@/components/store/ProductCard";
+
+const ASSURANCES = ["Free shipping on UK orders over £50", "30-day no-fuss returns", "Members save 15% at checkout"];
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -13,26 +17,56 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
-  if (!product) return <div className="container-mg py-32 text-center font-mono">Product not found.</div>;
+  // Reset transient state when navigating between products (related-link SPA nav).
+  useEffect(() => {
+    setImg(0);
+    setQty(1);
+    setAdded(false);
+  }, [slug]);
+
+  if (!product) {
+    return (
+      <div className="container-mg flex min-h-[70vh] flex-col items-center justify-center py-32 text-center">
+        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">Not found</p>
+        <h1 className="mt-4 font-grotesk font-semibold text-4xl md:text-5xl">We couldn’t find that product.</h1>
+        <Link
+          href="/shop"
+          className="mt-8 inline-block border border-mg-bd/30 px-6 py-3 font-mono uppercase text-xs tracking-[0.2em] transition-colors hover:bg-mg-fg hover:text-mg-bg"
+        >
+          ← Back to store
+        </Link>
+      </div>
+    );
+  }
 
   const memberPrice = Math.round(product.price * (1 - cart.memberRate));
 
   return (
     <div className="container-mg py-10 md:py-14">
-      <nav className="font-mono text-xs text-mg-fg/50 mb-8">
-        <Link href="/shop">Shop</Link> / <Link href={`/shop?cat=${product.cat}`}>{product.catLabel}</Link> / {product.name}
+      <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/45">
+        <Link href="/shop" className="hover:text-mg-accent">Store</Link> <span className="text-mg-fg/25">/</span>{" "}
+        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accent">{product.catLabel}</Link> <span className="text-mg-fg/25">/</span>{" "}
+        <span className="text-mg-fg/70">{product.name}</span>
       </nav>
 
-      <div className="grid md:grid-cols-2 gap-10 lg:gap-16">
+      <div className="grid gap-10 md:grid-cols-[1.05fr_0.95fr] lg:gap-14">
         {/* Gallery */}
-        <div className="md:sticky md:top-24 self-start">
-          <div className="aspect-square overflow-hidden bg-mg-surface">
+        <div className="self-start md:sticky md:top-24">
+          <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={"/" + product.images[img]} alt={product.name} className="h-full w-full object-cover" />
+            {product.tag && (
+              <span className="absolute left-4 top-4 bg-mg-accent px-2 py-1 font-mono uppercase text-[10px] tracking-[0.18em] text-white">{product.tag}</span>
+            )}
           </div>
-          <div className="flex gap-3 mt-3">
+          <div className="mt-3 flex gap-3">
             {product.images.map((im, i) => (
-              <button key={i} onClick={() => setImg(i)} className={`h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-transparent"}`}>
+              <button
+                key={i}
+                onClick={() => setImg(i)}
+                aria-label={`View image ${i + 1}`}
+                className={`h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-mg-bd/15 hover:border-mg-bd/40"}`}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={"/" + im} alt="" className="h-full w-full object-cover" />
               </button>
@@ -42,8 +76,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
         {/* Details */}
         <div>
-          {product.tag && <span className="font-mono text-[10px] tracking-widest text-mg-accent">{product.tag}</span>}
-          <h1 className="font-grotesk font-semibold text-3xl md:text-4xl mt-2">{product.name}</h1>
+          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">{product.catLabel}</span>
+          <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl tracking-[-0.02em]">{product.name}</h1>
           <div className="mt-4 flex items-baseline gap-4">
             <span className="font-grotesk text-2xl">{formatGBP(product.price)}</span>
             <span className="font-mono text-xs text-mg-fg/50">Members {formatGBP(memberPrice)}</span>
@@ -51,37 +85,41 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <p className="mt-5 text-mg-fg/70 text-pretty">{product.blurb}</p>
           <p className="mt-2 font-mono text-xs text-mg-fg/50">{product.material}</p>
 
-          {/* Qty + add */}
-          <div className="flex items-stretch gap-3 mt-8">
-            <div className="flex items-center border border-mg-bd/30">
-              <button className="px-4 text-lg" onClick={() => setQty((q) => Math.max(1, q - 1))}>–</button>
-              <span className="px-4 font-mono">{qty}</span>
-              <button className="px-4 text-lg" onClick={() => setQty((q) => q + 1)}>+</button>
-            </div>
+          <div className="mt-8 flex items-stretch gap-3">
+            <QtyStepper qty={qty} onDec={() => setQty((q) => Math.max(1, q - 1))} onInc={() => setQty((q) => q + 1)} />
             <button
-              onClick={() => { cart.add(product.slug, qty); setAdded(true); }}
-              className="flex-1 bg-mg-accent text-white font-mono text-xs uppercase tracking-[0.2em] hover:bg-mg-fg hover:text-mg-bg"
+              onClick={() => {
+                cart.add(product.slug, qty);
+                setAdded(true);
+              }}
+              className="flex-1 bg-mg-accent font-mono uppercase text-xs tracking-[0.2em] text-white transition-colors hover:bg-mg-fg hover:text-mg-bg"
             >
-              {added ? "Added ✓" : "Add to bag"}
+              {added ? "Added to bag ✓" : "Add to bag"}
             </button>
           </div>
 
-          {/* Story */}
+          <ul className="mt-6 space-y-2">
+            {ASSURANCES.map((a) => (
+              <li key={a} className="flex items-center gap-2 text-sm text-mg-fg/70">
+                <span className="text-mg-accent">✓</span> {a}
+              </li>
+            ))}
+          </ul>
+
           <div className="mt-12">
-            <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-mg-accent mb-3">The Story</h2>
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">The Story</h2>
             {product.story.split("\n\n").map((para, i) => (
-              <p key={i} className="text-mg-fg/80 leading-relaxed mb-4 text-pretty">{para}</p>
+              <p key={i} className="mb-4 leading-relaxed text-mg-fg/80 text-pretty">{para}</p>
             ))}
           </div>
 
-          {/* Specs */}
           <div className="mt-8">
-            <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-mg-accent mb-3">Specifications</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">Specifications</h2>
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
               {product.specs.map(([k, v]) => (
-                <div key={k} className="flex justify-between border-b border-mg-bd/10 py-2 text-sm">
-                  <dt className="text-mg-fg/50">{k}</dt>
-                  <dd>{v}</dd>
+                <div key={k} className="flex justify-between gap-4 border-b border-mg-bd/10 py-2 text-sm">
+                  <dt className="font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">{k}</dt>
+                  <dd className="text-right">{v}</dd>
                 </div>
               ))}
             </dl>
@@ -91,17 +129,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
       {/* Related */}
       <div className="mt-20">
-        <h2 className="font-grotesk text-2xl mb-6">You might also like</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="mb-6 flex items-end justify-between">
+          <h2 className="font-grotesk font-semibold text-2xl md:text-3xl">You might also like</h2>
+          <Link href="/shop" className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">All products →</Link>
+        </div>
+        <div className="grid grid-cols-1 gap-5 min-[461px]:grid-cols-2 min-[1025px]:grid-cols-4">
           {related(product.slug, 4).map((p) => (
-            <Link key={p.slug} href={`/product/${p.slug}`} className="group">
-              <div className="aspect-[4/5] overflow-hidden bg-mg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={"/" + p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              </div>
-              <p className="font-grotesk text-sm mt-2">{p.name}</p>
-              <p className="font-mono text-xs text-mg-fg/50">{formatGBP(p.price)}</p>
-            </Link>
+            <ProductCard key={p.slug} product={p} />
           ))}
         </div>
       </div>

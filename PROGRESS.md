@@ -40,10 +40,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 - [ ] Article (templates used in refs first) — `01–02-article-desktop.png`
 
 ## Phase 5 — Store
-- [ ] Store grid (filter chips, ADD→ADDED ✓, cart note) — `01–02-store-desktop.png`
-- [ ] Product / PDP (sticky gallery, story, specs, related) — `01–03-product-desktop.png`
-- [ ] Bag page (line items + sticky summary, empty state) — `bag-desktop.png`
-- [ ] Checkout (4 steps + validation + confirmation) — `checkout-desktop.png`
+- [x] Store grid (filter chips, ADD→ADDED ✓, cart note) — `01–02-store-desktop.png` (hero + ?cat= sync + members band; screenshot-verified)
+- [x] Product / PDP (sticky gallery, story, specs, related) — `01–03-product-desktop.png` (+ styled not-found matching `01-product-desktop.png`; per-slug state reset; assurances)
+- [x] Bag page (line items + sticky summary, empty state) — `bag-desktop.png` (member-discount math + free-ship verified)
+- [x] Checkout (4 steps + validation + confirmation) — `checkout-desktop.png` (step indicator, per-step validation, empty-bag guard, confirmation)
 
 ## Phase 6 — Section Library + builder
 - [ ] Section Library picker page — `section-library.png`
@@ -69,6 +69,11 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - `[data-darkband]` now pins the full dark token set (`--mg-bg/--mg-surface/--mg-accent-serif`) so shared token-driven components (e.g. `Button`) render correctly on dark bands.
 - Hero renders the cover **image** (`hero-cover.jpg`) — no licensed video asset yet; imperative muted autoplay + IntersectionObserver is wired for when a `videoUrl` is supplied.
 - Footer socials use text letter-marks (I / X / Y / in) pending real brand icon SVGs.
+- Milestone 2 (store flow): shared commerce primitives added in `components/store/` (`ProductCard`, `QtyStepper`, `OrderSummary`, `Field`/`SelectField`) and reused across the 4 pages.
+- `formatGBP` de-duplicated — `CartProvider` re-exports catalog's, so shipping now formats as **£4.95** (was rounding to £5).
+- Shop filter is synced to the URL `?cat=` via a Suspense-wrapped `useSearchParams`.
+- PDP not-found is a **styled client fallback** (pixel-matches the reference PNG) rather than server `notFound()`, since the page stays client for `useCart`; real-404 status deferred to SEO/Track B.
+- Checkout payment is **demo-only** (no card charged); real Stripe checkout + the `cart.checkoutUrl()` seam is Track B.
 
 ## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
 - [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
