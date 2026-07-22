@@ -19,10 +19,15 @@ html[data-mgtheme="light"] {
   --mg-accent-serif: #c8102e;
 }
 
-/* Dark bands stay dark in both themes (hero scrims, red CTA bands). */
+/* Dark bands stay dark in both themes (hero scrims, red CTA bands). Pin the
+   full dark token set so token-driven components (e.g. Button) resolve
+   correctly regardless of the page theme. */
 [data-darkband] {
+  --mg-bg: #0d0d0d;
   --mg-fg: #f4f4f4;
+  --mg-surface: #161618;
   --mg-bd: #ffffff;
+  --mg-accent-serif: #ff4d5e;
 }
 
 html {
@@ -54,3 +59,18 @@ a:hover { color: var(--mg-accent); }
 @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mgMegaDrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mgSpin { from { transform: rotate(0); } to { transform: rotate(180deg); } }
+
+/* Chrome: red underline that grows from the left on hover/focus (nav + drawer
+   links). Prototype: background-size 0%→100%, 1.6px thick, 6px below text. */
+.mg-underline {
+  background-image: linear-gradient(var(--mg-accent), var(--mg-accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1.6px;
+  padding-bottom: 6px;
+  transition: background-size 0.32s cubic-bezier(0.4, 0, 0.2, 1), color 0.22s ease;
+}
+.mg-underline:hover,
+.mg-underline:focus-visible { background-size: 100% 1.6px; color: #fff; }

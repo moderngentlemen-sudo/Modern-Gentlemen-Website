@@ -12,8 +12,9 @@ const EDITORIAL = [
   { title: "Why the field watch never went away", cat: "WATCHES", href: "/watches" },
   { title: "A seven-minute morning, refined", cat: "GROOMING", href: "/grooming" },
   { title: "The Analog Weekend", cat: "CULTURE", href: "/culture" },
-  { title: "Inside a Coachbuilder's Workshop", cat: "FILM", href: "/film" },
+  { title: "Inside a Coachbuilder’s Workshop", cat: "FILM", href: "/film" },
 ];
+const POPULAR = ["Watches", "Grooming", "Film", "Racing Green", "The Debrief"];
 
 /** Full-screen search overlay with EDITORIAL + STORE grouped results. */
 export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -36,20 +37,48 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   );
 
   return (
-    <OverlayScrim open={open} onClose={onClose} align="center">
+    <OverlayScrim open={open} onClose={onClose} align="center" label="Search">
       <div className="h-full w-full bg-mg-bg/95 backdrop-blur-lg text-mg-fg overflow-auto animate-[fadeUp_.26s_ease]">
-        <div className="container-mg pt-24 pb-16 max-w-3xl mx-auto">
-          <div className="flex items-center gap-4 border-b-2 border-mg-accent pb-4">
+        <div className="container-mg pt-[14vh] pb-16 max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <span className="font-mono text-xs uppercase tracking-[0.26em] text-mg-fg/50">Search</span>
+            <button onClick={onClose} className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-mg-accent">
+              Esc <span aria-hidden className="grid place-items-center h-6 w-6 rounded-full border border-mg-bd/30">×</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 border-b-[1.5px] border-mg-bd/25 pb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden className="text-mg-accent shrink-0">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="21" y2="21" />
+            </svg>
             <input
               autoFocus
+              aria-label="Search editorial and store"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search editorial and store…"
+              placeholder="Search style, watches, film…"
               className="flex-1 bg-transparent text-3xl md:text-4xl font-grotesk outline-none placeholder:text-mg-fg/30"
             />
-            {q && <button onClick={() => setQ("")} aria-label="Clear" className="text-mg-fg/50 text-2xl">×</button>}
-            <button onClick={onClose} aria-label="Close" className="font-mono text-xs uppercase tracking-[0.2em] text-mg-accent">Esc</button>
+            {q && <button onClick={() => setQ("")} aria-label="Clear search" className="text-mg-fg/50 text-2xl">×</button>}
           </div>
+
+          {!query && (
+            <div className="mt-10">
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-mg-fg/50 mb-4">Popular searches</p>
+              <div className="flex flex-wrap gap-3">
+                {POPULAR.map((term) => (
+                  <button
+                    key={term}
+                    onClick={() => setQ(term)}
+                    className="px-4 py-2 border border-mg-bd/20 rounded-full font-mono text-xs uppercase tracking-[0.12em] hover:border-mg-accent hover:text-mg-accent transition-colors"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {editorial.length > 0 && (
             <Group label="EDITORIAL" count={editorial.length}>
@@ -74,7 +103,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           )}
 
           {query && editorial.length === 0 && store.length === 0 && (
-            <p className="mt-10 font-mono text-sm text-mg-fg/50">No results for &ldquo;{q}&rdquo;.</p>
+            <p className="mt-10 font-mono text-sm text-mg-fg/50">No results for &ldquo;{q}&rdquo;. Try &ldquo;watches&rdquo;, &ldquo;grooming&rdquo;, or &ldquo;film&rdquo;.</p>
           )}
         </div>
       </div>

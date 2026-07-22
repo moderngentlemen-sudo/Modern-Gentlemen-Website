@@ -11,11 +11,16 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
   useScrollLock(open);
 
   return (
-    <OverlayScrim open={open} onClose={onClose} align="right">
+    <OverlayScrim open={open} onClose={onClose} align="right" label="Bag">
       <aside className="h-full w-full max-w-[440px] ml-auto bg-mg-surface text-mg-fg flex flex-col animate-[slideInRight_.26s_ease]">
         <div className="flex items-center justify-between p-6 border-b border-mg-bd/10">
-          <span className="font-mono text-xs uppercase tracking-[0.2em]">Your Bag ({cart.count})</span>
-          <button onClick={onClose} aria-label="Close bag" className="text-2xl leading-none">×</button>
+          <div className="flex items-baseline gap-3">
+            <span className="font-grotesk text-[15px]">Your Bag</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/50">
+              {cart.count === 0 ? "Empty" : `${cart.count} ${cart.count === 1 ? "Item" : "Items"}`}
+            </span>
+          </div>
+          <button onClick={onClose} aria-label="Close bag" className="grid place-items-center h-8 w-8 rounded-full border border-mg-bd/20 text-lg leading-none">×</button>
         </div>
 
         {cart.lines.length === 0 ? (
@@ -53,7 +58,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                 <div className="flex justify-between font-mono text-xs text-mg-accent"><span>Member discount</span><span>– {formatGBP(cart.memberDiscount)}</span></div>
               )}
               <div className="flex justify-between font-grotesk text-lg"><span>Subtotal</span><span className="font-mono">{formatGBP(cart.subtotal - cart.memberDiscount)}</span></div>
-              <p className="font-mono text-[10px] text-mg-fg/40">{cart.shipping === 0 ? "Free shipping applied" : "Free shipping over £50"}</p>
+              <p className={`font-mono text-[10px] ${cart.shipping === 0 ? "text-[#5fd08a]" : "text-mg-fg/40"}`}>{cart.shipping === 0 ? "Free shipping included." : "Free shipping over £50."}</p>
               <Link href="/checkout" onClick={onClose} className="block text-center bg-mg-accent text-white py-3 font-mono text-xs uppercase tracking-[0.2em]">Checkout</Link>
               <Link href="/bag" onClick={onClose} className="block text-center font-mono text-[11px] text-mg-fg/60 hover:text-mg-accent">View full bag</Link>
             </div>

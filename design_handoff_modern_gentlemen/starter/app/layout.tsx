@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <CartProvider>
             <Header />
-            <main className="pt-[64px]">{children}</main>
+            <main className="pt-[72px]">{children}</main>
             <Footer />
           </CartProvider>
         </ThemeProvider>

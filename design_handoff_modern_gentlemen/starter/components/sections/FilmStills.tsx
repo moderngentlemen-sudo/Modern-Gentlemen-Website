@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { Eyebrow } from "../ui/Eyebrow";
 
 interface Item {
   title: string;
@@ -8,46 +10,91 @@ interface Item {
   videoUrl?: string;
   duration?: string;
 }
+interface Props {
+  heading?: string;
+  eyebrow?: string;
+  allHref?: string;
+  allLabel?: string;
+  items: Item[];
+}
 
-/** MG Film — 3-up video stills. Click opens a simple lightbox.
- *  (Prototype also auto-plays the first still on scroll-in — add an
- *  IntersectionObserver + reduced-motion guard when you wire real video.) */
-export function FilmStills({ heading = "MG Film", items }: { heading?: string; items: Item[] }) {
+/** MG Film — 3-up video stills. The first tile auto-plays (muted) on scroll-in;
+ *  any tile plays on hover; click opens a lightbox. Reduced-motion disables
+ *  autoplay. */
+export function FilmStills({ heading = "MG Film", eyebrow, allHref, allLabel = "All episodes →", items }: Props) {
   const [active, setActive] = useState<Item | null>(null);
   return (
     <section className="container-mg py-16 md:py-24">
-      <h2 className="font-grotesk text-2xl md:text-3xl mb-8">{heading}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {items?.map((it, i) => (
-          <button key={i} onClick={() => setActive(it)} className="group text-left">
-            <div className="relative aspect-video overflow-hidden bg-mg-surface">
-              {it.still && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={it.still} alt={it.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              )}
-              <span className="absolute inset-0 grid place-items-center">
-                <span className="h-14 w-14 rounded-full bg-mg-accent/90 grid place-items-center text-white text-xl">▶</span>
-              </span>
-            </div>
-            <div className="mt-3 flex items-baseline justify-between">
-              <h3 className="font-grotesk text-lg">{it.title}</h3>
-              {it.duration && <span className="font-mono text-xs text-mg-fg/50">{it.duration}</span>}
-            </div>
-          </button>
-        ))}
+      <div className="flex items-end justify-between gap-4 mb-8">
+        <div>
+          {eyebrow && <Eyebrow className="block">{eyebrow}</Eyebrow>}
+          <h2 className="mt-2 font-grotesk font-semibold text-3xl md:text-[42px] leading-none tracking-[-0.02em]">{heading}</h2>
+        </div>
+        {allHref && <Link href={allHref} className="shrink-0 font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent whitespace-nowrap">{allLabel}</Link>}
+      </div>
+
+      <div className="grid grid-cols-1 min-[681px]:grid-cols-3 gap-[22px]">
+        {items?.map((it, i) => <FilmTile key={i} item={it} autoplay={i === 0} onOpen={() => setActive(it)} />)}
       </div>
 
       {active && (
-        <div className="fixed inset-0 z-50 bg-black/90 grid place-items-center p-6" onClick={() => setActive(null)}>
+        <div className="fixed inset-0 z-[210] bg-black/90 grid place-items-center p-6" onClick={() => setActive(null)}>
           <div className="w-full max-w-4xl aspect-video bg-black" onClick={(e) => e.stopPropagation()}>
             {active.videoUrl ? (
               <video src={active.videoUrl} controls autoPlay className="h-full w-full" />
             ) : (
-              <div className="h-full w-full grid place-items-center text-white/60 font-mono text-sm">No video URL</div>
+              <div className="h-full w-full grid place-items-center text-white/60 font-mono text-sm">Preview only</div>
             )}
           </div>
         </div>
       )}
     </section>
+  );
+}
+
+function FilmTile({ item, autoplay, onOpen }: { item: Item; autoplay?: boolean; onOpen: () => void }) {
+  const vidRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = vidRef.current;
+    if (!el || !item.videoUrl || !autoplay) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.muted = true;
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => (e.isIntersecting ? el.play().catch(() => {}) : el.pause())),
+      { threshold: 0.35 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [item.videoUrl, autoplay]);
+
+  const hoverPlay = () => {
+    const el = vidRef.current;
+    if (el && item.videoUrl) {
+      el.muted = true;
+      el.play().catch(() => {});
+    }
+  };
+  const hoverPause = () => {
+    const el = vidRef.current;
+    if (el && item.videoUrl && !autoplay) el.pause();
+  };
+
+  return (
+    <button onClick={onOpen} onMouseEnter={hoverPlay} onMouseLeave={hoverPause} className="group text-left">
+      <div className="relative aspect-video overflow-hidden bg-mg-surface">
+        {item.videoUrl ? (
+          <video ref={vidRef} src={item.videoUrl} poster={item.still} loop muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+        ) : item.still ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.still} alt={item.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        ) : null}
+        <span aria-hidden className="absolute top-3 left-3 grid place-items-center h-11 w-11 rounded-full bg-black/45 backdrop-blur text-white text-sm">▶</span>
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 bg-gradient-to-t from-black/75 to-transparent">
+          <h3 className="font-grotesk text-white text-sm leading-snug">{item.title}</h3>
+          {item.duration && <span className="shrink-0 font-mono text-[11px] text-white/80">{item.duration}</span>}
+        </div>
+      </div>
+    </button>
   );
 }
