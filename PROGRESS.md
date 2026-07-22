@@ -7,10 +7,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 ---
 
 ## Phase 0 — Smoke test & deploy pipeline
-- [ ] `npm install` + `npm run dev` renders the scaffold locally
-- [ ] Railway project created, Root Directory = `design_handoff_modern_gentlemen/starter`
-- [ ] Scaffold deployed live on a Railway URL
-- [ ] Auto-redeploy on push confirmed
+- [x] `npm install` + `npm run dev` renders the scaffold locally (HTTP 200, full nav chrome + sections render on demo data); `npm run build` (Railway's command) also passes clean; `package-lock.json` generated & committed
+- [ ] Railway project created, Root Directory = `design_handoff_modern_gentlemen/starter` — needs the owner's Railway account
+- [ ] Scaffold deployed live on a Railway URL — needs the owner's Railway account
+- [ ] Auto-redeploy on push confirmed — after first deploy
 
 ## Phase 1 — Foundation
 - [ ] Fonts wired (Space Grotesk / Instrument Serif / IBM Plex Mono / Futura stack)
@@ -62,7 +62,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 ## Deviations & decisions log
 _Record anything you could not reproduce exactly, ambiguities, or choices made (e.g. which article templates were built, SHOP vs STORE route naming). One line each._
 
-- …
+- Phase 0 setup: generated & committed `starter/package-lock.json` (was missing) so Railway's `npm ci` build succeeds.
+- Fixed a strict-mode TypeScript error in `starter/lib/supabase/server.ts` — annotated the `setAll(cookiesToSet)` param (implicit `any` was blocking `next build`); no behavior change.
+- Added `next-env.d.ts` + `*.tsbuildinfo` to `starter/.gitignore` (Next.js convention; auto-generated on build).
 
 ## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
 - [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
