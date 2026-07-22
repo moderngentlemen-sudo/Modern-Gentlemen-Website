@@ -8,7 +8,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** `claude/continue-previous-work-lykdt2` (Milestone 3 committed here). M1+M2 were **merged to `main` via PR #1** (from `claude/project-setup-docs-xfx8td`); this branch started even with that merged content. **Deploy:** live on Railway, running on demo data. **Last milestone:** M3 (editorial pages).
+**Branch:** `claude/continue-previous-work-lykdt2` (Milestones 3–4 committed here). M1+M2 were **merged to `main` via PR #1** (from `claude/project-setup-docs-xfx8td`); this branch started even with that merged content. **Deploy:** live on Railway, running on demo data. **Last milestone:** M4 (Article template system).
 
 ### Progress snapshot
 | Phase / Milestone | Scope | Status |
@@ -17,13 +17,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 | Milestone 1 — Homepage + chrome | foundation, all chrome (header/mega/drawer/search/bag/footer/theme), 7 homepage section blocks, homepage | ✅ done, screenshot-verified |
 | Milestone 2 — Store flow | Shop, Product/PDP, Bag, Checkout + shared `components/store/*` primitives | ✅ done, merged (PR #1) |
 | Milestone 3 — Editorial pages | Category ×5, About, Membership + 9 new section blocks + 2 shared UI primitives (`ui/RailLabel`, `ui/HairlineGrid`) + `lib/editorial.ts` | ✅ done, screenshot-verified |
+| Milestone 4 — Article template system | full library: 9 hero × 17 body → 20 templates (`components/article/*`) + `lib/articles.ts` (seeds 35 category links + 20 showcases) + reading-progress bar + KEEP READING | ✅ done, screenshot-verified |
 
-Key commits: `5f9bc1d` Phase 0 → `d127c94` M1 → `ad99224` Railway build fix → `4610288` M2 (→ merged as PR #1) → M3 editorial pages (this branch).
+Key commits: `5f9bc1d` Phase 0 → `d127c94` M1 → `ad99224` Railway build fix → `4610288` M2 (→ merged as PR #1) → M3 editorial pages → M4 article system (this branch).
 
 ### What runs today
-Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_handoff_modern_gentlemen/starter && npm install && npm run dev`). Live: the **Homepage**, the full **Store** journey (Shop → Product → Bag → Checkout, header bag drawer, member-discount math, demo checkout), the 5 **Category** landings (`/style /grooming /watches /culture /film`), **About**, and **Membership** (billing toggle + tiers + FAQ + join-sets-member-flag).
+Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_handoff_modern_gentlemen/starter && npm install && npm run dev`). Live: the **Homepage**, the full **Store** journey (Shop → Product → Bag → Checkout, header bag drawer, member-discount math, demo checkout), the 5 **Category** landings (`/style /grooming /watches /culture /film`), **About**, **Membership** (billing toggle + tiers + FAQ + join-sets-member-flag), and **Article** (`/article/[slug]` — 20 templates; all 35 category links resolve; unknown slug → 404).
 
-**Reachable but still scaffold** (the natural next work): **Article** (`/article/[slug]` — placeholder; the category lead + grid cards already link into it via `/article/{slug}`).
+**Every design page is now built.** The remaining work is the Section-Library builder (Phase 6), a global QA pass (Phase 7 — SEO/a11y/Lighthouse), and Track B (Supabase + Stripe).
 
 ### Architecture & patterns to REUSE (don't reinvent)
 - **Page content = an ordered `Block[]`** rendered by `components/SectionRenderer.tsx` via `components/sections/registry.ts`; one component per archetype, **variants via a `variant` prop**. `app/page.tsx` `DEMO_SECTIONS` is the reference pattern.
@@ -40,10 +41,10 @@ Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_han
 
 ### Next phase (recommended order)
 1. ~~**Editorial pages**~~ ✅ **DONE (M3)** — Category ×5, About, Membership built + screenshot-verified. See the new blocks in `components/sections/` and demo data in `lib/editorial.ts`.
-2. **Article** (next milestone) — `app/article/[slug]/page.tsx` is still a scaffold; the category lead + grid cards already link to `/article/{slugify(title)}`. Build a template engine: `HERO_BY_TEMPLATE` (9 hero variants) × body variants + a reading-progress bar + a body/portable-text renderer. Build only the ~10 templates used; the reference screenshots show **"Letter from the Editor"** (Centered hero + Letter body) — do that first. Reuse `ui/RailLabel`, `PullQuote`, `CtaBand` where they fit.
-3. **Phase 6** — Section Library picker + drag-and-drop builder (`components/builder/SectionEditor.tsx`; dnd-kit already installed).
-4. **Phase 7** — global QA: per-route SEO metadata, Product JSON-LD, sitemap/robots, full a11y + responsive + dark sweep, Lighthouse.
-5. **Track B** — Supabase + Stripe (see the Track B checklist below + `06_SUPABASE.md`): provision, apply `supabase/migrations/0001_init.sql` + `seed.sql`, swap demo arrays → `lib/queries.ts`, add auth + a Supabase cart adapter + real Stripe checkout/webhook, then remove the legacy Sanity scaffold. (A Supabase MCP integration is connected in-session for provisioning.)
+2. ~~**Article**~~ ✅ **DONE (M4)** — full 20-template system in `components/article/*` + `lib/articles.ts`. All 9 heroes + 17 bodies built; the "Letter from the Editor" screenshot is pixel-matched, the rest prototype-verified.
+3. **Phase 6** (recommended next) — Section Library picker + drag-and-drop builder (`components/builder/SectionEditor.tsx`; dnd-kit already installed).
+4. **Phase 7** — global QA: per-route SEO metadata (Article already has `generateMetadata`), Product JSON-LD, sitemap/robots, full a11y + responsive + dark sweep, Lighthouse.
+5. **Track B** — Supabase + Stripe (see the Track B checklist below + `06_SUPABASE.md`): provision, apply `supabase/migrations/0001_init.sql` + `seed.sql`, swap demo arrays → `lib/queries.ts` (note: `getArticle()` should return the same resolved shape as `lib/articles.ts getArticleBySlug`), add auth + a Supabase cart adapter + real Stripe checkout/webhook, then remove the legacy Sanity scaffold. (A Supabase MCP integration is connected in-session for provisioning.)
 
 Missing section archetypes to build when a page needs them: `specTable`, `heroVogue01…10` (`membershipTiers` deferred — Membership is a bespoke in-place page).
 
@@ -53,7 +54,7 @@ Missing section archetypes to build when a page needs them: `specTable`, `heroVo
 - **Screenshot-diff loop** (the definition of done): drive the running app with the **preinstalled** global Playwright (`require('/opt/node22/lib/node_modules/playwright')`; Chromium auto-found via `/opt/pw-browsers` — never run `playwright install`), capture at 1440 / 909 / 375 + a dark pass, and diff against `design_handoff_modern_gentlemen/handoff/screenshots/*.png`. Fix every visible diff before ticking a box here.
 
 ### A new session's first actions
-Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md` (tokens/rules — read every session) → for the page you're building, `03_PAGES_AND_COMPONENTS.md` + its `design_files/MG *.dc.html` prototype + the matching `handoff/screenshots/*.png`. Then build on `claude/project-setup-docs-xfx8td`, screenshot-verify, and tick this file as you go.
+Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md` (tokens/rules — read every session) → for the page you're building, `03_PAGES_AND_COMPONENTS.md` + its `design_files/MG *.dc.html` prototype + the matching `handoff/screenshots/*.png`. Then build on `claude/continue-previous-work-lykdt2`, screenshot-verify, and tick this file as you go.
 
 ---
 
@@ -88,7 +89,7 @@ Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md`
 - [x] Category ×5 (Style/Grooming/Watches/Culture/Film) — `01–02-category-desktop.png` (full-bleed hero + subcategory chips, THE LEAD, article grid, red newsletter; article-driven from `lib/editorial.ts`; unknown slug → 404; screenshot-verified 1440/909/375 + dark)
 - [x] About — `01–02-about-desktop.png` (hero, manifesto, By-the-Numbers stat cards, What-we-cover, pull quote, masthead, join band; verbatim copy; screenshot-verified 1440/909/375 + dark)
 - [x] Membership (billing toggle, 3 tiers, FAQ) — `01–03-membership-desktop.png` (Reader/Member/Patron £0·£9/£86·£22/£211, MOST-POPULAR featured tier, benefits grid, testimonial, FAQ, join band; toggle + accordion + member-flag verified)
-- [ ] Article (templates used in refs first) — `01–02-article-desktop.png`
+- [x] Article — `01–02-article-desktop.png` (**full 20-template library**: 9 hero × 17 body variants in `components/article/*`, template map + demo data in `lib/articles.ts`; reading-progress bar, kicker/byline, KEEP READING related; "Letter from the Editor" screenshot-matched, other 19 prototype-verified at 1440/909/375 + dark; all 35 category links resolve, unknown → 404)
 
 ## Phase 5 — Store
 - [x] Store grid (filter chips, ADD→ADDED ✓, cart note) — `01–02-store-desktop.png` (hero + ?cat= sync + members band; screenshot-verified)
@@ -132,6 +133,11 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - About/Membership sections use the prototypes' **22px** side gutters (via inline `paddingInline: max(22px, calc((100% - W)/2))` for W = 1320/1180/900/820), not `.container-mg`'s 48px (which Category correctly uses, matching its prototype).
 - Membership polished **in place** as a bespoke `"use client"` page (billing toggle drives all 3 tiers); featured "MEMBER" CTA keeps the `useCart().setMember(true)` seam (15% off store-wide). Copy fix: tiers Reader/Debrief/Concierge → **Reader/Member/Patron**, "save 25%" → **SAVE 20%**.
 - `ctaBand` is one block with 3 variants (`split` Category newsletter / `centered` Membership join / `link` About join) + a `gutter` prop (48 default, 22 for About/Membership); CTAs are dark pills (`#0d0d0d`), not the red `Button`. Email/newsletter submits stay demo-only (label flips to ✓).
+- Milestone 4 (Article template system): built the **full 20-template library** (9 hero × 17 body). New namespace `components/article/*` (dispatcher `ArticleHero`/`ArticleBody` + inline variants — kept separate from `components/sections/` because `Timeline`/`Manifesto`/`Interview` already exist there with different designs). Data + template map in `lib/articles.ts`; body content is fixed per body-variant (lives in the components), matching the prototype's own model.
+- Article stubs seeded from `lib/editorial.ts` titles/slugs (35 category links) + a canonical showcase per template (20), so every template is reachable and every category link resolves; unknown slug → `notFound()`. `assignTemplate` replicates the prototype `defaultTplFor` (explicit map + hash), **fixing the prototype's apostrophe-slug bug** (`the-coachbuilder-s-floor`, `inside-the-watchmaker-s-bench`).
+- Article kicker uses each template's **semantic category** (The Debrief / Motoring / Watches…) rather than the prototype preview's blanket `category="Culture"` default — so the Letter kicker reads `THE DEBRIEF · NO. 042` vs the PNG's `CULTURE · NO. 042` (the only diff from the one article screenshot; consistent across all 20 templates). Only 1 of 20 templates has a reference PNG; the other 19 are **prototype-verified** (diffed against `MG Article.dc.html`).
+- Article "Video" hero (Film Feature) falls back to its **poster image** (no external/licensed video asset) — same stance as the homepage hero; a self-hosted clip supplied via `DEFAULT_HERO_VIDEO`/per-article `videoUrl` enables playback. Reading-progress bar reuses the global reduced-motion rule (no per-component gate needed). KEEP READING related is category-aware (3 same-category siblings, falls back to any).
+- Spec/Review body values the prototype hardcoded to `#f4f4f4` use `text-mg-fg` here so they read in both themes.
 
 ## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
 - [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
