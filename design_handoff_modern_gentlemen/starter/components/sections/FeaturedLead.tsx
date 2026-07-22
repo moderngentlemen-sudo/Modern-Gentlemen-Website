@@ -29,9 +29,9 @@ export function FeaturedLead({ label = "THE LEAD", article }: { label?: string; 
             style={{ backgroundImage: `url(${article.image})` }}
           />
         </div>
-        <div className="flex flex-col justify-center p-[44px_46px]">
+        <div className="flex flex-col justify-center p-[32px_24px] min-[681px]:p-[44px_46px]">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#ff4d5e]">{article.kicker}</div>
-          <h2 className="mt-4 font-grotesk font-semibold text-[40px] leading-[1.02] tracking-[-0.035em] text-balance">{article.title}</h2>
+          <h2 className="mt-4 font-grotesk font-semibold text-[30px] min-[681px]:text-[40px] leading-[1.02] tracking-[-0.035em] text-balance">{article.title}</h2>
           {article.dek && <p className="mt-[18px] font-grotesk font-light text-[16px] leading-[1.6] text-mg-fg/[0.66] text-pretty">{article.dek}</p>}
           {(article.author || article.read) && (
             <div className="mt-[26px] font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/50">

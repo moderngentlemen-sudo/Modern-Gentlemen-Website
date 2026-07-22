@@ -46,6 +46,11 @@ body {
   width: 100%;
   padding-inline: max(48px, calc((100% - 1320px) / 2));
 }
+/* Phones: tighten the flat 48px gutter so content isn't over-inset (~264px at
+   360px). Matches the editorial pages' mobile padding; desktop unchanged. */
+@media (max-width: 680px) {
+  .container-mg { padding-inline: 24px; }
+}
 
 a { color: inherit; }
 a:hover { color: var(--mg-accent); }
@@ -99,13 +104,14 @@ a:hover { color: var(--mg-accent); }
   [data-gal] { grid-template-columns: 1fr 1fr !important; }
   [data-listrow] { grid-template-columns: 1fr !important; }
   [data-listrow] [data-listimg] { min-height: 200px !important; }
+  [data-figure] { margin-left: 0 !important; margin-right: 0 !important; }
 }
 @media (max-width: 680px) {
   [data-hero-media] { height: 62vh !important; min-height: 420px; }
   [data-title-xl] { font-size: 40px !important; }
   [data-title-lg] { font-size: 36px !important; }
   [data-body] { font-size: 17px !important; }
-  [data-figure] { margin-left: 0 !important; margin-right: 0 !important; }
+  [data-lede]::first-letter { font-size: 54px; }
   [data-manrow] { font-size: 34px !important; }
   [data-specwrap] { overflow-x: auto; }
 }

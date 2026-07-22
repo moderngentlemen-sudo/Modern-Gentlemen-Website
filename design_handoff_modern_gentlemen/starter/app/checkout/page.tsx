@@ -87,7 +87,7 @@ export default function CheckoutPage() {
         <p className="mt-4 max-w-md text-mg-fg/60">
           A confirmation is on its way to {order.email}. (Demo — no card was charged.)
         </p>
-        <dl className="mt-8 grid grid-cols-3 gap-8 border-y border-mg-bd/15 py-6 text-left">
+        <dl className="mt-8 grid grid-cols-1 gap-6 border-y border-mg-bd/15 py-6 text-left sm:grid-cols-3 sm:gap-8">
           {[["Order", order.id], ["Shipping to", order.ship], ["Total paid", order.total]].map(([k, v]) => (
             <div key={k}>
               <dt className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-fg/40">{k}</dt>

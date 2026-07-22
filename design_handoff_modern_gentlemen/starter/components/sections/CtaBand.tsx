@@ -42,14 +42,14 @@ export function CtaBand({
         e.preventDefault();
         setDone(true);
       }}
-      className={clsx("flex flex-wrap gap-[10px]", centered ? "mx-auto mt-[30px] max-w-[460px] justify-center" : "min-w-[280px] max-w-[440px] flex-1")}
+      className={clsx("flex flex-wrap gap-[10px]", centered ? "mx-auto mt-[30px] max-w-[460px] justify-center" : "min-w-0 max-w-[440px] flex-1")}
     >
       <input
         type="email"
         required
         aria-label="Email address"
         placeholder={placeholder}
-        className="min-w-[180px] flex-1 rounded-full border border-white/40 bg-white/[0.12] px-[22px] py-[15px] font-grotesk text-[14px] text-white outline-none placeholder:text-white/60"
+        className="min-w-0 flex-1 rounded-full border border-white/40 bg-white/[0.12] px-[22px] py-[15px] font-grotesk text-[14px] text-white outline-none placeholder:text-white/60"
       />
       <button type="submit" className="rounded-full bg-[#0d0d0d] px-[26px] py-[15px] font-mono text-[10px] uppercase tracking-[0.2em] text-white transition-[filter] hover:brightness-110">
         {done ? successLabel : buttonLabel}
@@ -61,7 +61,7 @@ export function CtaBand({
     <section data-darkband className="pt-20 pb-24" style={{ paddingInline: `max(${gutter}px, calc((100% - 1320px) / 2))` }}>
       <div
         className={clsx(
-          "overflow-hidden rounded-[14px] bg-mg-accent px-[48px] text-white",
+          "overflow-hidden rounded-[14px] bg-mg-accent px-6 text-white sm:px-[48px]",
           variant === "split" ? "py-[56px]" : "py-[64px] text-center"
         )}
       >
@@ -69,19 +69,19 @@ export function CtaBand({
           <div className="flex flex-wrap items-center justify-between gap-[28px]">
             <div className="max-w-[520px]">
               {eyebrow && <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/80">{eyebrow}</div>}
-              <h2 className="mt-3 font-grotesk font-semibold text-[34px] leading-[1.05] tracking-[-0.03em] text-balance">{heading}</h2>
+              <h2 className="mt-3 font-grotesk font-semibold text-[26px] min-[681px]:text-[34px] leading-[1.05] tracking-[-0.03em] text-balance">{heading}</h2>
             </div>
             {emailForm(false)}
           </div>
         ) : variant === "centered" ? (
           <>
-            <h2 className="mx-auto max-w-[620px] font-grotesk font-semibold text-[40px] leading-[1.05] tracking-[-0.03em] text-balance">{heading}</h2>
+            <h2 className="mx-auto max-w-[620px] font-grotesk font-semibold text-[30px] min-[681px]:text-[40px] leading-[1.05] tracking-[-0.03em] text-balance">{heading}</h2>
             {emailForm(true)}
           </>
         ) : (
           <>
             {eyebrow && <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/80">{eyebrow}</div>}
-            <h2 className="mx-auto mt-[14px] max-w-[640px] font-grotesk font-semibold text-[40px] leading-[1.05] tracking-[-0.03em] text-balance">{heading}</h2>
+            <h2 className="mx-auto mt-[14px] max-w-[640px] font-grotesk font-semibold text-[30px] min-[681px]:text-[40px] leading-[1.05] tracking-[-0.03em] text-balance">{heading}</h2>
             {sub && <p className="mx-auto mb-[30px] mt-[18px] max-w-[480px] font-grotesk font-light text-[16px] leading-[1.6] text-white/80">{sub}</p>}
             {cta && (
               <Link href={cta.href} className="inline-block rounded-full bg-[#0d0d0d] px-[34px] py-[15px] font-mono text-[10px] uppercase tracking-[0.2em] text-white transition-transform hover:-translate-y-0.5">

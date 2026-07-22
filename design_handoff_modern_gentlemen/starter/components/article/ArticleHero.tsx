@@ -44,7 +44,7 @@ function HeroFull({ kicker, title, dek, byline, image }: HeroProps) {
         <div className="mx-auto max-w-[960px]">
           <ArticleKicker className="mb-[18px]">{kicker}</ArticleKicker>
           <h1 data-title-xl className="font-grotesk font-semibold text-[74px] leading-[0.98] tracking-[-0.045em] text-balance">{title}</h1>
-          {dek && <Dek className="mx-auto mt-[22px] max-w-[620px] text-[21px] leading-[1.45] text-mg-fg/85">{dek}</Dek>}
+          {dek && <Dek className="mx-auto mt-[22px] max-w-[620px] text-[17px] min-[681px]:text-[21px] leading-[1.45] text-mg-fg/85">{dek}</Dek>}
           <Byline className="mt-[26px] text-mg-fg/[0.62]">{byline}</Byline>
         </div>
       </div>
@@ -80,7 +80,7 @@ function HeroCover({ kicker, title, dek, byline, image }: HeroProps) {
       <div className="absolute inset-x-0 bottom-0 pb-[56px]" style={{ paddingInline: "max(24px, calc((100% - 1320px) / 2))" }}>
         <ArticleKicker className="mb-4">{kicker}</ArticleKicker>
         <h1 data-title-xl className="max-w-[12ch] font-grotesk font-bold text-[108px] leading-[0.9] tracking-[-0.05em] text-balance">{title}</h1>
-        {dek && <Dek className="mt-[22px] max-w-[520px] text-[21px] leading-[1.4] text-mg-fg/85">{dek}</Dek>}
+        {dek && <Dek className="mt-[22px] max-w-[520px] text-[17px] min-[681px]:text-[21px] leading-[1.4] text-mg-fg/85">{dek}</Dek>}
         <Byline className="mt-[22px] text-mg-fg/[0.62]">{byline}</Byline>
       </div>
     </section>

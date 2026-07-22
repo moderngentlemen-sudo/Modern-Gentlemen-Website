@@ -73,9 +73,9 @@ export function BodySpec() {
       <BodyIntro className="mb-9 max-w-[640px] text-[20px]">
         Three watches, one honest question: which earns the place on your wrist for the next decade? We put them side by side.
       </BodyIntro>
-      <div data-specwrap className="overflow-hidden rounded-[12px] border border-mg-bd/[0.12]">
+      <div data-specwrap className="overflow-x-auto rounded-[12px] border border-mg-bd/[0.12]">
         {SPEC.map((r) => (
-          <div key={r.label} data-specrow className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center gap-4 border-b border-mg-bd/[0.08] p-[16px_22px] last:border-b-0">
+          <div key={r.label} data-specrow className="grid grid-cols-[minmax(120px,1.4fr)_minmax(94px,1fr)_minmax(94px,1fr)_minmax(94px,1fr)] items-center gap-4 border-b border-mg-bd/[0.08] p-[16px_22px] last:border-b-0">
             <div
               className={
                 r.kind === "header"

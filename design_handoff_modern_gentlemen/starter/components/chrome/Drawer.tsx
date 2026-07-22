@@ -31,7 +31,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/mg-logo-wide.svg" alt="Modern Gentlemen" className="h-[15px] w-auto" />
           </Link>
-          <button onClick={onClose} aria-label="Close menu" className="grid place-items-center h-9 w-9 rounded-full border border-white/20 text-lg leading-none hover:bg-white/10">
+          <button onClick={onClose} aria-label="Close menu" className="grid place-items-center h-10 w-10 rounded-full border border-white/20 text-lg leading-none hover:bg-white/10">
             ×
           </button>
         </div>
@@ -57,7 +57,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
                       aria-label={`${isOpen ? "Collapse" : "Expand"} ${g.label}`}
                       aria-expanded={isOpen}
                       onClick={() => setExpanded(isOpen ? null : g.num)}
-                      className={`grid place-items-center h-7 w-7 text-mg-accent transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                      className={`grid place-items-center h-9 w-9 -mr-1 text-mg-accent transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                         <path d="M6 9l6 6 6-6" />

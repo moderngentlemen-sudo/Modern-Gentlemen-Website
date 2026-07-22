@@ -8,7 +8,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** `claude/continue-previous-work-lykdt2` (Milestones 3–4 committed here). M1+M2 were **merged to `main` via PR #1** (from `claude/project-setup-docs-xfx8td`); this branch started even with that merged content. **Deploy:** live on Railway, running on demo data. **Last milestone:** M4 (Article template system).
+**Branch:** `claude/continue-previous-work-lykdt2` (Milestones 3–4 + the Phase 7 responsive pass committed here). M1+M2 were **merged to `main` via PR #1** (from `claude/project-setup-docs-xfx8td`); this branch started even with that merged content. **Deploy:** live on Railway, running on demo data. **Last milestone:** M4 (Article template system), followed by a **mobile/responsive QA pass** (Phase 7 slice — subagent-audited at 1024/768/414/360 + dark, majors + minors fixed, desktop unchanged).
 
 ### Progress snapshot
 | Phase / Milestone | Scope | Status |
@@ -102,7 +102,7 @@ Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md`
 - [ ] Drag-and-drop builder wired to the block registry
 
 ## Phase 7 — Quality pass
-- [ ] Responsive QA at 1024 / 900 / 680 / 375 (own mobile captures)
+- [x] Responsive QA at 1024 / 768 / 414 / 360 + dark (subagent-driven audit → fixes) — swept every page type (home, 5 categories, about, membership, all article hero/body variants, shop, PDP, bag, checkout) + all overlays (search, drawer, bag). Fixed 5 majors (search overlay content clipped off-screen; bag line-totals clipped ≤468; spec-comparison table crushed ≤400; newsletter + CTA-band forms overflowing ≤360; About/Membership CTA headings overflowing) + ~11 minors (sub-44px touch targets, `min-[1025px]`→`min-[1024px]` grid gaps, article dek/drop-cap clamps, checkout confirmation stack). All changes are **mobile-only** (custom `min-[681px]:` breakpoints / `sm:` overrides) — the verified 909px desktop look is byte-for-byte unchanged; build stays clean.
 - [ ] Accessibility: focus traps, `aria-expanded`, visible focus rings, reduced-motion, alt text
 - [ ] SEO: per-route metadata, Product JSON-LD on PDPs, sitemap + robots
 - [ ] Dark-mode sweep on every page (footer stays dark)
@@ -138,6 +138,7 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - Article kicker uses each template's **semantic category** (The Debrief / Motoring / Watches…) rather than the prototype preview's blanket `category="Culture"` default — so the Letter kicker reads `THE DEBRIEF · NO. 042` vs the PNG's `CULTURE · NO. 042` (the only diff from the one article screenshot; consistent across all 20 templates). Only 1 of 20 templates has a reference PNG; the other 19 are **prototype-verified** (diffed against `MG Article.dc.html`).
 - Article "Video" hero (Film Feature) falls back to its **poster image** (no external/licensed video asset) — same stance as the homepage hero; a self-hosted clip supplied via `DEFAULT_HERO_VIDEO`/per-article `videoUrl` enables playback. Reading-progress bar reuses the global reduced-motion rule (no per-component gate needed). KEEP READING related is category-aware (3 same-category siblings, falls back to any).
 - Spec/Review body values the prototype hardcoded to `#f4f4f4` use `text-mg-fg` here so they read in both themes.
+- Phase 7 responsive pass (subagent-audited, mobile-only): (1) **Search overlay** — dropped the illegal `container-mg` + `max-w-3xl` combo (CLAUDE.md forbids both on one element) for `mx-auto max-w-3xl px-6 sm:px-8`, and added `min-w-0` to the input (its intrinsic ~20ch width at `text-3xl` was forcing horizontal overflow). (2) **`.container-mg`** gets a `padding-inline: 24px` at ≤680px so phone content isn't over-inset by the flat 48px gutter. (3) **Spec-comparison table** (`BodySpec`) switched `overflow-hidden`→`overflow-x-auto` with `minmax()` columns so it scrolls within its card instead of crushing/overflowing the page ≤400px. (4) **Newsletter + CTA-band forms** stack (`flex-col`) with `min-w-0` inputs below ~360px instead of overflowing. (5) **Touch targets** bumped to ≥40–44px (WCAG 2.5.8): header burger 14px→44px, icon buttons 38px→40px, drawer/bag close 32–36px→40px, qty stepper `py-2`→`py-2.5`. (6) **Bag line items** — smaller image + `min-w-0` content + `shrink-0` line-total + `flex-wrap` qty row so the price stays visible ≤468px. (7) Article dek/`CtaBand`/`FeaturedLead` headings and the drop-cap get `min-[681px]:` clamps; grid gap breakpoints normalized `min-[1025px]`→`min-[1024px]`. **Desktop (≥909px) is unchanged** — every fix is gated behind a mobile breakpoint. Two benign residuals left as-is: a 26px phantom scrollWidth on the 768px PDP (masked by `overflow-x:clip`, no visible cut, no scrollbar) and the MOST-POPULAR tier notch reading red-on-red at narrow widths (by design).
 
 ## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
 - [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16

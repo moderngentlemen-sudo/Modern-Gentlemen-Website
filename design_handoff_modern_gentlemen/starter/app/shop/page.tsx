@@ -39,7 +39,7 @@ function Shop() {
       <ShopHero active={active} setActive={setActive} />
 
       <div className="container-mg">
-        <div className="grid grid-cols-1 min-[461px]:grid-cols-2 min-[1025px]:grid-cols-4 gap-5 py-10">
+        <div className="grid grid-cols-1 min-[461px]:grid-cols-2 min-[1024px]:grid-cols-4 gap-5 py-10">
           {products.map((p) => (
             <ProductCard key={p.slug} product={p} added={added === p.slug} onAdd={onAdd} />
           ))}
