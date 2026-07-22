@@ -13,27 +13,27 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verifi
 - [ ] Auto-redeploy on push confirmed — after first deploy
 
 ## Phase 1 — Foundation
-- [ ] Fonts wired (Space Grotesk / Instrument Serif / IBM Plex Mono / Futura stack)
-- [ ] Color tokens + `[data-darkband]` verified in light AND dark
-- [ ] 1320px content container correct
-- [ ] No-flash light-default theme boot (inline script before paint)
+- [x] Fonts wired (Space Grotesk / Instrument Serif / IBM Plex Mono / Futura stack)
+- [x] Color tokens + `[data-darkband]` verified in light AND dark (darkband now pins the full dark token set)
+- [x] 1320px content container correct
+- [x] No-flash light-default theme boot (inline script before paint)
 
 ## Phase 2 — Chrome  (ref: `04_CHROME.md`)
-- [ ] Header + 85px top scrim (frost on scroll, animated red underline) — `homepage-desktop.png`
-- [ ] Mega-menu (STYLE/GROOMING/WATCHES/CULTURE) — `02-nav-megamenu.png`
-- [ ] Slide-over drawer (accordion, member CTA, socials) — `drawer-open.png`
-- [ ] Search overlay (popular chips + EDITORIAL/STORE groups) — `01–02-search-overlay.png`
-- [ ] Bag drawer (empty + populated) — `bag-drawer.png`
-- [ ] Footer (always dark) — `footer.png`
-- [ ] Overlay scroll-lock / focus-trap / Esc (all overlays)
-- [ ] Theme toggle persists + no flash
+- [x] Header + 85px top scrim (frost on scroll, animated red underline) — `homepage-desktop.png`
+- [x] Mega-menu (STYLE/GROOMING/WATCHES/CULTURE) — `02-nav-megamenu.png`
+- [x] Slide-over drawer (accordion, member CTA, socials) — `drawer-open.png`
+- [x] Search overlay (popular chips + EDITORIAL/STORE groups) — `01–02-search-overlay.png`
+- [x] Bag drawer (empty + populated) — `bag-drawer.png`
+- [x] Footer (always dark) — `footer.png`
+- [x] Overlay scroll-lock / focus-trap / Esc (all overlays)
+- [x] Theme toggle persists + no flash
 
 ## Phase 3 — Section blocks  (ref: `05_SECTION_BUILDER.md`, `MODULE_MAP.md`)
-- [ ] 13 scaffolded blocks brought to fidelity (as pages need them)
+- [~] 13 scaffolded blocks brought to fidelity (as pages need them) — homepage's 7 done to fidelity (heroCoverStar, latestGrid `sixUp`, featureSplit `fullBleed`, twoUpCategory, storyBand, filmStills, newsletter); the other 6 as their pages are built
 - [ ] TODO archetypes built when needed: `specTable`, `membershipTiers`, `heroVogue01…10`
 
 ## Phase 4 — Editorial pages
-- [ ] Homepage — `homepage-desktop.png` + `01–04-homepage.png`
+- [x] Homepage — `homepage-desktop.png` + `01–04-homepage.png` (7 sections, verbatim copy; screenshot-verified at 1440/909/375 + dark)
 - [ ] Category ×5 (Style/Grooming/Watches/Culture/Film) — `01–02-category-desktop.png`
 - [ ] About — `01–02-about-desktop.png`
 - [ ] Membership (billing toggle, 3 tiers, FAQ) — `01–03-membership-desktop.png`
@@ -65,6 +65,10 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - Phase 0 setup: generated & committed `starter/package-lock.json` (was missing) so Railway's `npm ci` build succeeds.
 - Fixed a strict-mode TypeScript error in `starter/lib/supabase/server.ts` — annotated the `setAll(cookiesToSet)` param (implicit `any` was blocking `next build`); no behavior change.
 - Added `next-env.d.ts` + `*.tsbuildinfo` to `starter/.gitignore` (Next.js convention; auto-generated on build).
+- Milestone 1 (homepage + chrome): header is **frost-only, no shrink-on-scroll** (EXECUTION_PLAN §10 overrides the prototype's `shrinkOnScroll` canon); header height 72px stable and treated as always-dark chrome; nav collapses to burger ≤820px (not `lg`/1024).
+- `[data-darkband]` now pins the full dark token set (`--mg-bg/--mg-surface/--mg-accent-serif`) so shared token-driven components (e.g. `Button`) render correctly on dark bands.
+- Hero renders the cover **image** (`hero-cover.jpg`) — no licensed video asset yet; imperative muted autoplay + IntersectionObserver is wired for when a `videoUrl` is supplied.
+- Footer socials use text letter-marks (I / X / Y / in) pending real brand icon SVGs.
 
 ## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
 - [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
