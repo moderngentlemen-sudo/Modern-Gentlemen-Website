@@ -24,7 +24,7 @@ export function Newsletter({ heading, eyebrow, sub, buttonLabel = "Subscribe", p
         <p className="mt-8 font-mono text-sm text-mg-accent">Thanks — you&apos;re on the list.</p>
       ) : (
         <form
-          className="mt-8 mx-auto flex max-w-[520px] border border-mg-bd/25"
+          className="mt-8 mx-auto flex flex-col sm:flex-row max-w-[520px] border border-mg-bd/25"
           onSubmit={(e) => {
             e.preventDefault();
             // TODO (Track B): POST to the ESP / Supabase capture via a route handler.
@@ -38,9 +38,9 @@ export function Newsletter({ heading, eyebrow, sub, buttonLabel = "Subscribe", p
             onChange={(e) => setEmail(e.target.value)}
             placeholder={placeholder}
             aria-label="Email address"
-            className="flex-1 bg-transparent px-5 py-4 font-mono text-sm outline-none placeholder:text-mg-fg/40"
+            className="w-full sm:flex-1 sm:min-w-0 bg-transparent px-5 py-4 font-mono text-sm outline-none placeholder:text-mg-fg/40"
           />
-          <button type="submit" className="bg-mg-accent text-white px-7 font-mono uppercase text-xs tracking-[0.15em] transition-colors hover:bg-mg-fg hover:text-mg-bg">
+          <button type="submit" className="bg-mg-accent text-white px-7 py-3.5 sm:py-0 font-mono uppercase text-xs tracking-[0.15em] transition-colors hover:bg-mg-fg hover:text-mg-bg">
             {buttonLabel}
           </button>
         </form>

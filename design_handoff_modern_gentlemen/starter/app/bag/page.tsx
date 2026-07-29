@@ -33,26 +33,26 @@ export default function BagPage() {
           <div>
             <ul className="divide-y divide-mg-bd/10 border-y border-mg-bd/10">
               {cart.lines.map((l) => (
-                <li key={l.slug} className="flex gap-5 py-6">
-                  <Link href={`/product/${l.slug}`} className="h-[130px] w-[104px] shrink-0 overflow-hidden bg-mg-surface">
+                <li key={l.slug} className="flex gap-4 py-6 sm:gap-5">
+                  <Link href={`/product/${l.slug}`} className="h-[104px] w-20 shrink-0 overflow-hidden bg-mg-surface sm:h-[130px] sm:w-[104px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={"/" + l.product.images[0]} alt={l.product.name} className="h-full w-full object-cover" />
                   </Link>
-                  <div className="flex flex-1 flex-col">
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <span className="font-mono uppercase text-[10px] tracking-[0.2em] text-mg-fg/45">{l.product.catLabel}</span>
                     <Link href={`/product/${l.slug}`} className="mt-1 font-grotesk text-lg hover:text-mg-accent">{l.product.name}</Link>
                     <p className="mt-1 font-mono text-xs text-mg-fg/50">{formatGBP(l.product.price)} each</p>
-                    <div className="mt-auto flex items-center gap-4 pt-4">
+                    <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-3 pt-4">
                       <QtyStepper qty={l.qty} onDec={() => cart.setQty(l.slug, l.qty - 1)} onInc={() => cart.setQty(l.slug, l.qty + 1)} />
                       <button
                         onClick={() => cart.remove(l.slug)}
-                        className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accent"
+                        className="py-1.5 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accent"
                       >
                         Remove
                       </button>
                     </div>
                   </div>
-                  <div className="font-mono text-sm">{formatGBP(l.lineTotal)}</div>
+                  <div className="shrink-0 font-mono text-sm">{formatGBP(l.lineTotal)}</div>
                 </li>
               ))}
             </ul>

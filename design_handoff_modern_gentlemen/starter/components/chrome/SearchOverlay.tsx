@@ -39,7 +39,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <OverlayScrim open={open} onClose={onClose} align="center" label="Search">
       <div className="h-full w-full bg-mg-bg/95 backdrop-blur-lg text-mg-fg overflow-auto animate-[fadeUp_.26s_ease]">
-        <div className="container-mg pt-[14vh] pb-16 max-w-3xl mx-auto">
+        <div className="mx-auto max-w-3xl px-6 sm:px-8 pt-[14vh] pb-16">
           <div className="flex items-center justify-between mb-6">
             <span className="font-mono text-xs uppercase tracking-[0.26em] text-mg-fg/50">Search</span>
             <button onClick={onClose} className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-mg-accent">
@@ -58,7 +58,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search style, watches, film…"
-              className="flex-1 bg-transparent text-3xl md:text-4xl font-grotesk outline-none placeholder:text-mg-fg/30"
+              className="flex-1 min-w-0 bg-transparent text-3xl md:text-4xl font-grotesk outline-none placeholder:text-mg-fg/30"
             />
             {q && <button onClick={() => setQ("")} aria-label="Clear search" className="text-mg-fg/50 text-2xl">×</button>}
           </div>

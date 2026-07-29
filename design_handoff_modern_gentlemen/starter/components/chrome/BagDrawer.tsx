@@ -20,7 +20,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
               {cart.count === 0 ? "Empty" : `${cart.count} ${cart.count === 1 ? "Item" : "Items"}`}
             </span>
           </div>
-          <button onClick={onClose} aria-label="Close bag" className="grid place-items-center h-8 w-8 rounded-full border border-mg-bd/20 text-lg leading-none">×</button>
+          <button onClick={onClose} aria-label="Close bag" className="grid place-items-center h-10 w-10 rounded-full border border-mg-bd/20 text-lg leading-none">×</button>
         </div>
 
         {cart.lines.length === 0 ? (

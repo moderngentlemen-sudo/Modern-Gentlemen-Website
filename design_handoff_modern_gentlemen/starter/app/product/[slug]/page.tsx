@@ -118,8 +118,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <dl className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
               {product.specs.map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 border-b border-mg-bd/10 py-2 text-sm">
-                  <dt className="font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">{k}</dt>
-                  <dd className="text-right">{v}</dd>
+                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">{k}</dt>
+                  <dd className="min-w-0 text-right">{v}</dd>
                 </div>
               ))}
             </dl>
@@ -133,7 +133,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <h2 className="font-grotesk font-semibold text-2xl md:text-3xl">You might also like</h2>
           <Link href="/shop" className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">All products →</Link>
         </div>
-        <div className="grid grid-cols-1 gap-5 min-[461px]:grid-cols-2 min-[1025px]:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 min-[461px]:grid-cols-2 min-[1024px]:grid-cols-4">
           {related(product.slug, 4).map((p) => (
             <ProductCard key={p.slug} product={p} />
           ))}

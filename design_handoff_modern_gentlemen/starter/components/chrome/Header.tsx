@@ -69,7 +69,7 @@ export function Header() {
               aria-label="Open menu"
               aria-expanded={drawer}
               onClick={() => setDrawer(true)}
-              className="grid gap-[4px] p-1"
+              className="grid place-content-center gap-[4px] min-h-[44px] min-w-[44px] -ml-2.5"
             >
               <span className="block h-[6px] w-[6px] bg-[#f4f4f4]" />
               <span className="block h-[6px] w-[6px] bg-mg-accent" style={{ boxShadow: "0 0 8px rgba(200,16,46,0.45)" }} />
@@ -145,14 +145,14 @@ export function Header() {
   );
 }
 
-/** 38px circular glass icon button. */
+/** 40px circular glass icon button. */
 function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="relative grid place-items-center h-[38px] w-[38px] rounded-full border border-white/20 bg-white/10 backdrop-blur-md text-[#f4f4f4] transition-transform hover:scale-[1.09]"
+      className="relative grid place-items-center h-10 w-10 rounded-full border border-white/20 bg-white/10 backdrop-blur-md text-[#f4f4f4] transition-transform hover:scale-[1.09]"
     >
       {children}
     </button>

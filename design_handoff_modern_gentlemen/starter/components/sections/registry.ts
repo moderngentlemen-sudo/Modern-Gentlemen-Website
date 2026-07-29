@@ -12,6 +12,15 @@ import { StatsBand } from "./StatsBand";
 import { Interview } from "./Interview";
 import { Timeline } from "./Timeline";
 import { Testimonials } from "./Testimonials";
+import { CategoryHero } from "./CategoryHero";
+import { FeaturedLead } from "./FeaturedLead";
+import { ArticleGrid } from "./ArticleGrid";
+import { CtaBand } from "./CtaBand";
+import { EditorialHero } from "./EditorialHero";
+import { Manifesto } from "./Manifesto";
+import { CoverCards } from "./CoverCards";
+import { PullQuote } from "./PullQuote";
+import { Masthead } from "./Masthead";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
@@ -35,6 +44,15 @@ export const registry = {
   interview: Interview,
   timeline: Timeline,
   testimonials: Testimonials,
+  categoryHero: CategoryHero,
+  featuredLead: FeaturedLead,
+  articleGrid: ArticleGrid,
+  ctaBand: CtaBand,
+  editorialHero: EditorialHero,
+  manifesto: Manifesto,
+  coverCards: CoverCards,
+  pullQuote: PullQuote,
+  masthead: Masthead,
 } satisfies Record<string, ComponentType<any>>;
 
 export type BlockType = keyof typeof registry;
@@ -54,4 +72,13 @@ export const blockCatalog: { type: BlockType; label: string; thumb?: string }[] 
   { type: "interview", label: "The Interview — Q&A" },
   { type: "timeline", label: "Timeline — a brief history" },
   { type: "testimonials", label: "Member Voices" },
+  { type: "categoryHero", label: "Category — hero band" },
+  { type: "featuredLead", label: "Category — featured lead" },
+  { type: "articleGrid", label: "Article grid" },
+  { type: "ctaBand", label: "CTA band (red)" },
+  { type: "editorialHero", label: "Editorial page hero" },
+  { type: "manifesto", label: "Manifesto — two-column" },
+  { type: "coverCards", label: "What we cover — cards" },
+  { type: "pullQuote", label: "Pull quote" },
+  { type: "masthead", label: "The Masthead — team" },
 ];

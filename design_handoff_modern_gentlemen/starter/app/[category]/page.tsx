@@ -1,27 +1,69 @@
+import { notFound } from "next/navigation";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
-// import { sanityFetch } from "@/lib/sanity/client";
-// import { categoryQuery } from "@/lib/sanity/queries";
+import { getCategory, categorySlugs, slugify } from "@/lib/editorial";
 
-const KNOWN = ["style", "grooming", "watches", "culture", "film"];
+/** Pre-render the five known category slugs. */
+export function generateStaticParams() {
+  return categorySlugs.map((category) => ({ category }));
+}
 
-/** Reusable category landing (/style, /grooming, /watches, /culture, /film).
- *  Full-bleed hero band + composable sections below (from the CMS). */
+/**
+ * Reusable category landing (/style, /grooming, /watches, /culture, /film).
+ * One page keyed by slug; content is an ordered Block[] composed from the
+ * editorial demo data (lib/editorial.ts). Unknown slugs → 404. Runs on demo
+ * data today; a Supabase `getCategory(slug)` fetch slots in behind this shape.
+ */
 export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = await params;
-  // const data = await sanityFetch(categoryQuery, { slug: category });
-  const title = category.charAt(0).toUpperCase() + category.slice(1);
-  const sections: Block[] = []; // data?.sections ?? []
+  const d = getCategory(category);
+  if (!d) notFound();
 
-  const valid = KNOWN.includes(category.toLowerCase());
-  return (
-    <>
-      <section data-darkband className="relative bg-[#0d0d0d] text-[#f4f4f4] py-24 md:py-32">
-        <div className="container-mg">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-mg-accent">{valid ? "Section" : "Not found"}</p>
-          <h1 className="font-grotesk font-semibold text-5xl md:text-7xl mt-4">{title}</h1>
-        </div>
-      </section>
-      <SectionRenderer sections={sections} />
-    </>
-  );
+  const upper = d.name.toUpperCase();
+  const sections: Block[] = [
+    {
+      _key: "hero",
+      _type: "categoryHero",
+      eyebrow: `MODERN GENTLEMEN · ${d.sectionNo}`,
+      title: d.name,
+      blurb: d.blurb,
+      image: d.heroImage,
+      chips: d.subs,
+    },
+    {
+      _key: "lead",
+      _type: "featuredLead",
+      article: {
+        kicker: `${upper} · ${d.lead.no}`,
+        title: d.lead.title,
+        dek: d.lead.dek,
+        author: d.lead.author,
+        read: d.lead.read,
+        image: d.lead.image,
+        href: `/article/${slugify(d.lead.title)}`,
+      },
+    },
+    {
+      _key: "grid",
+      _type: "articleGrid",
+      label: `MORE IN ${upper}`,
+      items: d.cards.map((c) => ({
+        tag: c.tag,
+        title: c.title,
+        read: c.read,
+        image: c.image,
+        href: `/article/${slugify(c.title)}`,
+      })),
+    },
+    {
+      _key: "newsletter",
+      _type: "ctaBand",
+      variant: "split",
+      eyebrow: "THE DEBRIEF",
+      heading: `The best of ${d.name}, every Sunday.`,
+      buttonLabel: "SUBSCRIBE",
+      successLabel: "SUBSCRIBED ✓",
+    },
+  ];
+
+  return <SectionRenderer sections={sections} />;
 }
