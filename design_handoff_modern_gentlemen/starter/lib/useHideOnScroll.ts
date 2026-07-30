@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type Options = {
   /** Scroll depth (px) past which the chrome frosts in. */
   frostAt?: number;
-  /** Scroll depth (px) below which the bar never hides — heroes keep the nav. */
+  /** Scroll depth (px) below which the bar never hides — heroes keep the nav.
+   *  The prototype re-shows unconditionally under this depth, so do the same. */
   hideAt?: number;
   /** Deltas smaller than this are rubber-band / trackpad jitter, not intent. */
   threshold?: number;
@@ -24,7 +25,7 @@ type Options = {
  * gestures. Pin transitions re-baseline instead of reading the jump as a
  * direction — the lock/restore events land after this effect, never before.
  */
-export function useHideOnScroll({ frostAt = 40, hideAt = 120, threshold = 6, pinned = false }: Options = {}) {
+export function useHideOnScroll({ frostAt = 40, hideAt = 90, threshold = 4, pinned = false }: Options = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
@@ -47,10 +48,18 @@ export function useHideOnScroll({ frostAt = 40, hideAt = 120, threshold = 6, pin
         lastY.current = y;
         return;
       }
+      // Prototype order: below `hideAt` the bar is always shown, and only past
+      // it does a >threshold delta decide the direction (a sub-threshold move
+      // leaves the previous state alone rather than re-baselining `lastY`).
+      if (y < hideAt) {
+        lastY.current = y;
+        setHidden(false);
+        return;
+      }
       const delta = y - lastY.current;
       if (Math.abs(delta) < threshold) return;
       lastY.current = y;
-      setHidden(delta > 0 && y > hideAt);
+      setHidden(delta > 0);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

@@ -1,4 +1,5 @@
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
+import { FILM_PREVIEW_VIDEO, HERO_COVER_VIDEO } from "@/lib/media";
 // Track B (Supabase) seam — swap DEMO_SECTIONS for a live fetch:
 // import { getPage } from "@/lib/queries";
 
@@ -22,10 +23,11 @@ const DEMO_SECTIONS: Block[] = [
     eyebrow: "The Cover Interview",
     headline: "Speed,\nConsidered",
     sub: "Why the modern gentleman drives slow cars fast — on patience, stewardship, and the machines we keep.",
-    media: { kind: "image", image: "/images/hero-cover.jpg" },
-    cta: { label: "Read the Cover Story", href: "/culture" },
-    credit: "Photography · E. Marlowe",
-    meta: "No. 042 — A. Bellamy — 11 min",
+    // Moving cover, with the still as its poster (prototype `heroVideoUrl`).
+    media: { kind: "video", videoUrl: HERO_COVER_VIDEO, image: "/images/hero-cover.jpg" },
+    cta: { label: "READ THE COVER STORY", href: "/article/speed-considered" },
+    credit: "PHOTOGRAPHY · E. MARLOWE",
+    meta: "NO. 042 — A. BELLAMY — 11 MIN",
     mobileHeight: "fullscreen",
   },
   {
@@ -52,7 +54,7 @@ const DEMO_SECTIONS: Block[] = [
     eyebrow: "Style",
     headline: "The Monochrome Wardrobe, Engineered",
     image: "/images/style-mono.jpg",
-    cta: { label: "Discover more →", href: "/style" },
+    cta: { label: "DISCOVER MORE →", href: "/style" },
   },
   {
     _key: "two-up",
@@ -78,9 +80,9 @@ const DEMO_SECTIONS: Block[] = [
     allHref: "/film",
     allLabel: "All episodes →",
     items: [
-      { title: "Inside a Coachbuilder’s Workshop", still: "/images/film-workshop.jpg", duration: "14:20" },
-      { title: "A Tailor’s Archive", still: "/images/film-tailor.jpg", duration: "09:52" },
-      { title: "The Watchmaker of the Grid", still: "/images/film-watchmaker.jpg", duration: "11:38" },
+      { title: "Inside a Coachbuilder’s Workshop", still: "/images/film-workshop.jpg", duration: "14:20", videoUrl: FILM_PREVIEW_VIDEO },
+      { title: "A Tailor’s Archive", still: "/images/film-tailor.jpg", duration: "09:52", videoUrl: FILM_PREVIEW_VIDEO },
+      { title: "The Watchmaker of the Grid", still: "/images/film-watchmaker.jpg", duration: "11:38", videoUrl: FILM_PREVIEW_VIDEO },
     ],
   },
   {

@@ -17,22 +17,24 @@ export function FeatureSplit({ eyebrow, headline, body, image, cta, variant = "i
   // "Style Feature"). Edge-to-edge; only the caption sits in the 1320 column.
   if (variant === "fullBleed") {
     return (
-      <section data-darkband className="relative h-[420px] md:h-[560px] bg-[#0d0d0d] text-[#f4f4f4] overflow-hidden">
+      <section data-darkband className="relative h-[560px] bg-[#0d0d0d] text-white overflow-hidden">
         {image && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
         )}
-        <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg,rgba(10,10,11,0.85),transparent 60%)" }} />
-        <div className="container-mg absolute inset-x-0 bottom-0 pb-12">
-          <div className="max-w-xl">
-            {eyebrow && <Eyebrow className="block">{eyebrow}</Eyebrow>}
-            <h2 className="mt-2 font-grotesk font-medium text-3xl md:text-[36px] leading-[1.1] text-balance">{headline}</h2>
-            {cta && (
-              <Link href={cta.href} className="mt-4 inline-flex items-center font-mono uppercase text-[11px] tracking-[0.2em] text-white/90 hover:text-mg-accentSerif transition-colors">
-                {cta.label}
-              </Link>
-            )}
-          </div>
+        <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,rgba(10,10,11,0.85),transparent 60%)" }} />
+        {/* Caption: anchored to the content gutter, 48px up, and padded 32px
+            top/bottom inside itself ('No panel' zeroes the panel's left pad). */}
+        <div className="absolute bottom-12 left-5 right-5 pl-0 pr-6 py-6 leading-[normal] pointer-events-none min-[681px]:left-[max(48px,calc((100%-1320px)/2))] min-[681px]:right-auto min-[681px]:max-w-[440px] min-[681px]:pr-[38px] min-[681px]:py-8">
+          {eyebrow && <Eyebrow className="block mb-2 !text-[18px] !leading-[normal]">{eyebrow}</Eyebrow>}
+          <Link href={cta?.href ?? "#"} className="inline-block text-inherit pointer-events-auto">
+            <h2 className="font-grotesk font-medium text-3xl leading-[1.05] min-[681px]:text-[36px] tracking-[-0.03em]">{headline}</h2>
+          </Link>
+          {cta && (
+            <Link href={cta.href} className="mt-4 inline-block pointer-events-auto font-mono text-[10.5px] tracking-[0.22em] text-white/75 transition-colors hover:text-mg-accentSerif">
+              {cta.label}
+            </Link>
+          )}
         </div>
       </section>
     );

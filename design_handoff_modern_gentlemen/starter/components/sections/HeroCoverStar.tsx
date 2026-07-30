@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { Eyebrow } from "../ui/Eyebrow";
 
 interface Props {
   badge?: string;          // red mono pill, e.g. "COVER STORY — ISSUE 042"
@@ -12,19 +11,24 @@ interface Props {
   media?: { kind?: "image" | "video"; image?: string; videoUrl?: string };
   cta?: { label: string; href: string };
   credit?: string;         // mono, e.g. "PHOTOGRAPHY · E. MARLOWE"
-  meta?: string;           // mono bottom line, e.g. "NO. 042 — A. BELLAMY — 11 MIN"
+  meta?: string;           // mono bottom-left rail, e.g. "NO. 042 — A. BELLAMY — 11 MIN"
   mobileHeight?: "auto" | "tall" | "fullscreen";
 }
 
 /**
- * Hero — Cover Star. Cover media on the right meets a dark left panel at a 1px
- * divider, with an overlapping lower-left headline block; full-screen, bleeding
- * up behind the transparent fixed header (-mt-[72px]). Video autoplay is set
- * imperatively (React `muted` is unreliable) and gated by reduced-motion.
+ * Hero — Cover Star, the prototype's `heroVariant: 'Cover bottom'` at
+ * `heroSize: 'Full screen'`: a 100vh full-bleed cover (video, or image when no
+ * video URL is set) under a single bottom-rising scrim, with the headline block
+ * inset 44px from the left and 72px up from the bottom, and the issue meta and
+ * vertical SCROLL rail pinned to the bottom corners.
+ *
+ * The hero bleeds up behind the transparent fixed header (no top offset needed —
+ * the bar is `position: fixed`). Video autoplay is set imperatively (React's
+ * `muted` prop is unreliable) and gated on reduced-motion.
  */
 export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credit, meta, mobileHeight = "fullscreen" }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const isVideo = media?.kind === "video" && !!media.videoUrl;
+  const isVideo = !!media?.videoUrl && media?.kind !== "image";
 
   useEffect(() => {
     const el = videoRef.current;
@@ -39,68 +43,102 @@ export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credi
     return () => io.disconnect();
   }, [media?.videoUrl]);
 
-  const minH = mobileHeight === "fullscreen" ? "min-h-[100svh]" : mobileHeight === "tall" ? "min-h-[560px] md:min-h-[100svh]" : "min-h-[440px] md:min-h-[100svh]";
+  // Desktop is always 100vh; only the phone height varies (heroMobileHeight).
+  const frameH =
+    mobileHeight === "fullscreen"
+      ? "h-[100svh] min-[681px]:h-screen"
+      : mobileHeight === "tall"
+        ? "h-[560px] min-[681px]:h-screen"
+        : "h-[470px] min-[681px]:h-screen";
 
   return (
-    <section data-darkband className={`relative -mt-[72px] ${minH} bg-[#0d0d0d] text-[#f4f4f4] overflow-hidden`}>
-      {/* Cover media — full-bleed on mobile, right 54% on desktop */}
-      <div className="absolute inset-0 md:left-[46%]">
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={media!.videoUrl}
-            poster={media!.image}
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            className="absolute inset-0 h-full w-full object-cover"
+    // -mt-[72px] cancels the layout's header offset so the cover bleeds up
+    // behind the transparent fixed bar, exactly as the prototype's hero does.
+    <section id="top" data-darkband className="-mt-[72px] text-[#f4f4f4]">
+      <div className={`relative overflow-hidden border-b border-white/10 bg-[#0d0d0d] ${frameH}`}>
+        {/* Cover media — full-bleed behind everything. */}
+        <div className="absolute inset-0">
+          {isVideo ? (
+            <video
+              ref={videoRef}
+              src={media!.videoUrl}
+              poster={media!.image}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover bg-[#0d0d0d]"
+            />
+          ) : media?.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={media.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-white/5" />
+          )}
+          {/* Single bottom-rising legibility scrim ('Cover bottom'); ≤680 it
+              flattens to an even wash so centered text stays readable. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none bg-[rgba(13,13,13,0.5)] min-[681px]:bg-[linear-gradient(0deg,rgba(10,10,11,0.9),transparent_55%)]"
           />
-        ) : media?.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={media.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-white/5" />
-        )}
-      </div>
+        </div>
 
-      {/* Legibility scrims: solid-left fading right, plus a bottom rise */}
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0d0d0d] via-[#0d0d0d]/85 to-transparent md:via-[#0d0d0d]/70" />
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0a0a0b]/90 to-transparent" />
-      {/* 1px divider where the dark panel meets the cover */}
-      <div aria-hidden className="hidden md:block absolute inset-y-0 left-[46%] w-px bg-white/10" />
-
-      {/* Overlapping lower-left content block */}
-      <div className="container-mg absolute inset-x-0 bottom-0 pb-[64px] pt-[120px]">
-        <div className="max-w-[640px]">
+        {/* Headline block — lower-left, over the cover. The prototype leaves
+            line-height at `normal` here; Tailwind's fixed leading would add
+            ~8px of stack height and push the whole block up off its baseline. */}
+        {/* ≤680 (heroMobileTextAlign: 'Center') the block spans the full width
+            with a 24px inset and centers; ≥681 it insets 44px from the left. */}
+        <div className="absolute inset-x-0 bottom-[66px] z-[2] px-6 text-center leading-[normal] text-white min-[681px]:inset-x-auto min-[681px]:left-11 min-[681px]:bottom-[72px] min-[681px]:max-w-[640px] min-[681px]:px-0 min-[681px]:text-left">
           {badge && (
-            <span className="inline-block bg-mg-accent text-white font-mono uppercase text-[11px] tracking-[0.18em] px-3 py-1.5">
+            <span className="inline-block bg-[rgba(200,16,46,0.9)] px-[11px] py-1 font-mono text-[8px] leading-[normal] tracking-[0.24em] text-white">
               {badge}
             </span>
           )}
-          {eyebrow && <Eyebrow className="block mt-5 text-xl">{eyebrow}</Eyebrow>}
-          <h1 className="mt-3 font-grotesk font-semibold text-[clamp(46px,8.2vw,84px)] leading-[0.92] tracking-[-0.055em] text-balance whitespace-pre-line">
+          {eyebrow && (
+            <div className="mt-3.5 font-serif italic text-[16px] leading-[normal] text-[#ff4d5e]">{eyebrow}</div>
+          )}
+          <h1
+            className="mt-2 font-grotesk font-semibold text-[44px] min-[681px]:text-[84px] leading-[0.92] tracking-[-0.055em] whitespace-pre-line"
+            style={{ textShadow: "0 4px 40px rgba(13,13,13,0.6)" }}
+          >
             {headline}
           </h1>
-          {sub && <p className="mt-6 max-w-[520px] text-lg text-white/75 text-pretty">{sub}</p>}
-          <div className="mt-8 flex flex-wrap items-center gap-6">
+          {sub && (
+            <p
+              className="mt-5 mx-auto max-w-[400px] font-grotesk font-light text-base leading-[1.6] text-[rgba(244,244,244,0.78)] min-[681px]:mx-0"
+              style={{ textShadow: "0 2px 20px rgba(13,13,13,0.8)" }}
+            >
+              {sub}
+            </p>
+          )}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-[18px] leading-[normal] min-[681px]:justify-start">
             {cta && (
               <Link
                 href={cta.href}
-                className="inline-flex items-center bg-mg-accent text-white px-8 py-3.5 font-mono uppercase text-xs tracking-[0.15em] transition-colors hover:bg-white hover:text-mg-accent"
+                className="inline-block bg-mg-accent px-7 py-[13px] font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-mg-accent"
               >
                 {cta.label}
               </Link>
             )}
-            {credit && <span className="font-mono uppercase text-[11px] tracking-[0.18em] text-white/50">{credit}</span>}
+            {credit && (
+              <span className="font-mono text-[9px] leading-[normal] tracking-[0.16em] text-white/60">{credit}</span>
+            )}
           </div>
-          {meta && <p className="mt-10 font-mono uppercase text-[11px] tracking-[0.18em] text-white/45">{meta}</p>}
         </div>
-      </div>
 
-      {/* Vertical scroll rail */}
-      <div aria-hidden className="hidden md:flex absolute right-7 bottom-10 items-center">
-        <span className="font-mono uppercase text-[10px] tracking-[0.3em] text-white/50 [writing-mode:vertical-rl]">Scroll ↓</span>
+        {/* Bottom rails — issue meta (left) and the vertical scroll cue (right). */}
+        {meta && (
+          <div className="absolute left-5 bottom-[22px] pointer-events-none font-mono text-[8px] leading-[normal] tracking-[0.14em] text-white/55 min-[681px]:left-11 min-[681px]:bottom-[30px] min-[681px]:text-[10px] min-[681px]:tracking-[0.22em]">
+            {meta}
+          </div>
+        )}
+        <div
+          aria-hidden
+          className="hidden min-[681px]:block absolute right-8 bottom-[30px] pointer-events-none font-mono text-[10px] leading-[normal] tracking-[0.28em] text-white/55 [writing-mode:vertical-rl]"
+        >
+          SCROLL ↓
+        </div>
       </div>
     </section>
   );

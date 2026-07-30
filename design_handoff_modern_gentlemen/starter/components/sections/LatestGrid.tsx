@@ -28,7 +28,7 @@ export function LatestGrid({ heading = "The Latest", eyebrow, viewAllHref, viewA
     return (
       <section className="container-mg pt-20 pb-11">
         <SectionHead heading={heading} eyebrow={eyebrow} viewAllHref={viewAllHref} viewAllLabel={viewAllLabel} />
-        <div className="grid grid-cols-1 min-[681px]:grid-cols-2 min-[1025px]:grid-cols-6 gap-[14px]">
+        <div className="grid grid-cols-1 min-[681px]:grid-cols-2 min-[1025px]:grid-cols-6 gap-[18px] min-[1025px]:gap-[14px]">
           {items?.map((it, i) => <Tile key={i} item={it} />)}
         </div>
       </section>
@@ -50,8 +50,8 @@ function SectionHead({ heading, eyebrow, viewAllHref, viewAllLabel }: { heading?
   return (
     <div className="flex items-baseline justify-between gap-4 mb-[22px]">
       <div>
-        {eyebrow && <Eyebrow className="block text-xl leading-[normal] text-mg-fg/45">{eyebrow}</Eyebrow>}
-        <h2 className="mt-1 font-grotesk font-semibold text-3xl md:text-[42px] leading-none tracking-[-0.035em]">{heading}</h2>
+        {eyebrow && <Eyebrow className="block !text-[20px] !leading-[normal] !text-mg-muted">{eyebrow}</Eyebrow>}
+        <h2 className="mt-1 font-grotesk font-semibold text-3xl leading-[1.05] min-[681px]:text-[42px] min-[681px]:leading-none tracking-[-0.035em]">{heading}</h2>
       </div>
       {viewAllHref && (
         <Link href={viewAllHref} className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accent whitespace-nowrap">{viewAllLabel}</Link>
@@ -60,32 +60,47 @@ function SectionHead({ heading, eyebrow, viewAllHref, viewAllLabel }: { heading?
   );
 }
 
+/** Grid-item shells.
+ *
+ *  The min-height lives on the *item* (not the inner card) and the item is a
+ *  flex box, so a tall card grows its row instead of being pinned to `h-full`
+ *  of an already-resolved height.
+ *
+ *  The prototype's tiles are `content-box`, so its `min-height: 210px` (150px
+ *  once 6-up) is 210px of CONTENT — padding and border sit outside it. These
+ *  border-box equivalents add each tile's own chrome back on: the padded cards
+ *  carry 2×28px padding (and the dark one a 1px rule), the image tiles carry
+ *  neither. */
+const TILE_PADDED = "flex min-h-[266px] min-[1025px]:min-h-[206px]";        // 210/150 + 56
+const TILE_PADDED_RULED = "flex min-h-[268px] min-[1025px]:min-h-[208px]";  // 210/150 + 56 + 2
+const TILE_PLAIN = "flex min-h-[210px] min-[1025px]:min-h-[150px]";         // 210/150 flat
+
 function Tile({ item }: { item: Item }) {
   if (item.kind === "feature") {
     const inner = (
-      <article data-darkband className="flex h-full flex-col justify-between bg-[#0d0d0d] text-[#f4f4f4] border border-white/10 px-[30px] py-7 min-h-[150px] transition-transform duration-200 hover:-translate-y-[3px]">
+      <article data-darkband className="flex w-full flex-col justify-between bg-[#0d0d0d] text-[#f4f4f4] border border-white/10 px-[30px] py-7 transition-transform duration-200 hover:-translate-y-[3px]">
         {item.kicker && <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-mg-accent">{item.kicker}</span>}
         <h3 className="font-grotesk font-medium text-[30px] leading-[1.06] tracking-[-0.03em]">{item.title}</h3>
         {item.body && <p className="font-light text-sm leading-[1.5] text-[#f4f4f4]/55">{item.body}</p>}
         {item.meta && <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.16em] text-[#f4f4f4]/40">{item.meta}</span>}
       </article>
     );
-    return item.href ? <Link href={item.href} className="block">{inner}</Link> : inner;
+    return item.href ? <Link href={item.href} className={TILE_PADDED_RULED}>{inner}</Link> : inner;
   }
 
   if (item.kind === "membership") {
     const inner = (
-      <div className="flex h-full flex-col justify-between bg-mg-accent text-white px-[30px] py-7 min-h-[150px] transition-transform duration-200 hover:-translate-y-[3px]">
+      <div className="flex w-full flex-col justify-between bg-mg-accent text-white px-[30px] py-7 transition-transform duration-200 hover:-translate-y-[3px]">
         {item.kicker && <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-white/80">{item.kicker}</span>}
         <h3 className="font-grotesk font-medium text-[26px] leading-[1.08] tracking-[-0.025em]">{item.title}</h3>
         {item.body && <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.16em] text-white/75">{item.body}</span>}
       </div>
     );
-    return item.href ? <Link href={item.href} className="block">{inner}</Link> : inner;
+    return item.href ? <Link href={item.href} className={TILE_PADDED}>{inner}</Link> : inner;
   }
 
   const inner = (
-    <article className="group relative h-full min-h-[150px] overflow-hidden bg-mg-surface transition-transform duration-200 hover:-translate-y-[3px]">
+    <article className="group relative w-full overflow-hidden bg-mg-surface transition-transform duration-200 hover:-translate-y-[3px]">
       {item.image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={item.image} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -97,7 +112,7 @@ function Tile({ item }: { item: Item }) {
       </div>
     </article>
   );
-  return item.href ? <Link href={item.href} className="block">{inner}</Link> : inner;
+  return item.href ? <Link href={item.href} className={TILE_PLAIN}>{inner}</Link> : inner;
 }
 
 function SimpleCard({ item }: { item: Item }) {

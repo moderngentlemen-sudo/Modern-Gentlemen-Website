@@ -43,11 +43,18 @@ export function MegaMenu({ activeKey, onClose }: { activeKey: string | null; onC
   const menu = MENUS[activeKey];
   return (
     <div
-      className="absolute inset-x-0 top-full border-b border-white/10 text-[#f4f4f4] motion-safe:animate-[mgMegaDrop_.3s_ease]"
-      style={{ background: "rgba(11,11,12,0.6)", backdropFilter: "blur(30px) saturate(1.4)", boxShadow: "0 26px 54px rgba(0,0,0,0.42)" }}
+      className="border-b border-white/10 text-[#f4f4f4] motion-safe:animate-[mgMegaDrop_.3s_ease]"
+      style={{
+        background: "rgba(11,11,12,0.6)",
+        backdropFilter: "blur(30px) saturate(1.4)",
+        WebkitBackdropFilter: "blur(30px) saturate(1.4)",
+        boxShadow: "0 26px 54px rgba(0,0,0,0.42)",
+      }}
       onMouseLeave={onClose}
     >
-      <div className="container-mg flex gap-[60px] py-10">
+      {/* Capped-and-centered with its own inset — not `.container-mg`; the
+          prototype's panel pads 48px *inside* the 1320px cap. */}
+      <div className="mx-auto max-w-[1320px] flex items-start gap-[60px] px-12 pt-[38px] pb-11">
         <div className="flex flex-1 gap-12">
           {menu.columns.map((col) => (
             <div key={col.heading} className="min-w-[150px]">

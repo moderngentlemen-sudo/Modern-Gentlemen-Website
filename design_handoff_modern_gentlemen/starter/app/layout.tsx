@@ -6,7 +6,11 @@ import { CartProvider } from "@/lib/cart/CartProvider";
 import { Header } from "@/components/chrome/Header";
 import { Footer } from "@/components/chrome/Footer";
 
-const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", weight: ["300", "400", "500", "600", "700"] });
+// Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
+// variable file with a 300–700 axis range. Pinning discrete weights made 300
+// and 400 render at identical (too-wide) metrics, which broke line breaking in
+// the light-weight body copy against the design.
+const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 const serif = Instrument_Serif({ subsets: ["latin"], variable: "--font-instrument-serif", weight: "400", style: "italic" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--font-ibm-plex-mono", weight: ["400", "500"] });
 
