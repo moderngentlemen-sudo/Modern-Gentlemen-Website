@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "@/lib/theme";
+import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import { useCart } from "@/lib/cart/CartProvider";
 import { Drawer } from "./Drawer";
 import { SearchOverlay } from "./SearchOverlay";
@@ -18,26 +19,24 @@ const NAV = [
   { label: "STORE", href: "/shop", key: "" },
 ];
 
-/** Full chrome header: dark, frosted-on-scroll nav (no resize — brand rejected
- *  resize motion, EXECUTION_PLAN §10), mega-menu, drawer, search, bag drawer,
- *  theme toggle, live bag badge. Always-dark chrome via data-darkband. See
+/** Full chrome header: dark, frosted-on-scroll nav that slides away on
+ *  scroll-down and returns on scroll-up (no resize — brand rejected resize
+ *  motion, EXECUTION_PLAN §10), mega-menu, drawer, search, bag drawer, theme
+ *  toggle, live bag badge. Always-dark chrome via data-darkband. See
  *  04_CHROME.md. */
 export function Header() {
   const { theme, toggle } = useTheme();
   const cart = useCart();
-  const [scrolled, setScrolled] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [bag, setBag] = useState(false);
   const [menuKey, setMenuKey] = useState<string | null>(null);
   const [spin, setSpin] = useState(0);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  // An open overlay or mega-menu pins the bar: the overlays lock the body (which
+  // fires non-gesture scroll events) and a menu must never slide out from under
+  // the pointer.
+  const { scrolled, hidden, reveal } = useHideOnScroll({ pinned: drawer || search || bag || !!menuKey });
 
   const frosted = scrolled || !!menuKey;
   const openMenu = (key: string) => setMenuKey(MENU_KEYS.includes(key) ? key : null);
@@ -55,12 +54,22 @@ export function Header() {
       />
       <header
         data-darkband
-        className={`fixed inset-x-0 top-0 z-50 text-[#f4f4f4] transition-[background-color,backdrop-filter,border-color] duration-500 ${
+        data-hidden={hidden || undefined}
+        className={`fixed inset-x-0 top-0 z-50 text-[#f4f4f4] will-change-transform ${
           frosted
             ? "bg-[rgba(13,13,13,0.55)] backdrop-blur-[20px] border-b border-white/10"
             : "bg-transparent border-b border-transparent"
         }`}
+        style={{
+          // Slide-away only — the bar keeps its 72px height (EXECUTION_PLAN §10).
+          // The global prefers-reduced-motion rule zeroes both durations.
+          transform: hidden ? "translateY(-100%)" : "translateY(0)",
+          transition:
+            "transform 320ms cubic-bezier(.4,0,.2,1), background-color 500ms, backdrop-filter 500ms, border-color 500ms",
+        }}
         onMouseLeave={() => setMenuKey(null)}
+        // Tabbing into chrome that has slid away must bring it back into view.
+        onFocus={reveal}
       >
         <div className="container-mg flex items-center justify-between h-[72px]">
           {/* LEFT — burger (Sq thin pair) + monogram */}
