@@ -6,7 +6,7 @@ import { clsx } from "./clsx";
  *  the 9%-fg gutters read as thin lines between surface tiles in both themes. */
 export function HairlineGrid({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={clsx("grid gap-px overflow-hidden rounded-[12px] border border-mg-bd/[0.09] bg-mg-bd/[0.09]", className)}>
+    <div className={clsx("grid gap-px overflow-hidden border border-mg-bd/[0.09] bg-mg-bd/[0.09]", className)}>
       {children}
     </div>
   );

@@ -73,7 +73,7 @@ export function BodySpec() {
       <BodyIntro className="mb-9 max-w-[640px] text-[20px]">
         Three watches, one honest question: which earns the place on your wrist for the next decade? We put them side by side.
       </BodyIntro>
-      <div data-specwrap className="overflow-x-auto rounded-[12px] border border-mg-bd/[0.12]">
+      <div data-specwrap className="overflow-x-auto border border-mg-bd/[0.12]">
         {SPEC.map((r) => (
           <div key={r.label} data-specrow className="grid grid-cols-[minmax(120px,1.4fr)_minmax(94px,1fr)_minmax(94px,1fr)_minmax(94px,1fr)] items-center gap-4 border-b border-mg-bd/[0.08] p-[16px_22px] last:border-b-0">
             <div
@@ -120,7 +120,7 @@ export function BodyPhoto() {
       </BodyIntro>
       {PHOTOS.map((p) => (
         <figure key={p.cap} className="mb-11">
-          <div className="h-[64vh] min-h-[420px] rounded-[12px] bg-[#0d0d0d] bg-cover bg-center" style={bg(p.src)} />
+          <div className="h-[64vh] min-h-[420px] bg-[#0d0d0d] bg-cover bg-center" style={bg(p.src)} />
           <figcaption className="mt-3.5 font-mono text-[12px] tracking-[0.12em] text-mg-fg/45">{p.cap}</figcaption>
         </figure>
       ))}
@@ -145,7 +145,7 @@ export function BodyGallery() {
       </BodyIntro>
       <div data-gal className="grid grid-cols-3 gap-3.5">
         {GALLERY.map((g) => (
-          <figure key={g.cap} data-galcell className="overflow-hidden rounded-[10px]">
+          <figure key={g.cap} data-galcell className="overflow-hidden">
             <div className="h-[300px] bg-[#0d0d0d] bg-cover bg-center" style={bg(g.src)} />
             <figcaption className="px-1 pt-3 font-mono text-[10px] tracking-[0.12em] text-mg-fg/45">{g.cap}</figcaption>
           </figure>
@@ -172,7 +172,7 @@ export function BodyList() {
       </BodyIntro>
       <div className="flex flex-col gap-[22px]">
         {LIST.map((it) => (
-          <div key={it.rank} data-listrow className="grid grid-cols-[300px_1fr] items-center gap-6 overflow-hidden rounded-[12px] border border-mg-bd/10 bg-mg-surface">
+          <div key={it.rank} data-listrow className="grid grid-cols-[300px_1fr] items-center gap-6 overflow-hidden border border-mg-bd/10 bg-mg-surface">
             <div data-listimg className="h-full min-h-[180px] bg-[#0d0d0d] bg-cover bg-center" style={bg(it.src)} />
             <div className="p-[22px_26px_22px_0] max-[820px]:px-[22px]">
               <div className="flex items-center gap-3">
@@ -233,7 +233,7 @@ export function BodyRegimen() {
       <BodyIntro className="mb-10 text-[20px]">
         Seven honest minutes, four products, done before the coffee’s cold. The short regimen that actually holds.
       </BodyIntro>
-      <div className="flex flex-col gap-px overflow-hidden rounded-[12px] border border-mg-bd/[0.09] bg-mg-bd/[0.09]">
+      <div className="flex flex-col gap-px overflow-hidden border border-mg-bd/[0.09] bg-mg-bd/[0.09]">
         {REGIMEN.map((r) => (
           <div key={r.tag} className="grid grid-cols-[78px_1fr_auto] items-center gap-[18px] bg-mg-surface p-[20px_24px]">
             <div className="font-grotesk font-semibold text-[26px] leading-none tracking-[-0.03em] text-mg-accent">{r.time}</div>

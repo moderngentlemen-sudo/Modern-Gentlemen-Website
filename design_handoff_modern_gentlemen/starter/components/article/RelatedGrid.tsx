@@ -13,7 +13,7 @@ export function RelatedGrid({ items }: { items: RelatedItem[] }) {
             data-relcard
             data-darkband
             href={r.href}
-            className="relative block min-h-[230px] overflow-hidden rounded-[10px] text-white"
+            className="relative block min-h-[230px] overflow-hidden text-white"
           >
             <div className="absolute inset-0 bg-[#0d0d0d] bg-cover bg-center" style={{ backgroundImage: `url(${r.image})` }} />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(13,13,13,0) 45%, rgba(13,13,13,0.6) 100%)" }} />

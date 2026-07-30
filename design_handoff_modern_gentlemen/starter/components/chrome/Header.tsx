@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/lib/theme";
 import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import { useCart } from "@/lib/cart/CartProvider";
@@ -44,6 +44,22 @@ export function Header() {
   const [menuKey, setMenuKey] = useState<string | null>(null);
   const [navHover, setNavHover] = useState(false);
   const [spin, setSpin] = useState(0);
+  const navZoneRef = useRef<HTMLDivElement>(null);
+
+  // Touch devices synthesise a mouseenter on tap but often never fire the
+  // matching mouseleave, which would leave the bar frosted AND pinned open for
+  // the rest of the session — hide-on-scroll silently dead on mobile. The
+  // prototype's guard: any pointerdown outside the nav zone drops both states.
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      const zone = navZoneRef.current;
+      if (zone && e.target instanceof Node && zone.contains(e.target)) return;
+      setNavHover(false);
+      setMenuKey(null);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, []);
 
   // An open overlay or mega-menu pins the bar: the overlays lock the body (which
   // fires non-gesture scroll events) and a menu must never slide out from under
@@ -78,11 +94,31 @@ export function Header() {
           (72 − 2px padding − 1px rule) centers on y=34.5, exactly as the
           prototype's `top:-2px` + `padding:2px … 0` bar does. */}
       <div
+        ref={navZoneRef}
         data-darkband
         data-hidden={hidden || undefined}
         className="fixed inset-x-0 top-[-2px] z-50 text-white will-change-transform"
         style={{ transform: slide, transition: `transform ${MOTION}` }}
-        onMouseEnter={() => setNavHover(true)}
+        // Frost/pin follows the pointer being over a nav LINK or the open
+        // panel — not merely over the bar. Hovering the logo, the icons or the
+        // gaps unfrosts (but never closes an open panel: that empty space
+        // bridges the nav and the dropdown). Matches the prototype's
+        // `_megaOver`, and is what keeps a stationary cursor at the top of the
+        // screen from pinning the header open for good.
+        onMouseOver={(e) => {
+          const t = e.target as HTMLElement | null;
+          if (!t?.closest) return;
+          const link = t.closest("a[data-mega]");
+          if (link) {
+            const key = link.getAttribute("data-mega") || "";
+            setMenuKey(MENU_KEYS.includes(key) ? key : null);
+            setNavHover(true);
+          } else if (t.closest("[data-mega-panel]")) {
+            setNavHover(true);
+          } else if (menuKey === null) {
+            setNavHover(false);
+          }
+        }}
         onMouseLeave={() => {
           setNavHover(false);
           setMenuKey(null);
@@ -113,10 +149,19 @@ export function Header() {
               // 24×22 box, squares flush left — the prototype's geometry. The
               // ::after ring below expands the hit area to 44px without adding
               // a single visible pixel.
-              className="relative flex flex-col items-start justify-center gap-[4px] w-6 min-h-[22px] after:absolute after:-inset-[11px] after:content-['']"
+              //
+              // Hover = burgerHover 'Staircase': the two squares stretch into
+              // stepped bars, 12px then 17px, on the springy .3s curve. The mark
+              // itself does NOT scale — the prototype's generic
+              // `[data-burger]:hover{scale(1.06)}` is overridden inside the nav
+              // by its header-scale rule, so the bars are the whole animation.
+              className="group/burger relative flex flex-col items-start justify-center gap-[4px] w-6 min-h-[22px] after:absolute after:-inset-[11px] after:content-['']"
             >
-              <span className="block h-[6px] w-[6px] bg-[#f4f4f4]" />
-              <span className="block h-[6px] w-[6px] bg-mg-accent" style={{ boxShadow: "0 0 8px 0 rgba(200,16,46,0.45)" }} />
+              <span className="block h-[6px] w-[6px] bg-[#f4f4f4] transition-[width,transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)] group-hover/burger:w-3" />
+              <span
+                className="block h-[6px] w-[6px] bg-mg-accent transition-[width,transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)] group-hover/burger:w-[17px]"
+                style={{ boxShadow: "0 0 8px 0 rgba(200,16,46,0.45)" }}
+              />
             </button>
             <Link href="/" aria-label="Modern Gentlemen — home" className="flex items-center text-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -137,7 +182,7 @@ export function Header() {
                   href={n.href}
                   aria-haspopup={hasMenu || undefined}
                   aria-expanded={hasMenu ? menuKey === n.key : undefined}
-                  onMouseEnter={() => openMenu(n.key)}
+                  data-mega={n.key}
                   onFocus={() => openMenu(n.key)}
                   onClick={(e) => {
                     // Coarse-pointer / no-hover: first tap opens the mega-menu
@@ -164,7 +209,7 @@ export function Header() {
               <IconButton label="Bag" title="Bag" onClick={() => setBag(true)}>
                 <BagIcon />
                 {cart.count > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 grid place-items-center rounded-full bg-mg-accent text-white font-grotesk font-semibold text-[10px] leading-none">
+                  <span className="absolute -top-[3px] -right-[3px] box-border min-w-[17px] h-[17px] px-1 grid place-items-center bg-mg-accent text-white font-grotesk font-semibold text-[10px] leading-none">
                     {cart.count}
                   </span>
                 )}
@@ -248,9 +293,9 @@ function SearchIcon() {
 }
 function BagIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M6 8h12l-1 12H7L6 8z" />
-      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M6.5 8h11l-1 12h-9l-1-12Z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
     </svg>
   );
 }

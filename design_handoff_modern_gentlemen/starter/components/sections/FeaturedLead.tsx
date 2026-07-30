@@ -20,7 +20,7 @@ export function FeaturedLead({ label = "THE LEAD", article }: { label?: string; 
       <RailLabel className="mb-[26px]">{label}</RailLabel>
       <Link
         href={article.href}
-        className="group grid grid-cols-1 min-[681px]:grid-cols-[1.15fr_1fr] overflow-hidden rounded-[12px] border border-mg-bd/10 bg-mg-surface text-mg-fg"
+        className="group grid grid-cols-1 min-[681px]:grid-cols-[1.15fr_1fr] overflow-hidden border border-mg-bd/10 bg-mg-surface text-mg-fg"
       >
         <div className="relative min-h-[280px] min-[681px]:min-h-[420px] overflow-hidden">
           <div
