@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RailLabel } from "../ui/RailLabel";
+import { bgCover } from "@/lib/bgImage";
 
 interface LeadArticle {
   kicker: string;   // e.g. "STYLE · 041"
@@ -26,7 +27,7 @@ export function FeaturedLead({ label = "THE LEAD", article }: { label?: string; 
           <div
             aria-hidden
             className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-            style={{ backgroundImage: `url(${article.image})` }}
+            style={bgCover(article.image, 1200)}
           />
         </div>
         <div className="flex flex-col justify-center p-[32px_24px] min-[681px]:p-[44px_46px]">

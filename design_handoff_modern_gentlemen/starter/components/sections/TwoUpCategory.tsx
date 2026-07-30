@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Eyebrow } from "../ui/Eyebrow";
 
 interface Item {
@@ -17,15 +18,21 @@ export function TwoUpCategory({ items }: { items: Item[] }) {
       <div className="grid grid-cols-1 min-[821px]:grid-cols-2 gap-[22px]">
         {items?.slice(0, 2).map((it, i) => {
           const img = it.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={it.image} alt={it.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            // 2-up at ≥821 inside the 1320 column with a 22px gap ⇒ 649px tiles.
+            <Image
+              src={it.image}
+              alt={it.title}
+              fill
+              sizes="(min-width: 821px) 649px, 100vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
           ) : null;
           return (
             <article key={i} className="overflow-hidden bg-mg-surface border border-mg-bd/[0.09]">
               {it.href ? (
-                <Link href={it.href} className="group block h-[300px] overflow-hidden bg-[#0d0d0d]">{img}</Link>
+                <Link href={it.href} className="group relative block h-[300px] overflow-hidden bg-[#0d0d0d]">{img}</Link>
               ) : (
-                <div className="h-[300px] overflow-hidden bg-[#0d0d0d]">{img}</div>
+                <div className="relative h-[300px] overflow-hidden bg-[#0d0d0d]">{img}</div>
               )}
               <div className="flex flex-col gap-2.5 px-[34px] py-[30px]">
                 {it.kicker && <Eyebrow className="block !text-[17px] !leading-[normal] !text-mg-accent">{it.kicker}</Eyebrow>}

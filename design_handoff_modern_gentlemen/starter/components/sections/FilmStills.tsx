@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Eyebrow } from "../ui/Eyebrow";
 
@@ -81,14 +82,33 @@ function FilmTile({ item, autoplay, onOpen }: { item: Item; autoplay?: boolean; 
     if (el && item.videoUrl && !autoplay) el.pause();
   };
 
+  // With no clip behind the tile the lightbox would only ever show its
+  // "Preview only" placeholder, so the tile is inert until footage is supplied
+  // (lib/media.ts). Hover/scroll handlers already no-op without a videoUrl.
+  const canOpen = !!item.videoUrl;
+
   return (
-    <button onClick={onOpen} onMouseEnter={hoverPlay} onMouseLeave={hoverPause} className="group text-left">
+    <button
+      onClick={canOpen ? onOpen : undefined}
+      aria-disabled={!canOpen || undefined}
+      onMouseEnter={hoverPlay}
+      onMouseLeave={hoverPause}
+      className="group text-left"
+    >
       <div className="relative h-[240px] overflow-hidden bg-[#0d0d0d]">
         {item.videoUrl ? (
-          <video ref={vidRef} src={item.videoUrl} poster={item.still} loop muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+          // preload="none": the still is already painted as the poster, so the
+          // clip is fetched only when play() is actually called.
+          <video ref={vidRef} src={item.videoUrl} poster={item.still} loop muted playsInline preload="none" className="absolute inset-0 h-full w-full object-cover" />
         ) : item.still ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.still} alt={item.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          // 3-up at ≥1025 inside the 1320 column with 22px gaps ⇒ 425px tiles.
+          <Image
+            src={item.still}
+            alt={item.title}
+            fill
+            sizes="(min-width: 1025px) 425px, (min-width: 681px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : null}
         <span
           aria-hidden

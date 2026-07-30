@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 
 interface Props {
@@ -67,12 +68,18 @@ export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credi
               loop
               muted
               playsInline
-              preload="metadata"
+              // preload="none": the poster is the LCP paint and must not
+              // compete with the clip for bandwidth. autoPlay/play() below
+              // starts the fetch when the cover is actually on screen.
+              preload="none"
               className="absolute inset-0 h-full w-full object-cover bg-[#0d0d0d]"
             />
           ) : media?.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={media.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            // The cover is the LCP element on the homepage: `priority` preloads
+            // it instead of letting it queue behind the fonts, and `sizes=100vw`
+            // keeps the served width matched to the viewport rather than
+            // shipping the 3840px original to every device.
+            <Image src={media.image} alt="" fill priority sizes="100vw" className="object-cover" />
           ) : (
             <div className="absolute inset-0 bg-white/5" />
           )}

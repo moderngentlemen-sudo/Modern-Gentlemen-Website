@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { OverlayScrim } from "./OverlayScrim";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useCart, formatGBP } from "@/lib/cart/CartProvider";
@@ -33,9 +34,8 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
             <div className="flex-1 overflow-auto p-6 space-y-5">
               {cart.lines.map((l) => (
                 <div key={l.slug} className="flex gap-4">
-                  <div className="h-20 w-16 shrink-0 overflow-hidden bg-mg-bg">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={"/" + l.product.images[0]} alt={l.product.name} className="h-full w-full object-cover" />
+                  <div className="relative h-20 w-16 shrink-0 overflow-hidden bg-mg-bg">
+                    <Image src={"/" + l.product.images[0]} alt={l.product.name} fill sizes="64px" className="object-cover" />
                   </div>
                   <div className="flex-1">
                     <Link href={`/product/${l.slug}`} onClick={onClose} className="font-grotesk text-sm">{l.product.name}</Link>

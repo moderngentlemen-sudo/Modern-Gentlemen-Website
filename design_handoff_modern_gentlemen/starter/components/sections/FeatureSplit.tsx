@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
 import { clsx } from "../ui/clsx";
@@ -18,10 +19,7 @@ export function FeatureSplit({ eyebrow, headline, body, image, cta, variant = "i
   if (variant === "fullBleed") {
     return (
       <section data-darkband className="relative h-[560px] bg-[#0d0d0d] text-white overflow-hidden">
-        {image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        )}
+        {image && <Image src={image} alt="" fill sizes="100vw" className="object-cover" />}
         <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,rgba(10,10,11,0.85),transparent 60%)" }} />
         {/* Caption: anchored to the content gutter, 48px up, and padded 32px
             top/bottom inside itself ('No panel' zeroes the panel's left pad). */}
@@ -44,10 +42,15 @@ export function FeatureSplit({ eyebrow, headline, body, image, cta, variant = "i
   return (
     <section className="container-mg py-16 md:py-24">
       <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
-        <div className={clsx("aspect-[4/3] overflow-hidden bg-mg-surface", imgFirst ? "md:order-1" : "md:order-2")}>
+        <div className={clsx("relative aspect-[4/3] overflow-hidden bg-mg-surface", imgFirst ? "md:order-1" : "md:order-2")}>
           {image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={headline} className="h-full w-full object-cover" />
+            <Image
+              src={image}
+              alt={headline}
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+            />
           )}
         </div>
         <div className={imgFirst ? "md:order-2" : "md:order-1"}>

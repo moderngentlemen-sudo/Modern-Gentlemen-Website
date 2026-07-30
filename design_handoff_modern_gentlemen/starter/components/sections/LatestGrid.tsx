@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Eyebrow, MonoLabel } from "../ui/Eyebrow";
 
 interface Item {
@@ -102,8 +103,14 @@ function Tile({ item }: { item: Item }) {
   const inner = (
     <article className="group relative w-full overflow-hidden bg-mg-surface transition-transform duration-200 hover:-translate-y-[3px]">
       {item.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.image} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
+        // 6-up at ≥1025 inside the 1320 column with 14px gaps ⇒ 208px tiles.
+        <Image
+          src={item.image}
+          alt={item.title}
+          fill
+          sizes="(min-width: 1025px) 208px, (min-width: 681px) 50vw, 100vw"
+          className="object-cover"
+        />
       )}
       <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(13,13,13,0) 45%,rgba(13,13,13,0.35) 100%)" }} />
       <div className="absolute inset-x-0 bottom-0 px-[18px] py-[14px] border-t border-white/15" style={{ background: "rgba(16,16,18,0.45)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}>
@@ -118,10 +125,15 @@ function Tile({ item }: { item: Item }) {
 function SimpleCard({ item }: { item: Item }) {
   const inner = (
     <article className="group">
-      <div className="aspect-[4/5] overflow-hidden bg-mg-surface">
+      <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
         {item.image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <Image
+            src={item.image}
+            alt={item.title}
+            fill
+            sizes="(min-width: 681px) 33vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         )}
       </div>
       {item.kicker && <MonoLabel className="block mt-4">{item.kicker}</MonoLabel>}

@@ -5,12 +5,15 @@ import { useEffect, useRef } from "react";
 /** Shared overlay shell: scrim + Esc-to-close + focus trap + focus return.
  *  Scroll lock is applied by the parent via useScrollLock so it can coordinate
  *  one lock across whichever overlay is open. (04_CHROME.md, WCAG 2.2 AA.) */
-export function OverlayScrim({ open, onClose, children, align = "center", label }: {
+export function OverlayScrim({ open, onClose, children, align = "center", label, blur = true }: {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   align?: "center" | "left" | "right";
   label?: string;
+  /** Blur the scrim. Set false when the panel covers the whole viewport, so
+   *  the scrim is never visible and its blur is pure compositor cost. */
+  blur?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const returnRef = useRef<HTMLElement | null>(null);
@@ -74,7 +77,7 @@ export function OverlayScrim({ open, onClose, children, align = "center", label 
   const justify = align === "left" ? "justify-start" : align === "right" ? "justify-end" : "justify-center";
   return (
     <div
-      className={`fixed inset-0 z-[100] flex ${justify} bg-black/60 backdrop-blur-sm`}
+      className={`fixed inset-0 z-[100] flex ${justify} bg-black/60${blur ? " backdrop-blur-sm" : ""}`}
       onClick={onClose}
       role="dialog"
       aria-modal="true"

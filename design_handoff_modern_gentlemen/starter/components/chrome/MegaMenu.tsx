@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 type Column = { heading: string; links: [string, string][] };
 type Menu = { columns: Column[]; feature: { tag: string; title: string; image: string; href: string } };
@@ -78,8 +79,13 @@ export function MegaMenu({ activeKey, onClose }: { activeKey: string | null; onC
 
         <Link href={menu.feature.href} onClick={onClose} className="group w-[340px] shrink-0">
           <div className="relative h-[172px] overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={menu.feature.image} alt={menu.feature.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <Image
+              src={menu.feature.image}
+              alt={menu.feature.title}
+              fill
+              sizes="340px"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
             <span className="absolute top-3 left-3 bg-mg-accent text-white font-mono uppercase text-[9px] tracking-[0.18em] px-2 py-1">Featured</span>
           </div>
           <p className="mt-3 font-mono uppercase text-[10px] tracking-[0.22em] text-mg-accentSerif">{menu.feature.tag}</p>

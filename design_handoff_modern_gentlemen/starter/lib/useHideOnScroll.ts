@@ -39,10 +39,18 @@ export function useHideOnScroll({ frostAt = 40, hideAt = 90, threshold = 4, pinn
   }, [pinned]);
 
   useEffect(() => {
-    const onScroll = () => {
+    // The listener is passive, but it still ran a pair of setState calls on
+    // every scroll event — enough to produce 160–190ms long tasks on throttled
+    // mobile (/PERFORMANCE.md). Work is coalesced into one rAF tick per frame,
+    // and both setters are guarded so an unchanged boolean never re-renders.
+    let frame = 0;
+
+    const measure = () => {
+      frame = 0;
       if (pinnedRef.current) return;
       const y = window.scrollY;
-      setScrolled(y > frostAt);
+      const nextScrolled = y > frostAt;
+      setScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled));
       if (resync.current) {
         resync.current = false;
         lastY.current = y;
@@ -53,17 +61,28 @@ export function useHideOnScroll({ frostAt = 40, hideAt = 90, threshold = 4, pinn
       // leaves the previous state alone rather than re-baselining `lastY`).
       if (y < hideAt) {
         lastY.current = y;
-        setHidden(false);
+        setHidden((prev) => (prev ? false : prev));
         return;
       }
       const delta = y - lastY.current;
       if (Math.abs(delta) < threshold) return;
       lastY.current = y;
-      setHidden(delta > 0);
+      const nextHidden = delta > 0;
+      setHidden((prev) => (prev === nextHidden ? prev : nextHidden));
     };
-    onScroll();
+
+    // Coalesce bursts of scroll events into a single measurement per frame.
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(measure);
+    };
+
+    measure();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [frostAt, hideAt, threshold]);
 
   /** Force the bar back (keyboard focus reaching hidden chrome, route change). */

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCart, formatGBP } from "@/lib/cart/CartProvider";
 import { QtyStepper } from "@/components/store/QtyStepper";
 import { OrderSummary } from "@/components/store/OrderSummary";
@@ -34,9 +35,8 @@ export default function BagPage() {
             <ul className="divide-y divide-mg-bd/10 border-y border-mg-bd/10">
               {cart.lines.map((l) => (
                 <li key={l.slug} className="flex gap-4 py-6 sm:gap-5">
-                  <Link href={`/product/${l.slug}`} className="h-[104px] w-20 shrink-0 overflow-hidden bg-mg-surface sm:h-[130px] sm:w-[104px]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={"/" + l.product.images[0]} alt={l.product.name} className="h-full w-full object-cover" />
+                  <Link href={`/product/${l.slug}`} className="relative h-[104px] w-20 shrink-0 overflow-hidden bg-mg-surface sm:h-[130px] sm:w-[104px]">
+                    <Image src={"/" + l.product.images[0]} alt={l.product.name} fill sizes="104px" className="object-cover" />
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="font-mono uppercase text-[10px] tracking-[0.2em] text-mg-fg/45">{l.product.catLabel}</span>

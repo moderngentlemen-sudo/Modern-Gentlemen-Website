@@ -37,8 +37,15 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   );
 
   return (
-    <OverlayScrim open={open} onClose={onClose} align="center" label="Search">
-      <div className="h-full w-full bg-mg-bg/95 backdrop-blur-lg text-mg-fg overflow-auto animate-[fadeUp_.26s_ease]">
+    // blur={false}: this panel covers the whole viewport, so the scrim behind
+    // it is never seen — its blur was a second full-screen backdrop-filter
+    // stacked under this one for no visible gain (/PERFORMANCE.md).
+    <OverlayScrim open={open} onClose={onClose} align="center" label="Search" blur={false}>
+      {/* ≤820px the panel's own blur is dropped too, matching the prototype's
+          `mobileSearchBlur` opt-out ("lighter, cheaper blur so the search
+          overlay opens without lag on mobile"). At 95% background opacity the
+          blur contributes almost nothing, so this is near-invisible. */}
+      <div className="h-full w-full bg-mg-bg/95 backdrop-blur-lg max-[820px]:backdrop-blur-none text-mg-fg overflow-auto animate-[fadeUp_.26s_ease]">
         <div className="mx-auto max-w-3xl px-6 sm:px-8 pt-[14vh] pb-16">
           <div className="flex items-center justify-between mb-6">
             <span className="font-mono text-xs uppercase tracking-[0.26em] text-mg-fg/50">Search</span>

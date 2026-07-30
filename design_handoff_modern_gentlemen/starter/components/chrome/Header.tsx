@@ -100,7 +100,13 @@ export function Header() {
             borderBottomColor: frosted ? "rgba(255,255,255,0.12)" : "transparent",
             // Slide-away only — the bar keeps its 72px height (EXECUTION_PLAN §10).
             // The global prefers-reduced-motion rule zeroes the durations.
-            transition: `background ${MOTION}, backdrop-filter ${MOTION}, border-color ${MOTION}`,
+            //
+            // `backdrop-filter` is deliberately NOT transitioned: animating it
+            // re-runs a full-width blur every frame for the whole 450ms, on
+            // every frost-in and frost-out (/PERFORMANCE.md). The blur toggles
+            // instantly while the background tint and border still fade, which
+            // is what actually reads as the frost arriving.
+            transition: `background ${MOTION}, border-color ${MOTION}`,
           }}
         >
           {/* LEFT — burger (Sq thin pair) + monogram */}

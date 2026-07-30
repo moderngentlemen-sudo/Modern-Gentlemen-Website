@@ -1,5 +1,6 @@
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
+import { bgImageUrl } from "@/lib/bgImage";
 
 interface Props {
   eyebrow?: string;
@@ -23,7 +24,7 @@ export function StoryBand({ eyebrow, quote, body, attribution, backgroundImage, 
           className="relative overflow-hidden bg-[#0d0d0d] text-[#f4f4f4] text-center px-6 py-[52px] min-[681px]:px-[60px] min-[681px]:py-20 border border-mg-band"
           style={
             backgroundImage
-              ? { backgroundImage: `linear-gradient(rgba(8,8,9,0.7),rgba(8,8,9,0.7)),url(${backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+              ? { backgroundImage: `linear-gradient(rgba(8,8,9,0.7),rgba(8,8,9,0.7)),url(${bgImageUrl(backgroundImage, 1920)})`, backgroundSize: "cover", backgroundPosition: "center" }
               : undefined
           }
         >

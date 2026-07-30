@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArticleKicker, Byline } from "./primitives";
+import Image from "next/image";
 
 interface Props {
   kicker: string;
@@ -32,8 +33,8 @@ export function HeroVideo({ kicker, title, byline, videoUrl, poster }: Props) {
         {videoUrl ? (
           <video ref={videoRef} src={videoUrl} poster={poster} loop muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
         ) : poster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          // The article hero is the LCP element on /article/*.
+          <Image src={poster} alt="" fill priority sizes="100vw" className="object-cover" />
         ) : null}
         <div data-scrim className="pointer-events-none absolute inset-0" />
       </div>

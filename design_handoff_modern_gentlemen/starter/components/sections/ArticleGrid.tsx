@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RailLabel } from "../ui/RailLabel";
+import { bgCover } from "@/lib/bgImage";
 
 interface Card {
   tag: string;
@@ -26,7 +27,7 @@ export function ArticleGrid({ label, items, loadMoreLabel = "LOAD MORE STORIES" 
               <div
                 aria-hidden
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                style={{ backgroundImage: `url(${c.image})` }}
+                style={bgCover(c.image, 640)}
               />
             </div>
             <div className="p-[20px_22px_26px]">

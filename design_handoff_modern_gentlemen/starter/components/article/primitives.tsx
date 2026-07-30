@@ -1,4 +1,5 @@
 import { clsx } from "../ui/clsx";
+import Image from "next/image";
 
 /** Red mono kicker "{CATEGORY} · NO. {issue}" — bright accent, all heroes. */
 export function ArticleKicker({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -17,8 +18,7 @@ export function Dek({ children, className }: { children: React.ReactNode; classN
 
 /** Absolute cover image for a hero media band. */
 export function HeroImg({ src }: { src: string }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />;
+  return <Image src={src} alt="" fill priority sizes="100vw" className="object-cover" />;
 }
 
 /** Muted lead-in paragraph used by several structured bodies. */

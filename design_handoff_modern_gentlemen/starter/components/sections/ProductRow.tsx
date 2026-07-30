@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCart, formatGBP } from "@/lib/cart/CartProvider";
 import { allProducts, byGroup } from "@/lib/catalog";
 
@@ -27,9 +28,14 @@ export function ProductRow({ heading = "The Store", eyebrow, group, slugs, href 
         {products.map((p) => p && (
           <div key={p.slug} className="group">
             <Link href={`/product/${p.slug}`}>
-              <div className="aspect-[4/5] overflow-hidden bg-mg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={"/" + p.images[0]} alt={p.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
+                <Image
+                  src={"/" + p.images[0]}
+                  alt={p.name}
+                  fill
+                  sizes="(min-width: 1024px) 312px, 50vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
               </div>
             </Link>
             <div className="mt-3 flex items-baseline justify-between gap-2">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Product } from "@/lib/cart/types";
 import { formatGBP } from "@/lib/catalog";
 
@@ -12,8 +13,13 @@ export function ProductCard({ product, added, onAdd }: { product: Product; added
   return (
     <article className="group flex flex-col border border-mg-bd/15 bg-mg-surface">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={"/" + product.images[0]} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]" />
+        <Image
+          src={"/" + product.images[0]}
+          alt={product.name}
+          fill
+          sizes="(min-width: 1024px) 315px, (min-width: 461px) 50vw, 100vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+        />
         {product.tag && (
           <span className="absolute top-3 left-3 bg-mg-accent text-white font-mono uppercase text-[10px] tracking-[0.18em] px-2 py-1">{product.tag}</span>
         )}

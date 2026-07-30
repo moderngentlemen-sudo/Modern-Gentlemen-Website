@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { RelatedItem } from "@/lib/articles";
+import { bgCover } from "@/lib/bgImage";
 
 /** "KEEP READING" — a 3-up grid of related article cards (glass caption bar). */
 export function RelatedGrid({ items }: { items: RelatedItem[] }) {
@@ -15,7 +16,7 @@ export function RelatedGrid({ items }: { items: RelatedItem[] }) {
             href={r.href}
             className="relative block min-h-[230px] overflow-hidden rounded-[10px] text-white"
           >
-            <div className="absolute inset-0 bg-[#0d0d0d] bg-cover bg-center" style={{ backgroundImage: `url(${r.image})` }} />
+            <div className="absolute inset-0 bg-[#0d0d0d] bg-cover bg-center" style={bgCover(r.image, 640)} />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(13,13,13,0) 45%, rgba(13,13,13,0.6) 100%)" }} />
             <div
               className="absolute inset-x-0 bottom-0 border-t border-white/[0.14] p-[14px_18px]"

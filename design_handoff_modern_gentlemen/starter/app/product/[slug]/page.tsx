@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { getProduct, related, formatGBP } from "@/lib/catalog";
 import { useCart } from "@/lib/cart/CartProvider";
 import { QtyStepper } from "@/components/store/QtyStepper";
@@ -53,8 +54,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         {/* Gallery */}
         <div className="self-start md:sticky md:top-24">
           <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={"/" + product.images[img]} alt={product.name} className="h-full w-full object-cover" />
+            <Image
+              src={"/" + product.images[img]}
+              alt={product.name}
+              fill
+              priority
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+            />
             {product.tag && (
               <span className="absolute left-4 top-4 bg-mg-accent px-2 py-1 font-mono uppercase text-[10px] tracking-[0.18em] text-white">{product.tag}</span>
             )}
@@ -65,10 +72,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 key={i}
                 onClick={() => setImg(i)}
                 aria-label={`View image ${i + 1}`}
-                className={`h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-mg-bd/15 hover:border-mg-bd/40"}`}
+                className={`relative h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-mg-bd/15 hover:border-mg-bd/40"}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={"/" + im} alt="" className="h-full w-full object-cover" />
+                <Image src={"/" + im} alt="" fill sizes="80px" className="object-cover" />
               </button>
             ))}
           </div>

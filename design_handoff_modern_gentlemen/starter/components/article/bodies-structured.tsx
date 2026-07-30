@@ -1,4 +1,5 @@
 import { BodyIntro } from "./primitives";
+import { bgCover } from "@/lib/bgImage";
 
 /**
  * Structured body variants (data-driven). Demo content is fixed per variant,
@@ -7,7 +8,9 @@ import { BodyIntro } from "./primitives";
  * #f4f4f4 use theme tokens here so the bodies read in both themes.
  */
 
-const bg = (src: string) => ({ backgroundImage: `url(${src})` });
+// Widest painting of these three is the 64vh figure; 1200 covers it and the
+// 300px gallery/list cells overdraw harmlessly.
+const bg = (src: string) => bgCover(src, 1200);
 
 // ── Interview / Ask ────────────────────────────────────────────────────────
 const QA_INTERVIEW = [

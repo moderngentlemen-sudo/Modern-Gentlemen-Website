@@ -5,13 +5,43 @@ Measured against a production build (`next build` + `next start`, Next 15.5.21) 
 4×-CPU-throttled mobile profile. Numbers below are observed, not estimated, unless
 labelled as an estimate.
 
-Nothing in this document has been implemented. It is a ranked list of what to change,
-with the evidence for each and the risk it carries against the pixel-exactness contract
-in `CLAUDE.md`.
+**Status:** P0 (videos), P1 (images) and P2 (scroll handler, blurs) are **done** — see
+"Results" below. P1 (client-rendered PDP) and the P3 notes are still outstanding.
 
 ---
 
-## Baseline
+## Results
+
+| | Homepage | /shop | /article/* |
+|---|---|---|---|
+| Transferred, before | 4.27 MB | 4.28 MB | 2.77 MB \* |
+| Transferred, after | **0.51 MB** | **0.33 MB** | **0.64 MB** |
+| Images, before | 4.02 MB | 4.02 MB | 2.52 MB \* |
+| Images, after | **0.25 MB** | **0.06 MB** | — |
+| Reduction | **−88%** | **−92%** | **−77%** |
+
+\* The article baseline was measured mid-migration, after the `<img>` call sites were
+converted but before the `background-image` ones were; its true starting weight was
+higher. Homepage and /shop are clean before/after pairs on identical builds.
+
+Plus the two hotlinked videos — 38.8 MB and 1.9 GB — no longer load at all.
+
+**Visual regression check** (required by `CLAUDE.md`): full-page captures of 5 pages ×
+2 viewports, before vs after, on identical builds. Every page height is byte-identical,
+so nothing shifted. Pixel deltas: category-desktop 0.000%, article-desktop 0.001%,
+category-mobile 0.002%, article-mobile 0.064%, shop-desktop 0.120%, shop-mobile 0.127%,
+pdp-mobile 0.152%, pdp-desktop 0.221% — all WebP recompression noise.
+
+The one outlier, home-desktop at 1.85%, is a **capture artifact, not a regression**:
+Chromium's full-page screenshot does not always paint `next/image` elements that were
+lazily decoded outside the original viewport, so two of the six "The Latest" tiles come
+out blank in the capture. Scrolling to those tiles and screenshotting the real viewport
+renders them correctly, and a DOM probe confirms all images report `complete: true` with
+the expected `naturalWidth` and box size.
+
+---
+
+## Baseline (before)
 
 | | Homepage | /shop |
 |---|---|---|
@@ -38,7 +68,7 @@ HTML is gzipped correctly (`Content-Encoding: gzip`), fonts are self-hosted by
 
 ---
 
-## P0 — A 1.9 GB video is wired into the homepage
+## P0 — A 1.9 GB video is wired into the homepage  ✅ DONE
 
 `starter/lib/media.ts` → `FILM_PREVIEW_VIDEO` points at a Wikimedia 4K/60fps clip.
 Measured with a `HEAD` request:
@@ -65,7 +95,7 @@ WebM sibling, target < 3 MB. Until that footage exists, render the poster `<img>
 tiles and drop the `<video>` element entirely; set `preload="none"` and only attach the
 source on hover/click intent rather than at mount.
 
-## P0 — The hero streams a 38.8 MB trailer on load
+## P0 — The hero streams a 38.8 MB trailer on load  ✅ DONE
 
 `HERO_COVER_VIDEO` measures `content-length: 38773165`. `HeroCoverStar` autoplays it
 whenever it is 35% visible, which on the homepage is immediately.
@@ -74,7 +104,7 @@ whenever it is 35% visible, which on the homepage is immediately.
 poster as the LCP paint, use `preload="none"`, and defer `.play()` until after the
 `load` event so it never competes with the poster and the fonts.
 
-## P1 — Every image is a raw `<img>` at full source resolution
+## P1 — Every image is a raw `<img>` at full source resolution  ✅ DONE
 
 19 call sites use bare `<img>` (`grep -rn "<img" components app`). No `srcset`, no
 `sizes`, no `loading="lazy"`, no modern format. Every one of them ships the original
@@ -102,9 +132,21 @@ optimizer, which is already available and needs no new dependency:
 | `watch-gear.jpg` | 501 KB | **18.9 KB** | 98.8 KB |
 | `film-watchmaker.jpg` | 690 KB | **28.9 KB** | 194 KB |
 
-**Estimated result:** homepage images 4.02 MB → ~350–500 KB, /shop 4.02 MB → ~400 KB.
-That is an ~88% cut in page weight. `_next/image` output is additionally served
-`max-age=31536000, immutable`, so repeat views cost nothing.
+**Actual result:** homepage images 4.02 MB → **0.25 MB**, /shop 4.02 MB → **0.06 MB**.
+`_next/image` output is additionally served `max-age=31536000, immutable`, so repeat
+views cost nothing.
+
+**A second class of images, missed in the first pass.** Converting the 16 raster `<img>`
+call sites left the article page at 2.52 MB, because six components paint their cover as
+a CSS `background-image` instead — `CategoryHero`, `FeaturedLead`, `StoryBand`,
+`ArticleGrid`, `article/RelatedGrid`, and the `bg()` helper shared by three structured
+article bodies. Those bypass the optimizer completely and pull the raw 4K source. They
+now go through `lib/bgImage.ts`, which wraps Next's `getImageProps()` — the sanctioned
+escape hatch for background images. The markup is untouched, so only the bytes change;
+the category page's pixel diff is 0.000% desktop / 0.002% mobile.
+
+The three SVG logos stay as plain `<img>`: `next/image` will not optimize SVG without
+`dangerouslyAllowSVG`, and they are 3–10 KB already.
 
 For scale: at a typical 4G effective throughput of ~1.6 Mbps, the 1.68 MB hero poster
 alone is roughly 8 seconds before the LCP element can paint. Local testing hides this
@@ -120,7 +162,7 @@ positioned `<img>` (it adds a `position:absolute` wrapper), so this should be vi
 neutral — but `CLAUDE.md` requires a screenshot diff per section afterwards, and that
 diff pass is the real cost of this item, not the code change.
 
-## P1 — The product page ships as client-rendered HTML
+## P1 — The product page ships as client-rendered HTML  ⬜ OUTSTANDING
 
 `app/product/[slug]/page.tsx` is `"use client"` for its whole body, only because of
 `useCart`. Consequence, from the build report:
@@ -142,7 +184,7 @@ add-to-bag, gallery thumbnail state). Same shape applies to `/shop`, whose
 first meaningful paint. Worth doing before the Supabase swap, since that step will touch
 these files anyway.
 
-## P2 — The scroll handler updates React state on every scroll event
+## P2 — The scroll handler updates React state on every scroll event  ✅ DONE
 
 `lib/useHideOnScroll.ts:44-66` calls `setScrolled` / `setHidden` directly inside the
 scroll listener. The listener is correctly `{ passive: true }`, but it is not
@@ -154,7 +196,7 @@ long tasks of **163 ms, 65 ms, 192 ms**. Anything over 50 ms is a dropped-frame 
 **Fix:** coalesce the handler into a `requestAnimationFrame` tick and guard both
 `setState` calls behind an actual value change. Small, self-contained, no visual risk.
 
-## P2 — Stacked and animated backdrop filters
+## P2 — Stacked and animated backdrop filters  ✅ DONE
 
 Two separate issues, same root cause:
 
@@ -205,12 +247,27 @@ lost on mobile, not in layout.
 
 ---
 
-## Suggested order
+## Remaining work
 
-1. **Replace the two hotlinked videos** — largest win, smallest diff, and it clears a
-   licensing blocker at the same time.
-2. **Migrate to `next/image` + re-encode the source JPEGs** — ~88% page-weight cut. The
-   screenshot diff pass is the bulk of the work.
-3. **Un-client the PDP and /shop** — best folded into the Supabase wiring step.
-4. **rAF the scroll handler; de-stack the blurs** — cheap, self-contained, fixes the
-   measured mobile jank.
+1. **Supply owned footage for the hero and the film row.** The video code paths are all
+   intact and gated on a `videoUrl`; `lib/media.ts` documents the budget. Until then both
+   sections render their still, and the film tiles are inert (a click would only ever
+   open the "Preview only" placeholder).
+2. **Un-client the PDP and `/shop`.** Unchanged from the analysis above — best folded
+   into the Supabase wiring step, since it touches the same files.
+3. **Re-encode the seven source JPEGs.** Not required for the byte savings — the
+   optimizer already handles that — but it would cut ~4 MB from the repo and reduce the
+   optimizer's cold-cache CPU. Measured cold, generating 49 variants from the 4K sources
+   took 4 s total (worst single variant 0.34 s), so this is a nice-to-have, not a risk.
+4. **`style-mono.jpg` is only 1280×720** but is painted full-bleed by `FeatureSplit` at
+   1425px and wider. The optimizer correctly refuses to upscale, so that band is soft on
+   large and retina screens. This predates the migration; it needs a bigger source, not
+   a code change.
+
+### What was measured and rejected
+
+- **JS.** 102 kB shared, 116 kB first load. Healthy; no action.
+- **The scroll handler as a source of jank.** It was rAF-coalesced anyway (correct, and
+  it removes redundant renders), but the long tasks did not move: ~180–220 ms before and
+  after, across three runs each. They are image decode, not the handler. The image work
+  is what addresses them.
