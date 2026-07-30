@@ -51,46 +51,51 @@ const LEGAL: [string, string][] = [
 /** Footer is ALWAYS dark, regardless of theme — do not wire to data-mgtheme. */
 export function Footer() {
   return (
-    <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-white/12">
+    <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band">
+      {/* ≤680 every footer row insets 22px, matching the sections. */}
       {/* Brand + nav */}
-      <div className="container-mg grid grid-cols-1 md:grid-cols-[1fr_auto] gap-10 md:items-center py-11 border-b border-white/10">
+      <div className="container-mg max-[680px]:!px-[22px] grid grid-cols-1 min-[681px]:grid-cols-[1fr_auto] gap-6 min-[681px]:gap-10 min-[681px]:items-center py-11 border-b border-white/10">
         <div className="flex flex-col gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/mg-logo-wide.svg" alt="Modern Gentlemen" className="h-[22px] w-auto self-start" />
-          <span className="font-serif italic text-[19px] leading-[1.3] text-[#f4f4f4]/60 text-pretty">
+          <span className="font-serif italic text-[19px] leading-[1.3] text-[#f4f4f4]/60">
             A field guide to the considered life — style, watches, film &amp; the art of doing things properly.
           </span>
         </div>
-        <nav className="flex flex-wrap gap-x-7 gap-y-2 md:justify-end" aria-label="Footer">
+        {/* Same grow-underline treatment as the top nav (prototype reuses
+            `[data-navmenu]` here, which also sets the 6px underline offset). */}
+        <nav className="flex flex-wrap gap-x-5 gap-y-3.5 min-[681px]:gap-x-7 min-[681px]:justify-end" aria-label="Footer">
           {NAV.map(([label, href]) => (
-            <Link key={label} href={href} className="font-nav font-medium uppercase text-[11px] tracking-[0.16em] text-[#f4f4f4]/60 hover:text-mg-accentSerif transition-colors">{label}</Link>
+            <Link key={label} href={href} className="mg-underline font-nav font-medium uppercase text-[11px] leading-[normal] tracking-[0.16em] text-[rgba(255,255,255,0.78)]">{label}</Link>
           ))}
         </nav>
       </div>
 
       {/* Follow + socials */}
-      <div className="container-mg flex flex-col sm:flex-row sm:items-center justify-between gap-5 py-[26px] border-b border-white/[0.06]">
+      <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row min-[681px]:items-center justify-between gap-3.5 min-[681px]:gap-5 py-[26px] border-b border-white/[0.06]">
         <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/40">Follow Modern Gentlemen</span>
         <div className="flex gap-3 text-[#f4f4f4]/55">
           {SOCIAL.map((s) => (
-            <a key={s.label} href={s.href} title={s.label} aria-label={s.label} className="grid place-items-center h-[38px] w-[38px] rounded-full border border-white/[0.18] transition-colors hover:bg-mg-accent hover:border-mg-accent hover:text-white">
+            <a key={s.label} href={s.href} title={s.label} aria-label={s.label} className="flex items-center justify-center h-10 w-10 rounded-full border border-white/[0.18] transition-colors hover:bg-mg-accent hover:border-mg-accent hover:text-white">
               {s.icon}
             </a>
           ))}
         </div>
       </div>
 
-      {/* Legal */}
-      <div className="container-mg flex flex-col sm:flex-row justify-between gap-3 py-[22px] font-mono uppercase text-[10px] tracking-[0.14em] text-[#f4f4f4]/40">
+      {/* Legal. The prototype sets this line as plain text; the labels stay
+          linked here, with literal " · " separators so the run measures the
+          same as the design's single string. */}
+      <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/40">
         <span>© {new Date().getFullYear()} Modern Gentlemen — Est. 2026</span>
-        <div className="flex flex-wrap items-center gap-x-1.5">
+        <span className="whitespace-pre-wrap">
           {LEGAL.map(([label, href], i) => (
-            <span key={label} className="flex items-center gap-x-1.5">
-              {i > 0 && <span aria-hidden>·</span>}
+            <span key={label}>
+              {i > 0 && " · "}
               <Link href={href} className="hover:text-white transition-colors">{label}</Link>
             </span>
           ))}
-        </div>
+        </span>
       </div>
     </footer>
   );

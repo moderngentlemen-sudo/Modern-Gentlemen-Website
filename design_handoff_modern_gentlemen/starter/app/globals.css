@@ -10,6 +10,11 @@
   --mg-bd: #ffffff;
   --mg-accent: #c8102e;
   --mg-accent-serif: #ff4d5e;
+  /* Secondary text ramps (prototype `tMuted` / `tFaint`). Flat greys in light,
+     translucent paper in dark — not opacities of --mg-fg. */
+  --mg-muted: rgba(244, 244, 244, 0.5);
+  --mg-faint: rgba(244, 244, 244, 0.35);
+  --mg-band-border: rgba(255, 255, 255, 0.12);
 }
 html[data-mgtheme="light"] {
   --mg-bg: #f4f4f4;
@@ -17,6 +22,12 @@ html[data-mgtheme="light"] {
   --mg-surface: #ffffff;
   --mg-bd: #141414;
   --mg-accent-serif: #c8102e;
+  --mg-muted: #8a8a8a;
+  --mg-faint: #b0b0b0;
+  /* Inset dark bands take a hairline only in dark mode; on paper the edge is
+     the band itself (prototype `bandBorder`). Keyed off the PAGE theme, so
+     [data-darkband] must not override it. */
+  --mg-band-border: transparent;
 }
 
 /* Dark bands stay dark in both themes (hero scrims, red CTA bands). Pin the
@@ -28,17 +39,37 @@ html[data-mgtheme="light"] {
   --mg-surface: #161618;
   --mg-bd: #ffffff;
   --mg-accent-serif: #ff4d5e;
+  --mg-muted: rgba(244, 244, 244, 0.5);
+  --mg-faint: rgba(244, 244, 244, 0.35);
 }
 
+/* Matches the prototype's root rule exactly. `scrollbar-gutter: stable` is
+   load-bearing, not cosmetic: it reserves the scrollbar track so the 1320px
+   column centers inside the *content* box (52.5px gutters at 1440px, not 60px)
+   and so opening an overlay never shifts the page sideways. */
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  overscroll-behavior: none;
+  overflow-x: clip;
 }
+/* The root paints the theme background too, so the reserved gutter track and
+   any overscroll area match the page instead of flashing white. */
+html { background: var(--mg-bg); }
 body {
   background: var(--mg-bg);
   color: var(--mg-fg);
   overflow-x: clip;
   overscroll-behavior: none;
+  max-width: 100vw;
   font-family: var(--font-space-grotesk), sans-serif;
+  /* Use the fonts' true fractional advances instead of hinted, integer-snapped
+     ones. Hinted advances inflate small text by ~1px per glyph here (~8% on
+     12px body copy), which re-wraps the deks and pull-paragraphs away from the
+     design's line breaks; geometricPrecision reproduces the prototype's
+     measurements exactly and, unlike hinting, does so independently of the
+     platform's font backend. */
+  text-rendering: geometricPrecision;
 }
 
 /* Centered 1320px content column. Full-bleed bands opt out with .bleed. */
@@ -47,9 +78,10 @@ body {
   padding-inline: max(48px, calc((100% - 1320px) / 2));
 }
 /* Phones: tighten the flat 48px gutter so content isn't over-inset (~264px at
-   360px). Matches the editorial pages' mobile padding; desktop unchanged. */
+   360px). 22px is the prototype's `@media (max-width:680px)` section inset;
+   desktop unchanged. */
 @media (max-width: 680px) {
-  .container-mg { padding-inline: 24px; }
+  .container-mg { padding-inline: 22px; }
 }
 
 a { color: inherit; }
@@ -65,7 +97,10 @@ a:hover { color: var(--mg-accent); }
 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes mgMegaDrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes mgSpin { from { transform: rotate(0); } to { transform: rotate(180deg); } }
+/* Theme-toggle glyph spin. Alternate firings run the mirrored variant so the
+   icon rocks back and forth instead of always turning the same way. */
+@keyframes mgSpin { from { transform: rotate(-150deg); } to { transform: rotate(0); } }
+@keyframes mgSpinB { from { transform: rotate(150deg); } to { transform: rotate(0); } }
 
 /* Chrome: red underline that grows from the left on hover/focus (nav + drawer
    links). Prototype: background-size 0%→100%, 1.6px thick, 6px below text. */

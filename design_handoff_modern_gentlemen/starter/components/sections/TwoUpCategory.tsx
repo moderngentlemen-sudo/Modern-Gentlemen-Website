@@ -29,10 +29,10 @@ export function TwoUpCategory({ items }: { items: Item[] }) {
               )}
               <div className="flex flex-col gap-2.5 px-[34px] py-[30px]">
                 {it.kicker && <Eyebrow className="block !text-[17px] !leading-[normal] !text-mg-accent">{it.kicker}</Eyebrow>}
-                <h3 className="font-grotesk font-medium text-2xl md:text-[28px] leading-[1.1] tracking-[-0.025em]">
+                <h3 className="font-grotesk font-medium text-[28px] leading-[1.1] tracking-[-0.025em]">
                   {it.href ? <Link href={it.href} className="hover:text-mg-accent">{it.title}</Link> : it.title}
                 </h3>
-                {it.body && <p className="font-light text-sm leading-[1.6] text-mg-fg/45 text-pretty">{it.body}</p>}
+                {it.body && <p className="font-light text-sm leading-[1.6] text-mg-muted">{it.body}</p>}
                 {it.href && (
                   <Link href={it.href} className="mt-1 inline-block font-mono uppercase text-[10.5px] leading-[normal] tracking-[0.2em] text-mg-accent">Read more →</Link>
                 )}

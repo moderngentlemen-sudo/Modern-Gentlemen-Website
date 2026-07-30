@@ -102,6 +102,20 @@ const parseNo = (tag: string) => (tag.match(/(\d+)\s*$/)?.[1] ?? "");
 
 function buildArticles(): Record<string, ArticleDoc> {
   const out: Record<string, ArticleDoc> = {};
+  // 0) The homepage cover story. Seeded first (and by hand) because the hero
+  //    links straight to it — prototype `MG Article.dc.html?a=speed-considered`
+  //    — and every field is already stated on the cover itself.
+  out["speed-considered"] = {
+    slug: "speed-considered",
+    title: "Speed, Considered",
+    template: "Cover Story",
+    category: "Culture",
+    issue: "042",
+    author: "A. Bellamy",
+    read: "11 MIN",
+    dek: "Why the modern gentleman drives slow cars fast — on patience, stewardship, and the machines we keep.",
+    heroImage: "/images/hero-cover.jpg",
+  };
   // 1) Seed from the category leads + cards so every category link resolves.
   for (const cslug of categorySlugs) {
     const d = getCategory(cslug);

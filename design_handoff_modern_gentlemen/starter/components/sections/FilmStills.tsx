@@ -27,13 +27,14 @@ export function FilmStills({ heading = "MG Film", eyebrow, allHref, allLabel = "
     <section className="container-mg pt-20 pb-[72px]">
       <div className="flex items-baseline justify-between gap-4 mb-7">
         <div>
-          {eyebrow && <Eyebrow className="block text-xl leading-[normal] text-mg-fg/45">{eyebrow}</Eyebrow>}
-          <h2 className="mt-1.5 font-grotesk font-semibold text-3xl md:text-[42px] leading-none tracking-[-0.035em]">{heading}</h2>
+          {eyebrow && <Eyebrow className="block !text-[20px] !leading-[normal] !text-mg-muted">{eyebrow}</Eyebrow>}
+          <h2 className="mt-1.5 font-grotesk font-semibold text-3xl leading-[1.05] min-[681px]:text-[42px] min-[681px]:leading-none tracking-[-0.035em]">{heading}</h2>
         </div>
         {allHref && <Link href={allHref} className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accent whitespace-nowrap">{allLabel}</Link>}
       </div>
 
-      <div className="grid grid-cols-1 min-[681px]:grid-cols-3 gap-[22px]">
+      {/* 3-up ≥1025, 2-up ≤1024, stacked ≤680 — the prototype's card breakpoints. */}
+      <div className="grid grid-cols-1 min-[681px]:grid-cols-2 min-[1025px]:grid-cols-3 gap-[22px]">
         {items?.map((it, i) => <FilmTile key={i} item={it} autoplay={i === 0} onOpen={() => setActive(it)} />)}
       </div>
 
@@ -91,17 +92,17 @@ function FilmTile({ item, autoplay, onOpen }: { item: Item; autoplay?: boolean; 
         ) : null}
         <span
           aria-hidden
-          className="absolute top-[14px] left-4 grid place-items-center h-11 w-11 rounded-full border border-white/25 text-white text-xs pl-0.5"
+          className="absolute top-[14px] left-4 flex items-center justify-center h-11 w-11 rounded-full border border-white/25 text-white text-[12px] leading-[normal] pl-0.5"
           style={{ background: "rgba(16,16,18,0.5)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
         >
           ▶
         </span>
         <div
-          className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 px-[18px] py-[14px] border-t border-white/15 text-white"
+          className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 px-[18px] py-[14px] border-t border-white/[0.14] text-white pointer-events-none"
           style={{ background: "rgba(16,16,18,0.45)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}
         >
-          <h3 className="font-grotesk font-medium text-[15px] tracking-[-0.01em]">{item.title}</h3>
-          {item.duration && <span className="shrink-0 font-mono text-[9.5px] text-white/60">{item.duration}</span>}
+          <h3 className="font-grotesk font-medium text-[15px] leading-[normal] tracking-[-0.01em]">{item.title}</h3>
+          {item.duration && <span className="shrink-0 font-mono text-[9.5px] leading-[normal] text-white/60">{item.duration}</span>}
         </div>
       </div>
     </button>
