@@ -9,6 +9,13 @@ Reference files: `design_files/MG Header.dc.html`, `design_files/MG Footer.dc.ht
 ## Header / fixed nav
 Fixed to the top. **Transparent over heroes → frosted (backdrop-blur + subtle bg) on scroll or hover.**
 
+### Hide on scroll
+The bar **slides away on scroll-down and returns on scroll-up** (`translateY(-100%)`, 320ms) — the sanctioned motion from `EXECUTION_PLAN.md §10`; it **never resizes**, the 72px height is fixed. Rules (`lib/useHideOnScroll.ts`):
+- Never hides in the top **120px** — heroes keep the nav.
+- Deltas under **6px** are jitter and change nothing.
+- Held visible while the **mega-menu** or any **overlay** is open; overlay scroll-lock/restore moves the document scroll position, so those non-gesture scroll events must re-baseline rather than read as a direction.
+- Keyboard focus reaching the chrome reveals it; the global reduced-motion rule collapses the slide to an instant snap.
+
 Three zones:
 - **LEFT:** a red square button (opens the slide-over drawer) + the **MG monogram** logo (`mg-logo.svg`).
 - **CENTER:** primary menu — `STYLE · GROOMING · WATCHES · CULTURE · FILM · SHOP` — Futura stack, each link with a **red animated underline 6px below the text** (`padding-bottom:6px`, underline grows on hover/active).
