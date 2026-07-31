@@ -25,7 +25,12 @@ type Options = {
  * gestures. Pin transitions re-baseline instead of reading the jump as a
  * direction — the lock/restore events land after this effect, never before.
  */
-export function useHideOnScroll({ frostAt = 40, hideAt = 90, threshold = 4, pinned = false }: Options = {}) {
+export function useHideOnScroll({
+  frostAt = 40,
+  hideAt = 90,
+  threshold = 4,
+  pinned = false,
+}: Options = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);

@@ -1,4 +1,8 @@
-interface Entry { year: string; title: string; body?: string }
+interface Entry {
+  year: string;
+  title: string;
+  body?: string;
+}
 
 /** A Brief History — timeline (library #16). Also fits #24 Calendar. */
 export function Timeline({ heading, entries }: { heading?: string; entries: Entry[] }) {

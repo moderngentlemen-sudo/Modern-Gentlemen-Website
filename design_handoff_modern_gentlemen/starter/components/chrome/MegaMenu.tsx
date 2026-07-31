@@ -3,42 +3,131 @@
 import Link from "next/link";
 
 type Column = { heading: string; links: [string, string][] };
-type Menu = { columns: Column[]; feature: { tag: string; title: string; image: string; href: string } };
+type Menu = {
+  columns: Column[];
+  feature: { tag: string; title: string; image: string; href: string };
+};
 
 const MENUS: Record<string, Menu> = {
   STYLE: {
     columns: [
-      { heading: "Categories", links: [["Tailoring", "/style"], ["Casualwear", "/style"], ["Footwear", "/style"], ["Accessories", "/style"]] },
-      { heading: "Guides", links: [["The Capsule Wardrobe", "/style"], ["Fabric & Cloth", "/style"], ["Seasonal Edits", "/style"]] },
+      {
+        heading: "Categories",
+        links: [
+          ["Tailoring", "/style"],
+          ["Casualwear", "/style"],
+          ["Footwear", "/style"],
+          ["Accessories", "/style"],
+        ],
+      },
+      {
+        heading: "Guides",
+        links: [
+          ["The Capsule Wardrobe", "/style"],
+          ["Fabric & Cloth", "/style"],
+          ["Seasonal Edits", "/style"],
+        ],
+      },
     ],
-    feature: { tag: "STYLE · 041", title: "Racing Green Is the New Navy", image: "/images/style-mono.jpg", href: "/style" },
+    feature: {
+      tag: "STYLE · 041",
+      title: "Racing Green Is the New Navy",
+      image: "/images/style-mono.jpg",
+      href: "/style",
+    },
   },
   GROOMING: {
     columns: [
-      { heading: "Categories", links: [["Skincare", "/grooming"], ["Fragrance", "/grooming"], ["Hair", "/grooming"], ["Shaving", "/grooming"]] },
-      { heading: "Routines", links: [["The Seven-Minute Standard", "/grooming"], ["The Travel Kit", "/grooming"], ["Evening Reset", "/grooming"]] },
+      {
+        heading: "Categories",
+        links: [
+          ["Skincare", "/grooming"],
+          ["Fragrance", "/grooming"],
+          ["Hair", "/grooming"],
+          ["Shaving", "/grooming"],
+        ],
+      },
+      {
+        heading: "Routines",
+        links: [
+          ["The Seven-Minute Standard", "/grooming"],
+          ["The Travel Kit", "/grooming"],
+          ["Evening Reset", "/grooming"],
+        ],
+      },
     ],
-    feature: { tag: "GROOMING · 039", title: "The Case Against 12-Step Routines", image: "/images/grooming.jpg", href: "/grooming" },
+    feature: {
+      tag: "GROOMING · 039",
+      title: "The Case Against 12-Step Routines",
+      image: "/images/grooming.jpg",
+      href: "/grooming",
+    },
   },
   WATCHES: {
     columns: [
-      { heading: "Categories", links: [["Chronographs", "/watches"], ["Dress Watches", "/watches"], ["Dive Watches", "/watches"], ["Vintage", "/watches"]] },
-      { heading: "Collecting", links: [["Dial Symmetry", "/watches"], ["Movements 101", "/watches"], ["The Buying Guide", "/watches"]] },
+      {
+        heading: "Categories",
+        links: [
+          ["Chronographs", "/watches"],
+          ["Dress Watches", "/watches"],
+          ["Dive Watches", "/watches"],
+          ["Vintage", "/watches"],
+        ],
+      },
+      {
+        heading: "Collecting",
+        links: [
+          ["Dial Symmetry", "/watches"],
+          ["Movements 101", "/watches"],
+          ["The Buying Guide", "/watches"],
+        ],
+      },
     ],
-    feature: { tag: "WATCHES · 040", title: "Chronographs Born on the Grid", image: "/images/watch-gear.jpg", href: "/watches" },
+    feature: {
+      tag: "WATCHES · 040",
+      title: "Chronographs Born on the Grid",
+      image: "/images/watch-gear.jpg",
+      href: "/watches",
+    },
   },
   CULTURE: {
     columns: [
-      { heading: "Sections", links: [["Essays", "/culture"], ["Interviews", "/culture"], ["Travel", "/culture"], ["Machines", "/culture"]] },
-      { heading: "Series", links: [["The Analog Weekend", "/culture"], ["The Art of Arriving Early", "/culture"], ["MG Film", "/film"]] },
+      {
+        heading: "Sections",
+        links: [
+          ["Essays", "/culture"],
+          ["Interviews", "/culture"],
+          ["Travel", "/culture"],
+          ["Machines", "/culture"],
+        ],
+      },
+      {
+        heading: "Series",
+        links: [
+          ["The Analog Weekend", "/culture"],
+          ["The Art of Arriving Early", "/culture"],
+          ["MG Film", "/film"],
+        ],
+      },
     ],
-    feature: { tag: "CULTURE · 042", title: "The Art of Arriving Early", image: "/images/film-workshop.jpg", href: "/culture" },
+    feature: {
+      tag: "CULTURE · 042",
+      title: "The Art of Arriving Early",
+      image: "/images/film-workshop.jpg",
+      href: "/culture",
+    },
   },
 };
 
 /** Full-width frosted mega-menu. Rendered when a nav item with a menu is
  *  hovered/focused (desktop) or tapped (touch). Parent owns the open key. */
-export function MegaMenu({ activeKey, onClose }: { activeKey: string | null; onClose: () => void }) {
+export function MegaMenu({
+  activeKey,
+  onClose,
+}: {
+  activeKey: string | null;
+  onClose: () => void;
+}) {
   if (!activeKey || !MENUS[activeKey]) return null;
   const menu = MENUS[activeKey];
   return (

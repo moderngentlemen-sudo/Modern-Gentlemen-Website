@@ -7,7 +7,11 @@ import { useCart } from "@/lib/cart/CartProvider";
 import { QtyStepper } from "@/components/store/QtyStepper";
 import { ProductCard } from "@/components/store/ProductCard";
 
-const ASSURANCES = ["Free shipping on UK orders over £50", "30-day no-fuss returns", "Members save 15% at checkout"];
+const ASSURANCES = [
+  "Free shipping on UK orders over £50",
+  "30-day no-fuss returns",
+  "Members save 15% at checkout",
+];
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -28,7 +32,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     return (
       <div className="container-mg flex min-h-[70vh] flex-col items-center justify-center py-32 text-center">
         <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">Not found</p>
-        <h1 className="mt-4 font-grotesk font-semibold text-4xl md:text-5xl">We couldn’t find that product.</h1>
+        <h1 className="mt-4 font-grotesk font-semibold text-4xl md:text-5xl">
+          We couldn’t find that product.
+        </h1>
         <Link
           href="/shop"
           className="mt-8 inline-block border border-mg-bd/30 px-6 py-3 font-mono uppercase text-xs tracking-[0.2em] transition-colors hover:bg-mg-fg hover:text-mg-bg"
@@ -44,8 +50,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   return (
     <div className="container-mg py-10 md:py-14">
       <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/45">
-        <Link href="/shop" className="hover:text-mg-accent">Store</Link> <span className="text-mg-fg/25">/</span>{" "}
-        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accent">{product.catLabel}</Link> <span className="text-mg-fg/25">/</span>{" "}
+        <Link href="/shop" className="hover:text-mg-accent">
+          Store
+        </Link>{" "}
+        <span className="text-mg-fg/25">/</span>{" "}
+        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accent">
+          {product.catLabel}
+        </Link>{" "}
+        <span className="text-mg-fg/25">/</span>{" "}
         <span className="text-mg-fg/70">{product.name}</span>
       </nav>
 
@@ -54,9 +66,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         <div className="self-start md:sticky md:top-24">
           <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={"/" + product.images[img]} alt={product.name} className="h-full w-full object-cover" />
+            <img
+              src={"/" + product.images[img]}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
             {product.tag && (
-              <span className="absolute left-4 top-4 bg-mg-accent px-2 py-1 font-mono uppercase text-[10px] tracking-[0.18em] text-white">{product.tag}</span>
+              <span className="absolute left-4 top-4 bg-mg-accent px-2 py-1 font-mono uppercase text-[10px] tracking-[0.18em] text-white">
+                {product.tag}
+              </span>
             )}
           </div>
           <div className="mt-3 flex gap-3">
@@ -76,17 +94,27 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
         {/* Details */}
         <div>
-          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">{product.catLabel}</span>
-          <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl tracking-[-0.02em]">{product.name}</h1>
+          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">
+            {product.catLabel}
+          </span>
+          <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl tracking-[-0.02em]">
+            {product.name}
+          </h1>
           <div className="mt-4 flex items-baseline gap-4">
             <span className="font-grotesk text-2xl">{formatGBP(product.price)}</span>
-            <span className="font-mono text-xs text-mg-fg/50">Members {formatGBP(memberPrice)}</span>
+            <span className="font-mono text-xs text-mg-fg/50">
+              Members {formatGBP(memberPrice)}
+            </span>
           </div>
           <p className="mt-5 text-mg-fg/70 text-pretty">{product.blurb}</p>
           <p className="mt-2 font-mono text-xs text-mg-fg/50">{product.material}</p>
 
           <div className="mt-8 flex items-stretch gap-3">
-            <QtyStepper qty={qty} onDec={() => setQty((q) => Math.max(1, q - 1))} onInc={() => setQty((q) => q + 1)} />
+            <QtyStepper
+              qty={qty}
+              onDec={() => setQty((q) => Math.max(1, q - 1))}
+              onInc={() => setQty((q) => q + 1)}
+            />
             <button
               onClick={() => {
                 cart.add(product.slug, qty);
@@ -107,18 +135,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           </ul>
 
           <div className="mt-12">
-            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">The Story</h2>
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+              The Story
+            </h2>
             {product.story.split("\n\n").map((para, i) => (
-              <p key={i} className="mb-4 leading-relaxed text-mg-fg/80 text-pretty">{para}</p>
+              <p key={i} className="mb-4 leading-relaxed text-mg-fg/80 text-pretty">
+                {para}
+              </p>
             ))}
           </div>
 
           <div className="mt-8">
-            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">Specifications</h2>
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+              Specifications
+            </h2>
             <dl className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
               {product.specs.map(([k, v]) => (
-                <div key={k} className="flex justify-between gap-4 border-b border-mg-bd/10 py-2 text-sm">
-                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">{k}</dt>
+                <div
+                  key={k}
+                  className="flex justify-between gap-4 border-b border-mg-bd/10 py-2 text-sm"
+                >
+                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">
+                    {k}
+                  </dt>
                   <dd className="min-w-0 text-right">{v}</dd>
                 </div>
               ))}
@@ -131,7 +170,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       <div className="mt-20">
         <div className="mb-6 flex items-end justify-between">
           <h2 className="font-grotesk font-semibold text-2xl md:text-3xl">You might also like</h2>
-          <Link href="/shop" className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">All products →</Link>
+          <Link
+            href="/shop"
+            className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent"
+          >
+            All products →
+          </Link>
         </div>
         <div className="grid grid-cols-1 gap-5 min-[461px]:grid-cols-2 min-[1024px]:grid-cols-4">
           {related(product.slug, 4).map((p) => (

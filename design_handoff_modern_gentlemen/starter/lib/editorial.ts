@@ -51,12 +51,42 @@ const CATEGORIES: Record<string, CategoryData> = {
       image: "/images/style-mono.jpg",
     },
     cards: [
-      { tag: "TAILORING · 040", title: "The Case for the Unstructured Blazer", read: "5 MIN", image: "/images/hero-cover.jpg" },
-      { tag: "FOOTWEAR · 039", title: "How to Buy Shoes You Keep for a Decade", read: "6 MIN", image: "/images/film-tailor.jpg" },
-      { tag: "DENIM · 038", title: "Raw Denim, and the Virtue of Patience", read: "4 MIN", image: "/images/grooming.jpg" },
-      { tag: "ACCESSORIES · 037", title: "One Watch, One Belt, One Bag", read: "5 MIN", image: "/images/watch-gear.jpg" },
-      { tag: "THE UNIFORM · 036", title: "Building a Wardrobe of Ten Things", read: "8 MIN", image: "/images/film-watchmaker.jpg" },
-      { tag: "STYLE · 035", title: "The Return of the Proper Overcoat", read: "6 MIN", image: "/images/film-workshop.jpg" },
+      {
+        tag: "TAILORING · 040",
+        title: "The Case for the Unstructured Blazer",
+        read: "5 MIN",
+        image: "/images/hero-cover.jpg",
+      },
+      {
+        tag: "FOOTWEAR · 039",
+        title: "How to Buy Shoes You Keep for a Decade",
+        read: "6 MIN",
+        image: "/images/film-tailor.jpg",
+      },
+      {
+        tag: "DENIM · 038",
+        title: "Raw Denim, and the Virtue of Patience",
+        read: "4 MIN",
+        image: "/images/grooming.jpg",
+      },
+      {
+        tag: "ACCESSORIES · 037",
+        title: "One Watch, One Belt, One Bag",
+        read: "5 MIN",
+        image: "/images/watch-gear.jpg",
+      },
+      {
+        tag: "THE UNIFORM · 036",
+        title: "Building a Wardrobe of Ten Things",
+        read: "8 MIN",
+        image: "/images/film-watchmaker.jpg",
+      },
+      {
+        tag: "STYLE · 035",
+        title: "The Return of the Proper Overcoat",
+        read: "6 MIN",
+        image: "/images/film-workshop.jpg",
+      },
     ],
   },
   grooming: {
@@ -75,12 +105,42 @@ const CATEGORIES: Record<string, CategoryData> = {
       image: "/images/grooming.jpg",
     },
     cards: [
-      { tag: "FRAGRANCE · 040", title: "A Signature Scent Is a Trap", read: "4 MIN", image: "/images/style-mono.jpg" },
-      { tag: "SKINCARE · 039", title: "The Three Products You Actually Need", read: "5 MIN", image: "/images/hero-cover.jpg" },
-      { tag: "SHAVING · 038", title: "The Lost Art of the Wet Shave", read: "6 MIN", image: "/images/film-tailor.jpg" },
-      { tag: "HAIR · 037", title: "Finding a Barber Worth Keeping", read: "4 MIN", image: "/images/film-workshop.jpg" },
-      { tag: "THE REGIMEN · 036", title: "Morning Rituals of Considered Men", read: "7 MIN", image: "/images/watch-gear.jpg" },
-      { tag: "GROOMING · 035", title: "On Ageing, Gracefully", read: "5 MIN", image: "/images/film-watchmaker.jpg" },
+      {
+        tag: "FRAGRANCE · 040",
+        title: "A Signature Scent Is a Trap",
+        read: "4 MIN",
+        image: "/images/style-mono.jpg",
+      },
+      {
+        tag: "SKINCARE · 039",
+        title: "The Three Products You Actually Need",
+        read: "5 MIN",
+        image: "/images/hero-cover.jpg",
+      },
+      {
+        tag: "SHAVING · 038",
+        title: "The Lost Art of the Wet Shave",
+        read: "6 MIN",
+        image: "/images/film-tailor.jpg",
+      },
+      {
+        tag: "HAIR · 037",
+        title: "Finding a Barber Worth Keeping",
+        read: "4 MIN",
+        image: "/images/film-workshop.jpg",
+      },
+      {
+        tag: "THE REGIMEN · 036",
+        title: "Morning Rituals of Considered Men",
+        read: "7 MIN",
+        image: "/images/watch-gear.jpg",
+      },
+      {
+        tag: "GROOMING · 035",
+        title: "On Ageing, Gracefully",
+        read: "5 MIN",
+        image: "/images/film-watchmaker.jpg",
+      },
     ],
   },
   watches: {
@@ -99,12 +159,42 @@ const CATEGORIES: Record<string, CategoryData> = {
       image: "/images/watch-gear.jpg",
     },
     cards: [
-      { tag: "DIVE · 040", title: "The Only Dive Watch You Need", read: "6 MIN", image: "/images/hero-cover.jpg" },
-      { tag: "VINTAGE · 039", title: "Buying Your First Vintage Piece", read: "7 MIN", image: "/images/film-watchmaker.jpg" },
-      { tag: "DRESS · 038", title: "The Quiet Power of a Thin Watch", read: "5 MIN", image: "/images/style-mono.jpg" },
-      { tag: "CHRONOGRAPH · 037", title: "What a Chronograph Is Actually For", read: "4 MIN", image: "/images/film-workshop.jpg" },
-      { tag: "WATCH OF THE WEEK · 036", title: "The 300SL, in Studio", read: "5 MIN", image: "/images/grooming.jpg" },
-      { tag: "WATCHES · 035", title: "Servicing, and When Not to Bother", read: "6 MIN", image: "/images/film-tailor.jpg" },
+      {
+        tag: "DIVE · 040",
+        title: "The Only Dive Watch You Need",
+        read: "6 MIN",
+        image: "/images/hero-cover.jpg",
+      },
+      {
+        tag: "VINTAGE · 039",
+        title: "Buying Your First Vintage Piece",
+        read: "7 MIN",
+        image: "/images/film-watchmaker.jpg",
+      },
+      {
+        tag: "DRESS · 038",
+        title: "The Quiet Power of a Thin Watch",
+        read: "5 MIN",
+        image: "/images/style-mono.jpg",
+      },
+      {
+        tag: "CHRONOGRAPH · 037",
+        title: "What a Chronograph Is Actually For",
+        read: "4 MIN",
+        image: "/images/film-workshop.jpg",
+      },
+      {
+        tag: "WATCH OF THE WEEK · 036",
+        title: "The 300SL, in Studio",
+        read: "5 MIN",
+        image: "/images/grooming.jpg",
+      },
+      {
+        tag: "WATCHES · 035",
+        title: "Servicing, and When Not to Bother",
+        read: "6 MIN",
+        image: "/images/film-tailor.jpg",
+      },
     ],
   },
   culture: {
@@ -123,19 +213,50 @@ const CATEGORIES: Record<string, CategoryData> = {
       image: "/images/hero-cover.jpg",
     },
     cards: [
-      { tag: "MOTORING · 041", title: "The Slow Car, Fast Philosophy", read: "7 MIN", image: "/images/watch-gear.jpg" },
-      { tag: "TRAVEL · 040", title: "Cities Best Seen on Foot", read: "5 MIN", image: "/images/style-mono.jpg" },
-      { tag: "DESIGN · 039", title: "The Objects That Earn Their Place", read: "6 MIN", image: "/images/grooming.jpg" },
-      { tag: "INTERVIEWS · 038", title: "What I’ve Learned: A Coachbuilder", read: "9 MIN", image: "/images/film-workshop.jpg" },
-      { tag: "LONG READS · 037", title: "The Restoration", read: "11 MIN", image: "/images/film-tailor.jpg" },
-      { tag: "CULTURE · 036", title: "A Brief History of the Aperitivo", read: "5 MIN", image: "/images/film-watchmaker.jpg" },
+      {
+        tag: "MOTORING · 041",
+        title: "The Slow Car, Fast Philosophy",
+        read: "7 MIN",
+        image: "/images/watch-gear.jpg",
+      },
+      {
+        tag: "TRAVEL · 040",
+        title: "Cities Best Seen on Foot",
+        read: "5 MIN",
+        image: "/images/style-mono.jpg",
+      },
+      {
+        tag: "DESIGN · 039",
+        title: "The Objects That Earn Their Place",
+        read: "6 MIN",
+        image: "/images/grooming.jpg",
+      },
+      {
+        tag: "INTERVIEWS · 038",
+        title: "What I’ve Learned: A Coachbuilder",
+        read: "9 MIN",
+        image: "/images/film-workshop.jpg",
+      },
+      {
+        tag: "LONG READS · 037",
+        title: "The Restoration",
+        read: "11 MIN",
+        image: "/images/film-tailor.jpg",
+      },
+      {
+        tag: "CULTURE · 036",
+        title: "A Brief History of the Aperitivo",
+        read: "5 MIN",
+        image: "/images/film-watchmaker.jpg",
+      },
     ],
   },
   film: {
     name: "Film",
     slug: "film",
     sectionNo: "SEC. 05",
-    blurb: "Short documentaries and long conversations, filmed in the workshops where taste is made.",
+    blurb:
+      "Short documentaries and long conversations, filmed in the workshops where taste is made.",
     heroImage: "/images/film-workshop.jpg",
     subs: ["Documentary", "Series", "Interviews", "Behind the Scenes"],
     lead: {
@@ -147,12 +268,42 @@ const CATEGORIES: Record<string, CategoryData> = {
       image: "/images/film-workshop.jpg",
     },
     cards: [
-      { tag: "DOCUMENTARY · 011", title: "The Tailor of Savile Row", read: "9 MIN", image: "/images/film-tailor.jpg" },
-      { tag: "SERIES · 010", title: "Inside the Watchmaker’s Bench", read: "14 MIN", image: "/images/film-watchmaker.jpg" },
-      { tag: "INTERVIEWS · 009", title: "A Conversation on Restraint", read: "18 MIN", image: "/images/style-mono.jpg" },
-      { tag: "BEHIND THE SCENES · 008", title: "Shooting the Aston, at Dawn", read: "6 MIN", image: "/images/hero-cover.jpg" },
-      { tag: "DOCUMENTARY · 007", title: "The Grooming Ritual, Filmed", read: "7 MIN", image: "/images/grooming.jpg" },
-      { tag: "FILM · 006", title: "Objects of Desire, in Motion", read: "10 MIN", image: "/images/watch-gear.jpg" },
+      {
+        tag: "DOCUMENTARY · 011",
+        title: "The Tailor of Savile Row",
+        read: "9 MIN",
+        image: "/images/film-tailor.jpg",
+      },
+      {
+        tag: "SERIES · 010",
+        title: "Inside the Watchmaker’s Bench",
+        read: "14 MIN",
+        image: "/images/film-watchmaker.jpg",
+      },
+      {
+        tag: "INTERVIEWS · 009",
+        title: "A Conversation on Restraint",
+        read: "18 MIN",
+        image: "/images/style-mono.jpg",
+      },
+      {
+        tag: "BEHIND THE SCENES · 008",
+        title: "Shooting the Aston, at Dawn",
+        read: "6 MIN",
+        image: "/images/hero-cover.jpg",
+      },
+      {
+        tag: "DOCUMENTARY · 007",
+        title: "The Grooming Ritual, Filmed",
+        read: "7 MIN",
+        image: "/images/grooming.jpg",
+      },
+      {
+        tag: "FILM · 006",
+        title: "Objects of Desire, in Motion",
+        read: "10 MIN",
+        image: "/images/watch-gear.jpg",
+      },
     ],
   },
 };
@@ -161,7 +312,8 @@ const CATEGORIES: Record<string, CategoryData> = {
 export const categorySlugs = Object.keys(CATEGORIES);
 
 /** Look up a category by slug (case-insensitive); null for unknown slugs. */
-export const getCategory = (slug: string): CategoryData | null => CATEGORIES[slug.toLowerCase()] ?? null;
+export const getCategory = (slug: string): CategoryData | null =>
+  CATEGORIES[slug.toLowerCase()] ?? null;
 
 /** Title → article slug, matching the prototype's slugify (for /article/* hrefs). */
 export const slugify = (t: string): string =>

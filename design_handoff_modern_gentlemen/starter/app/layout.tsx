@@ -11,8 +11,17 @@ import { Footer } from "@/components/chrome/Footer";
 // and 400 render at identical (too-wide) metrics, which broke line breaking in
 // the light-weight body copy against the design.
 const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
-const serif = Instrument_Serif({ subsets: ["latin"], variable: "--font-instrument-serif", weight: "400", style: "italic" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--font-ibm-plex-mono", weight: ["400", "500"] });
+const serif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: "italic",
+});
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-ibm-plex-mono",
+  weight: ["400", "500"],
+});
 
 export const metadata: Metadata = {
   title: "Modern Gentlemen",
@@ -21,7 +30,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${grotesk.variable} ${serif.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${grotesk.variable} ${serif.variable} ${mono.variable}`}
+    >
       <head>
         {/* Set theme before paint to avoid a flash (see 01_ARCHITECTURE.md). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />

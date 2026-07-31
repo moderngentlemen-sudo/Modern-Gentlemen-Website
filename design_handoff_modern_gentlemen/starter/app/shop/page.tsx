@@ -26,7 +26,8 @@ function Shop() {
   const active = groups.find((g) => g.toLowerCase() === raw.toLowerCase()) ?? "All";
   const products = active === "All" ? allProducts() : byGroup(active);
 
-  const setActive = (g: string) => router.replace(g === "All" ? "/shop" : `/shop?cat=${g}`, { scroll: false });
+  const setActive = (g: string) =>
+    router.replace(g === "All" ? "/shop" : `/shop?cat=${g}`, { scroll: false });
   const onAdd = (slug: string) => {
     cart.add(slug, 1);
     setAdded(slug);
@@ -53,7 +54,12 @@ function Shop() {
               : `${cart.count} item${cart.count === 1 ? "" : "s"} in your bag · ${formatGBP(cart.subtotal)} · free shipping over £50`}
           </p>
           {!empty && (
-            <Link href="/bag" className="font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">View bag →</Link>
+            <Link
+              href="/bag"
+              className="font-mono uppercase text-xs tracking-[0.2em] text-mg-accent"
+            >
+              View bag →
+            </Link>
           )}
         </div>
       </div>
@@ -62,7 +68,9 @@ function Shop() {
       <section data-darkband className="mt-16 bg-mg-accent text-white">
         <div className="container-mg flex flex-wrap items-center justify-between gap-6 py-12">
           <div>
-            <p className="font-mono uppercase text-[11px] tracking-[0.2em] text-white/80">Members save 15%</p>
+            <p className="font-mono uppercase text-[11px] tracking-[0.2em] text-white/80">
+              Members save 15%
+            </p>
             <p className="mt-2 font-grotesk text-2xl md:text-3xl">Every order, every time.</p>
           </div>
           <Link
@@ -77,11 +85,19 @@ function Shop() {
   );
 }
 
-function ShopHero({ active = "All", setActive }: { active?: string; setActive?: (g: string) => void }) {
+function ShopHero({
+  active = "All",
+  setActive,
+}: {
+  active?: string;
+  setActive?: (g: string) => void;
+}) {
   return (
     <div className="container-mg border-b border-mg-bd/10 pt-10 pb-8 md:pt-16">
       <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">The MG Store</p>
-      <h1 className="mt-4 font-grotesk font-semibold text-5xl md:text-7xl tracking-[-0.03em] text-balance">Objects worth keeping.</h1>
+      <h1 className="mt-4 font-grotesk font-semibold text-5xl md:text-7xl tracking-[-0.03em] text-balance">
+        Objects worth keeping.
+      </h1>
       <p className="mt-6 max-w-xl font-serif italic text-xl text-mg-fg/60 md:text-2xl">
         A short, honest list of things we actually use — chosen to last, tested by the desk.
       </p>
@@ -93,7 +109,9 @@ function ShopHero({ active = "All", setActive }: { active?: string; setActive?: 
             onClick={() => setActive?.(g)}
             aria-pressed={active === g}
             className={`border px-4 py-2 font-mono uppercase text-[11px] tracking-[0.15em] transition-colors ${
-              active === g ? "border-mg-accent bg-mg-accent text-white" : "border-mg-bd/25 hover:border-mg-accent"
+              active === g
+                ? "border-mg-accent bg-mg-accent text-white"
+                : "border-mg-bd/25 hover:border-mg-accent"
             }`}
           >
             {g}

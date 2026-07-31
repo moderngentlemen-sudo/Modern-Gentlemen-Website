@@ -13,10 +13,33 @@ import { getCategory, categorySlugs, slugify } from "./editorial";
  */
 
 export type HeroVariant =
-  | "full" | "contained" | "cover" | "wide" | "portrait" | "split" | "masthead" | "centered" | "video";
+  | "full"
+  | "contained"
+  | "cover"
+  | "wide"
+  | "portrait"
+  | "split"
+  | "masthead"
+  | "centered"
+  | "video";
 export type BodyVariant =
-  | "prose" | "essay" | "letter" | "qa" | "ask" | "profile" | "review" | "spec"
-  | "photo" | "gallery" | "film" | "list" | "steps" | "regimen" | "timeline" | "rundown" | "manifesto";
+  | "prose"
+  | "essay"
+  | "letter"
+  | "qa"
+  | "ask"
+  | "profile"
+  | "review"
+  | "spec"
+  | "photo"
+  | "gallery"
+  | "film"
+  | "list"
+  | "steps"
+  | "regimen"
+  | "timeline"
+  | "rundown"
+  | "manifesto";
 
 interface TemplateDef {
   hero: HeroVariant;
@@ -32,26 +55,226 @@ interface TemplateDef {
 
 /** The 20 templates → {hero, body, default copy}, 1:1 with the prototype config(). */
 export const ARTICLE_TEMPLATES: Record<string, TemplateDef> = {
-  "Feature": { hero: "full", body: "prose", cat: "Culture", no: "042", title: "The Art of Arriving Early", dek: "On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.", author: "A. Bellamy", read: "6 MIN", img: "/images/hero-cover.jpg" },
-  "Feature — Standard": { hero: "contained", body: "prose", cat: "Culture", no: "042", title: "The Art of Arriving Early", dek: "On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.", author: "A. Bellamy", read: "6 MIN", img: "/images/hero-cover.jpg" },
-  "Cover Story": { hero: "cover", body: "prose", cat: "Culture", no: "042", title: "Slow Down", dek: "The cover essay on doing fewer things, properly.", author: "A. Bellamy", read: "8 MIN", img: "/images/hero-cover.jpg" },
-  "The Big Read": { hero: "wide", body: "essay", cat: "Motoring", no: "041", title: "The Slow Car, Fast Philosophy", dek: "Why involvement, not acceleration, is the measure of a machine — and a life.", author: "C. Vance", read: "12 MIN", img: "/images/watch-gear.jpg" },
-  "Op-Ed": { hero: "masthead", body: "essay", cat: "Opinion", no: "041", title: "Stop Quoting Zero to Sixty", dek: "An argument against the only number anyone remembers.", author: "C. Vance", read: "5 MIN", img: "" },
-  "Letter from the Editor": { hero: "centered", body: "letter", cat: "The Debrief", no: "042", title: "A Letter from the Editor", dek: "On what this issue is for, and what it refuses to be.", author: "A. Bellamy", read: "3 MIN", img: "" },
-  "Interview": { hero: "portrait", body: "qa", cat: "Culture", no: "040", title: "In Conversation: The Coachbuilder", dek: "", author: "M. Laurent", read: "14 MIN", img: "/images/film-workshop.jpg" },
-  "Profile": { hero: "split", body: "profile", cat: "Culture", no: "040", title: "The Man Who Saves Cars", dek: "Four decades, one shed, and a waiting list he mostly ignores.", author: "M. Laurent", read: "9 MIN", img: "/images/film-tailor.jpg" },
-  "Ask MG": { hero: "centered", body: "ask", cat: "Style", no: "039", title: "Ask MG", dek: "Your questions, answered plainly — knots, cologne, and rules worth breaking.", author: "The Editors", read: "4 MIN", img: "" },
-  "Review": { hero: "contained", body: "review", cat: "Watches", no: "041", title: "The Everyday Chronograph, Reviewed", dek: "We lived with it for a month before writing a word.", author: "C. Vance", read: "7 MIN", img: "/images/watch-gear.jpg" },
-  "Spec Comparison": { hero: "masthead", body: "spec", cat: "Watches", no: "041", title: "Three Watches, One Wrist", dek: "A side-by-side for the decision that lasts a decade.", author: "C. Vance", read: "6 MIN", img: "" },
-  "Photo Essay": { hero: "full", body: "photo", cat: "Film", no: "012", title: "Dawn at the Coachbuilder", dek: "One quiet morning, before the tools warmed.", author: "E. Marlowe", read: "4 MIN", img: "/images/film-workshop.jpg" },
-  "Gallery": { hero: "contained", body: "gallery", cat: "Style", no: "040", title: "The Objects of the Season", dek: "A visual index — nothing here shouts.", author: "E. Marlowe", read: "3 MIN", img: "/images/style-mono.jpg" },
-  "Film Feature": { hero: "video", body: "film", cat: "Film", no: "012", title: "Inside a Coachbuilder’s Workshop", dek: "", author: "D. Whitfield", read: "12 MIN", img: "/images/film-workshop.jpg" },
-  "The List": { hero: "masthead", body: "list", cat: "Style", no: "040", title: "Five We’d Buy Again", dek: "Ranked, argued, photographed on the desk that tested them.", author: "S. Okafor", read: "6 MIN", img: "" },
-  "Field Guide": { hero: "masthead", body: "steps", cat: "Style", no: "039", title: "How to Buy Your First Proper Suit", dek: "Five steps, in order, and one thing to ignore entirely.", author: "S. Okafor", read: "7 MIN", img: "" },
-  "The Regimen": { hero: "contained", body: "regimen", cat: "Grooming", no: "039", title: "The Seven-Minute Standard", dek: "Four products, done before the coffee’s cold.", author: "J. Rees", read: "4 MIN", img: "/images/grooming.jpg" },
-  "A Brief History": { hero: "masthead", body: "timeline", cat: "Watches", no: "038", title: "A Brief History of the Chronograph", dek: "How a stopwatch on a wrist became indispensable.", author: "C. Vance", read: "6 MIN", img: "" },
-  "The Rundown": { hero: "masthead", body: "rundown", cat: "The Debrief", no: "042", title: "The Rundown", dek: "Four things worth your attention this week.", author: "The Editors", read: "3 MIN", img: "" },
-  "Manifesto": { hero: "centered", body: "manifesto", cat: "Culture", no: "001", title: "What We Believe", dek: "", author: "Modern Gentlemen", read: "2 MIN", img: "" },
+  Feature: {
+    hero: "full",
+    body: "prose",
+    cat: "Culture",
+    no: "042",
+    title: "The Art of Arriving Early",
+    dek: "On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.",
+    author: "A. Bellamy",
+    read: "6 MIN",
+    img: "/images/hero-cover.jpg",
+  },
+  "Feature — Standard": {
+    hero: "contained",
+    body: "prose",
+    cat: "Culture",
+    no: "042",
+    title: "The Art of Arriving Early",
+    dek: "On patience as the last luxury a gentleman can own — and why the unhurried man still commands the room.",
+    author: "A. Bellamy",
+    read: "6 MIN",
+    img: "/images/hero-cover.jpg",
+  },
+  "Cover Story": {
+    hero: "cover",
+    body: "prose",
+    cat: "Culture",
+    no: "042",
+    title: "Slow Down",
+    dek: "The cover essay on doing fewer things, properly.",
+    author: "A. Bellamy",
+    read: "8 MIN",
+    img: "/images/hero-cover.jpg",
+  },
+  "The Big Read": {
+    hero: "wide",
+    body: "essay",
+    cat: "Motoring",
+    no: "041",
+    title: "The Slow Car, Fast Philosophy",
+    dek: "Why involvement, not acceleration, is the measure of a machine — and a life.",
+    author: "C. Vance",
+    read: "12 MIN",
+    img: "/images/watch-gear.jpg",
+  },
+  "Op-Ed": {
+    hero: "masthead",
+    body: "essay",
+    cat: "Opinion",
+    no: "041",
+    title: "Stop Quoting Zero to Sixty",
+    dek: "An argument against the only number anyone remembers.",
+    author: "C. Vance",
+    read: "5 MIN",
+    img: "",
+  },
+  "Letter from the Editor": {
+    hero: "centered",
+    body: "letter",
+    cat: "The Debrief",
+    no: "042",
+    title: "A Letter from the Editor",
+    dek: "On what this issue is for, and what it refuses to be.",
+    author: "A. Bellamy",
+    read: "3 MIN",
+    img: "",
+  },
+  Interview: {
+    hero: "portrait",
+    body: "qa",
+    cat: "Culture",
+    no: "040",
+    title: "In Conversation: The Coachbuilder",
+    dek: "",
+    author: "M. Laurent",
+    read: "14 MIN",
+    img: "/images/film-workshop.jpg",
+  },
+  Profile: {
+    hero: "split",
+    body: "profile",
+    cat: "Culture",
+    no: "040",
+    title: "The Man Who Saves Cars",
+    dek: "Four decades, one shed, and a waiting list he mostly ignores.",
+    author: "M. Laurent",
+    read: "9 MIN",
+    img: "/images/film-tailor.jpg",
+  },
+  "Ask MG": {
+    hero: "centered",
+    body: "ask",
+    cat: "Style",
+    no: "039",
+    title: "Ask MG",
+    dek: "Your questions, answered plainly — knots, cologne, and rules worth breaking.",
+    author: "The Editors",
+    read: "4 MIN",
+    img: "",
+  },
+  Review: {
+    hero: "contained",
+    body: "review",
+    cat: "Watches",
+    no: "041",
+    title: "The Everyday Chronograph, Reviewed",
+    dek: "We lived with it for a month before writing a word.",
+    author: "C. Vance",
+    read: "7 MIN",
+    img: "/images/watch-gear.jpg",
+  },
+  "Spec Comparison": {
+    hero: "masthead",
+    body: "spec",
+    cat: "Watches",
+    no: "041",
+    title: "Three Watches, One Wrist",
+    dek: "A side-by-side for the decision that lasts a decade.",
+    author: "C. Vance",
+    read: "6 MIN",
+    img: "",
+  },
+  "Photo Essay": {
+    hero: "full",
+    body: "photo",
+    cat: "Film",
+    no: "012",
+    title: "Dawn at the Coachbuilder",
+    dek: "One quiet morning, before the tools warmed.",
+    author: "E. Marlowe",
+    read: "4 MIN",
+    img: "/images/film-workshop.jpg",
+  },
+  Gallery: {
+    hero: "contained",
+    body: "gallery",
+    cat: "Style",
+    no: "040",
+    title: "The Objects of the Season",
+    dek: "A visual index — nothing here shouts.",
+    author: "E. Marlowe",
+    read: "3 MIN",
+    img: "/images/style-mono.jpg",
+  },
+  "Film Feature": {
+    hero: "video",
+    body: "film",
+    cat: "Film",
+    no: "012",
+    title: "Inside a Coachbuilder’s Workshop",
+    dek: "",
+    author: "D. Whitfield",
+    read: "12 MIN",
+    img: "/images/film-workshop.jpg",
+  },
+  "The List": {
+    hero: "masthead",
+    body: "list",
+    cat: "Style",
+    no: "040",
+    title: "Five We’d Buy Again",
+    dek: "Ranked, argued, photographed on the desk that tested them.",
+    author: "S. Okafor",
+    read: "6 MIN",
+    img: "",
+  },
+  "Field Guide": {
+    hero: "masthead",
+    body: "steps",
+    cat: "Style",
+    no: "039",
+    title: "How to Buy Your First Proper Suit",
+    dek: "Five steps, in order, and one thing to ignore entirely.",
+    author: "S. Okafor",
+    read: "7 MIN",
+    img: "",
+  },
+  "The Regimen": {
+    hero: "contained",
+    body: "regimen",
+    cat: "Grooming",
+    no: "039",
+    title: "The Seven-Minute Standard",
+    dek: "Four products, done before the coffee’s cold.",
+    author: "J. Rees",
+    read: "4 MIN",
+    img: "/images/grooming.jpg",
+  },
+  "A Brief History": {
+    hero: "masthead",
+    body: "timeline",
+    cat: "Watches",
+    no: "038",
+    title: "A Brief History of the Chronograph",
+    dek: "How a stopwatch on a wrist became indispensable.",
+    author: "C. Vance",
+    read: "6 MIN",
+    img: "",
+  },
+  "The Rundown": {
+    hero: "masthead",
+    body: "rundown",
+    cat: "The Debrief",
+    no: "042",
+    title: "The Rundown",
+    dek: "Four things worth your attention this week.",
+    author: "The Editors",
+    read: "3 MIN",
+    img: "",
+  },
+  Manifesto: {
+    hero: "centered",
+    body: "manifesto",
+    cat: "Culture",
+    no: "001",
+    title: "What We Believe",
+    dek: "",
+    author: "Modern Gentlemen",
+    read: "2 MIN",
+    img: "",
+  },
 };
 
 const TEMPLATE_NAMES = Object.keys(ARTICLE_TEMPLATES);
@@ -94,11 +317,15 @@ export interface ArticleDoc {
 }
 
 const CATEGORY_AUTHOR: Record<string, string> = {
-  Style: "S. Okafor", Grooming: "J. Rees", Watches: "C. Vance", Culture: "A. Bellamy", Film: "D. Whitfield",
+  Style: "S. Okafor",
+  Grooming: "J. Rees",
+  Watches: "C. Vance",
+  Culture: "A. Bellamy",
+  Film: "D. Whitfield",
 };
 
 const normalizeRead = (r: string) => r.replace(/\s*(READ|FILM)\s*$/i, "").trim();
-const parseNo = (tag: string) => (tag.match(/(\d+)\s*$/)?.[1] ?? "");
+const parseNo = (tag: string) => tag.match(/(\d+)\s*$/)?.[1] ?? "";
 
 function buildArticles(): Record<string, ArticleDoc> {
   const out: Record<string, ArticleDoc> = {};
@@ -123,19 +350,29 @@ function buildArticles(): Record<string, ArticleDoc> {
     const leadSlug = slugify(d.lead.title);
     if (!out[leadSlug]) {
       out[leadSlug] = {
-        slug: leadSlug, title: d.lead.title, template: assignTemplate(leadSlug),
-        category: d.name, issue: d.lead.no, author: d.lead.author,
-        read: normalizeRead(d.lead.read), dek: d.lead.dek, heroImage: d.lead.image,
+        slug: leadSlug,
+        title: d.lead.title,
+        template: assignTemplate(leadSlug),
+        category: d.name,
+        issue: d.lead.no,
+        author: d.lead.author,
+        read: normalizeRead(d.lead.read),
+        dek: d.lead.dek,
+        heroImage: d.lead.image,
       };
     }
     for (const c of d.cards) {
       const s = slugify(c.title);
       if (out[s]) continue;
       out[s] = {
-        slug: s, title: c.title, template: assignTemplate(s),
-        category: d.name, issue: parseNo(c.tag),
+        slug: s,
+        title: c.title,
+        template: assignTemplate(s),
+        category: d.name,
+        issue: parseNo(c.tag),
         author: CATEGORY_AUTHOR[d.name] ?? "The Editors",
-        read: normalizeRead(c.read), heroImage: c.image,
+        read: normalizeRead(c.read),
+        heroImage: c.image,
       };
     }
   }
@@ -144,9 +381,15 @@ function buildArticles(): Record<string, ArticleDoc> {
     const s = slugify(t.title);
     if (out[s]) continue;
     out[s] = {
-      slug: s, title: t.title, template: name, category: t.cat, issue: t.no,
-      author: t.author, read: normalizeRead(t.read),
-      dek: t.dek || undefined, heroImage: t.img || undefined,
+      slug: s,
+      title: t.title,
+      template: name,
+      category: t.cat,
+      issue: t.no,
+      author: t.author,
+      read: normalizeRead(t.read),
+      dek: t.dek || undefined,
+      heroImage: t.img || undefined,
       videoUrl: t.hero === "video" ? DEFAULT_HERO_VIDEO : undefined,
     };
   }
@@ -173,7 +416,8 @@ export interface ResolvedArticle extends ArticleDoc {
 }
 
 const composeByline = (a: ArticleDoc) =>
-  `WORDS · ${a.author.toUpperCase()} · ${a.read} READ` + (a.heroImage ? " · PHOTOGRAPHY · E. MARLOWE" : "");
+  `WORDS · ${a.author.toUpperCase()} · ${a.read} READ` +
+  (a.heroImage ? " · PHOTOGRAPHY · E. MARLOWE" : "");
 
 function relatedFor(a: ArticleDoc): RelatedItem[] {
   const all = articleSlugs.map((s) => ARTICLES[s]);

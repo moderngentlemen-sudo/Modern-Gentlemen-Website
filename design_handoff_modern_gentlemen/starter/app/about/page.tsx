@@ -44,16 +44,29 @@ const SECTIONS: Block[] = [
     _type: "coverCards",
     label: "WHAT WE COVER",
     cards: [
-      { title: "Style", body: "Tailoring, denim, footwear, and the discipline of dressing with intent.", href: "/style" },
-      { title: "Watches", body: "Movements, dials, and the objects a man buys once and hands down.", href: "/watches" },
-      { title: "Culture", body: "Motoring, travel, design, and conversations worth having after dinner.", href: "/culture" },
+      {
+        title: "Style",
+        body: "Tailoring, denim, footwear, and the discipline of dressing with intent.",
+        href: "/style",
+      },
+      {
+        title: "Watches",
+        body: "Movements, dials, and the objects a man buys once and hands down.",
+        href: "/watches",
+      },
+      {
+        title: "Culture",
+        body: "Motoring, travel, design, and conversations worth having after dinner.",
+        href: "/culture",
+      },
     ],
   },
   {
     _key: "quote",
     _type: "pullQuote",
     size: "lg",
-    quote: "Urgency is cheap, and it flatters no one for long. What endures is the willingness to move deliberately.",
+    quote:
+      "Urgency is cheap, and it flatters no one for long. What endures is the willingness to move deliberately.",
     attribution: "— THE EDITORS",
   },
   {

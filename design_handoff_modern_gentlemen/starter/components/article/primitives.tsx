@@ -1,13 +1,32 @@
 import { clsx } from "../ui/clsx";
 
 /** Red mono kicker "{CATEGORY} · NO. {issue}" — bright accent, all heroes. */
-export function ArticleKicker({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={clsx("font-mono text-[11px] uppercase tracking-[0.26em] text-[#ff4d5e]", className)}>{children}</div>;
+export function ArticleKicker({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={clsx(
+        "font-mono text-[11px] uppercase tracking-[0.26em] text-[#ff4d5e]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 /** Muted mono byline "WORDS · {AUTHOR} · {read} READ [· PHOTOGRAPHY · …]". */
 export function Byline({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={clsx("font-mono text-[10px] uppercase tracking-[0.18em]", className)}>{children}</div>;
+  return (
+    <div className={clsx("font-mono text-[10px] uppercase tracking-[0.18em]", className)}>
+      {children}
+    </div>
+  );
 }
 
 /** Serif-italic dek/standfirst. Size + color set by the caller. */
@@ -22,8 +41,20 @@ export function HeroImg({ src }: { src: string }) {
 }
 
 /** Muted lead-in paragraph used by several structured bodies. */
-export function BodyIntro({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={clsx("font-grotesk font-light leading-[1.7] text-mg-fg/70 text-pretty", className)}>{children}</p>;
+export function BodyIntro({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={clsx("font-grotesk font-light leading-[1.7] text-mg-fg/70 text-pretty", className)}
+    >
+      {children}
+    </p>
+  );
 }
 
 /** Inline centered pull-quote (Prose body) — matches PullQuote's look, inline. */

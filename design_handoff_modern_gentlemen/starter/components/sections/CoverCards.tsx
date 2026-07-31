@@ -21,7 +21,9 @@ export function CoverCards({ label, cards }: { label: string; cards: Card[] }) {
             className="block border border-mg-bd/10 bg-mg-surface p-[32px_30px] transition-[transform,border-color] duration-200 hover:-translate-y-1 hover:border-mg-accent/50"
           >
             <div className="font-grotesk font-medium text-[24px] tracking-[-0.02em]">{c.title}</div>
-            <p className="mt-3 font-grotesk font-light text-[15px] leading-[1.6] text-mg-fg/60 text-pretty">{c.body}</p>
+            <p className="mt-3 font-grotesk font-light text-[15px] leading-[1.6] text-mg-fg/60 text-pretty">
+              {c.body}
+            </p>
           </Link>
         ))}
       </div>

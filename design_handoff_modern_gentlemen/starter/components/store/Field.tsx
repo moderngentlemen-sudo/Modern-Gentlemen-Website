@@ -35,7 +35,9 @@ export function Field({
         aria-invalid={!!error}
         className="mt-1.5 w-full border border-mg-bd/30 bg-transparent px-4 py-3 outline-none transition-colors focus:border-mg-accent data-[invalid]:border-mg-accentSerif data-[invalid]:bg-mg-accent/5"
       />
-      {error && <span className="mt-1 block font-mono text-[10px] text-mg-accentSerif">{error}</span>}
+      {error && (
+        <span className="mt-1 block font-mono text-[10px] text-mg-accentSerif">{error}</span>
+      )}
     </label>
   );
 }
@@ -53,7 +55,9 @@ export function SelectField({
 }) {
   return (
     <label className="block">
-      <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">{label}</span>
+      <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -14,8 +14,13 @@ const GROUPS: { num: string; label: string; href: string; subs: [string, string]
     label: "Style",
     href: "/style",
     subs: [
-      ["Tailoring", "/style"], ["Casualwear", "/style"], ["Footwear", "/style"], ["Accessories", "/style"],
-      ["The Capsule Wardrobe", "/style"], ["Fabric & Cloth", "/style"], ["Seasonal Edits", "/style"],
+      ["Tailoring", "/style"],
+      ["Casualwear", "/style"],
+      ["Footwear", "/style"],
+      ["Accessories", "/style"],
+      ["The Capsule Wardrobe", "/style"],
+      ["Fabric & Cloth", "/style"],
+      ["Seasonal Edits", "/style"],
     ],
   },
   {
@@ -23,8 +28,13 @@ const GROUPS: { num: string; label: string; href: string; subs: [string, string]
     label: "Grooming",
     href: "/grooming",
     subs: [
-      ["Skincare", "/grooming"], ["Fragrance", "/grooming"], ["Hair", "/grooming"], ["Shaving", "/grooming"],
-      ["The Seven-Minute Standard", "/grooming"], ["The Travel Kit", "/grooming"], ["Evening Reset", "/grooming"],
+      ["Skincare", "/grooming"],
+      ["Fragrance", "/grooming"],
+      ["Hair", "/grooming"],
+      ["Shaving", "/grooming"],
+      ["The Seven-Minute Standard", "/grooming"],
+      ["The Travel Kit", "/grooming"],
+      ["Evening Reset", "/grooming"],
     ],
   },
   {
@@ -32,8 +42,13 @@ const GROUPS: { num: string; label: string; href: string; subs: [string, string]
     label: "Watches",
     href: "/watches",
     subs: [
-      ["Chronographs", "/watches"], ["Dress Watches", "/watches"], ["Dive Watches", "/watches"], ["Vintage", "/watches"],
-      ["Dial Symmetry", "/watches"], ["Movements 101", "/watches"], ["The Buying Guide", "/watches"],
+      ["Chronographs", "/watches"],
+      ["Dress Watches", "/watches"],
+      ["Dive Watches", "/watches"],
+      ["Vintage", "/watches"],
+      ["Dial Symmetry", "/watches"],
+      ["Movements 101", "/watches"],
+      ["The Buying Guide", "/watches"],
     ],
   },
   {
@@ -41,22 +56,39 @@ const GROUPS: { num: string; label: string; href: string; subs: [string, string]
     label: "Culture",
     href: "/culture",
     subs: [
-      ["Essays", "/culture"], ["Interviews", "/culture"], ["Travel", "/culture"], ["Machines", "/culture"],
-      ["The Analog Weekend", "/culture"], ["The Art of Arriving Early", "/culture"], ["MG Film", "/film"],
+      ["Essays", "/culture"],
+      ["Interviews", "/culture"],
+      ["Travel", "/culture"],
+      ["Machines", "/culture"],
+      ["The Analog Weekend", "/culture"],
+      ["The Art of Arriving Early", "/culture"],
+      ["MG Film", "/film"],
     ],
   },
   { num: "05", label: "Film", href: "/film", subs: [] },
   { num: "06", label: "Store", href: "/shop", subs: [] },
 ];
 
-const SECONDARY: [string, string][] = [["ABOUT", "/about"], ["CONTACT", "/contact"], ["ARCHIVE", "/culture"]];
+const SECONDARY: [string, string][] = [
+  ["ABOUT", "/about"],
+  ["CONTACT", "/contact"],
+  ["ARCHIVE", "/culture"],
+];
 
 const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   {
     label: "Instagram",
     href: "https://instagram.com",
     icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        aria-hidden
+      >
         <rect x="3" y="3" width="18" height="18" rx="5" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
@@ -76,7 +108,15 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
     label: "YouTube",
     href: "https://youtube.com",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        aria-hidden
+      >
         <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
         <path d="M10.2 9.3l5 2.7-5 2.7V9.3Z" fill="currentColor" stroke="none" />
       </svg>
@@ -203,7 +243,16 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
             aria-label="Close menu"
             className="flex items-center justify-center h-[34px] w-[34px] rounded-full bg-white/[0.08] border border-white/20 text-[#f4f4f4]"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden
+            >
               <line x1="6" y1="6" x2="18" y2="18" />
               <line x1="18" y1="6" x2="6" y2="18" />
             </svg>
@@ -212,7 +261,9 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
 
         {/* EST. 2026 + tagline */}
         <div className="-mt-5 mb-[30px] pb-[26px] border-b border-white/10">
-          <div className="font-mono text-[9px] leading-[normal] tracking-[0.26em] text-mg-accent mb-2.5">EST. 2026</div>
+          <div className="font-mono text-[9px] leading-[normal] tracking-[0.26em] text-mg-accent mb-2.5">
+            EST. 2026
+          </div>
           <div className="font-serif italic text-[22px] leading-[1.3] text-[rgba(244,244,244,0.82)]">
             The Men’s Lifestyle Guide
           </div>

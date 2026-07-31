@@ -11,7 +11,11 @@ export function generateStaticParams() {
   return articleSlugs.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const a = getArticleBySlug(slug);
   if (!a) return { title: "Article not found — Modern Gentlemen" };
@@ -41,7 +45,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         image={a.heroImage}
         videoUrl={a.videoUrl}
       />
-      <ArticleBody variant={a.body} author={a.author} authorInitial={a.authorInitial} issue={a.issue} />
+      <ArticleBody
+        variant={a.body}
+        author={a.author}
+        authorInitial={a.authorInitial}
+        issue={a.issue}
+      />
       <RelatedGrid items={a.related} />
     </>
   );
