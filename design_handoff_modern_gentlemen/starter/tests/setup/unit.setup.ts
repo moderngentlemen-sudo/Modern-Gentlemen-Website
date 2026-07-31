@@ -50,6 +50,13 @@ if (!window.ResizeObserver) {
   } as unknown as typeof ResizeObserver;
 }
 
+// jsdom implements no scrolling, so `window.scrollTo` throws "Not implemented"
+// and prints a stack. `lib/useScrollLock` restores the scroll position on
+// unlock, which every admin Dialog does on close.
+if (typeof window.scrollTo !== "function" || !vi.isMockFunction(window.scrollTo)) {
+  Object.defineProperty(window, "scrollTo", { configurable: true, value: vi.fn() });
+}
+
 // jsdom has no layout engine, so <video>.play() rejects. Sections that autoplay
 // hero media call it defensively; stub it so those tests stay quiet.
 if (typeof HTMLMediaElement !== "undefined") {
