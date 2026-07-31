@@ -13,13 +13,21 @@
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/documents";
 import { autosaveDocument, latestRevision } from "@/lib/db/repositories/revisions";
-import { createPage as createPageRow, EMPTY_PAGE_PAYLOAD } from "@/lib/db/repositories/pages";
+import {
+  createPage as createPageRow,
+  renamePage as renamePageRow,
+  EMPTY_PAGE_PAYLOAD,
+} from "@/lib/db/repositories/pages";
+import { RepositoryError } from "@/lib/db/repositories/errors";
 import type { Json } from "@/lib/db/database.types";
 import { validateTree, type BlockIssue } from "@/lib/blocks/validate";
 import type { BlockNode } from "@/lib/blocks/types";
 import {
   BLOCK_TREE_KEY,
+  canTransition,
+  InvalidTransitionError,
   shouldWriteAutosaveRevision,
+  type DocumentStatus,
   type DocumentType,
 } from "@/lib/domain/documents";
 import type { Permission } from "@/lib/domain/permissions";
@@ -170,4 +178,55 @@ export async function deleteDocument(type: DocumentType, id: string): Promise<vo
   const db = await createClient();
   // `is_system` pages are additionally protected by their RLS delete policy.
   await repo.deleteDocument(db, type, id);
+}
+
+/**
+ * Rename a page, or move it to a new slug.
+ *
+ * `slug` is unique, so a collision comes back from Postgres as 23505. Left
+ * alone that reaches an editor as a raw constraint string; translated here it
+ * reads as the thing they actually did.
+ */
+export async function renamePage(
+  id: string,
+  input: { slug?: string; title?: string }
+): Promise<void> {
+  const user = await requirePermission("page.write");
+  const db = await createClient();
+
+  try {
+    await renamePageRow(db, id, { ...input, updatedBy: user.id });
+  } catch (error) {
+    if (error instanceof RepositoryError && error.code === "23505") {
+      throw new Error(`The slug "${input.slug}" is already in use by another page.`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Move a document between statuses that publishing does not own.
+ *
+ * Publishing, unpublishing and scheduling all go through the SQL functions in
+ * `lib/services/publishing.ts`, which write a revision and an audit event in the
+ * same transaction. This is for the rest — archiving, and bringing an archived
+ * document back to draft — and it enforces `canTransition` so the status field
+ * cannot be walked into a state the domain does not allow.
+ */
+export async function setDocumentStatus(
+  type: DocumentType,
+  id: string,
+  status: DocumentStatus
+): Promise<void> {
+  const user = await requirePermission(permissionFor(type, "write"));
+  const db = await createClient();
+
+  const current = await repo.getDocument(db, type, id);
+  if (!current) throw new Error(`No such ${type}: ${id}`);
+
+  if (!canTransition(current.status, status)) {
+    throw new InvalidTransitionError(current.status, status);
+  }
+
+  await repo.setStatus(db, type, id, status, user.id);
 }

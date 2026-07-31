@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/services/auth";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export const metadata: Metadata = {
   title: "Admin — Modern Gentlemen",
@@ -18,8 +19,9 @@ export const dynamic = "force-dynamic";
  * path. This check is the one that actually guards the render, and RLS guards
  * the data underneath it.
  *
- * Phase 4 replaces this shell with the full admin chrome (left nav, top bar,
- * command palette) built on components/admin/ui.
+ * The chrome itself is `components/admin/AdminShell` — a left rail and a top
+ * bar, which is why /admin no longer renders inside the public header and
+ * footer. This file stays a server component so the gate runs before any of it.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -52,5 +54,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
-  return <div className="min-h-screen bg-mg-bg text-mg-fg">{children}</div>;
+  return (
+    <AdminShell
+      email={user.email}
+      fullName={user.fullName}
+      roles={user.roles}
+      // PermissionSet is a class instance and does not survive the
+      // server→client boundary; the nav only needs membership.
+      permissions={user.permissions.toArray()}
+    >
+      {children}
+    </AdminShell>
+  );
 }

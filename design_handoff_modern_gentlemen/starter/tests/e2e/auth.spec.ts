@@ -21,7 +21,7 @@ test.describe("admin access control", () => {
   });
 
   test("a nested admin route also redirects", async ({ page }) => {
-    await page.goto("/admin/builder");
+    await page.goto("/admin/pages");
     await expect(page).toHaveURL(/\/sign-in/);
   });
 
