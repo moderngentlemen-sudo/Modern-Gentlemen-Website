@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
-import { CartProvider } from "@/lib/cart/CartProvider";
-import { Header } from "@/components/chrome/Header";
-import { Footer } from "@/components/chrome/Footer";
 
 // Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
 // variable file with a 300–700 axis range. Pinning discrete weights made 300
@@ -28,6 +25,18 @@ export const metadata: Metadata = {
   description: "Style, grooming, watches, culture and film — for the considered man.",
 };
 
+/**
+ * The document shell, and nothing else.
+ *
+ * The public chrome (CartProvider, Header, Footer) lives in `(site)/layout.tsx`
+ * and the admin chrome in `(admin)/layout.tsx`, so /admin no longer renders
+ * inside the site header and footer. Route groups are not path segments, so
+ * every public URL is unchanged by that split.
+ *
+ * ThemeProvider stays here, above both groups: the admin uses the same
+ * light/dark toggle, and the boot script below sets the theme on
+ * documentElement before paint for both.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -40,13 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body>
-        <ThemeProvider>
-          <CartProvider>
-            <Header />
-            <main className="pt-[72px]">{children}</main>
-            <Footer />
-          </CartProvider>
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

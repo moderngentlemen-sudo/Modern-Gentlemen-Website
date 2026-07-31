@@ -57,7 +57,8 @@
       }
     },
     {
-      "files": ["app/**/*.ts", "app/**/*.tsx", "components/**/*.tsx"],
+      "files": ["app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx"],
+      "excludedFiles": ["components/**/*.test.ts", "components/**/*.test.tsx"],
       "rules": {
         "no-restricted-imports": [
           "error",
