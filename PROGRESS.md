@@ -24,8 +24,8 @@ Live state (branch, commits, migrations, test counts) is printed automatically a
 | B | Phase 0 — Toolchain | ESLint/Prettier, Vitest, Playwright, CI, layering rules, Sanity removed | ✅ done |
 | B | Phase 1 — Data foundation | 9 migrations applied (41 tables, 88 RLS policies), RBAC, typed clients, seed | ✅ done |
 | B | Phase 1c — Auth | admin account, `middleware.ts`, sign-in, gated `/admin`, auth service | ✅ done |
-| B | Phase 2 — Block manifests | `defineBlock`, 22 manifests, binding engine, resolver, conformance suite | ⬜ **next** |
-| B | Phase 3 — Documents & publishing | templates, patterns, revisions, rollback, preview | ⬜ not started |
+| B | Phase 2 — Block manifests | `defineBlock`, 22 manifests, binding engine, resolver, conformance suite | ✅ done |
+| B | Phase 3 — Documents & publishing | templates, patterns, revisions, rollback, preview | ⬜ **next** |
 | B | Phase 4 — Admin UI & builder | `components/admin/ui/*`, shell, builder canvas, properties panel | ⬜ not started |
 | B | Phase 5 — CMS & media | article/taxonomy editors, media library with usage tracking | ⬜ not started |
 | B | Phase 6 — Commerce & integrations | products, XML ingestion, Shopify adapter, navigation, theme editor | ⬜ not started |
@@ -45,7 +45,7 @@ Instructions below that were true during Track A and are **now wrong**. A sessio
 
 ### What runs today
 
-Public site: unchanged and still rendering from demo modules (`lib/demo/home-sections.ts`, `lib/catalog.ts`, `lib/editorial.ts`, `lib/articles.ts`). Phase 7 switches it to the database.
+Public site: unchanged and still rendering from demo modules (`lib/demo/home-sections.ts`, `lib/catalog.ts`, `lib/editorial.ts`, `lib/articles.ts`). Phase 7 switches it to the database. Section props now pass through `lib/blocks/normalize.ts` on the way in — verified to leave the rendered markup of all 65 prerendered pages byte-identical.
 
 New in Track B: **`/sign-in`** and a gated **`/admin`** showing the signed-in identity and resolved permission set. `middleware.ts` refreshes the session and redirects unauthenticated `/admin` traffic.
 
@@ -65,6 +65,7 @@ Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Crea
 - **Chrome is built once** in `app/layout.tsx`.
 
 **Track B (new):**
+- **`lib/blocks/`** — one `defineBlock()` manifest per section block, and the only answer to "what fields does this block have, and what is a valid value?". A **pure leaf**: no component references, no I/O (ESLint enforces it). Field descriptors *derive* the Zod schema — never hand-write a second one. `normalize.ts` is the forgiving render path, `validate.ts` the strict publish path, `binding.ts` the dynamic-content contract with injected sources. **Adding a block means adding a manifest**; `conformance.test.ts` fails the build otherwise.
 - **`lib/domain/`** — pure: types, Zod schemas, business rules. No I/O, no React, no framework. `money.ts`, `pricing.ts`, `permissions.ts` live here.
 - **`lib/db/`** — `client.ts` (browser), `server.ts` (caller's session + RLS — use this for admin writes), `admin.ts` (service-role; scripts/jobs/tests only), `database.types.ts` (generated, `npm run db:types`).
 - **`lib/services/`** — orchestration + `requirePermission()`. `auth.ts` exposes `getCurrentUser`/`requireUser`/`requirePermission`, cached per render.
@@ -85,10 +86,9 @@ Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Crea
 
 ### Next phase (recommended order)
 
-1. **Phase 2 — Block manifest system.** `lib/blocks/defineBlock.ts` + a manifest per section, so one declaration drives the builder's insert menu, the properties panel, publish validation, the renderer, dynamic binding, and a conformance test suite. This is the spine everything else hangs off; do it before any admin UI.
-2. **Phase 3** — templates, patterns, revisions/rollback, preview sessions.
-3. **Phase 4** — admin design system (`components/admin/ui/*` on `mg.*` tokens) + the builder canvas.
-4. **Phases 5–7** — CMS & media, commerce & integrations, then rewire the public site and complete the visual-regression suite.
+1. **Phase 3** — templates, patterns, revisions/rollback, preview sessions. The block spine is in place, so a document is now "a validated `BlockTree` plus metadata"; `validateTree()` is the publish gate to call before writing `published_data`.
+2. **Phase 4** — admin design system (`components/admin/ui/*` on `mg.*` tokens) + the builder canvas. The insert menu reads `blockCatalog` (label/category/description, derived from the manifests) and the properties panel renders controls from `manifest.fields` — do not hand-write either.
+3. **Phases 5–7** — CMS & media, commerce & integrations, then rewire the public site and complete the visual-regression suite. Phase 7 adds `lib/blocks/sources/supabase.ts` implementing `BindingSource` over the real tables; nothing in `binding.ts` should need to change.
 
 Also outstanding from Phase 1: a repository layer over `lib/db`, and the RLS integration suite (positive *and* negative per role) against a local Supabase stack.
 
@@ -229,6 +229,17 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - Spec/Review body values the prototype hardcoded to `#f4f4f4` use `text-mg-fg` here so they read in both themes.
 - Phase 7 responsive pass (subagent-audited, mobile-only): (1) **Search overlay** — dropped the illegal `container-mg` + `max-w-3xl` combo (CLAUDE.md forbids both on one element) for `mx-auto max-w-3xl px-6 sm:px-8`, and added `min-w-0` to the input (its intrinsic ~20ch width at `text-3xl` was forcing horizontal overflow). (2) **`.container-mg`** gets a `padding-inline: 24px` at ≤680px so phone content isn't over-inset by the flat 48px gutter. (3) **Spec-comparison table** (`BodySpec`) switched `overflow-hidden`→`overflow-x-auto` with `minmax()` columns so it scrolls within its card instead of crushing/overflowing the page ≤400px. (4) **Newsletter + CTA-band forms** stack (`flex-col`) with `min-w-0` inputs below ~360px instead of overflowing. (5) **Touch targets** bumped to ≥40–44px (WCAG 2.5.8): header burger 14px→44px, icon buttons 38px→40px, drawer/bag close 32–36px→40px, qty stepper `py-2`→`py-2.5`. (6) **Bag line items** — smaller image + `min-w-0` content + `shrink-0` line-total + `flex-wrap` qty row so the price stays visible ≤468px. (7) Article dek/`CtaBand`/`FeaturedLead` headings and the drop-cap get `min-[681px]:` clamps; grid gap breakpoints normalized `min-[1025px]`→`min-[1024px]`. **Desktop (≥909px) is unchanged** — every fix is gated behind a mobile breakpoint. Two benign residuals left as-is: a 26px phantom scrollWidth on the 768px PDP (masked by `overflow-x:clip`, no visible cut, no scrollbar) and the MOST-POPULAR tier notch reading red-on-red at narrow widths (by design).
 
+- **Phase 2 (block manifests) — decisions.**
+  - **Manifests hold no component reference.** `lib/blocks` is a leaf and cannot import `components/`, so the `_type → component` map stays in `components/sections/registry.ts`. `conformance.test.ts` asserting set-equality is what actually keeps the halves in step — co-location would have looked safer while checking nothing.
+  - **The Zod schema is derived from the field descriptors, not written beside them.** A hand-written schema is a second description of the same contract, and two descriptions drift; that is the failure this phase exists to remove. Same reasoning puts defaults on the *field* rather than in a separate manifest-level `defaults` object.
+  - **Two schemas per block.** `schema` strips undeclared keys (render path); `strictSchema` rejects them (publish path). An undeclared prop nearly always means a manifest has fallen behind its component, and that should be an authoring-time error, not a silently dropped value.
+  - **`insertDefaults` is separate from field defaults** — the field default is what the component falls back to (`mobileHeight: "fullscreen"`), the insert default is what an editor sees after dragging the block in (placeholder copy for required fields that have no component default). Conflating them would have made every required field either mandatory-on-insert or silently blank.
+  - **`normalizeBlock` never throws and never fails a render.** Unknown `_type`, or content that fails its own schema, passes through with props untouched. The renderer must not be the thing that decides a page is unrenderable; `validateTree()` reports it where there is an editor to tell.
+  - **Bindings are projected onto the target field's declared shape.** The demo source returns rich rows (`category`, `lead`) so queries can filter on them; without projection every bound block failed strict validation on undeclared keys, which would have forced a hand-written `map` onto every binding. The manifest already knows the item shape, so it does the trimming; `map` stays for genuine renames.
+  - **`defineBlock` throws at module load** when insert defaults fail their own schema. Loud and early: such a manifest would have the builder writing blocks that publish validation then rejects, and the four gates run before anything is committed.
+  - **Render-safety proof: all 65 prerendered pages have byte-identical markup.** The RSC flight payload *does* differ, in two ways, both intended: `_key`/`_type` are no longer spread onto components as unused props (they never reached the DOM — no `_key=` attribute exists in the baseline), and prop key order now follows manifest field order. Net effect on the homepage payload: 59,080 → 58,942 bytes. The comparison strips Next's build ID (present twice — an HTML comment *and* escaped as `"b"` inside the flight payload) and content-hashed chunk/CSS filenames.
+  - **`SectionRenderer`'s `@ts-expect-error` stays.** A registry lookup by string cannot narrow to one component's props; claiming otherwise would need machinery that buys nothing, since the manifest's Zod schema is what actually validates them. The comment now says that rather than promising a future fix. The registry's `no-explicit-any` exemption stays for the same reason, with the stale "Phase 2 will restore type safety" note corrected.
+  - **E2E was not run this session** — `middleware.ts` needs `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` on every route and `.env.local` is gitignored, so a fresh container cannot start the server for Playwright. Covered instead by the 65-page markup diff plus a manual run of the built server against placeholder credentials: all 13 public routes returned 200 with no `MissingBlock` placeholders.
 - Header **hide-on-scroll** added as `lib/useHideOnScroll.ts` (owns both `scrolled` and `hidden`): slides the bar to `translateY(-100%)` on scroll-down past 120px, reveals on any scroll-up — the one motion `EXECUTION_PLAN.md §10` sanctions on top of the frost ("optional slide-away-on-scroll-down is fine"); the 72px height still never changes. The hook **ignores scroll while pinned** (drawer/search/bag/mega-menu open) and re-baselines on un-pin, because `useScrollLock`'s fixed-body technique moves the document scroll position — without that guard the unlock `scrollTo(0, savedY)` restore reads as a large scroll-down and hides the bar on every overlay close (it also stops the frost from dropping out while an overlay is open, which it previously did). Focus entering the header reveals it; the global reduced-motion rule already zeroes the 320ms slide.
 
 ## Track B — Backend & admin platform (see `06_SUPABASE.md`, and the plan in `/root/.claude/plans/`)
@@ -257,7 +268,18 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] `/sign-in` (reuses `components/store/Field`), gated `/admin`, sign-out, OAuth/recovery callback
 - [x] E2E: redirect, bad credentials, sign-in → 40 permissions, sign-out, already-signed-in bounce
 
-**Phases 2–7** — see the snapshot table at the top of this file. Not started.
+**Phase 2 — Block manifest system** ✅
+- [x] `lib/blocks/` as a pure leaf (ESLint `no-restricted-imports` override added, tests excluded)
+- [x] Field vocabulary (`fields.ts`) — 12 kinds, `toZod` derivation, defaults on the field
+- [x] `defineBlock()` — derives `schema` + `strictSchema`, validates insert defaults at module load
+- [x] **22 manifests**, one per registry entry, transcribed from each component's `interface Props`
+- [x] `traverse.ts` (one shared walker) · `normalize.ts` (forgiving, render path) · `validate.ts` (strict, publish path, path-accurate issues)
+- [x] Binding contract: `$bind` descriptors, `collectBindings`/`applyBindings`/`resolveBindings`, injected `BindingSource`, demo source over the editorial/catalog modules
+- [x] `blockCatalog` now derived from the manifests; `SectionRenderer` routes props through `normalizeBlock`
+- [x] Conformance suite — **194 new unit tests** (240 total, was 46)
+- [ ] Manifests for the `MODULE_MAP.md` TODO archetypes (`specTable`, `membershipTiers`, `heroVogue01…10`) — write them with the components
+
+**Phases 3–7** — see the snapshot table at the top of this file. Not started.
 
 **Known issues**
 - [ ] `/admin` still renders inside the public header/footer (shares the root layout). Phase 4 replaces it with the admin shell.

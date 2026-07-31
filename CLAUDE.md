@@ -28,6 +28,7 @@ design_handoff_modern_gentlemen/starter/
 ├─ app/           routes: public site, /admin, /sign-in, /auth
 ├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/
 ├─ lib/
+│  ├─ blocks/     PURE: one defineBlock() manifest per section + validation
 │  ├─ domain/     PURE: types, Zod schemas, business rules. No I/O, no React.
 │  ├─ db/         Supabase clients + generated database.types.ts
 │  ├─ services/   orchestration + permission checks
@@ -51,6 +52,11 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   pixel-verified against `design_handoff_modern_gentlemen/handoff/screenshots/`.
   Section components take *additive* prop changes only. No Tailwind class
   reordering, no "tidying".
+- **A section block is not done until it has a manifest.** Build the component,
+  register it in `components/sections/registry.ts`, then write
+  `lib/blocks/manifests/<type>.ts`. `lib/blocks/conformance.test.ts` fails the
+  build if either half is missing. Manifests *describe* components — where the
+  two disagree, the component wins and the manifest is the bug.
 - **Layering flows downward only**: `app → services → db`, with `domain`,
   `blocks`, `render` and `integrations` as leaves. `lib/domain` must stay pure.
   ESLint `no-restricted-imports` enforces the boundaries — if it complains, the

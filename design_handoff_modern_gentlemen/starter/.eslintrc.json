@@ -57,6 +57,31 @@
       }
     },
     {
+      "files": ["lib/blocks/**/*.ts"],
+      "excludedFiles": ["lib/blocks/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/lib/db/*",
+                  "@/lib/services/*",
+                  "@/lib/integrations/*",
+                  "@/components/*",
+                  "@/app/*",
+                  "next/*",
+                  "react"
+                ],
+                "message": "lib/blocks is a leaf: manifests, validation and the binding contract only. It holds no component references and performs no I/O — binding sources are injected. The conformance suite is what ties manifests to components."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["lib/db/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
