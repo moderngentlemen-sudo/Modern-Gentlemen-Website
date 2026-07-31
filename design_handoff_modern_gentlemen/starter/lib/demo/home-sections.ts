@@ -1,0 +1,158 @@
+import { type Block } from "@/components/SectionRenderer";
+import { FILM_PREVIEW_VIDEO, HERO_COVER_VIDEO } from "@/lib/media";
+
+/**
+ * The homepage layout as an ordered Block[] — the shape `pages.published_data`
+ * holds and <SectionRenderer/> consumes.
+ *
+ * It lives here rather than in app/page.tsx for two reasons: a Next.js route
+ * file may only export the page component and Next's own reserved symbols, and
+ * scripts/seed.ts needs to lift this verbatim into the database so the seeded
+ * homepage is provably the same layout the site renders today.
+ *
+ * Phase 7 deletes this module once the route reads from the database.
+ */
+export const DEMO_SECTIONS: Block[] = [
+  {
+    _key: "hero",
+    _type: "heroCoverStar",
+    badge: "COVER STORY — ISSUE 042",
+    eyebrow: "The Cover Interview",
+    headline: "Speed,\nConsidered",
+    sub: "Why the modern gentleman drives slow cars fast — on patience, stewardship, and the machines we keep.",
+    // Moving cover, with the still as its poster (prototype `heroVideoUrl`).
+    media: { kind: "video", videoUrl: HERO_COVER_VIDEO, image: "/images/hero-cover.jpg" },
+    cta: { label: "READ THE COVER STORY", href: "/article/speed-considered" },
+    credit: "PHOTOGRAPHY · E. MARLOWE",
+    meta: "NO. 042 — A. BELLAMY — 11 MIN",
+    mobileHeight: "fullscreen",
+  },
+  {
+    _key: "latest",
+    _type: "latestGrid",
+    variant: "sixUp",
+    eyebrow: "New this week",
+    heading: "The Latest",
+    viewAllHref: "/culture",
+    viewAllLabel: "View all →",
+    items: [
+      {
+        kind: "feature",
+        kicker: "Culture · 042 — New",
+        title: "The Art of Arriving Early",
+        body: "On patience as the last luxury a gentleman can own.",
+        meta: "6 min",
+        href: "/culture",
+      },
+      {
+        kind: "image",
+        kicker: "Style · 041",
+        title: "Racing Green Is the New Navy",
+        image: "/images/style-mono.jpg",
+        href: "/style",
+      },
+      {
+        kind: "image",
+        kicker: "Watches · 040",
+        title: "Why Dial Symmetry Matters",
+        image: "/images/watch-gear.jpg",
+        href: "/watches",
+      },
+      {
+        kind: "image",
+        kicker: "Grooming · 039",
+        title: "The Case Against 12-Step Routines",
+        image: "/images/grooming.jpg",
+        href: "/grooming",
+      },
+      {
+        kind: "image",
+        kicker: "Culture · 038",
+        title: "The Analog Weekend",
+        image: "/images/film-workshop.jpg",
+        href: "/culture",
+      },
+      {
+        kind: "membership",
+        kicker: "Membership",
+        title: "Join The Debrief →",
+        body: "One considered email a week",
+        href: "/membership",
+      },
+    ],
+  },
+  {
+    _key: "style-feature",
+    _type: "featureSplit",
+    variant: "fullBleed",
+    eyebrow: "Style",
+    headline: "The Monochrome Wardrobe, Engineered",
+    image: "/images/style-mono.jpg",
+    cta: { label: "DISCOVER MORE →", href: "/style" },
+  },
+  {
+    _key: "two-up",
+    _type: "twoUpCategory",
+    items: [
+      {
+        kicker: "Grooming",
+        title: "The Seven-Minute Standard",
+        body: "Four products, seven minutes, done properly. A pit-stop routine for sharp mornings.",
+        href: "/grooming",
+        image: "/images/grooming.jpg",
+      },
+      {
+        kicker: "Watches & Gear",
+        title: "Chronographs Born on the Grid",
+        body: "From pit wall to dinner table — six racing chronographs that earned their place.",
+        href: "/watches",
+        image: "/images/watch-gear.jpg",
+      },
+    ],
+  },
+  {
+    _key: "promise",
+    _type: "storyBand",
+    eyebrow: "Our promise",
+    quote: "PRESERVING TASTE WHILE DEFINING NEW STYLE",
+    body: "We believe luxury and utility don't have to be at odds. Modern Gentlemen exists to help men keep their most precious possession — their time — and spend it well.",
+    cta: { label: "Continue reading →", href: "/about", style: "outline" },
+  },
+  {
+    _key: "film",
+    _type: "filmStills",
+    eyebrow: "Watch",
+    heading: "MG Film",
+    allHref: "/film",
+    allLabel: "All episodes →",
+    items: [
+      {
+        title: "Inside a Coachbuilder’s Workshop",
+        still: "/images/film-workshop.jpg",
+        duration: "14:20",
+        videoUrl: FILM_PREVIEW_VIDEO,
+      },
+      {
+        title: "A Tailor’s Archive",
+        still: "/images/film-tailor.jpg",
+        duration: "09:52",
+        videoUrl: FILM_PREVIEW_VIDEO,
+      },
+      {
+        title: "The Watchmaker of the Grid",
+        still: "/images/film-watchmaker.jpg",
+        duration: "11:38",
+        videoUrl: FILM_PREVIEW_VIDEO,
+      },
+    ],
+  },
+  {
+    _key: "newsletter",
+    _type: "newsletter",
+    eyebrow: "Join the family",
+    heading: "The Debrief. Weekly, considered.",
+    buttonLabel: "Subscribe",
+    placeholder: "your@address.com",
+    sub: "One considered email a week. No noise, ever.",
+  },
+];
