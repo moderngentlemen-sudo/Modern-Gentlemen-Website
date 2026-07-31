@@ -146,6 +146,32 @@ export class Fixtures {
   }
 
   /**
+   * Creates a throwaway role holding exactly the permissions given.
+   *
+   * The seeded roles do not cover every interesting combination — nothing ships
+   * with `page.write` but not `page.publish`, which is precisely the case the
+   * publish gate exists to refuse. Rather than assert against whichever seeded
+   * role looks closest and quietly test something weaker, a test that needs a
+   * particular shape of actor builds one.
+   */
+  async createRole(permissionKeys: string[]): Promise<string> {
+    const key = prefixed("role");
+
+    const { error } = await this.db
+      .from("roles")
+      .insert({ key, label: `Fixture role ${key}`, is_system: false });
+    if (error) throw new Error(`fixture createRole: ${error.message}`);
+    this.track("roles", key, "key");
+
+    const { error: grantError } = await this.db
+      .from("role_permissions")
+      .insert(permissionKeys.map((permission_key) => ({ role_key: key, permission_key })));
+    if (grantError) throw new Error(`fixture createRole(grants): ${grantError.message}`);
+
+    return key;
+  }
+
+  /**
    * Creates a confirmed auth user holding exactly the roles given, so a test
    * can assert what someone *without* a permission is refused — the half of
    * authorisation that is easy to leave untested.

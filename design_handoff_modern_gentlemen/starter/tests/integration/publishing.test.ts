@@ -15,16 +15,23 @@ import { Fixtures, adminClient, anonClient, type Db } from "../support/fixtures"
 const db = adminClient();
 const fixtures = new Fixtures(db);
 
-/** Holds page.write but NOT page.publish, to prove the gate is real. */
-let author: { id: string; email: string; password: string };
-let authorDb: Db;
+/**
+ * Holds `page.write` but NOT `page.publish` — the case the publish gate exists
+ * to refuse, and the one no seeded role covers. The shipped `author` role holds
+ * only `page.read`, so asserting against it would prove a reader cannot
+ * publish, which is true but uninteresting: it would pass even if the gate
+ * checked nothing beyond write access.
+ */
+let writer: { id: string; email: string; password: string };
+let writerDb: Db;
 /** Holds the full editor set. */
 let editor: { id: string; email: string; password: string };
 let editorDb: Db;
 
 beforeAll(async () => {
-  author = await fixtures.createUser(["author"]);
-  authorDb = await fixtures.signIn(author.email, author.password);
+  const writerRole = await fixtures.createRole(["page.read", "page.write"]);
+  writer = await fixtures.createUser([writerRole]);
+  writerDb = await fixtures.signIn(writer.email, writer.password);
 
   editor = await fixtures.createUser(["editor"]);
   editorDb = await fixtures.signIn(editor.email, editor.password);
@@ -81,7 +88,15 @@ describe("publish_document", () => {
   it("refuses an actor holding write but not publish", async () => {
     const page = await fixtures.createPage();
 
-    const { error } = await authorDb.rpc("publish_document", {
+    // The actor can edit this page — proving the refusal below is about the
+    // publish permission specifically, not about access to the row.
+    const { error: writeError } = await writerDb
+      .from("pages")
+      .update({ title: "Edited by the writer" })
+      .eq("id", page.id);
+    expect(writeError).toBeNull();
+
+    const { error } = await writerDb.rpc("publish_document", {
       p_entity_type: "page",
       p_entity_id: page.id,
     });
@@ -262,6 +277,98 @@ describe("rollback_document", () => {
     });
 
     expect(error?.code).toBe("P0002");
+  });
+});
+
+describe("autosave_document", () => {
+  /**
+   * The regression this exists for: autosave used to write at the *current*
+   * version, which `publish_document` has always already claimed. Every
+   * autosave after a document's first publish hit a unique violation that was
+   * swallowed as benign, so autosave history silently stopped working.
+   */
+  it("keeps writing checkpoints after a publish", async () => {
+    const page = await fixtures.createPage();
+
+    await editorDb.rpc("publish_document", { p_entity_type: "page", p_entity_id: page.id });
+
+    const { data: first, error: firstError } = await editorDb.rpc("autosave_document", {
+      p_entity_type: "page",
+      p_entity_id: page.id,
+    });
+    expect(firstError).toBeNull();
+    expect(first).toBe(2);
+
+    const { data: second, error: secondError } = await editorDb.rpc("autosave_document", {
+      p_entity_type: "page",
+      p_entity_id: page.id,
+    });
+    expect(secondError).toBeNull();
+    expect(second).toBe(3);
+
+    const { data: revisions } = await db
+      .from("revisions")
+      .select("version, reason")
+      .eq("entity_id", page.id)
+      .order("version");
+
+    expect(revisions).toEqual([
+      { version: 1, reason: "publish" },
+      { version: 2, reason: "autosave" },
+      { version: 3, reason: "autosave" },
+    ]);
+  });
+
+  it("captures the draft as it stood before the next edit", async () => {
+    const page = await fixtures.createPage();
+
+    await editorDb.rpc("autosave_document", { p_entity_type: "page", p_entity_id: page.id });
+
+    await db
+      .from("pages")
+      .update({
+        draft_data: {
+          sections: [{ _key: "quote", _type: "pullQuote", quote: "Later.", attribution: "T" }],
+          seo: {},
+        } as never,
+      })
+      .eq("id", page.id);
+
+    const { data: revision } = await db
+      .from("revisions")
+      .select("data")
+      .eq("entity_id", page.id)
+      .eq("version", 1)
+      .single();
+
+    expect((revision?.data as { sections: { quote: string }[] }).sections[0].quote).toBe(
+      "A fixture quote."
+    );
+  });
+
+  it("leaves a rollback target addressable by version", async () => {
+    const page = await fixtures.createPage();
+    await editorDb.rpc("autosave_document", { p_entity_type: "page", p_entity_id: page.id });
+
+    const { data: version, error } = await editorDb.rpc("rollback_document", {
+      p_entity_type: "page",
+      p_entity_id: page.id,
+      p_version: 1,
+    });
+
+    expect(error).toBeNull();
+    expect(version).toBe(2);
+  });
+
+  it("needs only write access", async () => {
+    const page = await fixtures.createPage();
+
+    const { error } = await writerDb.rpc("autosave_document", {
+      p_entity_type: "page",
+      p_entity_id: page.id,
+    });
+
+    expect(error).toBeNull();
   });
 });
 

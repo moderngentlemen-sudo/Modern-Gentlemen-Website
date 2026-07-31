@@ -97,37 +97,31 @@ export async function latestRevision(
 }
 
 /**
- * Writes an autosave checkpoint.
+ * Writes an autosave checkpoint of the draft as it currently stands, and
+ * returns the version it was recorded at.
  *
- * `version` is the document's current version, not a new one: an autosave
- * records the draft as it stands between publishes and must not consume a
- * version number that a later publish will want. That means at most one
- * autosave revision per version — the unique key enforces it — so a repeat
- * within the same version is swallowed rather than raised.
+ * Goes through `autosave_document` (`0011_autosave.sql`) rather than inserting
+ * directly, for two reasons. It advances the version and writes the revision in
+ * one transaction, so it cannot interleave with a concurrent publish claiming
+ * the same number. And an earlier version of this function inserted at the
+ * *current* version, which `publish_document` has always already taken — every
+ * autosave after a document's first publish hit a unique violation that was
+ * swallowed as benign, so autosave history silently stopped working. Letting
+ * the database allocate the number removes the class of bug, not just the
+ * instance.
  */
-export async function insertAutosaveRevision(
+export async function autosaveDocument(
   db: Db,
-  input: {
-    type: DocumentType;
-    entityId: string;
-    version: number;
-    data: Json;
-    createdBy: string;
-  }
-): Promise<void> {
-  const { error } = await db.from("revisions").insert({
-    entity_type: input.type,
-    entity_id: input.entityId,
-    version: input.version,
-    data: input.data,
-    reason: "autosave",
-    created_by: input.createdBy,
+  type: DocumentType,
+  entityId: string
+): Promise<number> {
+  const { data, error } = await db.rpc("autosave_document", {
+    p_entity_type: type,
+    p_entity_id: entityId,
   });
 
-  // 23505 = unique_violation: this version already has its checkpoint.
-  if (error && error.code !== "23505") {
-    throw new Error(`insertAutosaveRevision: ${error.message}`);
-  }
+  if (error) throw new Error(`autosaveDocument: ${error.message}`);
+  return data as number;
 }
 
 export interface PublishEventRow {

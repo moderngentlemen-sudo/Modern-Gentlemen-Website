@@ -1768,6 +1768,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      autosave_document: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: number
+      }
       document_table: { Args: { p_entity_type: string }; Returns: string }
       has_permission: { Args: { permission: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }

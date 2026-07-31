@@ -12,7 +12,7 @@
 
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/documents";
-import { insertAutosaveRevision, latestRevision } from "@/lib/db/repositories/revisions";
+import { autosaveDocument, latestRevision } from "@/lib/db/repositories/revisions";
 import { createPage as createPageRow, EMPTY_PAGE_PAYLOAD } from "@/lib/db/repositories/pages";
 import type { Json } from "@/lib/db/database.types";
 import { validateTree, type BlockIssue } from "@/lib/blocks/validate";
@@ -143,15 +143,10 @@ export async function saveDraft(
   const lastAt = previous ? new Date(previous.created_at) : null;
 
   if (shouldWriteAutosaveRevision(lastAt, now)) {
-    // Snapshots what is being replaced, not what is arriving: the incoming
-    // payload will be captured by the next checkpoint or by the publish.
-    await insertAutosaveRevision(db, {
-      type,
-      entityId: id,
-      version: current.version,
-      data: current.draft_data,
-      createdBy: user.id,
-    });
+    // Checkpoints what is being replaced, not what is arriving: the incoming
+    // payload will be captured by the next checkpoint or by the publish. Must
+    // run before the write below, since it reads the draft it is preserving.
+    await autosaveDocument(db, type, id);
   }
 
   await repo.saveDraft(db, type, id, payload, user.id);
