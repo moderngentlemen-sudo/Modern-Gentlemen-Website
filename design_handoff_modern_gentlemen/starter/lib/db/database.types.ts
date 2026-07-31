@@ -1,6 +1,3 @@
-// Generated from the Supabase schema. DO NOT EDIT BY HAND.
-// Regenerate with: npm run db:types
-
 export type Json =
   | string
   | number
@@ -1771,10 +1768,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      document_table: { Args: { p_entity_type: string }; Returns: string }
       has_permission: { Args: { permission: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      publish_document: {
+        Args: { p_entity_id: string; p_entity_type: string; p_note?: string }
+        Returns: number
+      }
       purge_expired_preview_sessions: { Args: never; Returns: number }
+      resolve_preview: {
+        Args: { p_token: string }
+        Returns: {
+          data: Json
+          device: string
+          entity_id: string
+          entity_type: string
+          expires_at: string
+        }[]
+      }
+      rollback_document: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_note?: string
+          p_version: number
+        }
+        Returns: number
+      }
+      schedulable_document_table: {
+        Args: { p_entity_type: string }
+        Returns: string
+      }
+      schedule_document: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_note?: string
+          p_when: string
+        }
+        Returns: number
+      }
+      snapshot_document: {
+        Args: { p_entity_id: string; p_entity_type: string; p_label?: string }
+        Returns: number
+      }
+      unpublish_document: {
+        Args: { p_entity_id: string; p_entity_type: string; p_note?: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

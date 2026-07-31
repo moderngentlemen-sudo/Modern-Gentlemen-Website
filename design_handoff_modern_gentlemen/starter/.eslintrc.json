@@ -57,6 +57,26 @@
       }
     },
     {
+      "files": ["app/**/*.ts", "app/**/*.tsx", "components/**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/lib/db/repositories/*"],
+                "message": "Dependencies flow app → services → db. Call a service in lib/services instead of a repository directly — that is where the permission checks live. Importing lib/db/server to build a client for an auth flow is still fine."
+              },
+              {
+                "group": ["**/lib/db/admin", "@/lib/db/admin"],
+                "message": "The service-role client bypasses RLS. Import it only from lib/services/**, app/api/** or scripts/**."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["lib/blocks/**/*.ts"],
       "excludedFiles": ["lib/blocks/**/*.test.ts"],
       "rules": {

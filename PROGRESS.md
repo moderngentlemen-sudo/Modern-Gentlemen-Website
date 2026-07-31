@@ -8,7 +8,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** `claude/modern-gentlemen-admin-ntslwo` (all backend work). **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**.
+**Branch:** `claude/modern-gentlemen-admin-ntslwo` (all backend work). **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0010`.
 
 Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation and auth are done, the builder and CMS are not.
 
@@ -25,8 +25,8 @@ Live state (branch, commits, migrations, test counts) is printed automatically a
 | B | Phase 1 — Data foundation | 9 migrations applied (41 tables, 88 RLS policies), RBAC, typed clients, seed | ✅ done |
 | B | Phase 1c — Auth | admin account, `middleware.ts`, sign-in, gated `/admin`, auth service | ✅ done |
 | B | Phase 2 — Block manifests | `defineBlock`, 22 manifests, binding engine, resolver, conformance suite | ✅ done |
-| B | Phase 3 — Documents & publishing | templates, patterns, revisions, rollback, preview | ⬜ **next** |
-| B | Phase 4 — Admin UI & builder | `components/admin/ui/*`, shell, builder canvas, properties panel | ⬜ not started |
+| B | Phase 3 — Documents & publishing | templates, patterns, revisions, rollback, preview | ✅ done |
+| B | Phase 4 — Admin UI & builder | `components/admin/ui/*`, shell, builder canvas, properties panel | ⬜ **next** |
 | B | Phase 5 — CMS & media | article/taxonomy editors, media library with usage tracking | ⬜ not started |
 | B | Phase 6 — Commerce & integrations | products, XML ingestion, Shopify adapter, navigation, theme editor | ⬜ not started |
 | B | Phase 7 — Rewire & harden | public site reads the DB; full E2E + visual regression | ⬜ not started |
@@ -49,6 +49,8 @@ Public site: unchanged and still rendering from demo modules (`lib/demo/home-sec
 
 New in Track B: **`/sign-in`** and a gated **`/admin`** showing the signed-in identity and resolved permission set. `middleware.ts` refreshes the session and redirects unauthenticated `/admin` traffic.
 
+Also **`/preview/[token]`** — renders any document's *draft* to whoever holds a valid, unexpired token, through the same `SectionRenderer` the live site uses. Verified end to end against the live project: the draft renders, an unknown token shows the expiry page rather than a 500, and the page is `noindex, nofollow, nocache`.
+
 Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Created by `scripts/create-admin.ts` — idempotent, safe to re-run.
 
 ### Environment
@@ -65,7 +67,9 @@ Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Crea
 - **Chrome is built once** in `app/layout.tsx`.
 
 **Track B (new):**
-- **`lib/blocks/`** — one `defineBlock()` manifest per section block, and the only answer to "what fields does this block have, and what is a valid value?". A **pure leaf**: no component references, no I/O (ESLint enforces it). Field descriptors *derive* the Zod schema — never hand-write a second one. `normalize.ts` is the forgiving render path, `validate.ts` the strict publish path, `binding.ts` the dynamic-content contract with injected sources. **Adding a block means adding a manifest**; `conformance.test.ts` fails the build otherwise.
+- **`lib/blocks/`** — one `defineBlock()` manifest per section block, and the only answer to "what fields does this block have, and what is a valid value?". A **pure leaf**: no component references, no I/O (ESLint enforces it). Field descriptors *derive* the Zod schema — never hand-write a second one. `normalize.ts` is the forgiving render path, `validate.ts` the strict publish path, `binding.ts` the dynamic-content contract with injected sources, `expand.ts` pattern `_ref` expansion, `diff.ts` version comparison. **Adding a block means adding a manifest**; `conformance.test.ts` fails the build otherwise.
+- **Publishing is a database transaction, not application code.** `publish` / `unpublish` / `snapshot` / `rollback` / `schedule` are `security invoker` SQL functions in `0010_publishing.sql`, called via `supabase.rpc()`. They write the payload, the revision and the audit event together or not at all. Never reimplement any of this as a sequence of PostgREST calls.
+- **`lib/db/repositories/`** — the polymorphic document repository plus per-entity helpers. Every function takes the client as its first argument, so the caller decides whether RLS applies. `app/**` and `components/**` are **barred by ESLint** from importing these directly; go through `lib/services`.
 - **`lib/domain/`** — pure: types, Zod schemas, business rules. No I/O, no React, no framework. `money.ts`, `pricing.ts`, `permissions.ts` live here.
 - **`lib/db/`** — `client.ts` (browser), `server.ts` (caller's session + RLS — use this for admin writes), `admin.ts` (service-role; scripts/jobs/tests only), `database.types.ts` (generated, `npm run db:types`).
 - **`lib/services/`** — orchestration + `requirePermission()`. `auth.ts` exposes `getCurrentUser`/`requireUser`/`requirePermission`, cached per render.
@@ -86,9 +90,9 @@ Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Crea
 
 ### Next phase (recommended order)
 
-1. **Phase 3** — templates, patterns, revisions/rollback, preview sessions. The block spine is in place, so a document is now "a validated `BlockTree` plus metadata"; `validateTree()` is the publish gate to call before writing `published_data`.
-2. **Phase 4** — admin design system (`components/admin/ui/*` on `mg.*` tokens) + the builder canvas. The insert menu reads `blockCatalog` (label/category/description, derived from the manifests) and the properties panel renders controls from `manifest.fields` — do not hand-write either.
-3. **Phases 5–7** — CMS & media, commerce & integrations, then rewire the public site and complete the visual-regression suite. Phase 7 adds `lib/blocks/sources/supabase.ts` implementing `BindingSource` over the real tables; nothing in `binding.ts` should need to change.
+1. **Phase 4** — admin design system (`components/admin/ui/*` on `mg.*` tokens) + the builder canvas. Everything it needs already exists: the insert menu reads `blockCatalog` (label/category/description, derived from the manifests), the properties panel renders controls from `manifest.fields`, and save/publish/history/preview are `lib/services/{documents,publishing,revisions,preview}`. **Do not hand-write any of those four** — the whole point of Phases 2–3 was that the builder is a thin UI over them.
+2. **Phase 5** — CMS & media. `lib/blocks/traverse.ts#walkBlocks` is the walker to reuse for media-usage extraction into `media_usages`; do not write a second one.
+3. **Phases 6–7** — commerce & integrations (including the scheduled-publish runner that fires `status='scheduled'`), then rewire the public site. Phase 7 adds `lib/blocks/sources/supabase.ts` implementing `BindingSource` over the real tables; nothing in `binding.ts` should need to change.
 
 Also outstanding from Phase 1: a repository layer over `lib/db`, and the RLS integration suite (positive *and* negative per role) against a local Supabase stack.
 
@@ -229,6 +233,21 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - Spec/Review body values the prototype hardcoded to `#f4f4f4` use `text-mg-fg` here so they read in both themes.
 - Phase 7 responsive pass (subagent-audited, mobile-only): (1) **Search overlay** — dropped the illegal `container-mg` + `max-w-3xl` combo (CLAUDE.md forbids both on one element) for `mx-auto max-w-3xl px-6 sm:px-8`, and added `min-w-0` to the input (its intrinsic ~20ch width at `text-3xl` was forcing horizontal overflow). (2) **`.container-mg`** gets a `padding-inline: 24px` at ≤680px so phone content isn't over-inset by the flat 48px gutter. (3) **Spec-comparison table** (`BodySpec`) switched `overflow-hidden`→`overflow-x-auto` with `minmax()` columns so it scrolls within its card instead of crushing/overflowing the page ≤400px. (4) **Newsletter + CTA-band forms** stack (`flex-col`) with `min-w-0` inputs below ~360px instead of overflowing. (5) **Touch targets** bumped to ≥40–44px (WCAG 2.5.8): header burger 14px→44px, icon buttons 38px→40px, drawer/bag close 32–36px→40px, qty stepper `py-2`→`py-2.5`. (6) **Bag line items** — smaller image + `min-w-0` content + `shrink-0` line-total + `flex-wrap` qty row so the price stays visible ≤468px. (7) Article dek/`CtaBand`/`FeaturedLead` headings and the drop-cap get `min-[681px]:` clamps; grid gap breakpoints normalized `min-[1025px]`→`min-[1024px]`. **Desktop (≥909px) is unchanged** — every fix is gated behind a mobile breakpoint. Two benign residuals left as-is: a 26px phantom scrollWidth on the 768px PDP (masked by `overflow-x:clip`, no visible cut, no scrollbar) and the MOST-POPULAR tier notch reading red-on-red at narrow widths (by design).
 
+- **Phase 3 (documents, publishing, revisions, preview) — decisions.**
+  - **Publishing is a SQL transaction, not application code.** It writes three things — `published_data`, a `revisions` snapshot, a `publish_events` row — and over PostgREST those would be three requests, so a failure between them leaves a published page with no history. `0010_publishing.sql` does all three in one transaction. `security invoker`, so RLS still evaluates as the editor and the service-role key stays out of the request path.
+  - **The publish permission is asserted inside the function.** RLS on `pages` only gates `page.write`; publishing is a distinct, higher act. Checking `page.publish` in SQL means a bug in a service cannot publish something the editor themselves could not.
+  - **`version` now advances on publish, snapshot *and* restore** — amending the `0003` comment that said "on publish". `revisions` is unique on `(entity_type, entity_id, version)`, so an operation that wrote history without advancing the counter would collide with whatever already claimed that number. One counter, no divergence.
+  - **Rollback restores into the draft and publishes nothing.** The editor reviews and then publishes. An undo that silently shipped would be a worse mistake than the one it was undoing. Gated on `revision.restore`, not `page.publish`.
+  - **Unpublish keeps `published_data`.** RLS already hides a non-published row from the public, so clearing the payload would buy nothing and make re-publishing a restore instead of one step. No revision is written because no payload changed.
+  - **`resolve_preview` is the only `security definer` function, and deliberately so.** A preview link must work for someone who is not staff and may not be signed in, which RLS cannot express: loosening the `preview_sessions` select policy to `using (true)` would let anyone enumerate every live token, and resolving the token with the service-role client would put a full RLS bypass on a public route. The definer function does the capability check inside the database and returns nothing but one document's draft. Verified against the live project with `auth.uid()` genuinely null: anon resolves a valid token, gets 0 rows for an expired one, and can read neither `preview_sessions` nor `revisions` nor any draft page.
+  - **A draft save does not validate; publishing does.** An editor mid-edit routinely holds an incomplete block, and refusing to save would lose their work. `lib/services/publishing.ts` runs the Phase 2 manifests over every tree in the payload and refuses to publish an invalid one.
+  - **Autosave revisions are throttled by age** (`shouldWriteAutosaveRevision`, 5 min) and written at the *current* version, not a new one — so they cannot consume a version number a later publish wants. At most one autosave per version; the unique key enforces it and a repeat is swallowed.
+  - **Templates hold named areas, not one ordered list** (`BLOCK_TREE_KEY.template === null`), so `blockTreesOf()` returns a list of trees and validation covers every area without a special case per call site.
+  - **Layering hole found and closed:** the preview route initially imported a repository directly. ESLint now bars `app/**` and `components/**` from `@/lib/db/repositories/*`. Scoped to repositories only, so the legitimate `lib/db/server` imports in the auth routes still pass.
+  - **Writing the expansion tests found a real bug:** unresolved `_ref`s were reported with the pattern-internal key, which matches nothing in the returned tree — an editor could not have located the offending block. Fixed by threading the key prefix down through expansion rather than applying it afterwards.
+  - **Known gap: `resolve_preview` has no rate limiting.** Tokens are 256-bit so brute force is impractical, but the endpoint is public and unthrottled. Worth revisiting if preview links are ever shared widely.
+  - **Verification honesty:** the integration suites are committed but were **never executed** — this container has no Docker daemon, so `npx supabase start` cannot run. They are written for CI, which does start a stack. What *was* run: the four gates (282 unit tests), `npm run build`, a live-project exercise of publish/rollback/preview via the Supabase MCP, and a by-hand load of `/preview/[token]` against the live project. All live scratch rows were deleted and the table counts confirmed back at baseline.
+  - **A correction worth recording:** the first live anon check was invalid. It impersonated the admin via `set_config('request.jwt.claims', …)` then did `set local role anon` — but switching the role does **not** clear the JWT claims, so `auth.uid()` still returned the admin's id and the `created_by = auth.uid()` policy branch matched. Re-run with the claims cleared and `auth.uid() is null` asserted first. If you test RLS this way, clear the claims.
 - **Phase 2 (block manifests) — decisions.**
   - **Manifests hold no component reference.** `lib/blocks` is a leaf and cannot import `components/`, so the `_type → component` map stays in `components/sections/registry.ts`. `conformance.test.ts` asserting set-equality is what actually keeps the halves in step — co-location would have looked safer while checking nothing.
   - **The Zod schema is derived from the field descriptors, not written beside them.** A hand-written schema is a second description of the same contract, and two descriptions drift; that is the failure this phase exists to remove. Same reasoning puts defaults on the *field* rather than in a separate manifest-level `defaults` object.
@@ -258,8 +277,8 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] Seeded from the live demo modules: 16 products, 5 categories, 7-section homepage
 - [x] RLS verified empirically against the live project (anon cannot read drafts, is refused INSERT, sees no revisions/import jobs)
 - [x] Security advisor findings fixed (mutable `search_path`; two functions reachable over REST RPC)
-- [ ] Repository layer over `lib/db`
-- [ ] RLS integration suite (positive + negative per role) against a local Supabase stack
+- [x] Repository layer over `lib/db` — delivered in Phase 3 (`lib/db/repositories/`)
+- [~] RLS integration suite (positive + negative per role) — written in Phase 3 (`tests/integration/`, incl. an author who holds `page.write` but not `page.publish`); runs in CI, cannot run in this container
 
 **Phase 1c — Auth** ✅
 - [x] Admin account created via the Auth Admin API; `scripts/create-admin.ts` idempotent
@@ -279,7 +298,20 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] Conformance suite — **194 new unit tests** (240 total, was 46)
 - [ ] Manifests for the `MODULE_MAP.md` TODO archetypes (`specTable`, `membershipTiers`, `heroVogue01…10`) — write them with the components
 
-**Phases 3–7** — see the snapshot table at the top of this file. Not started.
+**Phase 3 — Documents, publishing, revisions & preview** ✅
+- [x] Migration `0010_publishing.sql` written **and applied** to the live project; `database.types.ts` regenerated
+- [x] `publish` / `unpublish` / `snapshot` / `rollback` / `schedule` as `security invoker` SQL functions — one transaction each, entity type resolved through an allowlist, publish permission asserted inside the function
+- [x] `resolve_preview` as the **one** `security definer` function, granted to `anon` — the capability RLS cannot express
+- [x] `lib/domain/documents.ts` — status transitions, version rule, autosave throttle (15 tests)
+- [x] **Repository layer** over `lib/db` (the item outstanding from Phase 1): polymorphic `documents`, plus `revisions`, `previewSessions`, `patterns`, `templates` (entry > taxonomy > content_type), `pages`
+- [x] Services: `documents` (draft save + autosave + payload validation), `publishing`, `revisions` (+ `compareVersions`), `preview`, `patterns`, `templates`
+- [x] `lib/blocks/expand.ts` — pattern `_ref` expansion with cycle and depth guards (16 tests); `lib/blocks/diff.ts` — block-level version comparison (11 tests)
+- [x] `/preview/[token]` route, verified end to end against the live project
+- [x] ESLint: `app/**` and `components/**` may no longer import `lib/db/repositories/*`
+- [x] `tests/support/fixtures.ts` (per-run namespaced, no unscoped DELETE) + integration suites for publishing and preview
+- [ ] Integration suites have **not been run** — no Docker daemon in the build container, so no local Supabase stack. CI runs them.
+
+**Phases 4–7** — see the snapshot table at the top of this file. Not started.
 
 **Known issues**
 - [ ] `/admin` still renders inside the public header/footer (shares the root layout). Phase 4 replaces it with the admin shell.
