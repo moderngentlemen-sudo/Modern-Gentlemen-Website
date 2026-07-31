@@ -14,40 +14,32 @@
  * same interface in Phase 7 without this file changing.
  */
 
-import { z } from "zod";
+import {
+  bindingDescriptorSchema,
+  bindingQuerySchema,
+  isBindingDescriptor,
+  type BindingDescriptor,
+  type BindingQuery,
+} from "./bindingDescriptor";
 import { isField, type Field } from "./fields";
 import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
 import { mapBlocks, walkBlocks } from "./traverse";
 import type { BlockNode, BlockTree } from "./types";
 
-export const bindingQuerySchema = z.object({
-  /** Which collection to read, e.g. "articles". Resolved against the source map. */
-  source: z.string().min(1),
-  filter: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
-  sort: z
-    .object({
-      field: z.string().min(1),
-      direction: z.enum(["asc", "desc"]).default("desc"),
-    })
-    .optional(),
-  limit: z.number().int().positive().optional(),
-  /** Resolve to a single record rather than a list — for group fields. */
-  single: z.boolean().optional(),
-  /** Rename source keys onto the block's shape: `{ title: "name" }`. */
-  map: z.record(z.string()).optional(),
-  /** Take one field's value per row, for scalar lists such as `productRow.slugs`. */
-  pluck: z.string().min(1).optional(),
-});
-
-export type BindingQuery = z.infer<typeof bindingQuerySchema>;
-
-export const bindingDescriptorSchema = z.object({ $bind: bindingQuerySchema });
-export type BindingDescriptor = z.infer<typeof bindingDescriptorSchema>;
-
-export function isBindingDescriptor(value: unknown): value is BindingDescriptor {
-  return bindingDescriptorSchema.safeParse(value).success;
-}
+/**
+ * The descriptor shape itself lives in `./bindingDescriptor` so that publish
+ * validation can recognise a binding without importing this module — which
+ * imports the manifests, which import `defineBlock`. Re-exported here so
+ * callers still see one binding API.
+ */
+export {
+  bindingQuerySchema,
+  bindingDescriptorSchema,
+  isBindingDescriptor,
+  type BindingQuery,
+  type BindingDescriptor,
+};
 
 /** One descriptor found in a tree, with enough context to put the answer back. */
 export interface BindingRequest {

@@ -12,6 +12,9 @@
  * wrong with this page".
  */
 
+import type { ZodTypeAny } from "zod";
+
+import { bindingQuerySchema, hasBindingShape } from "./bindingDescriptor";
 import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
 import { walkBlocks } from "./traverse";
@@ -55,7 +58,50 @@ export function validateBlock(node: BlockNode): ValidationResult {
     return { ok: false, issues };
   }
 
-  const parsed = manifest.strictSchema.safeParse(blockProps(node));
+  const props = blockProps(node);
+
+  /**
+   * A bound field holds `{ $bind: … }` where its literal value would sit, and
+   * the literal type would of course reject that — `latestGrid.items` bound to a
+   * query is not an array. Before this, every such block failed publish
+   * validation, so no page carrying a binding could be published at all. It
+   * stayed latent because the seed data is entirely literals.
+   *
+   * Bound fields are therefore lifted out and their queries checked on their
+   * own, and the rest of the props are validated against a schema with those
+   * fields omitted. Omitting rather than unioning is what keeps issue paths
+   * precise: a `z.union` reports a failure inside a bound group at the group's
+   * path, and the properties panel needs `article.href`, not `article`.
+   */
+  const boundFields = manifest.bindable.filter((name) => hasBindingShape(props[name]));
+
+  let target: Record<string, unknown> = props;
+  let schema: ZodTypeAny = manifest.strictSchema;
+
+  if (boundFields.length > 0) {
+    target = { ...props };
+    for (const name of boundFields) delete target[name];
+
+    schema = manifest.strictSchema.omit(
+      Object.fromEntries(boundFields.map((name) => [name, true as const]))
+    );
+
+    for (const name of boundFields) {
+      const query = (props[name] as { $bind: unknown }).$bind;
+      const parsedQuery = bindingQuerySchema.safeParse(query);
+      if (parsedQuery.success) continue;
+      for (const issue of parsedQuery.error.issues) {
+        issues.push({
+          key,
+          type: node._type,
+          path: [name, "$bind", ...issue.path].join("."),
+          message: issue.message,
+        });
+      }
+    }
+  }
+
+  const parsed = schema.safeParse(target);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       issues.push({

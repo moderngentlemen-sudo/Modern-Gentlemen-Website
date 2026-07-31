@@ -13,7 +13,7 @@
  * un-typeable without a data migration.
  */
 
-import type { ZodObject, ZodRawShape, ZodTypeAny } from "zod";
+import type { ZodObject, ZodRawShape } from "zod";
 import type { FieldSet } from "./fields";
 
 /** Per-block display rules. Reserved for the Phase 4 properties panel. */
@@ -57,8 +57,12 @@ export interface BlockManifest {
   readonly fields: FieldSet;
   /** Derived from `fields`. Strips unknown keys — used on the render path. */
   readonly schema: ZodObject<ZodRawShape>;
-  /** Same, but unknown keys are an error — used by publish validation. */
-  readonly strictSchema: ZodTypeAny;
+  /**
+   * Same, but unknown keys are an error — used by publish validation. A
+   * `ZodObject` rather than a bare schema because `validate.ts` calls `.omit()`
+   * on it to lift out fields holding a `$bind` descriptor before parsing.
+   */
+  readonly strictSchema: ZodObject<ZodRawShape, "strict">;
   /** The props a freshly inserted block carries, so the canvas is never blank. */
   readonly insertDefaults: Readonly<Record<string, unknown>>;
   /** Field names that may hold a `$bind` descriptor instead of a literal value. */

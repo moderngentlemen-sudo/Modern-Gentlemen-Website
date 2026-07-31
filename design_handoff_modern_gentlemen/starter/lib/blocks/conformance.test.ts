@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import { registry } from "@/components/sections/registry";
 import { blockManifests, blockTypes, manifestFor } from "./manifests";
 import { normalizeBlock } from "./normalize";
+import { formatIssues, validateBlock } from "./validate";
 import { isField, type Field, type FieldSet } from "./fields";
 import { BLOCK_CATEGORIES, type BlockManifest } from "./types";
 
@@ -79,6 +80,48 @@ describe.each(manifests)("%s", (type, manifest) => {
 
   it("marks only real fields as bindable", () => {
     for (const name of manifest.bindable) expect(Object.keys(manifest.fields)).toContain(name);
+  });
+
+  it("passes publish validation with a $bind descriptor on every bindable field", () => {
+    // A bound field holds `{ $bind: … }` where its literal value would sit, and
+    // the literal type rejects that. Until validateBlock lifted bound fields out
+    // before parsing, NO page carrying a binding could be published — latent
+    // only because the seed data is entirely literals.
+    for (const name of manifest.bindable) {
+      const node = {
+        _key: "k",
+        _type: type,
+        settings: {
+          ...manifest.insertDefaults,
+          [name]: { $bind: { source: "articles", limit: 3 } },
+        },
+      };
+      const result = validateBlock(node);
+      expect(result.ok, `${type}.${name}: ${formatIssues(result.issues)}`).toBe(true);
+    }
+  });
+
+  it("reports a malformed $bind query against the bound field", () => {
+    for (const name of manifest.bindable) {
+      const node = {
+        _key: "k",
+        _type: type,
+        // `source` is required and must be non-empty.
+        settings: { ...manifest.insertDefaults, [name]: { $bind: { source: "" } } },
+      };
+      const result = validateBlock(node);
+      expect(result.ok).toBe(false);
+      expect(result.issues.map((i) => i.path)).toContain(`${name}.$bind.source`);
+    }
+  });
+
+  it("still rejects an undeclared prop at publish", () => {
+    const node = {
+      _key: "k",
+      _type: type,
+      settings: { ...manifest.insertDefaults, notAFieldOnThisBlock: "x" },
+    };
+    expect(validateBlock(node).ok).toBe(false);
   });
 });
 

@@ -14,7 +14,9 @@
  * committed, so the failure surfaces in CI rather than in an editor's face.
  */
 
-import { fieldSetDefaults, fieldSetToZod, type FieldSet } from "./fields";
+import { z } from "zod";
+
+import { fieldSetDefaults, fieldSetToZod, fieldToZod, type FieldSet } from "./fields";
 import type { BlockCategory, BlockManifest } from "./types";
 
 export interface BlockSpec {
@@ -37,7 +39,28 @@ export interface BlockSpec {
 
 export function defineBlock(spec: BlockSpec): BlockManifest {
   const schema = fieldSetToZod(spec.fields);
-  const strictSchema = fieldSetToZod(spec.fields, true);
+
+  /**
+   * The publish-path schema: strict about undeclared keys, because an
+   * undeclared prop means a manifest has fallen behind its component.
+   *
+   * Built here rather than through `fieldSetToZod` so its type is a `ZodObject`
+   * and not the strip/strict union that helper returns. `validate.ts` needs
+   * `.omit()` on it to lift out fields holding a `$bind` descriptor.
+   *
+   * Note what is deliberately NOT done: making each bindable field a
+   * `z.union([literal, descriptor])`. That validates correctly but reports a
+   * failure inside a bound group as `invalid_union` at the group's own path, so
+   * `article.href` collapses to `article` — and `BlockIssue.path` exists
+   * precisely so the properties panel can focus the offending control.
+   */
+  const strictSchema = z
+    .object(
+      Object.fromEntries(
+        Object.entries(spec.fields).map(([name, f]) => [name, fieldToZod(f, true)])
+      )
+    )
+    .strict();
 
   const insertDefaults = Object.freeze({
     ...fieldSetDefaults(spec.fields),
