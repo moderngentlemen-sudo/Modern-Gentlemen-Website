@@ -11,10 +11,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { CartApi, CartLine, EnrichedLine } from "./types";
 import { getProduct } from "@/lib/catalog";
+import { calculateTotals, normaliseQty } from "@/lib/domain/pricing";
+import { MEMBER_DISCOUNT_RATE, penceToPounds, poundsToPence } from "@/lib/domain/money";
 
 const BAG_KEY = "mg-bag";
 const MEMBER_KEY = "mg-member";
-const MEMBER_RATE = 0.15;
 
 const CartContext = createContext<CartApi | null>(null);
 
@@ -56,20 +57,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       })
       .filter(Boolean) as EnrichedLine[];
 
-    const subtotal = enriched.reduce((s, l) => s + l.lineTotal, 0);
-    const memberDiscount = isMember ? Math.round(subtotal * MEMBER_RATE) : 0;
-    const afterDiscount = subtotal - memberDiscount;
-    const shipping = enriched.length === 0 || afterDiscount >= 50 ? 0 : 4.95;
+    // Totals are computed by lib/domain/pricing in exact integer pence, then
+    // converted back to pounds at this boundary so CartApi keeps its existing
+    // shape. The rules themselves live in one place, shared with the server.
+    const totals = calculateTotals(
+      enriched.map((l) => ({ unitPrice: poundsToPence(l.product.price), qty: l.qty })),
+      { isMember }
+    );
 
     return {
       lines: enriched,
       count: lines.reduce((s, l) => s + l.qty, 0),
-      subtotal,
+      subtotal: penceToPounds(totals.subtotal),
       isMember,
-      memberRate: MEMBER_RATE,
-      memberDiscount,
-      shipping,
-      total: afterDiscount + shipping,
+      memberRate: MEMBER_DISCOUNT_RATE,
+      memberDiscount: penceToPounds(totals.memberDiscount),
+      shipping: penceToPounds(totals.shipping),
+      total: penceToPounds(totals.total),
       has: (slug) => lines.some((l) => l.slug === slug),
       add: (slug, qty = 1) => {
         const found = lines.find((l) => l.slug === slug);
@@ -79,8 +83,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             : [...lines, { slug, qty }]
         );
       },
-      setQty: (slug, qty) =>
-        persist(qty <= 0 ? lines.filter((l) => l.slug !== slug) : lines.map((l) => (l.slug === slug ? { ...l, qty } : l))),
+      setQty: (slug, qty) => {
+        // "qty 0 removes" (CLAUDE.md) — the rule lives in lib/domain/pricing.
+        const next = normaliseQty(qty);
+        persist(
+          next === null
+            ? lines.filter((l) => l.slug !== slug)
+            : lines.map((l) => (l.slug === slug ? { ...l, qty: next } : l))
+        );
+      },
       remove: (slug) => persist(lines.filter((l) => l.slug !== slug)),
       clear: () => persist([]),
       setMember: (v) => {

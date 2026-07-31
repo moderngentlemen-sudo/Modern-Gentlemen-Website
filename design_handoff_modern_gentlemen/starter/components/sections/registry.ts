@@ -53,6 +53,11 @@ export const registry = {
   coverCards: CoverCards,
   pullQuote: PullQuote,
   masthead: Masthead,
+  // Each block owns its own prop contract, so the registry is deliberately
+  // heterogeneous and cannot be typed more tightly here. Phase 2 replaces this
+  // with `defineBlock()` manifests, which restore per-block type safety via
+  // Zod schemas. Until then this stays an explicit, documented exception.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<string, ComponentType<any>>;
 
 export type BlockType = keyof typeof registry;

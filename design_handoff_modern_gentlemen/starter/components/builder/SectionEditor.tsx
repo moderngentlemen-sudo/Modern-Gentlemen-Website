@@ -8,7 +8,7 @@
  *
  * Persist `sections` back to Sanity via a mutation on save.
  */
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import {
   DndContext,
   closestCenter,
@@ -35,7 +35,13 @@ interface Block {
 let uid = 0;
 const key = () => `blk_${Date.now()}_${uid++}`;
 
-export function SectionEditor({ initial = [] as Block[], onSave }: { initial?: Block[]; onSave?: (b: Block[]) => void }) {
+export function SectionEditor({
+  initial = [] as Block[],
+  onSave,
+}: {
+  initial?: Block[];
+  onSave?: (b: Block[]) => void;
+}) {
   const [blocks, setBlocks] = useState<Block[]>(initial);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -47,14 +53,17 @@ export function SectionEditor({ initial = [] as Block[], onSave }: { initial?: B
     setBlocks((b) => arrayMove(b, oldIndex, newIndex));
   }
 
-  const addBlock = (type: BlockType) => setBlocks((b) => [...b, { _key: key(), _type: type } as Block]);
+  const addBlock = (type: BlockType) =>
+    setBlocks((b) => [...b, { _key: key(), _type: type } as Block]);
   const removeBlock = (k: string) => setBlocks((b) => b.filter((x) => x._key !== k));
 
   return (
     <div className="grid grid-cols-[240px_1fr] gap-6 min-h-screen">
       {/* Library rail */}
       <aside className="border-r border-mg-bd/15 p-4 sticky top-0 h-screen overflow-auto">
-        <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-mg-accent mb-4">Add section</h3>
+        <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-mg-accent mb-4">
+          Add section
+        </h3>
         <div className="grid gap-2">
           {blockCatalog.map((b) => (
             <button
@@ -84,7 +93,9 @@ export function SectionEditor({ initial = [] as Block[], onSave }: { initial?: B
           </SortableContext>
         </DndContext>
         {blocks.length === 0 && (
-          <p className="text-mg-fg/40 font-mono text-sm p-10 text-center">Add sections from the left to build the page.</p>
+          <p className="text-mg-fg/40 font-mono text-sm p-10 text-center">
+            Add sections from the left to build the page.
+          </p>
         )}
       </div>
     </div>
@@ -92,21 +103,41 @@ export function SectionEditor({ initial = [] as Block[], onSave }: { initial?: B
 }
 
 function SortableBlock({ block, onRemove }: { block: Block; onRemove: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block._key });
-  const Cmp = registry[block._type];
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block._key,
+  });
+  // The registry is heterogeneous by design — each block owns its own prop
+  // contract — so the lookup is widened to a generic prop bag here. Phase 2's
+  // `defineBlock()` manifests restore per-block type safety via Zod schemas.
+  const Cmp = registry[block._type] as ComponentType<Record<string, unknown>> | undefined;
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+      }}
       className="relative group mb-4 outline outline-1 outline-transparent hover:outline-mg-accent/40"
     >
       {/* Frame toolbar */}
       <div className="absolute z-10 top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100">
-        <button {...attributes} {...listeners} className="cursor-grab bg-black/70 text-white text-xs px-2 py-1 font-mono">drag</button>
-        <button onClick={onRemove} className="bg-black/70 text-white text-xs px-2 py-1 font-mono">delete</button>
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab bg-black/70 text-white text-xs px-2 py-1 font-mono"
+        >
+          drag
+        </button>
+        <button onClick={onRemove} className="bg-black/70 text-white text-xs px-2 py-1 font-mono">
+          delete
+        </button>
       </div>
-      {/* @ts-expect-error block props validated per-component */}
-      {Cmp ? <Cmp {...block} /> : <div className="p-6 font-mono text-sm text-mg-accent">Unknown: {block._type}</div>}
+      {Cmp ? (
+        <Cmp {...block} />
+      ) : (
+        <div className="p-6 font-mono text-sm text-mg-accent">Unknown: {block._type}</div>
+      )}
     </div>
   );
 }
