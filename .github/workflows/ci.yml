@@ -45,6 +45,18 @@ jobs:
       - name: Unit & component tests
         run: npm test
 
+      # Advisory only: docs discipline must never block a hotfix.
+      - name: PROGRESS.md freshness
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)
+          if echo "$CHANGED" | grep -q '^design_handoff_modern_gentlemen/starter/'; then
+            if ! echo "$CHANGED" | grep -q '^PROGRESS.md$'; then
+              echo "::warning title=PROGRESS.md not updated::This PR changes starter/ but does not update PROGRESS.md - it is the session handoff document, please refresh it."
+            fi
+          fi
+
   # Services, repositories and RLS policies against a real Postgres.
   integration:
     name: Integration tests

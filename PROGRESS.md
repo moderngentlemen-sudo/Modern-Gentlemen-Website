@@ -2,61 +2,126 @@
 
 Update this as you build. Mark items `[x]` done, `[~]` in progress, `[!]` blocked. Add a note for any deviation from the design and why. This doubles as the **post-build verification report** required by `IMPLEMENTATION_BRIEF.md`.
 
-Legend: `[ ]` not started · `[~]` in progress · `[x]` done & screenshot-verified · `[!]` blocked/needs decision
+Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]` blocked/needs decision
 
 ---
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** `claude/continue-previous-work-lykdt2` (Milestones 3–4 + the Phase 7 responsive pass committed here). M1+M2 were **merged to `main` via PR #1** (from `claude/project-setup-docs-xfx8td`); this branch started even with that merged content. **Deploy:** live on Railway, running on demo data. **Last milestone:** M4 (Article template system), followed by a **mobile/responsive QA pass** (Phase 7 slice — subagent-audited at 1024/768/414/360 + dark, majors + minors fixed, desktop unchanged).
+**Branch:** `claude/modern-gentlemen-admin-ntslwo` (all backend work). **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**.
+
+Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation and auth are done, the builder and CMS are not.
+
+Live state (branch, commits, migrations, test counts) is printed automatically at session start by a hook. Run it any time:
+`node design_handoff_modern_gentlemen/starter/scripts/status.mjs`
 
 ### Progress snapshot
-| Phase / Milestone | Scope | Status |
-|---|---|---|
-| Phase 0 — Setup & deploy | deps + `package-lock.json`, clean build, Railway pipeline | ✅ done, **live** |
-| Milestone 1 — Homepage + chrome | foundation, all chrome (header/mega/drawer/search/bag/footer/theme), 7 homepage section blocks, homepage | ✅ done, screenshot-verified |
-| Milestone 2 — Store flow | Shop, Product/PDP, Bag, Checkout + shared `components/store/*` primitives | ✅ done, merged (PR #1) |
-| Milestone 3 — Editorial pages | Category ×5, About, Membership + 9 new section blocks + 2 shared UI primitives (`ui/RailLabel`, `ui/HairlineGrid`) + `lib/editorial.ts` | ✅ done, screenshot-verified |
-| Milestone 4 — Article template system | full library: 9 hero × 17 body → 20 templates (`components/article/*`) + `lib/articles.ts` (seeds 35 category links + 20 showcases) + reading-progress bar + KEEP READING | ✅ done, screenshot-verified |
 
-Key commits: `5f9bc1d` Phase 0 → `d127c94` M1 → `ad99224` Railway build fix → `4610288` M2 (→ merged as PR #1) → M3 editorial pages → M4 article system (this branch).
+| Track | Phase | Scope | Status |
+|---|---|---|---|
+| A | Milestones 0–4 | Setup/deploy, chrome, homepage, store flow, editorial pages, 20-template article system | ✅ done, screenshot-verified |
+| A | Phase 6–7 | Section Library builder, global SEO/a11y/Lighthouse pass | ⬜ not started (superseded in part by Track B Phase 4) |
+| B | Phase 0 — Toolchain | ESLint/Prettier, Vitest, Playwright, CI, layering rules, Sanity removed | ✅ done |
+| B | Phase 1 — Data foundation | 9 migrations applied (41 tables, 88 RLS policies), RBAC, typed clients, seed | ✅ done |
+| B | Phase 1c — Auth | admin account, `middleware.ts`, sign-in, gated `/admin`, auth service | ✅ done |
+| B | Phase 2 — Block manifests | `defineBlock`, 22 manifests, binding engine, resolver, conformance suite | ⬜ **next** |
+| B | Phase 3 — Documents & publishing | templates, patterns, revisions, rollback, preview | ⬜ not started |
+| B | Phase 4 — Admin UI & builder | `components/admin/ui/*`, shell, builder canvas, properties panel | ⬜ not started |
+| B | Phase 5 — CMS & media | article/taxonomy editors, media library with usage tracking | ⬜ not started |
+| B | Phase 6 — Commerce & integrations | products, XML ingestion, Shopify adapter, navigation, theme editor | ⬜ not started |
+| B | Phase 7 — Rewire & harden | public site reads the DB; full E2E + visual regression | ⬜ not started |
+
+### ⚠️ Corrections to earlier guidance in this file
+
+Instructions below that were true during Track A and are **now wrong**. A session acting on the old version will undo correct work.
+
+- **"Cart + catalog are FINISHED — do not rebuild"** — no longer accurate. `lib/cart/CartProvider.tsx` now delegates its money maths to `lib/domain/pricing.ts`. This fixed a real bug: the original ran `Math.round()` over a **pounds** value, discounting a £145 subtotal by £22.00 instead of £21.75 — overcharging members 25p and able to flip the £50 free-shipping threshold. Do not revert it. The **rules** (15%, ≥£50, qty-0-removes) are unchanged and still correct.
+- **Money is integer pence**, not pounds. `lib/domain/money.ts` converts at the boundary. The DB stores `price_pence integer`.
+- **`lib/queries.ts` and `lib/supabase/` no longer exist.** Use `lib/db/{client,server,admin}.ts`. Repositories replace `queries.ts` in Phase 2.
+- **`supabase/migrations/0001_init.sql` no longer exists.** It was never applied and is superseded by `0001`–`0009`.
+- **The Sanity scaffold is gone** (`sanity/`, `lib/sanity/`, `sanity.config.ts`, `@sanity/*`, `styled-components`). Do not reference it.
+- **Stripe is out of scope** for now, by decision. Checkout stays demo-only. The commerce layer manages catalog/inventory/merchandising, not payments.
+- **The app is no longer "100% demo data with no env vars."** It needs `.env.local` (see below) and reads a live Supabase project.
 
 ### What runs today
-Runs **100% on demo data — no backend, env vars, or accounts** (`cd design_handoff_modern_gentlemen/starter && npm install && npm run dev`). Live: the **Homepage**, the full **Store** journey (Shop → Product → Bag → Checkout, header bag drawer, member-discount math, demo checkout), the 5 **Category** landings (`/style /grooming /watches /culture /film`), **About**, **Membership** (billing toggle + tiers + FAQ + join-sets-member-flag), and **Article** (`/article/[slug]` — 20 templates; all 35 category links resolve; unknown slug → 404).
 
-**Every design page is now built.** The remaining work is the Section-Library builder (Phase 6), a global QA pass (Phase 7 — SEO/a11y/Lighthouse), and Track B (Supabase + Stripe).
+Public site: unchanged and still rendering from demo modules (`lib/demo/home-sections.ts`, `lib/catalog.ts`, `lib/editorial.ts`, `lib/articles.ts`). Phase 7 switches it to the database.
+
+New in Track B: **`/sign-in`** and a gated **`/admin`** showing the signed-in identity and resolved permission set. `middleware.ts` refreshes the session and redirects unauthenticated `/admin` traffic.
+
+Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Created by `scripts/create-admin.ts` — idempotent, safe to re-run.
+
+### Environment
+
+`design_handoff_modern_gentlemen/starter/.env.local` (gitignored; never commit real values):
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JOBS_SECRET`, `NEXT_PUBLIC_SITE_URL`. Mirror the first three in Railway → Variables.
 
 ### Architecture & patterns to REUSE (don't reinvent)
-- **Page content = an ordered `Block[]`** rendered by `components/SectionRenderer.tsx` via `components/sections/registry.ts`; one component per archetype, **variants via a `variant` prop**. `app/page.tsx` `DEMO_SECTIONS` is the reference pattern.
-- **Shared primitives:** `components/ui/*` (`Button`, `Eyebrow`/`MonoLabel`, `clsx`) and `components/store/*` (`ProductCard`, `QtyStepper`, `OrderSummary`, `Field`/`SelectField`).
-- **Tokens/layout:** `.container-mg` (1320px), the `mg.*` Tailwind tokens, `[data-darkband]` (pins the full dark token set), and the `.mg-underline` grow-underline utility — in `app/globals.css` / `tailwind.config.ts`.
-- **Cart + catalog are FINISHED — do not rebuild:** `lib/cart/CartProvider.tsx` (`useCart()`), `lib/cart/types.ts` (`CartApi`), `lib/catalog.ts` (16 products + `allProducts/byGroup/getProduct/related/formatGBP`, `groups`). Commerce rules (15% member, free-ship ≥£50 else £4.95, qty-0-removes) are correct.
-- **Chrome is built once** in `app/layout.tsx`; every page inherits it. The homepage hero bleeds behind the fixed 72px header via `-mt-[72px]`.
-- **Decisions to respect** live in the **Deviations & decisions log** at the bottom of this file (frost-only header, square corners / `sharpCorners`, STORE label + `/shop` route, `?cat=` sync, demo payment, styled PDP not-found, footer always dark…).
+
+**Track A (unchanged):**
+- **Page content = an ordered `Block[]`** rendered by `components/SectionRenderer.tsx` via `components/sections/registry.ts`; one component per archetype, variants via a `variant` prop.
+- **Shared primitives:** `components/ui/*` (`Button`, `Eyebrow`/`MonoLabel`, `clsx`) and `components/store/*` (`ProductCard`, `QtyStepper`, `OrderSummary`, `Field`/`SelectField`). **Reuse `Field` for admin forms** — the sign-in page does.
+- **Tokens/layout:** `.container-mg` (1320px, site only — not in `/admin`), the `mg.*` Tailwind tokens, `[data-darkband]`, `.mg-underline`.
+- **Chrome is built once** in `app/layout.tsx`.
+
+**Track B (new):**
+- **`lib/domain/`** — pure: types, Zod schemas, business rules. No I/O, no React, no framework. `money.ts`, `pricing.ts`, `permissions.ts` live here.
+- **`lib/db/`** — `client.ts` (browser), `server.ts` (caller's session + RLS — use this for admin writes), `admin.ts` (service-role; scripts/jobs/tests only), `database.types.ts` (generated, `npm run db:types`).
+- **`lib/services/`** — orchestration + `requirePermission()`. `auth.ts` exposes `getCurrentUser`/`requireUser`/`requirePermission`, cached per render.
+- **Layering is enforced by ESLint** (`no-restricted-imports` in `.eslintrc.json`): `app → services → db`; `domain`, `blocks`, `render`, `integrations` are leaves. If the rule complains, the design is wrong.
+- **Authorisation is three-layered:** RLS policies (deepest, unbypassable) → `requirePermission()` in services → permission-filtered UI. Permissions are `resource.action` rows in the DB, not an enum.
+- **Versioning convention** on every editable entity: `draft_data` / `published_data` / `version` / `status`, with a single polymorphic `revisions` table.
 
 ### Setup/deploy gotchas ALREADY FIXED (don't re-hit)
+
 - `package-lock.json` is committed (Railway's `npm ci` needs it).
 - `starter/railway.json` buildCommand is **`npm run build`** only — Nixpacks already runs `npm ci`; a second one hits `EBUSY`.
-- Railway **Root Directory must stay `design_handoff_modern_gentlemen/starter`** (the repo root has no app).
+- Railway **Root Directory must stay `design_handoff_modern_gentlemen/starter`**.
+- **Playwright is pinned to 1.56.1** to match the browsers preinstalled at `/opt/pw-browsers` (build 1194). Never run `playwright install` locally; CI installs its own.
+- **`@supabase/ssr` must stay ≥ 0.12.** Version 0.5.x cannot resolve the generated `Database` generic — every query silently degrades to `never`, discarding type safety across the data layer.
+- **Route files may only export the page component** and Next's reserved symbols. Exporting a data array from `app/page.tsx` breaks `next build`; that is why `DEMO_SECTIONS` lives in `lib/demo/home-sections.ts`.
+- **`server-only` is not used in `lib/db/admin.ts`** — it throws when imported outside Next, which breaks the seed script and test fixtures. A runtime browser check guards it instead.
+- Redirects in route handlers are built from `request.nextUrl.clone()`, **not `new URL(..., request.url)`** — the latter can carry a different host (localhost vs 127.0.0.1, or an internal origin behind a proxy), and auth cookies are host-scoped.
 
 ### Next phase (recommended order)
-1. ~~**Editorial pages**~~ ✅ **DONE (M3)** — Category ×5, About, Membership built + screenshot-verified. See the new blocks in `components/sections/` and demo data in `lib/editorial.ts`.
-2. ~~**Article**~~ ✅ **DONE (M4)** — full 20-template system in `components/article/*` + `lib/articles.ts`. All 9 heroes + 17 bodies built; the "Letter from the Editor" screenshot is pixel-matched, the rest prototype-verified.
-3. **Phase 6** (recommended next) — Section Library picker + drag-and-drop builder (`components/builder/SectionEditor.tsx`; dnd-kit already installed).
-4. **Phase 7** — global QA: per-route SEO metadata (Article already has `generateMetadata`), Product JSON-LD, sitemap/robots, full a11y + responsive + dark sweep, Lighthouse.
-5. **Track B** — Supabase + Stripe (see the Track B checklist below + `06_SUPABASE.md`): provision, apply `supabase/migrations/0001_init.sql` + `seed.sql`, swap demo arrays → `lib/queries.ts` (note: `getArticle()` should return the same resolved shape as `lib/articles.ts getArticleBySlug`), add auth + a Supabase cart adapter + real Stripe checkout/webhook, then remove the legacy Sanity scaffold. (A Supabase MCP integration is connected in-session for provisioning.)
 
-Missing section archetypes to build when a page needs them: `specTable`, `heroVogue01…10` (`membershipTiers` deferred — Membership is a bespoke in-place page).
+1. **Phase 2 — Block manifest system.** `lib/blocks/defineBlock.ts` + a manifest per section, so one declaration drives the builder's insert menu, the properties panel, publish validation, the renderer, dynamic binding, and a conformance test suite. This is the spine everything else hangs off; do it before any admin UI.
+2. **Phase 3** — templates, patterns, revisions/rollback, preview sessions.
+3. **Phase 4** — admin design system (`components/admin/ui/*` on `mg.*` tokens) + the builder canvas.
+4. **Phases 5–7** — CMS & media, commerce & integrations, then rewire the public site and complete the visual-regression suite.
+
+Also outstanding from Phase 1: a repository layer over `lib/db`, and the RLS integration suite (positive *and* negative per role) against a local Supabase stack.
 
 ### How to run & verify
-- **Dev:** `cd design_handoff_modern_gentlemen/starter && npm install && npm run dev` → http://localhost:3000.
-- **Prod/Railway check:** `npm run build` (must stay clean — it's what Railway runs).
-- **Screenshot-diff loop** (the definition of done): drive the running app with the **preinstalled** global Playwright (`require('/opt/node22/lib/node_modules/playwright')`; Chromium auto-found via `/opt/pw-browsers` — never run `playwright install`), capture at 1440 / 909 / 375 + a dark pass, and diff against `design_handoff_modern_gentlemen/handoff/screenshots/*.png`. Fix every visible diff before ticking a box here.
+
+All commands from `design_handoff_modern_gentlemen/starter/`.
+
+- **Dev:** `npm install && npm run dev` → http://localhost:3000
+- **The four gates (run before every commit):**
+  `npm run format:check && npm run lint && npm run typecheck && npm test`
+- **Build:** `npm run build` — required before anything touching routing; Next enforces rules that only appear at build time.
+- **E2E:** `npm run test:e2e`. Signed-in specs skip unless `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` are exported.
+- **Integration:** `npx supabase start && npm run test:integration`.
+- **Seed / admin:** `npx tsx scripts/seed.ts`, `npx tsx scripts/create-admin.ts` (both idempotent).
+- **Screenshot-diff loop** (Track A definition of done): drive the running app with the preinstalled Playwright, capture at 1440 / 909 / 375 + dark, diff against `design_handoff_modern_gentlemen/handoff/screenshots/*.png`.
+- **Proving a refactor is render-safe:** build before and after, then diff the prerendered HTML in `.next/server/app/*.html` after stripping build IDs and chunk hashes. This is how the Prettier pass was verified to leave all 12 pages byte-identical.
 
 ### A new session's first actions
-Read, in order: **this handoff** → `design_handoff_modern_gentlemen/CLAUDE.md` (tokens/rules — read every session) → for the page you're building, `03_PAGES_AND_COMPONENTS.md` + its `design_files/MG *.dc.html` prototype + the matching `handoff/screenshots/*.png`. Then build on `claude/continue-previous-work-lykdt2`, screenshot-verify, and tick this file as you go.
+
+1. Read this handoff.
+2. Read `design_handoff_modern_gentlemen/CLAUDE.md` — the design baseline, binding every session.
+3. Check live state: `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`.
+4. For front-end work: the relevant `03_PAGES_AND_COMPONENTS.md` section + its `design_files/MG *.dc.html` prototype + matching screenshot.
+5. Build on `claude/modern-gentlemen-admin-ntslwo`, run the four gates, and **update this file** before finishing.
 
 ---
+
+
+# Track A — Front-end build (complete)
+
+> Historical record of the design build, kept for its decisions log and
+> verification evidence. The "Phase" numbers below are **Track A's** and are
+> unrelated to the Track B phases in the snapshot table above.
 
 ## Phase 0 — Smoke test & deploy pipeline
 - [x] `npm install` + `npm run dev` renders the scaffold locally (HTTP 200, full nav chrome + sections render on demo data); `npm run build` (Railway's command) also passes clean; `package-lock.json` generated & committed
@@ -166,17 +231,37 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 
 - Header **hide-on-scroll** added as `lib/useHideOnScroll.ts` (owns both `scrolled` and `hidden`): slides the bar to `translateY(-100%)` on scroll-down past 120px, reveals on any scroll-up — the one motion `EXECUTION_PLAN.md §10` sanctions on top of the frost ("optional slide-away-on-scroll-down is fine"); the 72px height still never changes. The hook **ignores scroll while pinned** (drawer/search/bag/mega-menu open) and re-baselines on un-pin, because `useScrollLock`'s fixed-body technique moves the document scroll position — without that guard the unlock `scrollTo(0, savedY)` restore reads as a large scroll-down and hides the bar on every overlay close (it also stops the frost from dropping out while an overlay is open, which it previously did). Focus entering the header reveals it; the global reduced-motion rule already zeroes the 320ms slide.
 
-## Track B — Data layer: Supabase + Stripe (see `EXECUTION_PLAN.md §9`, `06_SUPABASE.md`)
-- [ ] Supabase project provisioned; `0001_init.sql` + `seed.sql` applied; `getProducts()` returns 16
-- [ ] Env vars set (Supabase URL/anon/service-role + Stripe secret/publishable/webhook) locally + Railway
-- [ ] Content/products switched from demo arrays to `lib/queries.ts`
-- [ ] Auth (`@supabase/ssr` + `middleware.ts` + account area); `is_member` drives 15% discount
-- [ ] Supabase cart adapter behind `CartApi` (guest localStorage → merge on login)
-- [ ] Stripe checkout route + webhook writing `orders`/`order_items`; confirmation reads from Supabase
-- [ ] Membership = Stripe subscription → webhook sets `is_member`
-- [ ] Supabase Storage buckets + `next.config.mjs` remote host; real imagery uploaded
-- [ ] Section-builder admin loads/saves `pages.sections` JSONB (auth-gated) — net-new scope
-- [ ] Legacy Sanity scaffold removed (`sanity/`, `lib/sanity/`, `sanity.config.ts`, `@sanity/*` deps)
+## Track B — Backend & admin platform (see `06_SUPABASE.md`, and the plan in `/root/.claude/plans/`)
+
+**Phase 0 — Toolchain** ✅
+- [x] ESLint (+ layering `no-restricted-imports`), Prettier, Node 20 pin
+- [x] Vitest workspace (unit/jsdom + integration/node), Playwright (e2e + visual)
+- [x] GitHub Actions CI: format → lint → typecheck → unit → integration → build → e2e/visual
+- [x] Sanity scaffold + `styled-components` removed
+- [x] `lib/domain/money.ts` + `pricing.ts` extracted from `CartProvider`; member-discount rounding bug fixed
+
+**Phase 1 — Data foundation** ✅
+- [x] Migrations `0001`–`0009` written **and applied** to `qnfoztnyxhubnnulpfwt` (41 tables, RLS on all 41, 88 policies)
+- [x] RBAC: 40 permissions × 5 roles as data; `has_permission()` / `is_staff()` / `is_admin()` SQL functions
+- [x] `database.types.ts` generated; typed clients in `lib/db/`
+- [x] Seeded from the live demo modules: 16 products, 5 categories, 7-section homepage
+- [x] RLS verified empirically against the live project (anon cannot read drafts, is refused INSERT, sees no revisions/import jobs)
+- [x] Security advisor findings fixed (mutable `search_path`; two functions reachable over REST RPC)
+- [ ] Repository layer over `lib/db`
+- [ ] RLS integration suite (positive + negative per role) against a local Supabase stack
+
+**Phase 1c — Auth** ✅
+- [x] Admin account created via the Auth Admin API; `scripts/create-admin.ts` idempotent
+- [x] `middleware.ts` — session refresh + `/admin` gate preserving the destination
+- [x] `lib/services/auth.ts` + `lib/domain/permissions.ts` (typed `Permission` union, `PermissionSet`)
+- [x] `/sign-in` (reuses `components/store/Field`), gated `/admin`, sign-out, OAuth/recovery callback
+- [x] E2E: redirect, bad credentials, sign-in → 40 permissions, sign-out, already-signed-in bounce
+
+**Phases 2–7** — see the snapshot table at the top of this file. Not started.
+
+**Known issues**
+- [ ] `/admin` still renders inside the public header/footer (shares the root layout). Phase 4 replaces it with the admin shell.
+- [ ] The service-role key passed through a chat transcript — rotate it in the Supabase dashboard when convenient. It is read from the environment, so rotation needs no code change.
 
 ## Still deferred
 - [ ] Real membership subscriptions vs. flag-only
