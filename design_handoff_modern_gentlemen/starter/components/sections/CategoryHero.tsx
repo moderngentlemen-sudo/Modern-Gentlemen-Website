@@ -31,7 +31,7 @@ export function CategoryHero({ eyebrow, title, blurb, image, chips }: Props) {
         {chips?.length ? (
           <div className="mt-[30px] flex flex-wrap gap-[10px]">
             {chips.map((c) => (
-              <span key={c} className="rounded-full border border-white/[0.22] px-[17px] py-[9px] font-mono text-[10px] tracking-[0.16em] text-mg-fg/85">{c}</span>
+              <span key={c} className="border border-white/[0.22] px-[17px] py-[9px] font-mono text-[10px] tracking-[0.16em] text-mg-fg/85">{c}</span>
             ))}
           </div>
         ) : null}

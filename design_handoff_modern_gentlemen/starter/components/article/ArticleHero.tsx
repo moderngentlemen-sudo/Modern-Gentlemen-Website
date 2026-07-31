@@ -62,7 +62,7 @@ function HeroContained({ kicker, title, dek, byline, image }: HeroProps) {
         <Byline className="mt-[22px] text-mg-fg/50">{byline}</Byline>
       </div>
       {image && (
-        <div data-hero-media className="relative mt-9 h-[52vh] min-h-[360px] overflow-hidden rounded-[12px]">
+        <div data-hero-media className="relative mt-9 h-[52vh] min-h-[360px] overflow-hidden">
           <HeroImg src={image} />
         </div>
       )}
@@ -134,7 +134,7 @@ function HeroSplit({ kicker, title, dek, byline, image }: HeroProps) {
         <Byline className="mt-[22px] text-mg-fg/50">{byline}</Byline>
       </div>
       {image && (
-        <div data-splitimg className="relative h-[60vh] min-h-[440px] overflow-hidden rounded-[12px]">
+        <div data-splitimg className="relative h-[60vh] min-h-[440px] overflow-hidden">
           <HeroImg src={image} />
         </div>
       )}

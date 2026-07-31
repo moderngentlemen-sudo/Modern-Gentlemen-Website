@@ -97,6 +97,40 @@ a:hover { color: var(--mg-accent); }
 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes mgMegaDrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Overlay motion, ported verbatim from the prototype. */
+@keyframes mgFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mgFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes mgFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes mgRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+/* Sidebar entry = 'Fade' (the prototype's chosen default): a short slide in
+   from the left under an opacity ramp, not a full slide-over. */
+@keyframes mgPanFadeIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
+@keyframes mgPanFadeOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-30px); } }
+/* Drawer accordion: dropdownAnim 'Curtain' in, dropdownExit 'Collapse' out. */
+@keyframes mgDrawerDrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes mgddCurtain { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: scaleY(1); } }
+@keyframes mgdxCollapse { to { opacity: 0; transform: scaleY(0); } }
+
+/* Drawer sub-list: container drops in, links unroll on a stagger; on close the
+   links freeze and the whole list collapses upward. */
+[data-drawersubs] { animation: mgDrawerDrop 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-drawersubs] a {
+  animation: mgddCurtain 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top;
+}
+[data-drawersubs] a:nth-child(1) { animation-delay: 0.03s; }
+[data-drawersubs] a:nth-child(2) { animation-delay: 0.07s; }
+[data-drawersubs] a:nth-child(3) { animation-delay: 0.11s; }
+[data-drawersubs] a:nth-child(4) { animation-delay: 0.15s; }
+[data-drawersubs] a:nth-child(5) { animation-delay: 0.19s; }
+[data-drawersubs] a:nth-child(6) { animation-delay: 0.23s; }
+[data-drawersubs] a:nth-child(7) { animation-delay: 0.27s; }
+[data-drawersubs][data-exiting="true"] a { animation: none !important; }
+[data-drawersubs][data-exiting="true"] {
+  animation: mgdxCollapse 0.3s ease forwards !important;
+  transform-origin: top;
+}
 /* Theme-toggle glyph spin. Alternate firings run the mirrored variant so the
    icon rocks back and forth instead of always turning the same way. */
 @keyframes mgSpin { from { transform: rotate(-150deg); } to { transform: rotate(0); } }

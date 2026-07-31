@@ -135,7 +135,7 @@ export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credi
         )}
         <div
           aria-hidden
-          className="hidden min-[681px]:block absolute right-8 bottom-[30px] pointer-events-none font-mono text-[10px] leading-[normal] tracking-[0.28em] text-white/55 [writing-mode:vertical-rl]"
+          className="absolute right-8 bottom-[30px] pointer-events-none font-mono text-[10px] leading-[normal] tracking-[0.28em] text-white/55 [writing-mode:vertical-rl]"
         >
           SCROLL ↓
         </div>

@@ -20,7 +20,7 @@ export function ArticleGrid({ label, items, loadMoreLabel = "LOAD MORE STORIES" 
           <Link
             key={c.href + c.title}
             href={c.href}
-            className="group block overflow-hidden rounded-[11px] border border-mg-bd/[0.09] bg-mg-surface text-mg-fg"
+            className="group block overflow-hidden border border-mg-bd/[0.09] bg-mg-surface text-mg-fg"
           >
             <div className="relative h-[230px] overflow-hidden">
               <div
@@ -38,7 +38,7 @@ export function ArticleGrid({ label, items, loadMoreLabel = "LOAD MORE STORIES" 
         ))}
       </div>
       <div className="mt-[44px] flex justify-center">
-        <span className="rounded-full border border-mg-bd/25 px-[34px] py-[14px] font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/85">{loadMoreLabel}</span>
+        <span className="border border-mg-bd/25 px-[34px] py-[14px] font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/85">{loadMoreLabel}</span>
       </div>
     </section>
   );

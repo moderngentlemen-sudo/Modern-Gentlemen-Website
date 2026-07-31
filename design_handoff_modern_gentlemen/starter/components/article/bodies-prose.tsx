@@ -24,7 +24,7 @@ export function BodyProse({ author, authorInitial }: { author: string; authorIni
           Consider the objects that outlast us — a well-made watch, a hand-welted shoe, a car built to be kept rather than replaced. None of them were made quickly. Their quality is inseparable from the hours poured into them, and we recognise it instantly, even when we cannot name what we are looking at.
         </p>
         <figure data-figure className="my-10 -mx-10">
-          <div className="relative h-[420px] overflow-hidden rounded-[12px]">
+          <div className="relative h-[420px] overflow-hidden">
             <HeroImg src="/images/film-workshop.jpg" />
           </div>
           <figcaption className="mt-3 text-center font-mono text-[11px] tracking-[0.14em] text-mg-fg/40">
@@ -125,7 +125,7 @@ export function BodyProfile() {
   ];
   return (
     <article className="mx-auto grid max-w-[1120px] grid-cols-1 items-start gap-[48px] px-6 pt-[56px] pb-10 min-[821px]:grid-cols-[260px_1fr]">
-      <aside className="flex flex-col gap-px overflow-hidden rounded-[12px] border border-mg-bd/[0.09] bg-mg-bd/[0.09] min-[821px]:sticky min-[821px]:top-[90px]">
+      <aside className="flex flex-col gap-px overflow-hidden border border-mg-bd/[0.09] bg-mg-bd/[0.09] min-[821px]:sticky min-[821px]:top-[90px]">
         {stats.map((s) => (
           <div key={s.k} className="bg-mg-surface p-[18px_20px]">
             <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-mg-fg/45">{s.k}</div>
@@ -151,7 +151,7 @@ export function BodyProfile() {
 export function BodyReview() {
   return (
     <article className="mx-auto max-w-[760px] px-6 pt-[56px] pb-10">
-      <div className="mb-10 grid grid-cols-[1fr_auto] items-center gap-6 rounded-[12px] border border-mg-bd/[0.12] bg-mg-surface p-[26px_30px]">
+      <div className="mb-10 grid grid-cols-[1fr_auto] items-center gap-6 border border-mg-bd/[0.12] bg-mg-surface p-[26px_30px]">
         <div>
           <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[#ff4d5e]">The Verdict</div>
           <div className="font-serif italic text-[19px] leading-[1.4] text-mg-fg/[0.82]">Beautifully made and quietly confident — a keeper, not a talking point.</div>
@@ -162,11 +162,11 @@ export function BodyReview() {
         </div>
       </div>
       <div className="mb-9 grid grid-cols-2 gap-4">
-        <div className="rounded-[10px] border border-mg-bd/10 p-[20px_22px]">
+        <div className=" border border-mg-bd/10 p-[20px_22px]">
           <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#4ade80]">For</div>
           <div className="font-grotesk font-light text-[15px] leading-[1.7] text-mg-fg/80">Beautifully finished. Ages honestly. The kind of thing you stop noticing you own, in the best way.</div>
         </div>
-        <div className="rounded-[10px] border border-mg-bd/10 p-[20px_22px]">
+        <div className=" border border-mg-bd/10 p-[20px_22px]">
           <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#ff4d5e]">Against</div>
           <div className="font-grotesk font-light text-[15px] leading-[1.7] text-mg-fg/80">Priced for patience. The waiting list is real, and the colours you actually want are always the slow ones.</div>
         </div>

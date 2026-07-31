@@ -43,6 +43,7 @@ export function MegaMenu({ activeKey, onClose }: { activeKey: string | null; onC
   const menu = MENUS[activeKey];
   return (
     <div
+      data-mega-panel
       className="border-b border-white/10 text-[#f4f4f4] motion-safe:animate-[mgMegaDrop_.3s_ease]"
       style={{
         background: "rgba(11,11,12,0.6)",
@@ -52,38 +53,55 @@ export function MegaMenu({ activeKey, onClose }: { activeKey: string | null; onC
       }}
       onMouseLeave={onClose}
     >
-      {/* Capped-and-centered with its own inset — not `.container-mg`; the
-          prototype's panel pads 48px *inside* the 1320px cap. */}
-      <div className="mx-auto max-w-[1320px] flex items-start gap-[60px] px-12 pt-[38px] pb-11">
-        <div className="flex flex-1 gap-12">
+      {/* Capped-and-centred with its own inset — not `.container-mg`. The
+          prototype's cap is content-box, so 1320 of content + 2×48 padding =
+          1416 in border-box terms. */}
+      <div className="mx-auto max-w-[1416px] flex items-start gap-[60px] px-12 pt-[38px] pb-11">
+        {/* Columns are a 2-up grid, not a flex row — that's what holds the
+            second column at a fixed track rather than hugging its content. */}
+        <div className="flex-1 grid grid-cols-2 gap-x-12 gap-y-8">
           {menu.columns.map((col) => (
-            <div key={col.heading} className="min-w-[150px]">
-              <p className="font-mono uppercase text-[10px] tracking-[0.22em] text-mg-accent mb-4">{col.heading}</p>
-              <ul className="space-y-2.5">
+            <div key={col.heading}>
+              <div className="font-mono text-[10px] leading-[normal] tracking-[0.22em] text-mg-accent mb-[18px]">
+                {col.heading}
+              </div>
+              <div className="flex flex-col gap-3">
                 {col.links.map(([label, href]) => (
-                  <li key={label}>
-                    <Link
-                      href={href}
-                      onClick={onClose}
-                      className="inline-block font-grotesk text-[17px] text-[rgba(244,244,244,0.6)] hover:text-white transition-[color,transform] duration-200 hover:translate-x-1"
-                    >
-                      {label}
-                    </Link>
-                  </li>
+                  <Link
+                    key={label}
+                    href={href}
+                    onClick={onClose}
+                    className="w-fit font-grotesk font-medium text-[17px] leading-[1.05] tracking-[-0.015em] text-[rgba(244,244,244,0.6)] transition-[color,transform] duration-[180ms] hover:text-white hover:translate-x-1"
+                  >
+                    {label}
+                  </Link>
                 ))}
-              </ul>
+              </div>
             </div>
           ))}
         </div>
 
-        <Link href={menu.feature.href} onClick={onClose} className="group w-[340px] shrink-0">
-          <div className="relative h-[172px] overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={menu.feature.image} alt={menu.feature.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-            <span className="absolute top-3 left-3 bg-mg-accent text-white font-mono uppercase text-[9px] tracking-[0.18em] px-2 py-1">Featured</span>
+        <Link
+          href={menu.feature.href}
+          onClick={onClose}
+          className="group block w-[342px] shrink-0 overflow-hidden bg-[#161618] border border-white/10 text-white transition-[transform,border-color] duration-[220ms] ease-[cubic-bezier(.4,0,.2,1)] hover:-translate-y-[3px] hover:border-white/[0.28]"
+        >
+          <div
+            className="relative h-[172px] bg-[#0d0d0d] bg-cover bg-center"
+            style={{ backgroundImage: `url(${menu.feature.image})` }}
+          >
+            <span className="absolute top-3 left-[14px] bg-[rgba(200,16,46,0.9)] px-2.5 py-1 font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white">
+              FEATURED
+            </span>
           </div>
-          <p className="mt-3 font-mono uppercase text-[10px] tracking-[0.22em] text-mg-accentSerif">{menu.feature.tag}</p>
-          <p className="mt-1.5 font-grotesk text-[19px] leading-snug">{menu.feature.title}</p>
+          <div className="px-[18px] pt-4 pb-[18px]">
+            <div className="font-mono text-[9.5px] leading-[normal] tracking-[0.2em] text-[#ff4d5e] mb-2">
+              {menu.feature.tag}
+            </div>
+            <div className="font-grotesk font-medium text-[19px] leading-[1.2] tracking-[-0.02em]">
+              {menu.feature.title}
+            </div>
+          </div>
         </Link>
       </div>
     </div>

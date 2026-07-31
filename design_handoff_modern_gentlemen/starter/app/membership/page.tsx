@@ -80,7 +80,7 @@ export default function MembershipPage() {
         headline="Join the family."
         dek="One considered email a week, the full archive, member films, events and 15% off the shop."
       >
-        <div className="mt-9 inline-flex rounded-full border border-mg-bd/[0.16] bg-mg-surface p-[5px]">
+        <div className="mt-9 inline-flex border border-mg-bd/[0.16] bg-mg-surface p-[5px]">
           {([["MONTHLY", false], ["ANNUAL · SAVE 20%", true]] as const).map(([label, val]) => (
             <button
               key={label}
@@ -88,7 +88,7 @@ export default function MembershipPage() {
               onClick={() => setAnnual(val)}
               aria-pressed={annual === val}
               className={clsx(
-                "rounded-full px-[22px] py-[10px] font-mono text-[10px] uppercase tracking-[0.16em] transition-colors",
+                "px-[22px] py-[10px] font-mono text-[10px] uppercase tracking-[0.16em] transition-colors",
                 annual === val ? "bg-mg-accent text-white" : "text-mg-fg/60"
               )}
             >
@@ -109,12 +109,12 @@ export default function MembershipPage() {
                 key={t.name}
                 data-featured={t.featured ? "true" : undefined}
                 className={clsx(
-                  "relative flex flex-col rounded-[14px] p-[36px_32px_32px] transition-transform duration-200 hover:-translate-y-[5px]",
+                  "relative flex flex-col p-[36px_32px_32px] transition-transform duration-200 hover:-translate-y-[5px]",
                   t.featured ? "bg-mg-accent text-white" : "border border-mg-bd/10 bg-mg-surface text-mg-fg"
                 )}
               >
                 {t.featured && (
-                  <span className="absolute -top-[11px] left-[32px] rounded-full bg-mg-accent px-[14px] py-[5px] font-mono text-[9px] uppercase tracking-[0.2em] text-white">
+                  <span className="absolute -top-[11px] left-[32px] bg-mg-accent px-[14px] py-[5px] font-mono text-[9px] uppercase tracking-[0.2em] text-white">
                     MOST POPULAR
                   </span>
                 )}
@@ -138,7 +138,7 @@ export default function MembershipPage() {
                   type="button"
                   onClick={() => t.featured && cart.setMember(true)}
                   className={clsx(
-                    "mt-auto flex items-center justify-center rounded-full py-[14px] font-mono text-[10px] uppercase tracking-[0.2em] transition-colors",
+                    "mt-auto flex items-center justify-center py-[14px] font-mono text-[10px] uppercase tracking-[0.2em] transition-colors",
                     t.featured ? "bg-[#0d0d0d] text-white hover:brightness-110" : "border border-mg-bd/[0.28] text-mg-fg hover:bg-mg-fg hover:text-mg-bg"
                   )}
                 >
