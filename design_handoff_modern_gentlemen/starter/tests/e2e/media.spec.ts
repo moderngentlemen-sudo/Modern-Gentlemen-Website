@@ -66,7 +66,13 @@ test.describe("media library", () => {
     });
 
     // The details panel opens on the freshly uploaded asset.
-    await expect(page.getByText(assetName).first()).toBeVisible();
+    //
+    // Given its own timeout rather than the 5s default: one upload is a file
+    // read, a SHA-256, a storage PUT, a catalogue insert and a revalidation,
+    // and on a cold server in CI that comfortably outruns five seconds. The
+    // first CI run marked this flaky for exactly that reason — the assertion
+    // was racing the round trip, not finding a real absence.
+    await expect(page.getByText(assetName).first()).toBeVisible({ timeout: 30_000 });
 
     // Alt text is the one piece of metadata a published page cannot do without,
     // and the grid flags its absence — so setting it also clears that flag.
@@ -143,7 +149,12 @@ test.describe("media library", () => {
       .getByRole("row", { name: new RegExp(pageTitle) })
       .getByRole("button", { name: "Delete" })
       .click();
-    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    // "Delete page", not "Delete": each confirmation dialog in the admin names
+    // the thing it destroys, and `exact` means the shorter string never matches.
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Delete page", exact: true })
+      .click();
     await expect(page.getByRole("link", { name: pageTitle })).toHaveCount(0);
 
     // Nothing in the database cleans this up: `media_usages.entity_id` is
