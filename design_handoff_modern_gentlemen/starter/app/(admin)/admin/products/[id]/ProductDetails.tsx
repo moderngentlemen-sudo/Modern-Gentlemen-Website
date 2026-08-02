@@ -203,7 +203,6 @@ export function ProductDetails({
             onChange={(v) => set("slug", v)}
             disabled={!canWrite}
             help="Lives at /product/<slug>. Changing it breaks existing links."
-            error={error}
             required
           />
           <div className="grid grid-cols-2 gap-3">
@@ -429,6 +428,19 @@ export function ProductDetails({
 
         {canWrite && (
           <PanelSection title="Save">
+            {/*
+              The save error belongs here, not on the Slug field.
+              `ArticleDetails` hangs it on the slug input because an article's
+              only translated failure IS a slug collision. A product has
+              cross-field rules too — an affiliate product missing its merchant
+              URL, a compare-at price that is not a reduction — and those
+              rendered under "Slug" would point an editor at the wrong control.
+            */}
+            {error && (
+              <p role="alert" className="text-[13px] text-mg-accent">
+                {error}
+              </p>
+            )}
             <Button variant="solid" onClick={save} loading={pending}>
               Save details
             </Button>

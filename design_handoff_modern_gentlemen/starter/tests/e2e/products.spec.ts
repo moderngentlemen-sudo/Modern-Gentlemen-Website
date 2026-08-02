@@ -56,7 +56,12 @@ test.describe("products", () => {
     await dialog.getByLabel("Name").fill(collectionName);
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
 
-    await expect(page.getByText(`Created “${collectionName}”`)).toBeVisible();
+    // Asserted on the table row, not the toast. The first version of this
+    // waited for `Created “<name>”` — the wording the *taxonomy* dialogs use —
+    // while `CollectionsList` pushes the literal "Collection created". A row is
+    // the better assertion anyway: a toast proves an action returned, a row
+    // proves it persisted and survived the refresh.
+    await expect(page.getByRole("cell", { name: collectionName })).toBeVisible();
   });
 
   test("creates a product and prices it", async ({ page }) => {
