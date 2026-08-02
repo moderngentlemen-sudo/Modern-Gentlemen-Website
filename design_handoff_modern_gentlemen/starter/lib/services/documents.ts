@@ -32,6 +32,7 @@ import {
 } from "@/lib/domain/documents";
 import type { Permission } from "@/lib/domain/permissions";
 import { requirePermission } from "./auth";
+import { clearEntityMedia, reconcileEntityMedia } from "./media";
 
 export type DocumentAction = "read" | "write" | "publish" | "delete";
 
@@ -158,6 +159,18 @@ export async function saveDraft(
   }
 
   await repo.saveDraft(db, type, id, payload, user.id);
+
+  // Usage tracking is derived data, and it must never be what loses an editor
+  // their work. A save that succeeded has succeeded; if reconciliation fails,
+  // the previous rows stay, the library is briefly over-cautious about deleting
+  // an asset, and the next save corrects it. The same reasoning as the
+  // insert-before-delete ordering in the repository — every failure mode here
+  // is arranged to leave a stale reference rather than a missing one.
+  try {
+    await reconcileEntityMedia(type, id, blockTreesOf(type, payload));
+  } catch (error) {
+    console.error(`Media usage reconciliation failed for ${type} ${id}:`, error);
+  }
 }
 
 export async function createPage(input: { slug: string; title: string; templateId?: string }) {
@@ -178,6 +191,17 @@ export async function deleteDocument(type: DocumentType, id: string): Promise<vo
   const db = await createClient();
   // `is_system` pages are additionally protected by their RLS delete policy.
   await repo.deleteDocument(db, type, id);
+
+  // `media_usages.entity_id` has no foreign key — it is polymorphic by design
+  // (0002) — so nothing in the database notices that this document is gone.
+  // Left behind, its usage rows would keep every asset it referenced
+  // permanently undeletable, blocked by a page that no longer exists. Ordered
+  // after the delete so a refused delete leaves the records intact.
+  try {
+    await clearEntityMedia(type, id);
+  } catch (error) {
+    console.error(`Could not clear media usages for the deleted ${type} ${id}:`, error);
+  }
 }
 
 /**
