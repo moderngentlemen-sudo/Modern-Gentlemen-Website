@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { saveDraft } from "@/lib/services/documents";
+import { getDocument, saveDraft } from "@/lib/services/documents";
 import { publish, rollback, schedule, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview, revokePreview } from "@/lib/services/preview";
+import { publicPathForPage } from "@/lib/domain/routes";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../../_lib/action-result";
 import { toActionResult } from "../../_lib/errors";
@@ -54,6 +55,35 @@ function revalidatePage(id: string): void {
   revalidatePath(`/admin/pages/${id}`);
 }
 
+/**
+ * Refresh the *public* route a page is served at.
+ *
+ * This is what makes publishing take effect without a deploy. The public site
+ * is statically rendered (see `lib/db/public.ts` for why that is deliberate),
+ * so without this call an editor publishes, sees "Published v3", visits the
+ * site and finds v2 — with nothing anywhere reporting a problem.
+ *
+ * Only the operations that change what a visitor sees call it. `snapshot`
+ * writes history and touches no published payload, so it is deliberately not on
+ * the list; `schedule` does not publish either, and nothing fires a scheduled
+ * document yet.
+ *
+ * The extra read is the price of the actions holding an id while the path is
+ * keyed on the slug. It costs one query on an action a person performs by hand.
+ */
+async function revalidatePublicPage(id: string): Promise<void> {
+  try {
+    const page = await getDocument("page", id);
+    if (page) revalidatePath(publicPathForPage(page.slug));
+  } catch (error) {
+    // A publish that succeeded has succeeded. Failing the action because the
+    // cache hint could not be sent would report a false failure for something
+    // the hourly `revalidate` backstop corrects on its own. Same stance
+    // `documents.saveDraft` takes towards media reconciliation.
+    console.error(`Published page ${id} but could not revalidate its public path:`, error);
+  }
+}
+
 export async function publishAction(input: unknown): Promise<ActionResult<{ version: number }>> {
   const parsed = z.object({ id: Id, note: z.string().trim().max(500).optional() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
@@ -61,6 +91,7 @@ export async function publishAction(input: unknown): Promise<ActionResult<{ vers
   try {
     const version = await publish("page", parsed.data.id, parsed.data.note);
     revalidatePage(parsed.data.id);
+    await revalidatePublicPage(parsed.data.id);
     return ok({ version });
   } catch (error) {
     // InvalidDocumentError carries its issues through, so the builder can put
@@ -76,6 +107,7 @@ export async function unpublishAction(input: unknown): Promise<ActionResult<{ ve
   try {
     const version = await unpublish("page", parsed.data.id, parsed.data.note);
     revalidatePage(parsed.data.id);
+    await revalidatePublicPage(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -110,6 +142,7 @@ export async function rollbackAction(input: unknown): Promise<ActionResult<{ ver
   try {
     const version = await rollback("page", parsed.data.id, parsed.data.version, parsed.data.note);
     revalidatePage(parsed.data.id);
+    await revalidatePublicPage(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);

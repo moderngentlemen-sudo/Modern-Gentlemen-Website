@@ -158,6 +158,26 @@ jobs:
             echo "E2E_ADMIN_PASSWORD=ci-local-stack-password"
           } >> "$GITHUB_ENV"
 
+      # The build now READS the database, so a fresh stack has to hold content
+      # before `next build` runs.
+      #
+      # Since Phase 7a the homepage renders from `pages` rather than from
+      # lib/demo/home-sections.ts, and it throws rather than falling back — a
+      # silent fallback would let a broken read ship a plausible page. That is
+      # the right behaviour and it makes seeding a build dependency: without
+      # this step `supabase start` leaves `pages` empty and the build fails on
+      # "No published page with slug home".
+      #
+      # seed.ts is idempotent and reads the same demo modules the route used to
+      # import, so the built site is byte-for-byte what the visual baselines
+      # were captured against.
+      - name: Seed content
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx --yes tsx scripts/seed.ts
+
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
