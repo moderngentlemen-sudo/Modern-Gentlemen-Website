@@ -83,7 +83,13 @@ jobs:
         run: |
           # `supabase status -o env` emits API_URL / ANON_KEY / SERVICE_ROLE_KEY
           # for the throwaway local stack. No production secret is involved.
-          supabase status --workdir . -o env | sed 's/^/SUPABASE_/' >> "$GITHUB_ENV"
+          #
+          # It emits them shell-quoted — API_URL="http://127.0.0.1:54321" — and
+          # $GITHUB_ENV takes the right-hand side literally, so without stripping
+          # the quotes every consumer receives a value that still has them,
+          # and supabase-js rejects the URL as malformed.
+          supabase status --workdir . -o env \
+            | sed -E 's/^/SUPABASE_/; s/="(.*)"$/=\1/' >> "$GITHUB_ENV"
 
       - name: Integration tests
         env:
@@ -123,7 +129,10 @@ jobs:
         run: supabase start --workdir .
 
       - name: Export stack credentials
-        run: supabase status --workdir . -o env | sed 's/^/SUPABASE_/' >> "$GITHUB_ENV"
+        # Quotes stripped for the same reason as the integration job above.
+        run: |
+          supabase status --workdir . -o env \
+            | sed -E 's/^/SUPABASE_/; s/="(.*)"$/=\1/' >> "$GITHUB_ENV"
 
       # Without this the signed-in specs skip, which is what they had been doing
       # since Phase 1c: the stack is fresh every run and holds no accounts, so
