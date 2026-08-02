@@ -8,12 +8,16 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** Phase 6a is on `claude/project-status-review-8la85a`, cut from `main` at `cbaa0ae`. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0014`, **all applied**. Apply new ones through the Supabase MCP: the GitHub integration is connected but **cannot safely run this repo's migrations** (version-scheme mismatch — see Known issues).
+**Branch:** always cut a fresh one from `main` — this file no longer names one, see below. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0014`, **all applied**. Apply new ones through the Supabase MCP: the GitHub integration is connected but **cannot safely run this repo's migrations** (version-scheme mismatch — see Known issues).
 
-> ⚠️ **Branch guidance — read this before starting work.** Phase 6a is on `claude/project-status-review-8la85a`. Once that merges, start follow-up work from `main`:
+> ⚠️ **Branch guidance — read this before starting work.** Always start from `main`:
 > `git fetch origin main && git checkout -b <new-branch> origin/main`
 >
-> This file gave stale branch guidance **three times running**, and the third is instructive. After Phase 5 merged as PR #8, two further branches merged — `claude/progress-migration-versioning` (PR #9) and `claude/docs-refresh-after-phase5` (PR #10, `cbaa0ae`) — while this line still named `claude/project-status-review-nz8w9i` as "the previous branch". The rule that keeps failing is the one already written here: **update this line as part of the same PR that merges, never afterwards**, since afterwards means committing to a merged branch. Five stale siblings sit on the remote and none should be built on: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning` and `claude/docs-refresh-after-phase5`. **`claude/project-status-review-8la85a` joins them the moment the Phase 6a PR merges** — this sentence is written ahead of that so it is true afterwards without anyone having to come back and edit a merged branch.
+> **This file used to name the current branch here, and that line went stale five times.** The pattern was always identical: the branch merges, the correction is deferred until afterwards, and afterwards the only place to write it is a branch nobody should commit to. Patching the sentence again was tried — the last version even retired itself on merge — and it *still* left "Phase 6a is on `<branch>`" in the present tense one commit later.
+>
+> So the name is gone. A current-branch name is perishable by construction, and this file cannot hold perishable facts safely. **The `SessionStart` hook already prints the live branch every session** (`node design_handoff_modern_gentlemen/starter/scripts/status.mjs`), which is a source that cannot go stale because it is computed, not written.
+>
+> **Do not build on any `claude/*` branch on the remote.** Every one of them is either merged or abandoned: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11) and `claude/phase-7a-public-rewire` (Phase 7a, PR #12). This list is history and only ever grows; it needs no edit to stay true.
 
 Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation, auth, the block system, publishing, the admin builder, media, the CMS and **the products admin** are done; navigation, theme, ingestion and the public rewire are not.
 
@@ -135,7 +139,7 @@ All commands from `design_handoff_modern_gentlemen/starter/`.
 2. Read `design_handoff_modern_gentlemen/CLAUDE.md` — the design baseline, binding every session.
 3. Check live state: `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`.
 4. For front-end work: the relevant `03_PAGES_AND_COMPONENTS.md` section + its `design_files/MG *.dc.html` prototype + matching screenshot.
-5. Cut a fresh branch from `main` once the current one merges (see the warning at the top), run the four gates, and **update this file** before finishing, including its branch line.
+5. Cut a fresh branch from `main`, run the four gates, and **update this file** before finishing. It no longer carries a branch name to update — the hook prints that — so what needs writing is the decisions log and the honest account of what was and was not verified.
 6. If you need `npm run test:visual`, write a gitignored `starter/.env.local` with placeholder Supabase values first — see Known issues. Without it the Playwright web server never starts and the failure looks nothing like its cause.
 
 ### Proving a structural refactor is render-safe (updated)
