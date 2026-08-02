@@ -13,8 +13,16 @@ import { expect, test, type Page } from "@playwright/test";
 const email = process.env.E2E_ADMIN_EMAIL;
 const password = process.env.E2E_ADMIN_PASSWORD;
 
-/** A slug unique per run, so repeated runs never collide on the unique index. */
-const runSlug = `e2e-builder-${Date.now().toString(36)}`;
+/**
+ * Identity for the page this suite creates, minted by the first test.
+ *
+ * Not a module constant: Playwright retries a serial group from its first test,
+ * and the failed attempt's page is still in the database, so a fixed slug would
+ * collide on `pages_slug_key` the moment anything downstream failed. Each
+ * attempt mints its own, and the later tests read what this attempt wrote.
+ */
+let pageTitle = "";
+let pageSlug = "";
 
 async function signIn(page: Page) {
   await page.goto("/sign-in");
@@ -33,6 +41,10 @@ test.describe("page builder", () => {
 
     // --- create -----------------------------------------------------------
     await page.goto("/admin/pages");
+    const stamp = Date.now().toString(36);
+    pageTitle = `E2E Builder ${stamp}`;
+    pageSlug = `e2e-builder-${stamp}`;
+
     await page.getByRole("button", { name: "New page" }).click();
 
     // Scoped to the dialog, and exact. Playwright matches accessible names by
@@ -40,8 +52,8 @@ test.describe("page builder", () => {
     // first page" — which is on screen whenever this runs against a project
     // with no pages yet.
     const newPage = page.getByRole("dialog", { name: "New page" });
-    await newPage.getByLabel("Title").fill("E2E Builder Page");
-    await newPage.getByLabel("Slug").fill(runSlug);
+    await newPage.getByLabel("Title").fill(pageTitle);
+    await newPage.getByLabel("Slug").fill(pageSlug);
     await newPage.getByRole("button", { name: "Create", exact: true }).click();
 
     // Lands in the builder for the new page.
@@ -94,7 +106,7 @@ test.describe("page builder", () => {
   test("refuses to publish a page whose blocks fail validation", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/pages");
-    await page.getByRole("link", { name: "E2E Builder Page" }).click();
+    await page.getByRole("link", { name: pageTitle }).click();
 
     // Nothing is selected on a fresh load, so the panel shows its empty state
     // and the field does not exist yet. Select the block first — the canvas
@@ -115,10 +127,14 @@ test.describe("page builder", () => {
     await signIn(page);
     await page.goto("/admin/pages");
 
-    const row = page.getByRole("row").filter({ hasText: "E2E Builder Page" });
+    const row = page.getByRole("row").filter({ hasText: pageTitle });
     await row.getByRole("button", { name: "Delete" }).click();
     await page.getByRole("button", { name: "Delete page" }).click();
 
-    await expect(page.getByText("E2E Builder Page")).toHaveCount(0);
+    // By role, not by text. The success toast reads `Deleted "E2E Builder Page"`
+    // and lingers for five seconds, so a plain text query races the toast's own
+    // dismissal and sees a count of 1 long after the row has gone. The link in
+    // the table is the thing whose absence actually means "deleted".
+    await expect(page.getByRole("link", { name: pageTitle })).toHaveCount(0);
   });
 });
