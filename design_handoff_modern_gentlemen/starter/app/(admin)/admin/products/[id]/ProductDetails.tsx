@@ -149,8 +149,14 @@ export function ProductDetails({
       });
 
       if (!result.ok) {
+        // The inline alert only — deliberately no toast. Both were shown at
+        // first, and CI caught it as a strict-mode violation: one message, two
+        // elements, inches apart. The alert sits beside the button the editor
+        // just pressed and persists while they fix the field, which is what a
+        // validation failure needs; a toast that says the same thing and then
+        // vanishes is noise. Success still toasts, because there is nothing
+        // left on screen to say it.
         setError(result.error);
-        toast.push(result.error, "error");
         return;
       }
 

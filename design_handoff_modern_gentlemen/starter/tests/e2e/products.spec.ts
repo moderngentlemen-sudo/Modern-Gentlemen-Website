@@ -111,7 +111,11 @@ test.describe("products", () => {
     // action, so this is the only place it can be seen working.
     await page.getByLabel("Compare at (£)").fill("100");
     await page.getByRole("button", { name: "Save details" }).click();
-    await expect(page.getByText(/must be higher than the price/)).toBeVisible();
+    // Scoped to the alert rather than to the page. A bare `getByText` matched
+    // both the inline alert and the toast that used to duplicate it, which is
+    // how CI found the duplication; naming the role keeps this specific even if
+    // the same words appear somewhere else on the screen later.
+    await expect(page.getByRole("alert")).toContainText(/must be higher than the price/);
 
     await page.getByLabel("Compare at (£)").fill("199");
     await page.getByRole("button", { name: "Save details" }).click();
