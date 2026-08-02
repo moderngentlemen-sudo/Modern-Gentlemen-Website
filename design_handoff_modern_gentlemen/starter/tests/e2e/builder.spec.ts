@@ -34,9 +34,15 @@ test.describe("page builder", () => {
     // --- create -----------------------------------------------------------
     await page.goto("/admin/pages");
     await page.getByRole("button", { name: "New page" }).click();
-    await page.getByLabel("Title").fill("E2E Builder Page");
-    await page.getByLabel("Slug").fill(runSlug);
-    await page.getByRole("button", { name: "Create" }).click();
+
+    // Scoped to the dialog, and exact. Playwright matches accessible names by
+    // substring, so a bare "Create" also matches the empty state's "Create the
+    // first page" — which is on screen whenever this runs against a project
+    // with no pages yet.
+    const newPage = page.getByRole("dialog", { name: "New page" });
+    await newPage.getByLabel("Title").fill("E2E Builder Page");
+    await newPage.getByLabel("Slug").fill(runSlug);
+    await newPage.getByRole("button", { name: "Create", exact: true }).click();
 
     // Lands in the builder for the new page.
     await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
@@ -60,10 +66,10 @@ test.describe("page builder", () => {
     await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
 
     // --- publish ----------------------------------------------------------
-    await page.getByRole("button", { name: "Publish" }).click();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: /Publish/ });
     await expect(dialog.getByText("No issues")).toBeVisible();
-    await dialog.getByRole("button", { name: "Publish" }).click();
+    await dialog.getByRole("button", { name: "Publish", exact: true }).click();
 
     await expect(page.getByText(/Published v\d+/)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("published", { exact: true })).toBeVisible();
@@ -88,15 +94,19 @@ test.describe("page builder", () => {
     await page.goto("/admin/pages");
     await page.getByRole("link", { name: "E2E Builder Page" }).click();
 
+    // Nothing is selected on a fresh load, so the panel shows its empty state
+    // and the field does not exist yet. Select the block first — the canvas
+    // selects on mousedown.
+    await page.locator("[data-block-key]").first().click();
+
     // Emptying a required field is an issue the manifests catch.
-    const quote = page.getByLabel("Quote");
-    await quote.fill("");
+    await page.getByLabel("Quote").fill("");
 
     await expect(page.getByText(/fix before publishing/i)).toBeVisible();
 
-    await page.getByRole("button", { name: "Publish" }).click();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: /Publish/ });
-    await expect(dialog.getByRole("button", { name: "Publish" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Publish", exact: true })).toBeDisabled();
   });
 
   test("cleans up the page it created", async ({ page }) => {
