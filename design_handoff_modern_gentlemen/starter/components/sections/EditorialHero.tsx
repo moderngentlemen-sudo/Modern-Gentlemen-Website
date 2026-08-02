@@ -3,10 +3,10 @@ import { clsx } from "../ui/clsx";
 interface Props {
   eyebrow: string;
   headline: string;
-  accent?: string;              // trailing clause rendered in accent red
+  accent?: string; // trailing clause rendered in accent red
   dek?: string;
   align?: "left" | "center";
-  children?: React.ReactNode;   // slot below the dek (e.g. Membership billing toggle)
+  children?: React.ReactNode; // slot below the dek (e.g. Membership billing toggle)
 }
 
 /**
@@ -20,10 +20,15 @@ export function EditorialHero({ eyebrow, headline, accent, dek, align = "left", 
   const width = centered ? 900 : 1320;
   return (
     <section
-      className={clsx("pt-[78px]", centered ? "pb-[40px] text-center" : "border-b border-mg-bd/[0.09] pb-[72px]")}
+      className={clsx(
+        "pt-[78px]",
+        centered ? "pb-[40px] text-center" : "border-b border-mg-bd/[0.09] pb-[72px]"
+      )}
       style={{ paddingInline: `max(22px, calc((100% - ${width}px) / 2))` }}
     >
-      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#ff4d5e]">{eyebrow}</div>
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#ff4d5e]">
+        {eyebrow}
+      </div>
       <h1
         className={clsx(
           "font-grotesk font-semibold text-balance",

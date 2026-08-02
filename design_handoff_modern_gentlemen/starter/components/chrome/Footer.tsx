@@ -1,14 +1,26 @@
 import Link from "next/link";
 
 const NAV: [string, string][] = [
-  ["Style", "/style"], ["Grooming", "/grooming"], ["Watches", "/watches"], ["Culture", "/culture"], ["Film", "/film"], ["Store", "/shop"],
+  ["Style", "/style"],
+  ["Grooming", "/grooming"],
+  ["Watches", "/watches"],
+  ["Culture", "/culture"],
+  ["Film", "/film"],
+  ["Store", "/shop"],
 ];
 const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   {
     label: "Instagram",
     href: "https://instagram.com",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
         <rect x="3" y="3" width="18" height="18" rx="5" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none" />
@@ -28,7 +40,14 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
     label: "YouTube",
     href: "https://youtube.com",
     icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
         <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
         <path d="M10.2 9.3l5 2.7-5 2.7V9.3Z" fill="currentColor" stroke="none" />
       </svg>
@@ -45,7 +64,11 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   },
 ];
 const LEGAL: [string, string][] = [
-  ["About", "/about"], ["Contact", "/contact"], ["Store", "/shop"], ["Archive", "/archive"], ["Privacy", "/privacy"],
+  ["About", "/about"],
+  ["Contact", "/contact"],
+  ["Store", "/shop"],
+  ["Archive", "/archive"],
+  ["Privacy", "/privacy"],
 ];
 
 /** Footer is ALWAYS dark, regardless of theme — do not wire to data-mgtheme. */
@@ -57,26 +80,48 @@ export function Footer() {
       <div className="container-mg max-[680px]:!px-[22px] grid grid-cols-1 min-[681px]:grid-cols-[1fr_auto] gap-6 min-[681px]:gap-10 min-[681px]:items-center py-11 border-b border-white/10">
         <div className="flex flex-col gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mg-logo-wide.svg" alt="Modern Gentlemen" className="h-[22px] w-auto self-start" />
+          <img
+            src="/mg-logo-wide.svg"
+            alt="Modern Gentlemen"
+            className="h-[22px] w-auto self-start"
+          />
           <span className="font-serif italic text-[19px] leading-[1.3] text-[#f4f4f4]/60">
-            A field guide to the considered life — style, watches, film &amp; the art of doing things properly.
+            A field guide to the considered life — style, watches, film &amp; the art of doing
+            things properly.
           </span>
         </div>
         {/* Same grow-underline treatment as the top nav (prototype reuses
             `[data-navmenu]` here, which also sets the 6px underline offset). */}
-        <nav className="flex flex-wrap gap-x-5 gap-y-3.5 min-[681px]:gap-x-7 min-[681px]:justify-end" aria-label="Footer">
+        <nav
+          className="flex flex-wrap gap-x-5 gap-y-3.5 min-[681px]:gap-x-7 min-[681px]:justify-end"
+          aria-label="Footer"
+        >
           {NAV.map(([label, href]) => (
-            <Link key={label} href={href} className="mg-underline font-nav font-medium uppercase text-[11px] leading-[normal] tracking-[0.16em] text-[rgba(255,255,255,0.78)]">{label}</Link>
+            <Link
+              key={label}
+              href={href}
+              className="mg-underline font-nav font-medium uppercase text-[11px] leading-[normal] tracking-[0.16em] text-[rgba(255,255,255,0.78)]"
+            >
+              {label}
+            </Link>
           ))}
         </nav>
       </div>
 
       {/* Follow + socials */}
       <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row min-[681px]:items-center justify-between gap-3.5 min-[681px]:gap-5 py-[26px] border-b border-white/[0.06]">
-        <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/40">Follow Modern Gentlemen</span>
+        <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/40">
+          Follow Modern Gentlemen
+        </span>
         <div className="flex gap-3 text-[#f4f4f4]/55">
           {SOCIAL.map((s) => (
-            <a key={s.label} href={s.href} title={s.label} aria-label={s.label} className="flex items-center justify-center h-10 w-10 rounded-full border border-white/[0.18] transition-colors hover:bg-mg-accent hover:border-mg-accent hover:text-white">
+            <a
+              key={s.label}
+              href={s.href}
+              title={s.label}
+              aria-label={s.label}
+              className="flex items-center justify-center h-10 w-10 rounded-full border border-white/[0.18] transition-colors hover:bg-mg-accent hover:border-mg-accent hover:text-white"
+            >
               {s.icon}
             </a>
           ))}
@@ -92,7 +137,9 @@ export function Footer() {
           {LEGAL.map(([label, href], i) => (
             <span key={label}>
               {i > 0 && " · "}
-              <Link href={href} className="hover:text-white transition-colors">{label}</Link>
+              <Link href={href} className="hover:text-white transition-colors">
+                {label}
+              </Link>
             </span>
           ))}
         </span>

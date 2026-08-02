@@ -1,4 +1,6 @@
 import type { ComponentType } from "react";
+import { blockManifests, blockTypes } from "@/lib/blocks/manifests";
+import type { BlockCategory } from "@/lib/blocks/types";
 import { HeroCoverStar } from "./HeroCoverStar";
 import { LatestGrid } from "./LatestGrid";
 import { FeatureSplit } from "./FeatureSplit";
@@ -24,8 +26,14 @@ import { Masthead } from "./Masthead";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
- * Library: build the component, add it here AND to the Sanity schema
- * (sanity/schemas/index.ts blockTypes). See 05_SECTION_BUILDER.md.
+ * Library: build the component, add it here AND write a manifest in
+ * `lib/blocks/manifests/`. `lib/blocks/conformance.test.ts` fails if you do one
+ * without the other. See 05_SECTION_BUILDER.md.
+ *
+ * The manifest cannot live beside the component: `lib/blocks` is a leaf in the
+ * layering and may not import from `components/`. This map is therefore the
+ * only place the two halves meet, and the conformance suite is what keeps them
+ * in step.
  *
  * Keep a MODULE_MAP note (library number -> component + variant) as you port
  * the ~125 modules so nothing is lost.
@@ -53,32 +61,36 @@ export const registry = {
   coverCards: CoverCards,
   pullQuote: PullQuote,
   masthead: Masthead,
+  // Each block owns its own prop contract, so the map is heterogeneous by
+  // nature: a lookup by string cannot narrow to one component's props. The
+  // manifests restore the guarantee where it counts — content is validated
+  // against a per-block Zod schema before it is stored, published or rendered —
+  // rather than pretending a dynamic lookup can be statically typed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<string, ComponentType<any>>;
 
 export type BlockType = keyof typeof registry;
 
-/** For the drag-and-drop picker gallery: label + optional thumbnail per block. */
-export const blockCatalog: { type: BlockType; label: string; thumb?: string }[] = [
-  { type: "heroCoverStar", label: "Hero — Cover Star" },
-  { type: "latestGrid", label: "The Latest — grid" },
-  { type: "featureSplit", label: "Feature — split" },
-  { type: "twoUpCategory", label: "Two-up category" },
-  { type: "storyBand", label: "Story band" },
-  { type: "filmStills", label: "MG Film — stills" },
-  { type: "newsletter", label: "Newsletter" },
-  { type: "numberedIndex", label: "The Index — numbered list" },
-  { type: "productRow", label: "Store — product row" },
-  { type: "statsBand", label: "By the Numbers — stats" },
-  { type: "interview", label: "The Interview — Q&A" },
-  { type: "timeline", label: "Timeline — a brief history" },
-  { type: "testimonials", label: "Member Voices" },
-  { type: "categoryHero", label: "Category — hero band" },
-  { type: "featuredLead", label: "Category — featured lead" },
-  { type: "articleGrid", label: "Article grid" },
-  { type: "ctaBand", label: "CTA band (red)" },
-  { type: "editorialHero", label: "Editorial page hero" },
-  { type: "manifesto", label: "Manifesto — two-column" },
-  { type: "coverCards", label: "What we cover — cards" },
-  { type: "pullQuote", label: "Pull quote" },
-  { type: "masthead", label: "The Masthead — team" },
-];
+export interface BlockCatalogEntry {
+  type: BlockType;
+  label: string;
+  category: BlockCategory;
+  description: string;
+  thumb?: string;
+}
+
+/**
+ * For the drag-and-drop picker gallery. Derived from the manifests rather than
+ * hand-written, so a block's human name has exactly one home; the previous
+ * hand-kept copy of these labels could — and would eventually — disagree with
+ * the block it named.
+ */
+export const blockCatalog: BlockCatalogEntry[] = blockTypes.map((type) => {
+  const manifest = blockManifests[type];
+  return {
+    type,
+    label: manifest.label,
+    category: manifest.category,
+    description: manifest.description,
+  };
+});

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RailLabel } from "../ui/RailLabel";
 
 interface LeadArticle {
-  kicker: string;   // e.g. "STYLE · 041"
+  kicker: string; // e.g. "STYLE · 041"
   title: string;
   dek?: string;
   author?: string;
@@ -14,7 +14,13 @@ interface LeadArticle {
 /** Category "THE LEAD" — one large featured-article card (cover image meeting
  *  an editorial column). The whole card links to the article; image zooms on
  *  hover. Collapses to a single column ≤680px. */
-export function FeaturedLead({ label = "THE LEAD", article }: { label?: string; article: LeadArticle }) {
+export function FeaturedLead({
+  label = "THE LEAD",
+  article,
+}: {
+  label?: string;
+  article: LeadArticle;
+}) {
   return (
     <section className="container-mg pt-[64px]">
       <RailLabel className="mb-[26px]">{label}</RailLabel>
@@ -30,9 +36,17 @@ export function FeaturedLead({ label = "THE LEAD", article }: { label?: string; 
           />
         </div>
         <div className="flex flex-col justify-center p-[32px_24px] min-[681px]:p-[44px_46px]">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#ff4d5e]">{article.kicker}</div>
-          <h2 className="mt-4 font-grotesk font-semibold text-[30px] min-[681px]:text-[40px] leading-[1.02] tracking-[-0.035em] text-balance">{article.title}</h2>
-          {article.dek && <p className="mt-[18px] font-grotesk font-light text-[16px] leading-[1.6] text-mg-fg/[0.66] text-pretty">{article.dek}</p>}
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#ff4d5e]">
+            {article.kicker}
+          </div>
+          <h2 className="mt-4 font-grotesk font-semibold text-[30px] min-[681px]:text-[40px] leading-[1.02] tracking-[-0.035em] text-balance">
+            {article.title}
+          </h2>
+          {article.dek && (
+            <p className="mt-[18px] font-grotesk font-light text-[16px] leading-[1.6] text-mg-fg/[0.66] text-pretty">
+              {article.dek}
+            </p>
+          )}
           {(article.author || article.read) && (
             <div className="mt-[26px] font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/50">
               WORDS · {article.author}&nbsp;·&nbsp;{article.read}

@@ -55,7 +55,9 @@ html {
 }
 /* The root paints the theme background too, so the reserved gutter track and
    any overscroll area match the page instead of flashing white. */
-html { background: var(--mg-bg); }
+html {
+  background: var(--mg-bg);
+}
 body {
   background: var(--mg-bg);
   color: var(--mg-fg);
@@ -81,60 +83,210 @@ body {
    360px). 22px is the prototype's `@media (max-width:680px)` section inset;
    desktop unchanged. */
 @media (max-width: 680px) {
-  .container-mg { padding-inline: 22px; }
+  .container-mg {
+    padding-inline: 22px;
+  }
 }
 
-a { color: inherit; }
-a:hover { color: var(--mg-accent); }
+a {
+  color: inherit;
+}
+a:hover {
+  color: var(--mg-accent);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Overlay entrance animations (drawer / bag / search) */
-@keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes mgMegaDrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes mgMegaDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* Overlay motion, ported verbatim from the prototype. */
-@keyframes mgFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes mgFadeOut { from { opacity: 1; } to { opacity: 0; } }
-@keyframes mgFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes mgRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes mgFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes mgFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes mgFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mgRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 /* Sidebar entry = 'Fade' (the prototype's chosen default): a short slide in
    from the left under an opacity ramp, not a full slide-over. */
-@keyframes mgPanFadeIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
-@keyframes mgPanFadeOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-30px); } }
+@keyframes mgPanFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mgPanFadeOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
 /* Drawer accordion: dropdownAnim 'Curtain' in, dropdownExit 'Collapse' out. */
-@keyframes mgDrawerDrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-@keyframes mgddCurtain { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: scaleY(1); } }
-@keyframes mgdxCollapse { to { opacity: 0; transform: scaleY(0); } }
+@keyframes mgDrawerDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mgddCurtain {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+@keyframes mgdxCollapse {
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
 
 /* Drawer sub-list: container drops in, links unroll on a stagger; on close the
    links freeze and the whole list collapses upward. */
-[data-drawersubs] { animation: mgDrawerDrop 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-drawersubs] {
+  animation: mgDrawerDrop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
 [data-drawersubs] a {
   animation: mgddCurtain 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
   transform-origin: top;
 }
-[data-drawersubs] a:nth-child(1) { animation-delay: 0.03s; }
-[data-drawersubs] a:nth-child(2) { animation-delay: 0.07s; }
-[data-drawersubs] a:nth-child(3) { animation-delay: 0.11s; }
-[data-drawersubs] a:nth-child(4) { animation-delay: 0.15s; }
-[data-drawersubs] a:nth-child(5) { animation-delay: 0.19s; }
-[data-drawersubs] a:nth-child(6) { animation-delay: 0.23s; }
-[data-drawersubs] a:nth-child(7) { animation-delay: 0.27s; }
-[data-drawersubs][data-exiting="true"] a { animation: none !important; }
+[data-drawersubs] a:nth-child(1) {
+  animation-delay: 0.03s;
+}
+[data-drawersubs] a:nth-child(2) {
+  animation-delay: 0.07s;
+}
+[data-drawersubs] a:nth-child(3) {
+  animation-delay: 0.11s;
+}
+[data-drawersubs] a:nth-child(4) {
+  animation-delay: 0.15s;
+}
+[data-drawersubs] a:nth-child(5) {
+  animation-delay: 0.19s;
+}
+[data-drawersubs] a:nth-child(6) {
+  animation-delay: 0.23s;
+}
+[data-drawersubs] a:nth-child(7) {
+  animation-delay: 0.27s;
+}
+[data-drawersubs][data-exiting="true"] a {
+  animation: none !important;
+}
 [data-drawersubs][data-exiting="true"] {
   animation: mgdxCollapse 0.3s ease forwards !important;
   transform-origin: top;
 }
 /* Theme-toggle glyph spin. Alternate firings run the mirrored variant so the
    icon rocks back and forth instead of always turning the same way. */
-@keyframes mgSpin { from { transform: rotate(-150deg); } to { transform: rotate(0); } }
-@keyframes mgSpinB { from { transform: rotate(150deg); } to { transform: rotate(0); } }
+@keyframes mgSpin {
+  from {
+    transform: rotate(-150deg);
+  }
+  to {
+    transform: rotate(0);
+  }
+}
+@keyframes mgSpinB {
+  from {
+    transform: rotate(150deg);
+  }
+  to {
+    transform: rotate(0);
+  }
+}
 
 /* Chrome: red underline that grows from the left on hover/focus (nav + drawer
    links). Prototype: background-size 0%→100%, 1.6px thick, 6px below text. */
@@ -144,43 +296,105 @@ a:hover { color: var(--mg-accent); }
   background-position: 0 100%;
   background-size: 0% 1.6px;
   padding-bottom: 6px;
-  transition: background-size 0.32s cubic-bezier(0.4, 0, 0.2, 1), color 0.22s ease;
+  transition:
+    background-size 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.22s ease;
 }
 .mg-underline:hover,
-.mg-underline:focus-visible { background-size: 100% 1.6px; color: #fff; }
+.mg-underline:focus-visible {
+  background-size: 100% 1.6px;
+  color: #fff;
+}
 
 /* ── Article page (template system) — ported from MG Article.dc.html ─────── */
-[data-body] p { margin: 0 0 22px; }
-[data-body] p:last-child { margin-bottom: 0; }
+[data-body] p {
+  margin: 0 0 22px;
+}
+[data-body] p:last-child {
+  margin-bottom: 0;
+}
 [data-lede]::first-letter {
   float: left;
-  font: 500 74px/0.72 var(--font-space-grotesk), sans-serif;
+  font:
+    500 74px/0.72 var(--font-space-grotesk),
+    sans-serif;
   padding: 6px 12px 0 0;
   color: var(--mg-accent);
 }
-[data-scrim] { background: linear-gradient(180deg, rgba(10,10,11,0.28) 0%, transparent 34%, transparent 48%, rgba(10,10,11,0.88) 100%); }
-[data-relcard] { transition: transform 0.2s ease; }
-[data-relcard]:hover { transform: translateY(-4px); }
-[data-galcell] > div { transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
-[data-galcell]:hover > div { transform: scale(1.05); }
-[data-specrow]:nth-child(even) { background: color-mix(in srgb, var(--mg-bd) 2%, transparent); }
+[data-scrim] {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 11, 0.28) 0%,
+    transparent 34%,
+    transparent 48%,
+    rgba(10, 10, 11, 0.88) 100%
+  );
+}
+[data-relcard] {
+  transition: transform 0.2s ease;
+}
+[data-relcard]:hover {
+  transform: translateY(-4px);
+}
+[data-galcell] > div {
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-galcell]:hover > div {
+  transform: scale(1.05);
+}
+[data-specrow]:nth-child(even) {
+  background: color-mix(in srgb, var(--mg-bd) 2%, transparent);
+}
 
 @media (max-width: 820px) {
-  [data-title-xl] { font-size: 52px !important; }
-  [data-title-lg] { font-size: 46px !important; }
-  [data-split] { grid-template-columns: 1fr !important; }
-  [data-split] [data-splitimg] { min-height: 320px !important; order: -1; }
-  [data-gal] { grid-template-columns: 1fr 1fr !important; }
-  [data-listrow] { grid-template-columns: 1fr !important; }
-  [data-listrow] [data-listimg] { min-height: 200px !important; }
-  [data-figure] { margin-left: 0 !important; margin-right: 0 !important; }
+  [data-title-xl] {
+    font-size: 52px !important;
+  }
+  [data-title-lg] {
+    font-size: 46px !important;
+  }
+  [data-split] {
+    grid-template-columns: 1fr !important;
+  }
+  [data-split] [data-splitimg] {
+    min-height: 320px !important;
+    order: -1;
+  }
+  [data-gal] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  [data-listrow] {
+    grid-template-columns: 1fr !important;
+  }
+  [data-listrow] [data-listimg] {
+    min-height: 200px !important;
+  }
+  [data-figure] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 }
 @media (max-width: 680px) {
-  [data-hero-media] { height: 62vh !important; min-height: 420px; }
-  [data-title-xl] { font-size: 40px !important; }
-  [data-title-lg] { font-size: 36px !important; }
-  [data-body] { font-size: 17px !important; }
-  [data-lede]::first-letter { font-size: 54px; }
-  [data-manrow] { font-size: 34px !important; }
-  [data-specwrap] { overflow-x: auto; }
+  [data-hero-media] {
+    height: 62vh !important;
+    min-height: 420px;
+  }
+  [data-title-xl] {
+    font-size: 40px !important;
+  }
+  [data-title-lg] {
+    font-size: 36px !important;
+  }
+  [data-body] {
+    font-size: 17px !important;
+  }
+  [data-lede]::first-letter {
+    font-size: 54px;
+  }
+  [data-manrow] {
+    font-size: 34px !important;
+  }
+  [data-specwrap] {
+    overflow-x: auto;
+  }
 }

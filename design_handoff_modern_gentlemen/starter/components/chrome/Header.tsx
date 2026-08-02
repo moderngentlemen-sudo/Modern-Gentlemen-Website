@@ -87,7 +87,8 @@ export function Header() {
           opacity: frosted ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
-          background: "linear-gradient(180deg,rgba(8,8,9,0.34) 0%,rgba(8,8,9,0.14) 52%,transparent 100%)",
+          background:
+            "linear-gradient(180deg,rgba(8,8,9,0.34) 0%,rgba(8,8,9,0.14) 52%,transparent 100%)",
         }}
       />
       {/* Nav zone: sits 2px above the viewport top so the 72px bar's content box
@@ -163,7 +164,11 @@ export function Header() {
                 style={{ boxShadow: "0 0 8px 0 rgba(200,16,46,0.45)" }}
               />
             </button>
-            <Link href="/" aria-label="Modern Gentlemen — home" className="flex items-center text-white">
+            <Link
+              href="/"
+              aria-label="Modern Gentlemen — home"
+              className="flex items-center text-white"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/mg-logo.svg" alt="Modern Gentlemen" className="block h-[19px] w-auto" />
             </Link>
@@ -285,7 +290,16 @@ function IconButton({
 /* --- inline icons (stroke = currentColor), 16px as the prototype sizes them --- */
 function SearchIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <circle cx="11" cy="11" r="7" />
       <line x1="16.5" y1="16.5" x2="21" y2="21" />
     </svg>
@@ -293,7 +307,17 @@ function SearchIcon() {
 }
 function BagIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M6.5 8h11l-1 12h-9l-1-12Z" />
       <path d="M9 8V6a3 3 0 0 1 6 0v2" />
     </svg>
@@ -303,9 +327,21 @@ function BagIcon() {
  *  side with the theme (prototype `themeArc`). */
 function ThemeIcon({ dark }: { dark: boolean }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="8" />
-      <path d={dark ? "M12 4a8 8 0 0 1 0 16Z" : "M12 4a8 8 0 0 0 0 16Z"} fill="currentColor" stroke="none" />
+      <path
+        d={dark ? "M12 4a8 8 0 0 1 0 16Z" : "M12 4a8 8 0 0 0 0 16Z"}
+        fill="currentColor"
+        stroke="none"
+      />
     </svg>
   );
 }

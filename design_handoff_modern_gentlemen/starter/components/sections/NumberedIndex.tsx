@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { MonoLabel } from "../ui/Eyebrow";
 
-interface Item { num?: string; title: string; meta?: string; href?: string }
+interface Item {
+  num?: string;
+  title: string;
+  meta?: string;
+  href?: string;
+}
 
 /** The Index — numbered editorial list (library #03, #21 Start Here, #19 Briefing). */
 export function NumberedIndex({ heading, items }: { heading?: string; items: Item[] }) {
@@ -12,8 +17,12 @@ export function NumberedIndex({ heading, items }: { heading?: string; items: Ite
         {items?.map((it, i) => {
           const row = (
             <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-6 py-5 border-b border-mg-bd/12 group">
-              <span className="font-mono text-sm text-mg-accent">{it.num ?? String(i + 1).padStart(2, "0")}</span>
-              <span className="font-grotesk text-lg md:text-xl group-hover:text-mg-accent">{it.title}</span>
+              <span className="font-mono text-sm text-mg-accent">
+                {it.num ?? String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="font-grotesk text-lg md:text-xl group-hover:text-mg-accent">
+                {it.title}
+              </span>
               {it.meta && <MonoLabel className="!text-mg-fg/40">{it.meta}</MonoLabel>}
             </div>
           );

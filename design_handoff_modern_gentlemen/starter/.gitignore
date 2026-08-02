@@ -5,9 +5,13 @@ out
 .env.local
 *.log
 .DS_Store
-.sanity
 dist
 
 # next.js typescript
 next-env.d.ts
 *.tsbuildinfo
+
+# test output
+coverage
+playwright-report
+test-results

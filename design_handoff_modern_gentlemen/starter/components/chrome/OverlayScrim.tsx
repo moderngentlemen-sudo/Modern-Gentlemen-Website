@@ -5,7 +5,13 @@ import { useEffect, useRef } from "react";
 /** Shared overlay shell: scrim + Esc-to-close + focus trap + focus return.
  *  Scroll lock is applied by the parent via useScrollLock so it can coordinate
  *  one lock across whichever overlay is open. (04_CHROME.md, WCAG 2.2 AA.) */
-export function OverlayScrim({ open, onClose, children, align = "center", label }: {
+export function OverlayScrim({
+  open,
+  onClose,
+  children,
+  align = "center",
+  label,
+}: {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
@@ -71,7 +77,8 @@ export function OverlayScrim({ open, onClose, children, align = "center", label 
   }, [open]);
 
   if (!open) return null;
-  const justify = align === "left" ? "justify-start" : align === "right" ? "justify-end" : "justify-center";
+  const justify =
+    align === "left" ? "justify-start" : align === "right" ? "justify-end" : "justify-center";
   return (
     <div
       className={`fixed inset-0 z-[100] flex ${justify} bg-black/60 backdrop-blur-sm`}
@@ -80,7 +87,12 @@ export function OverlayScrim({ open, onClose, children, align = "center", label 
       aria-modal="true"
       aria-label={label}
     >
-      <div ref={panelRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} className="h-full w-full flex outline-none">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className="h-full w-full flex outline-none"
+      >
         {children}
       </div>
     </div>

@@ -23,6 +23,15 @@ export function Button({
       ? "bg-mg-accent text-white hover:bg-mg-fg hover:text-mg-bg"
       : "border border-mg-bd text-mg-fg hover:bg-mg-fg hover:text-mg-bg";
   const cls = clsx(base, styles, className);
-  if (href) return <Link href={href} className={cls}>{children}</Link>;
-  return <button type={type} onClick={onClick} className={cls}>{children}</button>;
+  if (href)
+    return (
+      <Link href={href} className={cls}>
+        {children}
+      </Link>
+    );
+  return (
+    <button type={type} onClick={onClick} className={cls}>
+      {children}
+    </button>
+  );
 }

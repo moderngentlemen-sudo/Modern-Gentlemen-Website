@@ -1,6 +1,9 @@
 # Railway / Nixpacks build config for the Modern Gentlemen Next.js app.
-# Pins Node 20 (Next 15 + React 19 require Node >= 18.18).
+# Pins Node 22, matching .nvmrc and package.json engines.
+# 22 is the floor, not a preference: @supabase/supabase-js declares
+# `engines: node >=22` and its realtime client throws on construction under 20
+# ("native WebSocket not found"). Node 20 is also past end-of-life.
 # Build & start commands are defined in railway.json.
 
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_22"]

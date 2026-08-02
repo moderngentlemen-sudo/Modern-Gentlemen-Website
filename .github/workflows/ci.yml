@@ -1,0 +1,192 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The Next.js app is not at the repository root.
+  APP_DIR: design_handoff_modern_gentlemen/starter
+
+defaults:
+  run:
+    working-directory: design_handoff_modern_gentlemen/starter
+
+jobs:
+  # Fast feedback: static analysis and the unit/component pyramid base.
+  verify:
+    name: Lint, typecheck & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: design_handoff_modern_gentlemen/starter/.nvmrc
+          cache: npm
+          cache-dependency-path: design_handoff_modern_gentlemen/starter/package-lock.json
+
+      - run: npm ci
+
+      - name: Prettier
+        run: npm run format:check
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Unit & component tests
+        run: npm test
+
+      # Advisory only: docs discipline must never block a hotfix.
+      - name: PROGRESS.md freshness
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)
+          if echo "$CHANGED" | grep -q '^design_handoff_modern_gentlemen/starter/'; then
+            if ! echo "$CHANGED" | grep -q '^PROGRESS.md$'; then
+              echo "::warning title=PROGRESS.md not updated::This PR changes starter/ but does not update PROGRESS.md - it is the session handoff document, please refresh it."
+            fi
+          fi
+
+  # Services, repositories and RLS policies against a real Postgres.
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: design_handoff_modern_gentlemen/starter/.nvmrc
+          cache: npm
+          cache-dependency-path: design_handoff_modern_gentlemen/starter/package-lock.json
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        run: supabase start --workdir .
+
+      - name: Export stack credentials
+        run: |
+          # `supabase status -o env` emits API_URL / ANON_KEY / SERVICE_ROLE_KEY
+          # for the throwaway local stack. No production secret is involved.
+          #
+          # It emits them shell-quoted — API_URL="http://127.0.0.1:54321" — and
+          # $GITHUB_ENV takes the right-hand side literally, so without stripping
+          # the quotes every consumer receives a value that still has them,
+          # and supabase-js rejects the URL as malformed.
+          supabase status --workdir . -o env \
+            | sed -E 's/^/SUPABASE_/; s/="(.*)"$/=\1/' >> "$GITHUB_ENV"
+
+      - name: Integration tests
+        env:
+          SUPABASE_TEST_URL: ${{ env.SUPABASE_API_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:integration -- --passWithNoTests
+
+      - name: Stop stack
+        if: always()
+        run: supabase stop --workdir . || true
+
+  # Critical journeys and the screenshot guard on the pixel-verified design.
+  e2e:
+    name: E2E & visual regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: design_handoff_modern_gentlemen/starter/.nvmrc
+          cache: npm
+          cache-dependency-path: design_handoff_modern_gentlemen/starter/package-lock.json
+
+      - run: npm ci
+
+      # GitHub runners have no preinstalled browsers, unlike the dev container.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        run: supabase start --workdir .
+
+      - name: Export stack credentials
+        # Quotes stripped for the same reason as the integration job above.
+        run: |
+          supabase status --workdir . -o env \
+            | sed -E 's/^/SUPABASE_/; s/="(.*)"$/=\1/' >> "$GITHUB_ENV"
+
+      # Without this the signed-in specs skip, which is what they had been doing
+      # since Phase 1c: the stack is fresh every run and holds no accounts, so
+      # E2E_ADMIN_* were never set and the whole authenticated half of the suite
+      # silently passed by doing nothing. Roles and permissions come from
+      # migration 0001, which `supabase start` has already applied, so
+      # create-admin.ts is all that is needed on top.
+      #
+      # The password is a literal on purpose. It unlocks a throwaway local stack
+      # that is destroyed at the end of the job and is reachable only from this
+      # runner; a repository secret here would imply it guards something.
+      - name: Provision the admin account
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          SEED_ADMIN_EMAIL: ci-admin@moderngentlemen.test
+          SEED_ADMIN_PASSWORD: ci-local-stack-password
+        run: |
+          npx --yes tsx scripts/create-admin.ts
+          {
+            echo "E2E_ADMIN_EMAIL=ci-admin@moderngentlemen.test"
+            echo "E2E_ADMIN_PASSWORD=ci-local-stack-password"
+          } >> "$GITHUB_ENV"
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run build
+
+      - name: E2E tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e
+
+      - name: Visual regression
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:visual
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ${{ env.APP_DIR }}/playwright-report
+          retention-days: 14
+
+      - name: Stop stack
+        if: always()
+        run: supabase stop --workdir . || true

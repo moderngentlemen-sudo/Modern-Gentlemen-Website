@@ -14,7 +14,14 @@ export function useScrollLock(active: boolean) {
     if (!active) return;
     const y = window.scrollY;
     const body = document.body.style;
-    const prev = { position: body.position, top: body.top, left: body.left, right: body.right, width: body.width, overflow: body.overflow };
+    const prev = {
+      position: body.position,
+      top: body.top,
+      left: body.left,
+      right: body.right,
+      width: body.width,
+      overflow: body.overflow,
+    };
     body.position = "fixed";
     body.top = `-${y}px`;
     body.left = "0";

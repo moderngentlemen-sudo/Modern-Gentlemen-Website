@@ -23,7 +23,9 @@ export function OrderSummary({
   const cart = useCart();
   return (
     <div className="border border-mg-bd/15 p-6">
-      <h2 className="mb-4 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">{heading}</h2>
+      <h2 className="mb-4 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+        {heading}
+      </h2>
 
       {showItems && (
         <ul className="mb-4 space-y-2 border-b border-mg-bd/10 pb-4">
@@ -56,14 +58,30 @@ export function OrderSummary({
         </Link>
       )}
       {secondary}
-      {footNote && <p className="mt-4 text-center font-mono uppercase text-[10px] tracking-[0.12em] text-mg-fg/40">{footNote}</p>}
+      {footNote && (
+        <p className="mt-4 text-center font-mono uppercase text-[10px] tracking-[0.12em] text-mg-fg/40">
+          {footNote}
+        </p>
+      )}
     </div>
   );
 }
 
-function Row({ label, value, bold, accent }: { label: string; value: string; bold?: boolean; accent?: boolean }) {
+function Row({
+  label,
+  value,
+  bold,
+  accent,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  accent?: boolean;
+}) {
   return (
-    <div className={`flex justify-between py-1 ${bold ? "font-grotesk text-lg" : `text-sm ${accent ? "text-mg-accentSerif" : "text-mg-fg/70"}`}`}>
+    <div
+      className={`flex justify-between py-1 ${bold ? "font-grotesk text-lg" : `text-sm ${accent ? "text-mg-accentSerif" : "text-mg-fg/70"}`}`}
+    >
       <span>{label}</span>
       <span className="font-mono">{value}</span>
     </div>

@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 interface Props {
-  badge?: string;          // red mono pill, e.g. "COVER STORY — ISSUE 042"
-  eyebrow?: string;        // serif italic kicker, e.g. "The Cover Interview"
-  headline: string;        // supports "\n" for an explicit line break
-  sub?: string;            // dek
+  badge?: string; // red mono pill, e.g. "COVER STORY — ISSUE 042"
+  eyebrow?: string; // serif italic kicker, e.g. "The Cover Interview"
+  headline: string; // supports "\n" for an explicit line break
+  sub?: string; // dek
   media?: { kind?: "image" | "video"; image?: string; videoUrl?: string };
   cta?: { label: string; href: string };
-  credit?: string;         // mono, e.g. "PHOTOGRAPHY · E. MARLOWE"
-  meta?: string;           // mono bottom-left rail, e.g. "NO. 042 — A. BELLAMY — 11 MIN"
+  credit?: string; // mono, e.g. "PHOTOGRAPHY · E. MARLOWE"
+  meta?: string; // mono bottom-left rail, e.g. "NO. 042 — A. BELLAMY — 11 MIN"
   mobileHeight?: "auto" | "tall" | "fullscreen";
 }
 
@@ -26,7 +26,17 @@ interface Props {
  * the bar is `position: fixed`). Video autoplay is set imperatively (React's
  * `muted` prop is unreliable) and gated on reduced-motion.
  */
-export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credit, meta, mobileHeight = "fullscreen" }: Props) {
+export function HeroCoverStar({
+  badge,
+  eyebrow,
+  headline,
+  sub,
+  media,
+  cta,
+  credit,
+  meta,
+  mobileHeight = "fullscreen",
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isVideo = !!media?.videoUrl && media?.kind !== "image";
 
@@ -36,7 +46,8 @@ export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credi
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     el.muted = true;
     const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => (e.isIntersecting ? el.play().catch(() => {}) : el.pause())),
+      (entries) =>
+        entries.forEach((e) => (e.isIntersecting ? el.play().catch(() => {}) : el.pause())),
       { threshold: 0.35 }
     );
     io.observe(el);
@@ -96,7 +107,9 @@ export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credi
             </span>
           )}
           {eyebrow && (
-            <div className="mt-3.5 font-serif italic text-[16px] leading-[normal] text-[#ff4d5e]">{eyebrow}</div>
+            <div className="mt-3.5 font-serif italic text-[16px] leading-[normal] text-[#ff4d5e]">
+              {eyebrow}
+            </div>
           )}
           <h1
             className="mt-2 font-grotesk font-semibold text-[44px] min-[681px]:text-[84px] leading-[0.92] tracking-[-0.055em] whitespace-pre-line"
@@ -122,7 +135,9 @@ export function HeroCoverStar({ badge, eyebrow, headline, sub, media, cta, credi
               </Link>
             )}
             {credit && (
-              <span className="font-mono text-[9px] leading-[normal] tracking-[0.16em] text-white/60">{credit}</span>
+              <span className="font-mono text-[9px] leading-[normal] tracking-[0.16em] text-white/60">
+                {credit}
+              </span>
             )}
           </div>
         </div>

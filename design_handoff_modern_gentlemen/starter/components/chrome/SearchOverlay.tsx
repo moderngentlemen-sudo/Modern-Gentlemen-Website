@@ -19,25 +19,84 @@ type Row = {
 /** Editorial search index — the prototype's `searchIndex()`, verbatim and in
  *  order. Track B swaps this for a Supabase-backed index. */
 const EDITORIAL: Omit<Row, "section" | "href">[] = [
-  { tag: "CULTURE", title: "The Art of Arriving Early", meta: "6 MIN", img: "/images/hero-cover.jpg" },
-  { tag: "STYLE", title: "Racing Green Is the New Navy", meta: "5 MIN", img: "/images/style-mono.jpg" },
-  { tag: "WATCHES", title: "Why Dial Symmetry Matters", meta: "8 MIN", img: "/images/watch-gear.jpg" },
-  { tag: "GROOMING", title: "The Case Against 12-Step Routines", meta: "4 MIN", img: "/images/grooming.jpg" },
+  {
+    tag: "CULTURE",
+    title: "The Art of Arriving Early",
+    meta: "6 MIN",
+    img: "/images/hero-cover.jpg",
+  },
+  {
+    tag: "STYLE",
+    title: "Racing Green Is the New Navy",
+    meta: "5 MIN",
+    img: "/images/style-mono.jpg",
+  },
+  {
+    tag: "WATCHES",
+    title: "Why Dial Symmetry Matters",
+    meta: "8 MIN",
+    img: "/images/watch-gear.jpg",
+  },
+  {
+    tag: "GROOMING",
+    title: "The Case Against 12-Step Routines",
+    meta: "4 MIN",
+    img: "/images/grooming.jpg",
+  },
   { tag: "CULTURE", title: "The Analog Weekend", meta: "9 MIN", img: "/images/film-workshop.jpg" },
-  { tag: "GROOMING", title: "The Seven-Minute Standard", meta: "FEATURE", img: "/images/grooming.jpg" },
-  { tag: "WATCHES", title: "Chronographs Born on the Grid", meta: "FEATURE", img: "/images/watch-gear.jpg" },
-  { tag: "STYLE", title: "The Monochrome Wardrobe, Engineered", meta: "FEATURE", img: "/images/style-mono.jpg" },
-  { tag: "FILM", title: "Inside a Coachbuilder’s Workshop", meta: "14:20", img: "/images/film-workshop.jpg" },
+  {
+    tag: "GROOMING",
+    title: "The Seven-Minute Standard",
+    meta: "FEATURE",
+    img: "/images/grooming.jpg",
+  },
+  {
+    tag: "WATCHES",
+    title: "Chronographs Born on the Grid",
+    meta: "FEATURE",
+    img: "/images/watch-gear.jpg",
+  },
+  {
+    tag: "STYLE",
+    title: "The Monochrome Wardrobe, Engineered",
+    meta: "FEATURE",
+    img: "/images/style-mono.jpg",
+  },
+  {
+    tag: "FILM",
+    title: "Inside a Coachbuilder’s Workshop",
+    meta: "14:20",
+    img: "/images/film-workshop.jpg",
+  },
   { tag: "FILM", title: "A Tailor’s Archive", meta: "09:52", img: "/images/film-tailor.jpg" },
-  { tag: "FILM", title: "The Watchmaker of the Grid", meta: "11:38", img: "/images/film-watchmaker.jpg" },
-  { tag: "CULTURE", title: "Preserving Taste While Defining New Style", meta: "ESSAY", img: "/images/hero-cover.jpg" },
-  { tag: "MEMBERSHIP", title: "The Debrief — Weekly Newsletter", meta: "JOIN", img: "/images/film-tailor.jpg" },
+  {
+    tag: "FILM",
+    title: "The Watchmaker of the Grid",
+    meta: "11:38",
+    img: "/images/film-watchmaker.jpg",
+  },
+  {
+    tag: "CULTURE",
+    title: "Preserving Taste While Defining New Style",
+    meta: "ESSAY",
+    img: "/images/hero-cover.jpg",
+  },
+  {
+    tag: "MEMBERSHIP",
+    title: "The Debrief — Weekly Newsletter",
+    meta: "JOIN",
+    img: "/images/film-tailor.jpg",
+  },
 ];
 
 /** Prototype `fixHref`: membership and film go to their landings, everything
  *  else resolves to the article route by slug. */
 const editorialHref = (r: { tag: string; title: string }) =>
-  r.tag === "MEMBERSHIP" ? "/membership" : r.tag === "FILM" ? "/film" : `/article/${slugify(r.title)}`;
+  r.tag === "MEMBERSHIP"
+    ? "/membership"
+    : r.tag === "FILM"
+      ? "/film"
+      : `/article/${slugify(r.title)}`;
 
 const POPULAR = ["Watches", "Grooming", "Film", "Racing Green", "The Debrief"];
 
@@ -92,13 +151,17 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
   const results = useMemo<Row[]>(() => {
     if (!query) return [];
-    const ed: Row[] = EDITORIAL.filter((r) => (r.title + " " + r.tag).toLowerCase().includes(query)).map((r) => ({
+    const ed: Row[] = EDITORIAL.filter((r) =>
+      (r.title + " " + r.tag).toLowerCase().includes(query)
+    ).map((r) => ({
       ...r,
       href: editorialHref(r),
       section: "Editorial",
     }));
     const shop: Row[] = allProducts()
-      .filter((p) => (p.name + " " + p.catLabel + " " + p.material + " " + p.tag).toLowerCase().includes(query))
+      .filter((p) =>
+        (p.name + " " + p.catLabel + " " + p.material + " " + p.tag).toLowerCase().includes(query)
+      )
       .slice(0, 8)
       .map((p) => ({
         tag: p.catLabel,
@@ -145,7 +208,11 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
         tabIndex={-1}
         data-searchpanel
         className="w-full max-w-[760px] mt-[8vh] min-[681px]:mt-[14vh] outline-none will-change-[opacity,transform]"
-        style={{ animation: closing ? "mgFadeOut .16s ease forwards" : "mgRise .2s cubic-bezier(.22,1,.36,1) both" }}
+        style={{
+          animation: closing
+            ? "mgFadeOut .16s ease forwards"
+            : "mgRise .2s cubic-bezier(.22,1,.36,1) both",
+        }}
       >
         {/* SEARCH · ESC rail — centred on phones, split on desktop. */}
         <div className="relative flex items-center justify-center min-[681px]:justify-between mb-[22px]">
@@ -160,7 +227,16 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           >
             ESC
             <span className="flex items-center justify-center h-7 w-7 rounded-full border border-[rgba(244,244,244,0.25)]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden
+              >
                 <line x1="6" y1="6" x2="18" y2="18" />
                 <line x1="18" y1="6" x2="6" y2="18" />
               </svg>
@@ -170,7 +246,17 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
         {/* Query bar */}
         <div className="flex items-center gap-4 pb-5 border-b-[1.5px] border-[rgba(244,244,244,0.22)]">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" aria-hidden className="shrink-0">
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#C8102E"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden
+            className="shrink-0"
+          >
             <circle cx="11" cy="11" r="7" />
             <line x1="16.5" y1="16.5" x2="21" y2="21" />
           </svg>
@@ -194,7 +280,16 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                 aria-label="Clear search"
                 className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center h-[34px] w-[34px] rounded-full bg-[rgba(120,120,120,0.14)] border border-[rgba(120,120,120,0.28)] touch-manipulation transition-[color,background] duration-200 hover:bg-[rgba(200,16,46,0.16)] hover:text-mg-accent"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  aria-hidden
+                >
                   <line x1="6" y1="6" x2="18" y2="18" />
                   <line x1="18" y1="6" x2="6" y2="18" />
                 </svg>
@@ -234,8 +329,8 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             </div>
           ) : results.length === 0 ? (
             <div className="py-7 px-1 font-grotesk font-light text-base leading-[1.6] text-[rgba(244,244,244,0.55)]">
-              No results for <span className="text-[#f4f4f4]">&ldquo;{q}&rdquo;</span>. Try &ldquo;watches&rdquo;,
-              &ldquo;grooming&rdquo;, or &ldquo;film&rdquo;.
+              No results for <span className="text-[#f4f4f4]">&ldquo;{q}&rdquo;</span>. Try
+              &ldquo;watches&rdquo;, &ldquo;grooming&rdquo;, or &ldquo;film&rdquo;.
             </div>
           ) : (
             <div className="flex flex-col gap-0.5">
@@ -257,8 +352,13 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
 function GroupHead({ label, n }: { label: string; n: number }) {
   return (
-    <div data-searchgroup className="flex items-baseline justify-between gap-3 pt-5 px-1.5 pb-[9px]">
-      <span className="font-mono text-[10px] leading-[normal] tracking-[0.26em] text-mg-accent">{label}</span>
+    <div
+      data-searchgroup
+      className="flex items-baseline justify-between gap-3 pt-5 px-1.5 pb-[9px]"
+    >
+      <span className="font-mono text-[10px] leading-[normal] tracking-[0.26em] text-mg-accent">
+        {label}
+      </span>
       <span className="font-mono text-[9px] leading-[normal] tracking-[0.14em] text-[rgba(244,244,244,0.4)]">
         {`${n} ${n === 1 ? "RESULT" : "RESULTS"}`}
       </span>
@@ -281,10 +381,18 @@ function ResultRow({ row, onGo }: { row: Row; onGo: (href: string) => void }) {
       className="grid grid-cols-[52px_1fr] min-[681px]:grid-cols-[64px_1fr_auto] gap-3.5 items-center py-3 px-1.5 border-b border-[rgba(244,244,244,0.08)] text-[#f4f4f4] no-underline bg-transparent transition-[background] duration-[180ms] hover:bg-[rgba(244,244,244,0.04)]"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={row.img} alt="" className="block h-[46px] w-[52px] min-[681px]:w-16 object-cover bg-[#1a1a1c]" />
+      <img
+        src={row.img}
+        alt=""
+        className="block h-[46px] w-[52px] min-[681px]:w-16 object-cover bg-[#1a1a1c]"
+      />
       <div className="min-w-0 flex flex-col gap-[3px]">
-        <span className="font-mono text-[9px] leading-[normal] tracking-[0.18em] text-mg-accent">{row.tag}</span>
-        <span className="font-grotesk font-medium text-base leading-[1.2] tracking-[-0.015em] truncate">{row.title}</span>
+        <span className="font-mono text-[9px] leading-[normal] tracking-[0.18em] text-mg-accent">
+          {row.tag}
+        </span>
+        <span className="font-grotesk font-medium text-base leading-[1.2] tracking-[-0.015em] truncate">
+          {row.title}
+        </span>
       </div>
       <span
         data-searchmeta

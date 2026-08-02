@@ -21,30 +21,59 @@ interface Props {
 /** MG Film — 3-up video stills. The first tile auto-plays (muted) on scroll-in;
  *  any tile plays on hover; click opens a lightbox. Reduced-motion disables
  *  autoplay. */
-export function FilmStills({ heading = "MG Film", eyebrow, allHref, allLabel = "All episodes →", items }: Props) {
+export function FilmStills({
+  heading = "MG Film",
+  eyebrow,
+  allHref,
+  allLabel = "All episodes →",
+  items,
+}: Props) {
   const [active, setActive] = useState<Item | null>(null);
   return (
     <section className="container-mg pt-20 pb-[72px]">
       <div className="flex items-baseline justify-between gap-4 mb-7">
         <div>
-          {eyebrow && <Eyebrow className="block !text-[20px] !leading-[normal] !text-mg-muted">{eyebrow}</Eyebrow>}
-          <h2 className="mt-1.5 font-grotesk font-semibold text-3xl leading-[1.05] min-[681px]:text-[42px] min-[681px]:leading-none tracking-[-0.035em]">{heading}</h2>
+          {eyebrow && (
+            <Eyebrow className="block !text-[20px] !leading-[normal] !text-mg-muted">
+              {eyebrow}
+            </Eyebrow>
+          )}
+          <h2 className="mt-1.5 font-grotesk font-semibold text-3xl leading-[1.05] min-[681px]:text-[42px] min-[681px]:leading-none tracking-[-0.035em]">
+            {heading}
+          </h2>
         </div>
-        {allHref && <Link href={allHref} className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accent whitespace-nowrap">{allLabel}</Link>}
+        {allHref && (
+          <Link
+            href={allHref}
+            className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accent whitespace-nowrap"
+          >
+            {allLabel}
+          </Link>
+        )}
       </div>
 
       {/* 3-up ≥1025, 2-up ≤1024, stacked ≤680 — the prototype's card breakpoints. */}
       <div className="grid grid-cols-1 min-[681px]:grid-cols-2 min-[1025px]:grid-cols-3 gap-[22px]">
-        {items?.map((it, i) => <FilmTile key={i} item={it} autoplay={i === 0} onOpen={() => setActive(it)} />)}
+        {items?.map((it, i) => (
+          <FilmTile key={i} item={it} autoplay={i === 0} onOpen={() => setActive(it)} />
+        ))}
       </div>
 
       {active && (
-        <div className="fixed inset-0 z-[210] bg-black/90 grid place-items-center p-6" onClick={() => setActive(null)}>
-          <div className="w-full max-w-4xl aspect-video bg-black" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[210] bg-black/90 grid place-items-center p-6"
+          onClick={() => setActive(null)}
+        >
+          <div
+            className="w-full max-w-4xl aspect-video bg-black"
+            onClick={(e) => e.stopPropagation()}
+          >
             {active.videoUrl ? (
               <video src={active.videoUrl} controls autoPlay className="h-full w-full" />
             ) : (
-              <div className="h-full w-full grid place-items-center text-white/60 font-mono text-sm">Preview only</div>
+              <div className="h-full w-full grid place-items-center text-white/60 font-mono text-sm">
+                Preview only
+              </div>
             )}
           </div>
         </div>
@@ -53,7 +82,15 @@ export function FilmStills({ heading = "MG Film", eyebrow, allHref, allLabel = "
   );
 }
 
-function FilmTile({ item, autoplay, onOpen }: { item: Item; autoplay?: boolean; onOpen: () => void }) {
+function FilmTile({
+  item,
+  autoplay,
+  onOpen,
+}: {
+  item: Item;
+  autoplay?: boolean;
+  onOpen: () => void;
+}) {
   const vidRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -82,27 +119,59 @@ function FilmTile({ item, autoplay, onOpen }: { item: Item; autoplay?: boolean; 
   };
 
   return (
-    <button onClick={onOpen} onMouseEnter={hoverPlay} onMouseLeave={hoverPause} className="group text-left">
+    <button
+      onClick={onOpen}
+      onMouseEnter={hoverPlay}
+      onMouseLeave={hoverPause}
+      className="group text-left"
+    >
       <div className="relative h-[240px] overflow-hidden bg-[#0d0d0d]">
         {item.videoUrl ? (
-          <video ref={vidRef} src={item.videoUrl} poster={item.still} loop muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+          <video
+            ref={vidRef}
+            src={item.videoUrl}
+            poster={item.still}
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : item.still ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.still} alt={item.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <img
+            src={item.still}
+            alt={item.title}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : null}
         <span
           aria-hidden
           className="absolute top-[14px] left-4 flex items-center justify-center h-11 w-11 rounded-full border border-white/25 text-white text-[12px] leading-[normal] pl-0.5"
-          style={{ background: "rgba(16,16,18,0.5)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
+          style={{
+            background: "rgba(16,16,18,0.5)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+          }}
         >
           ▶
         </span>
         <div
           className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 px-[18px] py-[14px] border-t border-white/[0.14] text-white pointer-events-none"
-          style={{ background: "rgba(16,16,18,0.45)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" }}
+          style={{
+            background: "rgba(16,16,18,0.45)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+          }}
         >
-          <h3 className="font-grotesk font-medium text-[15px] leading-[normal] tracking-[-0.01em]">{item.title}</h3>
-          {item.duration && <span className="shrink-0 font-mono text-[9.5px] leading-[normal] text-white/60">{item.duration}</span>}
+          <h3 className="font-grotesk font-medium text-[15px] leading-[normal] tracking-[-0.01em]">
+            {item.title}
+          </h3>
+          {item.duration && (
+            <span className="shrink-0 font-mono text-[9.5px] leading-[normal] text-white/60">
+              {item.duration}
+            </span>
+          )}
         </div>
       </div>
     </button>

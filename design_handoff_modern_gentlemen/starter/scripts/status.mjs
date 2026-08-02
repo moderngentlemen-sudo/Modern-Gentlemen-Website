@@ -1,0 +1,155 @@
+#!/usr/bin/env node
+/**
+ * Derives the volatile half of PROGRESS.md from git and the filesystem, so it
+ * cannot go stale. The prose half (decisions, architecture, gotchas) is what
+ * humans maintain; everything printed here is computed fresh.
+ *
+ * Deliberately plain .mjs with zero dependencies: this runs on every
+ * SessionStart hook, so it must start instantly and never fail because a
+ * package is missing or the network is down.
+ *
+ *   node scripts/status.mjs            human-readable block
+ *   node scripts/status.mjs --json     machine-readable
+ *   node scripts/status.mjs --hook     SessionStart hook envelope
+ *   node scripts/status.mjs --stale    exit 0 always; prints a reminder if stale
+ */
+import { execSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const STARTER = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const REPO = resolve(STARTER, "..", "..");
+
+/** Never let a shell failure take down the hook. */
+function sh(command, cwd = REPO) {
+  try {
+    return execSync(command, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return "";
+  }
+}
+
+function countMatches(dir, pattern, extensions) {
+  if (!existsSync(dir)) return 0;
+  let total = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true, recursive: true })) {
+    if (!entry.isFile()) continue;
+    if (!extensions.some((ext) => entry.name.endsWith(ext))) continue;
+    const full = join(entry.parentPath ?? entry.path ?? dir, entry.name);
+    try {
+      total += (readFileSync(full, "utf8").match(pattern) ?? []).length;
+    } catch {
+      /* unreadable file — skip */
+    }
+  }
+  return total;
+}
+
+function collect() {
+  const branch = sh("git rev-parse --abbrev-ref HEAD") || "unknown";
+  const upstream = sh("git rev-parse --abbrev-ref --symbolic-full-name @{u}");
+  const ahead = upstream ? sh(`git rev-list --count ${upstream}..HEAD`) : "";
+  const behind = upstream ? sh(`git rev-list --count HEAD..${upstream}`) : "";
+  const dirty = sh("git status --porcelain").split("\n").filter(Boolean).length;
+  const commits = sh("git log --oneline -5 --no-decorate").split("\n").filter(Boolean);
+
+  const migrationsDir = join(STARTER, "supabase", "migrations");
+  const migrations = existsSync(migrationsDir)
+    ? readdirSync(migrationsDir)
+        .filter((f) => f.endsWith(".sql"))
+        .sort()
+    : [];
+
+  // Vitest `it(` / `test(` and Playwright `test(` declarations.
+  const unitTests =
+    countMatches(join(STARTER, "lib"), /\b(?:it|test)(?:\.each)?\s*\(/g, [
+      ".test.ts",
+      ".test.tsx",
+    ]) +
+    countMatches(join(STARTER, "components"), /\b(?:it|test)\s*\(/g, [".test.ts", ".test.tsx"]);
+  const e2eTests = countMatches(join(STARTER, "tests", "e2e"), /\btest\s*\(/g, [".spec.ts"]);
+
+  // How many commits have touched the app since PROGRESS.md was last updated?
+  // Resolve the doc's last commit to a SHA first — `PROGRESS.md..HEAD` would be
+  // parsed as a revision range, not a path, and fail silently to zero.
+  const docSha = sh("git log -1 --format=%H -- PROGRESS.md");
+  const commitsSinceDoc = docSha
+    ? Number(
+        sh(`git rev-list --count ${docSha}..HEAD -- design_handoff_modern_gentlemen/starter`) || 0
+      )
+    : 0;
+
+  return {
+    branch,
+    upstream: upstream || null,
+    ahead: Number(ahead || 0),
+    behind: Number(behind || 0),
+    uncommittedFiles: dirty,
+    recentCommits: commits,
+    migrations: { count: migrations.length, latest: migrations.at(-1) ?? null },
+    tests: { unit: unitTests, e2e: e2eTests },
+    docs: {
+      progressStale: commitsSinceDoc > 0,
+      appCommitsSinceDocUpdate: commitsSinceDoc,
+    },
+  };
+}
+
+function humanise(s) {
+  const lines = [
+    `branch          ${s.branch}${s.ahead ? ` (${s.ahead} ahead)` : ""}${
+      s.behind ? ` (${s.behind} behind)` : ""
+    }`,
+    `working tree    ${s.uncommittedFiles === 0 ? "clean" : `${s.uncommittedFiles} uncommitted file(s)`}`,
+    `migrations      ${s.migrations.count} (latest: ${s.migrations.latest ?? "none"})`,
+    `test blocks     ${s.tests.unit} unit · ${s.tests.e2e} e2e  (declarations; .each counts once)`,
+    "",
+    "recent commits",
+    ...s.recentCommits.map((c) => `  ${c}`),
+  ];
+
+  if (s.docs.progressStale) {
+    lines.push(
+      "",
+      `⚠ PROGRESS.md is behind the code — ${s.docs.appCommitsSinceDocUpdate} commit(s) to starter/ since it was last updated.`
+    );
+  }
+
+  return lines.join("\n");
+}
+
+const argv = process.argv.slice(2);
+const state = collect();
+
+if (argv.includes("--json")) {
+  process.stdout.write(JSON.stringify(state, null, 2) + "\n");
+} else if (argv.includes("--hook")) {
+  // SessionStart: additionalContext is injected into the model's context.
+  const context = [
+    "Modern Gentlemen — live repository state (generated by scripts/status.mjs):",
+    "",
+    humanise(state),
+    "",
+    "Read PROGRESS.md for the full build status, architecture and decisions log.",
+    "Keep PROGRESS.md updated as you work — it is the handoff to the next session.",
+  ].join("\n");
+
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: context },
+      suppressOutput: true,
+    }) + "\n"
+  );
+} else if (argv.includes("--stale")) {
+  // Stop / PreCompact: advisory only. Silent unless the doc has fallen behind.
+  if (state.docs.progressStale && state.docs.appCommitsSinceDocUpdate > 0) {
+    process.stdout.write(
+      JSON.stringify({
+        systemMessage: `PROGRESS.md is ${state.docs.appCommitsSinceDocUpdate} commit(s) behind starter/ — update it so the next session picks up cleanly.`,
+      }) + "\n"
+    );
+  }
+} else {
+  process.stdout.write(humanise(state) + "\n");
+}
