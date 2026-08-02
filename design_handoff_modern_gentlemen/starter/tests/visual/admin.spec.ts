@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { basename } from "node:path";
+
 import { expect, test, type Page } from "@playwright/test";
 
 /**
@@ -11,6 +14,37 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const email = process.env.E2E_ADMIN_EMAIL;
 const password = process.env.E2E_ADMIN_PASSWORD;
+
+/**
+ * Skip — visibly — when a baseline has never been captured.
+ *
+ * Unlike the public shots, these cannot be produced anywhere the repo is
+ * merely checked out: they require a signed-in session, so a host needs both a
+ * database and an admin account before it can take the first picture. CI has
+ * both but cannot commit what it captures, and the dev container has neither.
+ * Left alone, Playwright writes the actual and fails, which makes the job
+ * permanently red for a reason no push can fix.
+ *
+ * A skip says the same thing without pretending it is a regression, and the
+ * gate arms itself the moment a baseline lands next to the spec. The
+ * `--update-snapshots` escape hatch is deliberate: without it, the guard would
+ * also skip the run that is trying to create the baselines in the first place.
+ */
+function requireBaseline(name: string) {
+  // Not destructured: snapshotPath lives on TestInfo's prototype, and a rest
+  // spread would leave it behind.
+  const info = test.info();
+  const mode = info.config.updateSnapshots;
+  const writing = mode === "all" || mode === "changed";
+  const baseline = info.snapshotPath(name);
+
+  test.skip(
+    !writing && !existsSync(baseline),
+    `No baseline for ${basename(baseline)}. Capture it on a host that can sign in — ` +
+      `start a local Supabase stack, provision an admin, run ` +
+      `\`npm run test:visual -- --update-snapshots\`, and commit the PNGs.`
+  );
+}
 
 async function signIn(page: Page, theme: "light" | "dark") {
   // Set before the first navigation so the boot script in <head> applies the
@@ -29,6 +63,7 @@ for (const theme of ["light", "dark"] as const) {
     test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
 
     test(`dashboard`, async ({ page }) => {
+      requireBaseline(`admin-dashboard-${theme}.png`);
       await signIn(page, theme);
       await page.goto("/admin");
       await page.evaluate(() => document.fonts.ready);
@@ -42,6 +77,7 @@ for (const theme of ["light", "dark"] as const) {
     });
 
     test(`pages list`, async ({ page }) => {
+      requireBaseline(`admin-pages-${theme}.png`);
       await signIn(page, theme);
       await page.goto("/admin/pages");
       await page.evaluate(() => document.fonts.ready);
