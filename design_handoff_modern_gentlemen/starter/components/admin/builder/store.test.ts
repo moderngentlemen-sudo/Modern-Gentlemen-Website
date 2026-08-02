@@ -410,6 +410,22 @@ describe("save lifecycle", () => {
     expect(store.getState().save.kind).toBe("dirty");
   });
 
+  it("setDoc patches status and version, which publishing has to apply itself", () => {
+    // The store is seeded once and `router.refresh()` does not re-seed it — the
+    // provider holds one store per document by design. Without this the publish
+    // bar went on showing "draft" and the old version number after a publish
+    // that had genuinely succeeded, until a full page reload.
+    const store = makeStore();
+    expect(store.getState().doc.status).toBe("draft");
+
+    store.getState().setDoc({ status: "published", version: 4 });
+
+    expect(store.getState().doc.status).toBe("published");
+    expect(store.getState().doc.version).toBe(4);
+    // Everything else about the document is left alone.
+    expect(store.getState().doc.slug).toBe("home");
+  });
+
   it("replaceTree resets history and dirtiness, as after a rollback", () => {
     const store = makeStore();
     store.getState().insert("pullQuote");

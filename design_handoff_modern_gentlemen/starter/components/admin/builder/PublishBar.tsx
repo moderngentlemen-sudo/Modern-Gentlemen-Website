@@ -53,6 +53,7 @@ export function PublishBar({
   const canUndo = useBuilder((s) => s.past.length > 0);
   const canRedo = useBuilder((s) => s.future.length > 0);
   const setServerIssues = useBuilder((s) => s.setServerIssues);
+  const setDoc = useBuilder((s) => s.setDoc);
   const select = useBuilder((s) => s.select);
 
   const [confirmPublish, setConfirmPublish] = useState(false);
@@ -64,6 +65,10 @@ export function PublishBar({
       if (result.ok) {
         setConfirmPublish(false);
         setServerIssues([]);
+        // The store is seeded once and router.refresh() does not re-seed it, so
+        // the status and version have to be applied here or the bar keeps
+        // claiming the page is a draft.
+        setDoc({ status: "published", version: result.data.version });
         toast.push(`Published v${result.data.version}`, "success");
         router.refresh();
         return;
@@ -90,6 +95,7 @@ export function PublishBar({
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
+        setDoc({ version: result.data.version });
         toast.push(`${label} — now v${result.data.version}`, "success");
         router.refresh();
       } else {

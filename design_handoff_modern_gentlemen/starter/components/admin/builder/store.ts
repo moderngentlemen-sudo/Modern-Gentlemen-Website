@@ -115,6 +115,17 @@ export interface BuilderActions {
   markSaved: (sentTree: BlockTree) => void;
   markSaveError: (message: string) => void;
   setServerIssues: (issues: BlockIssue[]) => void;
+  /**
+   * Patches the document's own metadata — status and version.
+   *
+   * Publishing changes both, but the store is seeded once from the server
+   * payload and `router.refresh()` re-renders the server component without
+   * re-seeding it: `BuilderStoreProvider` holds its store in a ref by design,
+   * so one document keeps one store. Without this the bar went on showing
+   * "draft" and the old version number after a successful publish, until a full
+   * page reload.
+   */
+  setDoc: (patch: Partial<BuilderDocument>) => void;
   replaceTree: (tree: BlockTree, doc?: Partial<BuilderDocument>) => void;
 }
 
@@ -376,6 +387,8 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       markSaveError: (message) => set({ save: { kind: "error", message } }),
 
       setServerIssues: (issues) => set({ serverIssues: issues }),
+
+      setDoc: (patch) => set((state) => ({ doc: { ...state.doc, ...patch } })),
 
       replaceTree: (tree, doc) =>
         set((state) => ({
