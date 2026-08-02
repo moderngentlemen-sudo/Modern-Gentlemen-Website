@@ -125,6 +125,30 @@ jobs:
       - name: Export stack credentials
         run: supabase status --workdir . -o env | sed 's/^/SUPABASE_/' >> "$GITHUB_ENV"
 
+      # Without this the signed-in specs skip, which is what they had been doing
+      # since Phase 1c: the stack is fresh every run and holds no accounts, so
+      # E2E_ADMIN_* were never set and the whole authenticated half of the suite
+      # silently passed by doing nothing. Roles and permissions come from
+      # migration 0001, which `supabase start` has already applied, so
+      # create-admin.ts is all that is needed on top.
+      #
+      # The password is a literal on purpose. It unlocks a throwaway local stack
+      # that is destroyed at the end of the job and is reachable only from this
+      # runner; a repository secret here would imply it guards something.
+      - name: Provision the admin account
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          SEED_ADMIN_EMAIL: ci-admin@moderngentlemen.test
+          SEED_ADMIN_PASSWORD: ci-local-stack-password
+        run: |
+          npx --yes tsx scripts/create-admin.ts
+          {
+            echo "E2E_ADMIN_EMAIL=ci-admin@moderngentlemen.test"
+            echo "E2E_ADMIN_PASSWORD=ci-local-stack-password"
+          } >> "$GITHUB_ENV"
+
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
