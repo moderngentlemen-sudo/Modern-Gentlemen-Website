@@ -64,11 +64,16 @@ cd design_handoff_modern_gentlemen/starter
 npm install
 npm run dev          # → http://localhost:3000
 ```
-It boots immediately on built-in demo data — no CMS, no accounts, no keys needed.
+The public pages render from built-in demo data, but **`.env.local` is now
+required**: `middleware.ts` runs on every route and builds a Supabase client, so
+without `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` every
+request fails. Copy `.env.example` to `design_handoff_modern_gentlemen/starter/.env.local`
+first. (This used to boot with no keys at all; that stopped being true when auth
+landed.)
 
 ## Deploy it
 
-See **`RAILWAY_DEPLOYMENT.md`**. Short version: point a Railway service at this repo, set the **Root Directory** to `design_handoff_modern_gentlemen/starter`, and Railway builds and runs it. No environment variables are required for v1.
+See **`RAILWAY_DEPLOYMENT.md`**. Short version: point a Railway service at this repo, set the **Root Directory** to `design_handoff_modern_gentlemen/starter`, and Railway builds and runs it. Mirror `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` into Railway → Variables — they are no longer optional.
 
 ---
 

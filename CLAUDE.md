@@ -28,17 +28,18 @@ finds no migrations and reports that as success.
 
 ```
 design_handoff_modern_gentlemen/starter/
-├─ app/           routes: public site, /admin, /sign-in, /auth
-├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/
+├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, media
+├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/,
+│                 admin/ (ui/, builder/, fields/, media/, history/)
 ├─ lib/
 │  ├─ blocks/     PURE: one defineBlock() manifest per section + validation
 │  ├─ domain/     PURE: types, Zod schemas, business rules. No I/O, no React.
-│  ├─ db/         Supabase clients + generated database.types.ts
+│  ├─ db/         Supabase clients, repositories + generated database.types.ts
 │  ├─ services/   orchestration + permission checks
 │  └─ cart/, catalog.ts, editorial.ts, articles.ts  (demo data, being migrated)
-├─ supabase/             config.toml + migrations/ 0001–0013 (0013 not yet applied)
+├─ supabase/      config.toml + migrations/ 0001–0013, all applied
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
-└─ tests/         e2e/, setup/
+└─ tests/         e2e/, integration/, visual/, support/, setup/
 ```
 
 ## Standing rules
@@ -64,6 +65,17 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   `blocks`, `render` and `integrations` as leaves. `lib/domain` must stay pure.
   ESLint `no-restricted-imports` enforces the boundaries — if it complains, the
   design is wrong, not the rule.
+- **Deleting a document must clear its `media_usages` rows.** `asset_id` cascades;
+  `entity_id` carries **no foreign key** — it is polymorphic by design — so the
+  database cannot notice the page or article on the other end is gone. Left
+  behind, those rows make every asset it referenced permanently undeletable,
+  blocked by something that no longer exists. `documents.deleteDocument` calls
+  `clearEntityMedia`; any new entity type with a delete path must too.
+- **Migrations go through the Supabase MCP, not the GitHub integration.** The
+  live project records timestamp versions while this repo numbers its files
+  `0001`–`0013`, so a sync sees no overlap and replays everything — and
+  `0001`–`0008` hold 88 `create policy` statements with no `if not exists` to
+  protect them. See PROGRESS.md's Known issues for the two ways to fix it.
 - **Never commit secrets.** Real values live only in
   `starter/.env.local` (gitignored). `.env.example` carries placeholder names.
 

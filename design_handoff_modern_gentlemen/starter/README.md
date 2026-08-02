@@ -10,7 +10,8 @@ A runnable Next.js (App Router) + React + TypeScript + Tailwind scaffold that im
   - `components/sections/*` — one component per block + `registry.ts` (blockType → component).
   - `components/SectionRenderer.tsx` — renders a page's `sections[]`.
   - `lib/blocks/manifests/*` — one `defineBlock()` declaration per block: its fields, its Zod schemas and its insert defaults.
-  - `components/admin/builder/*` — the in-app drag-and-drop canvas (dnd-kit) at `/admin/pages/[id]`, reusing the same section components and driving the same `sections[]`.
+  - `components/admin/builder/*` — the in-app drag-and-drop canvas (dnd-kit) at `/admin/pages/[id]` and `/admin/articles/[id]/builder`, reusing the same section components and driving the same `sections[]`. One builder serves both: an article's block tree is one ordered list, exactly like a page's.
+- **Media** — `/admin/media`: upload with checksum dedupe, alt text and focal point, and a usage record per placement. `components/admin/fields/MediaUrlControl.tsx` opens the library from any `image`/`video` field. An asset something is using cannot be deleted, and the refusal names where it is used.
 - **Pages** — home (composable), `[category]`, `about`, `membership` (billing toggle + FAQ), `article/[slug]`, and the full store: `shop`, `product/[slug]`, `bag`, `checkout` (4-step, demo payment).
 - **Commerce** — `lib/catalog.ts` (all 16 products ported from `mg-catalog.js`) + `lib/cart/CartProvider.tsx` (localStorage cart behind a swappable `CartApi` interface — drop in Shopify later without touching UI).
 - **CMS** — Supabase. `lib/db/*` clients, `lib/db/repositories/*`, `lib/services/*`. (The Sanity scaffold this file once described is gone; see PROGRESS.md.)
@@ -27,7 +28,7 @@ Pages render immediately from demo data. Bag/checkout work against the local car
 
 ## Wire the real backends
 
-1. **Supabase**: copy `.env.example` → `.env.local` and fill the Supabase URL and keys. The schema lives in `supabase/migrations/`; `scripts/seed.ts` and `scripts/create-admin.ts` are both idempotent. Sign in at `/sign-in`, then compose pages at `/admin/pages`.
+1. **Supabase**: copy `.env.example` → `.env.local` and fill the Supabase URL and keys — **required**, since `middleware.ts` builds a client on every route. The schema lives in `supabase/migrations/`; `scripts/seed.ts` and `scripts/create-admin.ts` are both idempotent. Sign in at `/sign-in`, then work at `/admin/pages`, `/admin/articles`, `/admin/taxonomy` and `/admin/media`.
 2. **Commerce**: keep the local cart for MVP, or implement an adapter satisfying `lib/cart/types.ts#CartApi` and swap the provider. See `../01_ARCHITECTURE.md §Commerce`.
 
 > The Sanity scaffold this file originally described has been removed. Supabase
@@ -47,9 +48,10 @@ Pages render immediately from demo data. Bag/checkout work against the local car
 starter/
   app/
     (site)/       public routes (home, [category], about, membership, article, shop, product, bag, checkout, sign-in, preview)
-    (admin)/      the admin shell and /admin/pages builder
+    (admin)/      the admin shell · pages (+ builder, history) · articles (+ builder,
+                  history) · taxonomy · media
   components/     chrome/ · sections/ · article/ · store/ · ui/ · admin/ · SectionRenderer
-  lib/            blocks/ · domain/ · db/ · services/ · cart/ · catalog · theme
-  supabase/       migrations
+  lib/            blocks/ · domain/ · db/ (+ repositories/) · services/ · cart/ · catalog · theme
+  supabase/       config.toml · migrations/
   public/images/  demo photography
 ```
