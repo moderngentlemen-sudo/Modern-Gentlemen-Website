@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import type { ActionResult } from "@/app/(admin)/admin/_lib/action-result";
 import { Button } from "@/components/admin/ui/Button";
 import { Dialog } from "@/components/admin/ui/Dialog";
 import { Panel } from "@/components/admin/ui/Panel";
@@ -11,7 +12,17 @@ import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { useToast } from "@/components/admin/ui/Toast";
 
-import { rollbackAction } from "../actions";
+/**
+ * Revisions and publish events, for any document type.
+ *
+ * It used to import `rollbackAction` from the pages route directly, which made
+ * it a pages component sitting in a pages folder. Articles carry the same
+ * revision history through the same polymorphic table and the same SQL
+ * functions, so the only thing that was ever page-specific here was that one
+ * import. It is now a prop — the action *reference*, passed by whichever route
+ * renders this.
+ */
+export type RollbackAction = (input: unknown) => Promise<ActionResult<{ version: number }>>;
 
 export interface RevisionRow {
   version: number;
@@ -34,12 +45,17 @@ const REASON_TONE: Record<string, "accent" | "neutral" | "muted"> = {
 };
 
 export function HistoryView({
-  pageId,
+  documentId,
+  documentLabel = "page",
+  rollback,
   revisions,
   events,
   canRestore,
 }: {
-  pageId: string;
+  documentId: string;
+  /** "page" or "article" — appears in the empty states and the confirmation. */
+  documentLabel?: string;
+  rollback: RollbackAction;
   revisions: RevisionRow[];
   events: EventRow[];
   canRestore: boolean;
@@ -51,7 +67,7 @@ export function HistoryView({
 
   function restore(revision: RevisionRow) {
     startTransition(async () => {
-      const result = await rollbackAction({ id: pageId, version: revision.version });
+      const result = await rollback({ id: documentId, version: revision.version });
       setConfirm(null);
 
       if (!result.ok) {
@@ -80,8 +96,8 @@ export function HistoryView({
         <Panel>
           {revisions.length === 0 ? (
             <EmptyState title="No revisions yet">
-              A revision is written whenever this page is published, snapshotted, restored, or
-              autosaved after a gap.
+              A revision is written whenever this {documentLabel} is published, snapshotted,
+              restored, or autosaved after a gap.
             </EmptyState>
           ) : (
             <Table caption="Revision history">
@@ -135,7 +151,7 @@ export function HistoryView({
         <Panel>
           {events.length === 0 ? (
             <EmptyState title="Never published">
-              Publishing this page will record an event here.
+              Publishing this {documentLabel} will record an event here.
             </EmptyState>
           ) : (
             <Table caption="Publish events">
@@ -183,8 +199,8 @@ export function HistoryView({
         }
       >
         <p className="text-[13px] text-mg-fg/60">
-          The live page is untouched until you publish again, so you can review the restored content
-          first. Any unsaved changes in the builder will be lost.
+          The live {documentLabel} is untouched until you publish again, so you can review the
+          restored content first. Any unsaved changes in the builder will be lost.
         </p>
       </Dialog>
     </div>

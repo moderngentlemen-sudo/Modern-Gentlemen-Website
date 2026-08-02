@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/services/auth";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { MediaPickerProvider } from "@/components/admin/media/MediaPickerContext";
+import { listAssetsAction } from "./admin/media/actions";
 
 export const metadata: Metadata = {
   title: "Admin — Modern Gentlemen",
@@ -63,7 +65,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       // server→client boundary; the nav only needs membership.
       permissions={user.permissions.toArray()}
     >
-      {children}
+      {/*
+        Mounted here so every `image`/`video` control under /admin can open the
+        library — the builder's properties panel today, an article editor later
+        — without four component signatures growing an action they otherwise
+        have no interest in. The action reference is passed straight through,
+        not wrapped: a closure created in a Server Component is not a
+        `"use server"` reference and Next refuses it at render.
+      */}
+      <MediaPickerProvider search={listAssetsAction}>{children}</MediaPickerProvider>
     </AdminShell>
   );
 }

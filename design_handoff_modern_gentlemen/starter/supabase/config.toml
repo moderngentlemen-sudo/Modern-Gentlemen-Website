@@ -1,0 +1,41 @@
+# Supabase CLI configuration.
+#
+# Deliberately minimal. `project_id` is the only key the CLI requires; every
+# other setting has a default, and the defaults are what this project already
+# runs on — CI has been calling `supabase start --workdir .` with no config file
+# at all, so its working stack *is* the default configuration. Pinning ports,
+# auth settings or seed paths here would each be a silent change to a pipeline
+# that currently works, so none of them are pinned.
+#
+# ---------------------------------------------------------------------------
+# Where this file lives, and why that matters
+# ---------------------------------------------------------------------------
+# The app is not at the repository root. This directory is
+#
+#     design_handoff_modern_gentlemen/starter/supabase
+#
+# and anything pointed at the repo root will find nothing here. That is the same
+# trap Railway's Root Directory setting has (see CLAUDE.md): when the Supabase
+# GitHub integration is configured, its **Supabase directory** must be set to the
+# path above. Left at the default it reports zero migrations, which reads like
+# success rather than like a misconfiguration.
+#
+# ---------------------------------------------------------------------------
+# Two things that are absent on purpose
+# ---------------------------------------------------------------------------
+# 1. There is no `seed.sql` beside this file, and none should be added.
+#    The previous one was written for the superseded `0001_init.sql` schema and
+#    inserted `products.price` against a table whose column is `price_pence`. It
+#    aborted `supabase start` with 42703 before a single test could run, which
+#    meant CI's integration and E2E jobs had never once reached a test between
+#    Phase 0 and Phase 4 — two of three jobs failing at startup and looking
+#    quiet. `scripts/seed.ts` is the maintained seeder: idempotent, and it reads
+#    from the demo modules. The default `[db.seed]` looks for `./seed.sql`,
+#    finds nothing, and no-ops.
+#
+# 2. Nothing here mentions `db:types`. Migration `0013_media_storage.sql`
+#    creates a bucket and policies in the **storage** schema, and
+#    `npm run db:types` generates the **public** schema only — so applying it
+#    needs no regeneration. Migrations that touch `public` still do.
+
+project_id = "qnfoztnyxhubnnulpfwt"
