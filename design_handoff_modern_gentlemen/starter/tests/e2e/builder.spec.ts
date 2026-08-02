@@ -55,8 +55,10 @@ test.describe("page builder", () => {
       .click();
     await expect(page.locator("[data-block-key]")).toHaveCount(1);
 
-    // The properties panel picks up the selection made by the insert.
-    const quote = page.getByLabel("Quote");
+    // By role, not by label. getByLabel matches substrings, and every block
+    // toolbar button is named after its block — "Drag Pull quote", "Hide Pull
+    // quote" and so on — so getByLabel("Quote") matched six elements.
+    const quote = page.getByRole("textbox", { name: "Quote" });
     await expect(quote).toBeVisible();
     await quote.fill("Speed, considered.");
 
@@ -100,7 +102,7 @@ test.describe("page builder", () => {
     await page.locator("[data-block-key]").first().click();
 
     // Emptying a required field is an issue the manifests catch.
-    await page.getByLabel("Quote").fill("");
+    await page.getByRole("textbox", { name: "Quote" }).fill("");
 
     await expect(page.getByText(/fix before publishing/i)).toBeVisible();
 

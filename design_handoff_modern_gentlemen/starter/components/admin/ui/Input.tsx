@@ -27,7 +27,18 @@ function FieldShell({ label, help, error, required, htmlFor, children }: FieldSh
     <div className="block">
       <label htmlFor={htmlFor} className={clsx(LABEL, "block")}>
         {label}
-        {required && <span className="text-mg-accentSerif"> *</span>}
+        {/*
+          Hidden from the accessibility tree on purpose. Left visible, the
+          asterisk becomes part of the control's accessible name — a screen
+          reader announces "Quote star", and CI found the field named `Quote *`.
+          Requiredness belongs on the control as `aria-required`, not in its
+          name.
+        */}
+        {required && (
+          <span aria-hidden="true" className="text-mg-accentSerif">
+            {" *"}
+          </span>
+        )}
       </label>
       <div className="mt-1.5">{children}</div>
       {help && !error && <span className={HELP_TEXT}>{help}</span>}
@@ -77,6 +88,7 @@ export function TextInput({
         onBlur={onBlur}
         data-invalid={error ? "" : undefined}
         aria-invalid={!!error}
+        aria-required={required || undefined}
         className={CONTROL}
       />
     </FieldShell>
@@ -114,6 +126,7 @@ export function TextArea({
         onBlur={onBlur}
         data-invalid={error ? "" : undefined}
         aria-invalid={!!error}
+        aria-required={required || undefined}
         className={clsx(CONTROL, "resize-y leading-relaxed")}
       />
     </FieldShell>
