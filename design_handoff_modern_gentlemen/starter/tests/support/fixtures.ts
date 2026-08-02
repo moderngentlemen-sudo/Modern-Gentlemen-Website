@@ -24,8 +24,21 @@ export type Db = SupabaseClient<Database>;
  */
 export const RUN_PREFIX = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
+/**
+ * Distinguishes repeated calls within a single run.
+ *
+ * `RUN_PREFIX` separates one run from another; it does nothing to separate two
+ * calls in the same run, so `prefixed("page")` used to return an identical slug
+ * every time and the second `createPage()` in any test file died on
+ * `pages_slug_key`. Same for `createUser`, which got "already registered" from
+ * the auth API. Neither showed up until CI could execute these suites for the
+ * first time.
+ */
+let sequence = 0;
+
 export function prefixed(name: string): string {
-  return `${RUN_PREFIX}-${name}`;
+  sequence += 1;
+  return `${RUN_PREFIX}-${name}-${sequence.toString(36)}`;
 }
 
 /** Service-role: fixtures need to create rows without acting as a signed-in user. */
