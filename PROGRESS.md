@@ -8,9 +8,12 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** `claude/project-status-review-nz8w9i` (current). **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0012` applied; **`0013` written but NOT applied** (see Known issues). `supabase/config.toml` now exists so the Supabase GitHub integration can apply migrations on merge to `main`; its **Supabase directory must be `design_handoff_modern_gentlemen/starter/supabase`**, not the repo root.
+**Branch:** cut a **fresh one from `main`** — see the warning below. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0013`; `0013` is applied by the **Supabase GitHub integration**, which is now connected and runs its Migrate step on merge to `main`. Its **Supabase directory must stay `design_handoff_modern_gentlemen/starter/supabase`**, not the repo root.
 
-> ⚠️ **Branch guidance superseded — read this before starting work.** Phase 4 was built on `claude/modern-gentlemen-admin-ntslwo-ngmzu7`, and **that branch was merged into `main` via PR #7** (merge commit `987ba05`). A merged PR is finished: do not add commits to that branch. Phase 5a was built on `claude/project-status-review-nz8w9i`, cut from `main` at the merge. Two stale siblings are still on the remote — `-ntslwo` at `d1dc9d3` and `-ngmzu7` at `0e83650` — and neither should be built on.
+> ⚠️ **Branch guidance — read this before starting work.** Phase 5 was built on `claude/project-status-review-nz8w9i` and **merged into `main` as PR #8**. A merged PR is finished: do not add commits to that branch, and do not reuse it. Start follow-up work from `main`:
+> `git fetch origin main && git checkout -b <new-branch> origin/main`
+>
+> This file has now given stale branch guidance twice running — Phase 4's branch (`claude/modern-gentlemen-admin-ntslwo-ngmzu7`, merged as PR #7) was still being recommended after it merged. **Update this line as part of the same PR that merges, never afterwards**, since afterwards means committing to a merged branch. Three stale siblings sit on the remote and none should be built on: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), and now `claude/project-status-review-nz8w9i`.
 
 Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation, auth, the block system, publishing and **the admin builder** are done; the CMS, media and commerce layers are not.
 
@@ -130,7 +133,7 @@ All commands from `design_handoff_modern_gentlemen/starter/`.
 2. Read `design_handoff_modern_gentlemen/CLAUDE.md` — the design baseline, binding every session.
 3. Check live state: `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`.
 4. For front-end work: the relevant `03_PAGES_AND_COMPONENTS.md` section + its `design_files/MG *.dc.html` prototype + matching screenshot.
-5. Build on `claude/project-status-review-nz8w9i` (the `-ngmzu7` branch is merged and closed — see the warning at the top), run the four gates, and **update this file** before finishing.
+5. Cut a fresh branch from `main` (PR #8 merged the last one — see the warning at the top), run the four gates, and **update this file** before finishing, including its branch line.
 
 ### Proving a structural refactor is render-safe (updated)
 
