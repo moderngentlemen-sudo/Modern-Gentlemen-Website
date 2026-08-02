@@ -15,3 +15,7 @@ next-env.d.ts
 coverage
 playwright-report
 test-results
+
+# supabase cli scratch — written beside config.toml once the CLI runs
+supabase/.branches
+supabase/.temp

@@ -21,7 +21,10 @@ A `SessionStart` hook prints live repo state automatically. Run it any time with
 
 **The app is not at the repo root.** It lives in
 `design_handoff_modern_gentlemen/starter/` — a Next.js 15 App Router project.
-All npm commands run from there. Railway's Root Directory must stay set to it.
+All npm commands run from there. Railway's Root Directory must stay set to it,
+and the Supabase GitHub integration's **Supabase directory** must be set to
+`design_handoff_modern_gentlemen/starter/supabase` — pointed at the repo root it
+finds no migrations and reports that as success.
 
 ```
 design_handoff_modern_gentlemen/starter/
@@ -33,7 +36,7 @@ design_handoff_modern_gentlemen/starter/
 │  ├─ db/         Supabase clients + generated database.types.ts
 │  ├─ services/   orchestration + permission checks
 │  └─ cart/, catalog.ts, editorial.ts, articles.ts  (demo data, being migrated)
-├─ supabase/migrations/   0001–0009, all applied to the live project
+├─ supabase/             config.toml + migrations/ 0001–0013 (0013 not yet applied)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, setup/
 ```
