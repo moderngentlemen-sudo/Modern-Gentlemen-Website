@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { clsx } from "@/components/ui/clsx";
 import type { ActionResult, SerializedIssue } from "@/app/(admin)/admin/_lib/action-result";
 import { HAIRLINE } from "@/components/admin/ui/styles";
@@ -14,14 +16,34 @@ import { useAutosave } from "./useAutosave";
 import type { BuilderInit } from "./store";
 
 /**
- * The callbacks the builder needs from the outside world.
+ * The server actions the builder may call.
  *
- * These are server actions, passed down as props. A server action reference IS
- * serializable across the boundary, which is what lets the whole of
- * `components/admin/builder` stay free of any `app/` import and keeps the store
- * testable with plain fakes. It is the same shape `lib/blocks/binding.ts` uses
- * for its injected sources, and for the same reason.
+ * These must be *references to the actions themselves*, not closures wrapping
+ * them. A server action reference is serializable across the server→client
+ * boundary; an ordinary arrow function created in a Server Component is not,
+ * and Next refuses it at render time with "Functions cannot be passed directly
+ * to Client Components". The route originally passed
+ * `saveDraft: async (payload) => saveDraftAction({ id, payload })` and threw on
+ * every load — invisible to `next build`, and invisible to the unit tests,
+ * which hand `Builder` plain fakes.
+ *
+ * The document id is therefore applied here, on the client, where closing over
+ * it is free.
  */
+export interface BuilderServerActions {
+  saveDraft: (input: {
+    id: string;
+    payload: Record<string, unknown>;
+  }) => Promise<ActionResult<{ savedAt: string }>>;
+  publish: (input: { id: string }) => Promise<ActionResult<{ version: number }>>;
+  snapshot: (input: { id: string }) => Promise<ActionResult<{ version: number }>>;
+  createPreview: (input: {
+    id: string;
+    device?: "desktop" | "tablet" | "mobile";
+  }) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
+}
+
+/** What the bar and the autosave hook consume, with the id already bound. */
 export interface BuilderCallbacks {
   saveDraft: (payload: Record<string, unknown>) => Promise<ActionResult<{ savedAt: string }>>;
   publish: () => Promise<ActionResult<{ version: number }>>;
@@ -35,15 +57,27 @@ export type { SerializedIssue };
 
 export function Builder({
   init,
-  callbacks,
+  actions,
   canPublish,
   canPreview,
 }: {
   init: BuilderInit;
-  callbacks: BuilderCallbacks;
+  actions: BuilderServerActions;
   canPublish: boolean;
   canPreview: boolean;
 }) {
+  const id = init.doc.id;
+
+  const callbacks: BuilderCallbacks = useMemo(
+    () => ({
+      saveDraft: (payload) => actions.saveDraft({ id, payload }),
+      publish: () => actions.publish({ id }),
+      snapshot: () => actions.snapshot({ id }),
+      createPreview: (device) => actions.createPreview({ id, device }),
+    }),
+    [actions, id]
+  );
+
   return (
     <BuilderStoreProvider init={init}>
       <BuilderLayout callbacks={callbacks} canPublish={canPublish} canPreview={canPreview} />

@@ -47,11 +47,15 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
         },
         tree,
       }}
-      callbacks={{
-        saveDraft: async (payload) => saveDraftAction({ id, payload }),
-        publish: async () => publishAction({ id }),
-        snapshot: async () => snapshotAction({ id }),
-        createPreview: async (device) => createPreviewAction({ id, device }),
+      // Direct references to the "use server" actions. Wrapping them in arrow
+      // functions here would create ordinary closures in a Server Component,
+      // which Next cannot serialize to a Client Component — the builder threw
+      // on every load until this was corrected. Builder binds the id client-side.
+      actions={{
+        saveDraft: saveDraftAction,
+        publish: publishAction,
+        snapshot: snapshotAction,
+        createPreview: createPreviewAction,
       }}
       canPublish={user.permissions.has("page.publish")}
       canPreview={user.permissions.has("preview.create")}
