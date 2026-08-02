@@ -1,0 +1,167 @@
+/**
+ * Article creation and the article-shaped columns.
+ *
+ * Everything an article shares with the other versioned entities — drafts,
+ * versions, status, history, publishing — is already served by `documents.ts`
+ * and needs nothing here. This file holds only what is genuinely article-shaped:
+ * the editorial metadata that sits *outside* the block tree, and the tag join.
+ *
+ * The same split `pages.ts` makes, for the same reason.
+ */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "../database.types";
+import { unwrap } from "./errors";
+
+type Db = SupabaseClient<Database>;
+
+/**
+ * An empty article. Note the four keys: `sections` is the block tree the
+ * builder edits (`BLOCK_TREE_KEY.article`), and `hero` / `body` / `seo` are
+ * carried through untouched by every save — the builder route strips the tree
+ * key out and puts the rest back, so nothing it does not understand is lost.
+ */
+export const EMPTY_ARTICLE_PAYLOAD: Json = { hero: {}, body: [], sections: [], seo: {} };
+
+/** The columns that are not the document. `null` throughout — an article starts bare. */
+export interface ArticleMetaRow {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  excerpt: string | null;
+  template: string;
+  category_id: string | null;
+  author_id: string | null;
+  featured_asset_id: string | null;
+  reading_minutes: number | null;
+  issue_no: string | null;
+}
+
+const META_COLUMNS =
+  "id, slug, title, subtitle, excerpt, template, category_id, author_id, " +
+  "featured_asset_id, reading_minutes, issue_no";
+
+export async function createArticle(
+  db: Db,
+  input: { slug: string; title: string; template?: string; createdBy: string }
+): Promise<{ id: string }> {
+  return unwrap(
+    "createArticle",
+    await db
+      .from("articles")
+      .insert({
+        slug: input.slug,
+        title: input.title,
+        // The column defaults to 'Feature'; naming it explicitly keeps the
+        // create dialog and the database from disagreeing about the default.
+        template: input.template ?? "Feature",
+        draft_data: EMPTY_ARTICLE_PAYLOAD,
+        created_by: input.createdBy,
+        updated_by: input.createdBy,
+      })
+      .select("id")
+      .single()
+  ) as { id: string };
+}
+
+export async function getArticleMeta(db: Db, id: string): Promise<ArticleMetaRow | null> {
+  return (
+    (unwrap(
+      "getArticleMeta",
+      await db.from("articles").select(META_COLUMNS).eq("id", id).maybeSingle()
+    ) as ArticleMetaRow | null) ?? null
+  );
+}
+
+export interface ArticleMetaPatch {
+  title?: string;
+  slug?: string;
+  subtitle?: string | null;
+  excerpt?: string | null;
+  template?: string;
+  categoryId?: string | null;
+  authorId?: string | null;
+  featuredAssetId?: string | null;
+  readingMinutes?: number | null;
+  issueNo?: string | null;
+  updatedBy: string;
+}
+
+/**
+ * Only the keys the caller supplied are written — the same rule the media
+ * metadata patch follows, and for the same reason: an absent key and a cleared
+ * one are different intentions, and a form that sends six fields must not blank
+ * the four it does not show.
+ */
+export async function updateArticleMeta(
+  db: Db,
+  id: string,
+  patch: ArticleMetaPatch
+): Promise<ArticleMetaRow> {
+  const update: Database["public"]["Tables"]["articles"]["Update"] = {
+    updated_by: patch.updatedBy,
+  };
+
+  if (patch.title !== undefined) update.title = patch.title;
+  if (patch.slug !== undefined) update.slug = patch.slug;
+  if (patch.subtitle !== undefined) update.subtitle = patch.subtitle;
+  if (patch.excerpt !== undefined) update.excerpt = patch.excerpt;
+  if (patch.template !== undefined) update.template = patch.template;
+  if (patch.categoryId !== undefined) update.category_id = patch.categoryId;
+  if (patch.authorId !== undefined) update.author_id = patch.authorId;
+  if (patch.featuredAssetId !== undefined) update.featured_asset_id = patch.featuredAssetId;
+  if (patch.readingMinutes !== undefined) update.reading_minutes = patch.readingMinutes;
+  if (patch.issueNo !== undefined) update.issue_no = patch.issueNo;
+
+  return unwrap(
+    "updateArticleMeta",
+    await db.from("articles").update(update).eq("id", id).select(META_COLUMNS).single()
+  ) as ArticleMetaRow;
+}
+
+// ---------------------------------------------------------------------------
+// Tags
+// ---------------------------------------------------------------------------
+
+export async function tagIdsForArticle(db: Db, articleId: string): Promise<string[]> {
+  const rows = (unwrap(
+    "tagIdsForArticle",
+    await db.from("article_tags").select("tag_id").eq("article_id", articleId)
+  ) ?? []) as { tag_id: string }[];
+
+  return rows.map((row) => row.tag_id);
+}
+
+/**
+ * Set an article's tags to exactly `tagIds`.
+ *
+ * Insert-then-prune, the same ordering as the media usage reconciliation —
+ * though the stakes are lower here, since a stale tag is a wrong listing rather
+ * than an asset nobody can delete. Consistency is the point: two reconciliation
+ * routines that behave differently under partial failure is how a codebase
+ * grows a subtle class of bug.
+ */
+export async function setArticleTags(db: Db, articleId: string, tagIds: string[]): Promise<void> {
+  const wanted = [...new Set(tagIds)];
+
+  if (wanted.length > 0) {
+    unwrap(
+      "setArticleTags/upsert",
+      await db.from("article_tags").upsert(
+        wanted.map((tagId) => ({ article_id: articleId, tag_id: tagId })),
+        { onConflict: "article_id,tag_id", ignoreDuplicates: true }
+      )
+    );
+  }
+
+  const existing = await tagIdsForArticle(db, articleId);
+  const stale = existing.filter((tagId) => !wanted.includes(tagId));
+
+  if (stale.length > 0) {
+    unwrap(
+      "setArticleTags/prune",
+      await db.from("article_tags").delete().eq("article_id", articleId).in("tag_id", stale)
+    );
+  }
+}

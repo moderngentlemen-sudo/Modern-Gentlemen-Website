@@ -29,6 +29,8 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/pages", label: "Pages", needs: "page.read" },
+  { href: "/admin/articles", label: "Articles", needs: "article.read" },
+  { href: "/admin/taxonomy", label: "Taxonomy", needs: "article.read" },
   { href: "/admin/media", label: "Media", needs: "media.read" },
   { href: "/admin/templates", label: "Templates", needs: "template.read" },
   { href: "/admin/patterns", label: "Patterns", needs: "pattern.read" },
