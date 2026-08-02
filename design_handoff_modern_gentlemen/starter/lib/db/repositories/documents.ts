@@ -1,10 +1,10 @@
 /**
  * The polymorphic document repository.
  *
- * Pages, templates, patterns and articles carry an identical set of versioning
- * columns (`0003`, `0004`), which is what lets one repository serve all four —
- * the same reasoning that gave `revisions` a single polymorphic table rather
- * than four copies of the same rollback logic.
+ * Pages, templates, patterns, articles and products carry an identical set of
+ * versioning columns (`0003`, `0004`, `0005`), which is what lets one repository
+ * serve all five — the same reasoning that gave `revisions` a single polymorphic
+ * table rather than five copies of the same rollback logic.
  *
  * Every function takes the Supabase client as its first argument rather than
  * building one. Server components pass the caller's session client so RLS
@@ -21,7 +21,7 @@ type Db = SupabaseClient<Database>;
 
 /**
  * Per-type storage facts. The label and slug columns are genuinely named
- * differently across the four tables, so they are aliased in the SELECT rather
+ * differently across the five tables, so they are aliased in the SELECT rather
  * than leaking `name` vs `title` into every caller.
  */
 export const DOCUMENT_TABLES = {
@@ -29,6 +29,7 @@ export const DOCUMENT_TABLES = {
   template: { table: "templates", titleColumn: "name", slugColumn: "key" },
   pattern: { table: "patterns", titleColumn: "name", slugColumn: "key" },
   article: { table: "articles", titleColumn: "title", slugColumn: "slug" },
+  product: { table: "products", titleColumn: "name", slugColumn: "slug" },
 } as const satisfies Record<
   DocumentType,
   { table: keyof Database["public"]["Tables"]; titleColumn: string; slugColumn: string }
