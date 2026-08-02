@@ -3,15 +3,16 @@
  *
  * A "document" is any entity carrying the versioning convention introduced in
  * `0003_content_spine.sql`: `draft_data` / `published_data` / `version` /
- * `status`. Pages, templates, patterns and articles all do, which is why one
- * polymorphic `revisions` table serves all four and this logic is written once.
+ * `status`. Pages, templates, patterns, articles and products all do, which is
+ * why one polymorphic `revisions` table serves all five and this logic is
+ * written once.
  *
  * Everything here mirrors a constraint that actually exists in the database.
  * Where the two could drift, the database wins — these are a fast, typed
  * pre-check that produces a good error message, not the enforcement.
  */
 
-export const DOCUMENT_TYPES = ["page", "template", "pattern", "article"] as const;
+export const DOCUMENT_TYPES = ["page", "template", "pattern", "article", "product"] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
 
 export const DOCUMENT_STATUSES = ["draft", "published", "scheduled", "archived"] as const;
@@ -32,6 +33,13 @@ export function isDocumentType(value: string): value is DocumentType {
 /**
  * Scheduling needs both a `scheduled_for` column and a 'scheduled' status.
  * Only pages and articles have them — mirrors `schedulable_document_table()`.
+ *
+ * `products` is the awkward one: `0005` gave its status CHECK a 'scheduled'
+ * value but never gave it a `scheduled_for` column to hold the date. Leaving
+ * products out here is what keeps that unreachable — the status never reaches a
+ * UI, so nothing can write it. Recorded rather than repaired: fixing it means
+ * either dropping a value from a live CHECK constraint or adding a column for a
+ * feature nothing asks for.
  */
 export const SCHEDULABLE_TYPES = ["page", "article"] as const satisfies readonly DocumentType[];
 
@@ -61,6 +69,7 @@ export const BLOCK_TREE_KEY = {
   article: "sections",
   pattern: "blocks",
   template: null,
+  product: "sections",
 } as const satisfies Record<DocumentType, string | null>;
 
 /**
