@@ -4,7 +4,9 @@ This repository is a **build-ready handoff**. The goal is a **1:1, pixel-perfect
 
 If you are the engineer (or the next Claude Code session) picking this up: **read this file, then `EXECUTION_PLAN.md`, then start building.** Everything you need is in this repo.
 
-> **📍 Current status (Milestones 1–2 done, live on Railway).** The homepage + shared chrome and the full store flow (Shop → Product → Bag → Checkout) are built to pixel fidelity and deployed on demo data. **If you're resuming in a new session, start from the "Current Status & Session Handoff" section at the very top of [`PROGRESS.md`](PROGRESS.md)** — it lists exactly what's done, the patterns/files to reuse, the setup/deploy gotchas already fixed, and the next steps. Work continues on branch `claude/project-setup-docs-xfx8td`.
+> **📍 Current status — read [`PROGRESS.md`](PROGRESS.md) first.** Its "Current Status & Session Handoff" section is the handoff document: what is done, the patterns and files to reuse, the gotchas already fixed, and what comes next. A `SessionStart` hook prints live repo state (branch, migrations, test counts) at the top of every session, and `node design_handoff_modern_gentlemen/starter/scripts/status.mjs` reprints it on demand.
+>
+> This line deliberately names **no branch and no phase number**. Both go stale the moment they are written, and this file has proved it — the two sources above are computed, so they cannot.
 
 ---
 
@@ -80,11 +82,11 @@ See **`RAILWAY_DEPLOYMENT.md`**. Short version: point a Railway service at this 
 ## Stack (decided)
 
 - **Next.js (App Router) + React + TypeScript + Tailwind CSS** — already set up in `starter/`.
-- **Backend: Supabase (everything)** — content, products, users/members, orders, newsletter, cart sync, and image storage all live in one Supabase (Postgres) project. **This replaces Sanity and Shopify.** Full spec: **`design_handoff_modern_gentlemen/06_SUPABASE.md`** (schema + seed + client stubs already scaffolded in `starter/supabase/` and `starter/lib/supabase/`).
+- **Backend: Supabase (everything)** — content, products, users/members, orders, newsletter, cart sync, and image storage all live in one Supabase (Postgres) project. **This replaces Sanity and Shopify.** Full spec: **`design_handoff_modern_gentlemen/06_SUPABASE.md`** (schema in `starter/supabase/migrations/`; the typed clients and repositories live in `starter/lib/db/`).
 - **Payments: Stripe** — real checkout; a Stripe webhook writes paid orders into Supabase.
 - **Hosting: Railway** (the Next.js app). Supabase is a separate managed service the app connects to.
 
-**Build order still matters:** get every page **pixel-perfect on demo data first** (no backend needed — it runs today), then swap the data source to Supabase behind the seams already in the code (`SectionRenderer` `Block[]`, `lib/cart` `CartApi`, `lib/queries.ts`). The two tracks don't block each other.
+**Build order still matters:** get every page **pixel-perfect on demo data first** (no backend needed — it runs today), then swap the data source to Supabase behind the seams already in the code (`SectionRenderer` `Block[]`, `lib/cart` `CartApi`, and the services in `lib/services/`). That swap is underway: the homepage already reads from the database. The two tracks don't block each other.
 
 ---
 

@@ -28,16 +28,17 @@ finds no migrations and reports that as success.
 
 ```
 design_handoff_modern_gentlemen/starter/
-├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, media
+├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, products, media
 ├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/,
 │                 admin/ (ui/, builder/, fields/, media/, history/)
 ├─ lib/
 │  ├─ blocks/     PURE: one defineBlock() manifest per section + validation
 │  ├─ domain/     PURE: types, Zod schemas, business rules. No I/O, no React.
-│  ├─ db/         Supabase clients, repositories + generated database.types.ts
+│  ├─ db/         client.ts · server.ts · admin.ts · public.ts + repositories,
+│  │              and the generated database.types.ts
 │  ├─ services/   orchestration + permission checks
 │  └─ cart/, catalog.ts, editorial.ts, articles.ts  (demo data, being migrated)
-├─ supabase/      config.toml + migrations/ 0001–0013, all applied
+├─ supabase/      config.toml + migrations/ 0001–0014, all applied
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, integration/, visual/, support/, setup/
 ```
@@ -52,6 +53,19 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
 - **Admin writes use the editor's own session against RLS**
   (`lib/db/server.ts`), never the service-role client. `lib/db/admin.ts` is for
   scripts, scheduled jobs and test fixtures only. An ESLint rule enforces this.
+- **Public routes read through `lib/db/public.ts`, never `server.ts`.** The
+  difference is one property: the public client touches no cookies. `server.ts`
+  calls `cookies()`, and **any route that awaits `cookies()` is opted out of
+  static rendering by Next** — so using it on a public page silently turns a
+  static file into a per-request render. No error, no failing test, no visual
+  diff; the site just gets slower and nobody notices. RLS still applies to the
+  public client as `anon`, which is what keeps drafts unreachable.
+- **The build reads the database.** `npm run build` prerenders the homepage from
+  `pages`, so **any** build needs a reachable, seeded project — Railway and CI
+  included (CI has a `Seed content` step for this). A build failing with *"No
+  published page with slug home"* is a seeding problem, not a code one. The
+  route throws rather than falling back to demo data on purpose: a silent
+  fallback would ship a plausible page from a broken read.
 - **Do not restyle or reformat the design components.** The public site is
   pixel-verified against `design_handoff_modern_gentlemen/handoff/screenshots/`.
   Section components take *additive* prop changes only. No Tailwind class
@@ -73,7 +87,7 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   `clearEntityMedia`; any new entity type with a delete path must too.
 - **Migrations go through the Supabase MCP, not the GitHub integration.** The
   live project records timestamp versions while this repo numbers its files
-  `0001`–`0013`, so a sync sees no overlap and replays everything — and
+  `0001`–`0014`, so a sync sees no overlap and replays everything — and
   `0001`–`0008` hold 88 `create policy` statements with no `if not exists` to
   protect them. See PROGRESS.md's Known issues for the two ways to fix it.
 - **Never commit secrets.** Real values live only in
@@ -89,5 +103,14 @@ npm run format:check && npm run lint && npm run typecheck && npm test
 
 `npm run build` before anything that touches routing — Next enforces rules
 (such as which symbols a route file may export) that only surface at build time.
+It also needs database credentials now; see the standing rule above.
+
+**A fresh container needs `starter/.env.local` before Playwright will run at
+all.** `middleware.ts` builds a Supabase client on every request, so without it
+the web server never becomes ready and `npm run test:visual` dies on a 120s
+timeout whose message says nothing about credentials. Placeholder values are
+enough for the visual suite — public routes render from demo modules and never
+reach the database. `npm run build` and the E2E suite need real ones. The file
+is gitignored; never commit it.
 
 Then **update `PROGRESS.md`**. A hook will remind you if you forget.
