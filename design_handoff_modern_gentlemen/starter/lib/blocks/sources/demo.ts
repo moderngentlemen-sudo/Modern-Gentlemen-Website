@@ -14,6 +14,7 @@
  */
 
 import { categorySlugs, getCategory, slugify, type CategoryData } from "@/lib/demo/editorial";
+import { readingTimes } from "@/lib/domain/articles";
 import { allProducts } from "@/lib/demo/catalog";
 import { shapeRows, type BindingQuery, type BindingSource, type BindingSources } from "../binding";
 
@@ -28,13 +29,15 @@ function categories(): CategoryData[] {
 
 /**
  * The two forms the design prints a reading time in: a grid card says "5 MIN",
- * the lead card's byline says "7 MIN READ". The demo data carries one or the
- * other depending on where it was transcribed from, so both are derived here —
- * the same pair `lib/services/bindingSources.ts` emits from `reading_minutes`.
+ * a lead card says "7 MIN READ" — or "12 MIN FILM", since a film is watched
+ * rather than read. The demo data carries whichever form it was transcribed
+ * with, so the suffix is stripped and re-applied through the same domain rule
+ * `lib/services/bindingSources.ts` uses. Stripping only "READ" here left the
+ * film lead as "12 MIN FILM READ"; nothing rendered it, so nothing caught it.
  */
-function readingTimes(value: string): { read: string; readLong: string } {
-  const read = value.replace(/\s*READ\s*$/i, "").trim();
-  return { read, readLong: read ? `${read} READ` : "" };
+function readingTimesOf(value: string, categorySlug: string): ReturnType<typeof readingTimes> {
+  const minutes = value.match(/(\d+)/)?.[1];
+  return readingTimes(minutes === undefined ? null : Number(minutes), categorySlug);
 }
 
 /** The issue number a card's tag ends with, e.g. "TAILORING · 040" → "040". */
@@ -59,7 +62,7 @@ function articleRows(): Row[] {
       title: category.lead.title,
       dek: category.lead.dek,
       author: category.lead.author,
-      ...readingTimes(category.lead.read),
+      ...readingTimesOf(category.lead.read, category.slug),
       image: category.lead.image,
       href: `/article/${slugify(category.lead.title)}`,
       lead: true,
@@ -73,7 +76,7 @@ function articleRows(): Row[] {
         kicker: `${category.name.toUpperCase()} · ${issueOf(card.tag)}`,
         tag: card.tag,
         title: card.title,
-        ...readingTimes(card.read),
+        ...readingTimesOf(card.read, category.slug),
         image: card.image,
         href: `/article/${slugify(card.title)}`,
         lead: false,

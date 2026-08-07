@@ -11,6 +11,8 @@ import {
   composeKicker,
   isArticleTemplate,
   layoutFor,
+  readingTimes,
+  readingUnitFor,
 } from "./articles";
 
 /**
@@ -97,6 +99,27 @@ describe("the strings an article page prints", () => {
   it("takes the author's initial, and has something to show for a blank name", () => {
     expect(authorInitial("c. vance")).toBe("C");
     expect(authorInitial("   ")).toBe("M");
+  });
+
+  it("measures Film in films and everything else in reads", () => {
+    // The lead card is the only place this shows: "12 MIN FILM" on /film,
+    // "7 MIN READ" on the other four. It cannot be recovered from
+    // `reading_minutes`, so losing it is silent — which is exactly what happened
+    // until the integration deep-compare caught it on the film category.
+    expect(readingTimes(12, "film")).toEqual({ read: "12 MIN", readLong: "12 MIN FILM" });
+    expect(readingTimes(7, "style")).toEqual({ read: "7 MIN", readLong: "7 MIN READ" });
+  });
+
+  it("defaults an unknown or absent category to a read", () => {
+    expect(readingTimes(5, "podcasts").readLong).toBe("5 MIN READ");
+    expect(readingTimes(5, null).readLong).toBe("5 MIN READ");
+    expect(readingUnitFor(undefined)).toBe("READ");
+  });
+
+  it("gives no reading time at all when there are no minutes", () => {
+    // An empty string, not "0 MIN" — a missing reading time is honest, a
+    // zero-minute read is a claim.
+    expect(readingTimes(null, "film")).toEqual({ read: "", readLong: "" });
   });
 
   it("composes a card tag from a label and an issue", () => {

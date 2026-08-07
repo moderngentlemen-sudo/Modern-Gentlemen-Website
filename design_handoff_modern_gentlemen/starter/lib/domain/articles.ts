@@ -193,6 +193,37 @@ export const composeCardTag = (label: string, issue: string): string =>
   `${label.toUpperCase()} · ${issue}`;
 
 /**
+ * The unit a category's stories are measured in.
+ *
+ * Four categories print "7 MIN READ" on their lead card. Film prints
+ * "12 MIN FILM", because a film is watched rather than read. The distinction
+ * surfaces **only** on the lead — every grid card prints the bare "7 MIN" — and
+ * it cannot be recovered from `articles.reading_minutes`, which is an integer
+ * and knows nothing about units. So it is declared here, with the rest of the
+ * design's vocabulary, rather than inferred wherever a reading time is built.
+ *
+ * Keyed on the category slug, with "READ" as the default, so a new category is
+ * read unless it says otherwise.
+ */
+export const READING_UNITS: Record<string, string> = { film: "FILM" };
+
+export const readingUnitFor = (categorySlug: string | null | undefined): string =>
+  (categorySlug && READING_UNITS[categorySlug]) || "READ";
+
+/**
+ * The two forms a reading time takes: "12 MIN" on a grid card, "12 MIN FILM" or
+ * "7 MIN READ" on a lead. Both derive from one integer, which is why they are
+ * built together — appending the suffix at a call site is how the two drift.
+ */
+export function readingTimes(
+  minutes: number | null,
+  categorySlug?: string | null
+): { read: string; readLong: string } {
+  const read = minutes === null ? "" : `${minutes} MIN`;
+  return { read, readLong: read ? `${read} ${readingUnitFor(categorySlug)}` : "" };
+}
+
+/**
  * A related card is a photograph and a headline; one without a photograph is a
  * hole in the grid. Articles with no hero image — "Op-Ed" is the case — borrow
  * the cover rather than rendering an empty frame.

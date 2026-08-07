@@ -29,7 +29,7 @@ import {
   type BindingSource,
   type BindingSources,
 } from "@/lib/blocks/binding";
-import { composeCardTag } from "@/lib/domain/articles";
+import { composeCardTag, readingTimes } from "@/lib/domain/articles";
 import { resolveAssetUrl } from "@/lib/domain/media";
 import { publicPathForArticle, publicPathForCategory } from "@/lib/domain/routes";
 import { listPublishedProducts } from "./publicCatalog";
@@ -74,20 +74,6 @@ const ARTICLE_SELECT =
   "slug, title, excerpt, issue_no, reading_minutes, categories(slug, name), authors(name), media_assets(bucket, storage_path, external_url), article_tags(tags(label))";
 
 /**
- * The two forms the design prints a reading time in.
- *
- * A grid card says "5 MIN"; the lead card's byline says "7 MIN READ". Both come
- * from one integer column, and which one a block wants is a fact about the
- * block, so the source offers both and the descriptor picks with `map`. Emitting
- * only one and appending at the call site would put presentation in the renderer
- * — and getting it wrong is a visible text change on a pixel-verified page.
- */
-function readingTimes(minutes: number | null): { read: string; readLong: string } {
-  const read = minutes === null ? "" : `${minutes} MIN`;
-  return { read, readLong: read ? `${read} READ` : "" };
-}
-
-/**
  * A card's tag is its *subcategory* — "TAILORING · 040", not "STYLE · 040" —
  * which is what the article's tag carries. An article with no tag (the lead of
  * each category is the case) falls back to its category's name, which is exactly
@@ -101,7 +87,9 @@ function tagLabel(row: ArticleRow): string {
 function articleRow(row: ArticleRow, isLead: boolean): Row {
   const issue = row.issue_no ?? "";
   const categoryName = row.categories?.name ?? "";
-  const { read, readLong } = readingTimes(row.reading_minutes);
+  // The lead's suffix is category-dependent — Film is watched, not read — so the
+  // slug goes in. A grid card never shows it, but both forms come from one place.
+  const { read, readLong } = readingTimes(row.reading_minutes, row.categories?.slug);
 
   return {
     // Filterable facts. `project()` in binding.ts trims these off before the
