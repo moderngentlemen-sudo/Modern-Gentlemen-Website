@@ -37,7 +37,10 @@ design_handoff_modern_gentlemen/starter/
 │  ├─ db/         client.ts · server.ts · admin.ts · public.ts + repositories,
 │  │              and the generated database.types.ts
 │  ├─ services/   orchestration + permission checks
-│  └─ cart/, catalog.ts, editorial.ts, articles.ts  (demo data, being migrated)
+│  ├─ catalog/    CatalogProvider — the published catalogue, in React context
+│  ├─ demo/       home-sections.ts, catalog.ts  (SEED + TEST FIXTURES, not
+│  │              what the site renders — see the standing rule below)
+│  └─ cart/, editorial.ts, articles.ts  (editorial demo data, still rendered)
 ├─ supabase/      config.toml + migrations/ 0001–0014, all applied
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, integration/, visual/, support/, setup/
@@ -60,6 +63,15 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   static file into a per-request render. No error, no failing test, no visual
   diff; the site just gets slower and nobody notices. RLS still applies to the
   public client as `anon`, which is what keeps drafts unreachable.
+- **`lib/demo/` is seed and test data, not runtime data.** Since Phase 7b the
+  homepage *and* the store read Supabase; `lib/demo/catalog.ts` is what
+  `scripts/seed.ts` seeds **from**, and the fixture the tests compare the
+  database **against**. Editing it changes what a fresh database gets seeded
+  with — it does not change what the live site shows. That indirection is the
+  point: it is what makes `tests/integration/publicCatalog.test.ts` an assertion
+  rather than a tautology. `lib/editorial.ts` and `lib/articles.ts` are the
+  exception and are still rendered directly, by `/[category]` and
+  `/article/[slug]` — the two routes Phase 7c moves.
 - **The build reads the database.** `npm run build` prerenders the homepage from
   `pages`, so **any** build needs a reachable, seeded project — Railway and CI
   included (CI has a `Seed content` step for this). A build failing with *"No

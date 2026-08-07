@@ -3,7 +3,7 @@
  *
  * These exist so the binding contract is exercised against real content now,
  * rather than shipped as an untested interface. `lib/editorial.ts`,
- * `lib/catalog.ts` and `lib/articles.ts` are pure data with no I/O, so reading
+ * `lib/demo/catalog.ts` and `lib/articles.ts` are pure data with no I/O, so reading
  * them keeps `lib/blocks` a leaf.
  *
  * Phase 7 adds `sources/supabase.ts` implementing the same `BindingSource`

@@ -1,10 +1,15 @@
 /**
  * Seeds the database from the demo modules the site currently renders from.
  *
- * This is the migration path off hardcoded data: lib/catalog.ts,
+ * This is the migration path off hardcoded data: lib/demo/catalog.ts,
  * lib/editorial.ts and lib/articles.ts are read as the source, so the seeded
- * rows are exactly what the pixel-verified site already displays. Once the
- * public routes read from the database (Phase 7), those modules are deleted.
+ * rows are exactly what the pixel-verified site already displays.
+ *
+ * Since Phase 7b the homepage and the store read the database, so the catalog
+ * module is no longer runtime data — it is this script's input and the fixture
+ * the tests compare the database against. It therefore stays. `lib/editorial.ts`
+ * and `lib/articles.ts` are still rendered directly by /[category] and
+ * /article/[slug]; Phase 7c is what moves those.
  *
  * Idempotent — upserts on natural keys, so it is safe to re-run.
  *
