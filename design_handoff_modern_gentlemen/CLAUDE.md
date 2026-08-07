@@ -56,7 +56,9 @@ Headlines: tight leading, `text-wrap: balance`; body `text-wrap: pretty`. Min bo
 - **Respect `prefers-reduced-motion`** on all animation (hero video, scroll triggers, overlay transitions).
 
 ## Commerce rules (exact)
-Member discount **15%**; free shipping **≥ £50** else **£4.95**; qty `0` removes. localStorage keys owned: `mg-bag`, `mg-member`, `mg-theme` — never clear keys you don't own. 16-product catalog ported in `starter/lib/catalog.ts`.
+Member discount **15%**; free shipping **≥ £50** else **£4.95**; qty `0` removes. localStorage keys owned: `mg-bag`, `mg-member`, `mg-theme` — never clear keys you don't own.
+
+> **⚠️ SUPERSEDED (location only, since Phase 7b):** the 16-product catalog is no longer read from `starter/lib/catalog.ts` at runtime. The store renders from Supabase (`products` + `product_media`, via `lib/services/publicCatalog.ts`); the ported array now lives at `starter/lib/demo/catalog.ts` and is the **seed source and test fixture**. The commerce *rules* above are unchanged and still authoritative — and note they are now enforced in integer pence by `lib/domain/pricing.ts`, not in pounds.
 
 ## Accessibility (WCAG 2.2 AA — without altering visuals)
 Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc closes; visible focus rings; alt text on all images; reduced-motion gating. Meet AA contrast — the tokens above already do; verify any new combinations.
