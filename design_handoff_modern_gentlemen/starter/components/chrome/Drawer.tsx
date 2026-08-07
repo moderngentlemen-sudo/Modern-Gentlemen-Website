@@ -4,76 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useFocusTrap } from "@/lib/useFocusTrap";
-
-/** Drawer groups. The sub-lists are the mega-menu's columns flattened in order
- *  (the prototype derives them from the same `megaData`), so the drawer and the
- *  desktop mega-menu can never drift apart. */
-const GROUPS: { num: string; label: string; href: string; subs: [string, string][] }[] = [
-  {
-    num: "01",
-    label: "Style",
-    href: "/style",
-    subs: [
-      ["Tailoring", "/style"],
-      ["Casualwear", "/style"],
-      ["Footwear", "/style"],
-      ["Accessories", "/style"],
-      ["The Capsule Wardrobe", "/style"],
-      ["Fabric & Cloth", "/style"],
-      ["Seasonal Edits", "/style"],
-    ],
-  },
-  {
-    num: "02",
-    label: "Grooming",
-    href: "/grooming",
-    subs: [
-      ["Skincare", "/grooming"],
-      ["Fragrance", "/grooming"],
-      ["Hair", "/grooming"],
-      ["Shaving", "/grooming"],
-      ["The Seven-Minute Standard", "/grooming"],
-      ["The Travel Kit", "/grooming"],
-      ["Evening Reset", "/grooming"],
-    ],
-  },
-  {
-    num: "03",
-    label: "Watches",
-    href: "/watches",
-    subs: [
-      ["Chronographs", "/watches"],
-      ["Dress Watches", "/watches"],
-      ["Dive Watches", "/watches"],
-      ["Vintage", "/watches"],
-      ["Dial Symmetry", "/watches"],
-      ["Movements 101", "/watches"],
-      ["The Buying Guide", "/watches"],
-    ],
-  },
-  {
-    num: "04",
-    label: "Culture",
-    href: "/culture",
-    subs: [
-      ["Essays", "/culture"],
-      ["Interviews", "/culture"],
-      ["Travel", "/culture"],
-      ["Machines", "/culture"],
-      ["The Analog Weekend", "/culture"],
-      ["The Art of Arriving Early", "/culture"],
-      ["MG Film", "/film"],
-    ],
-  },
-  { num: "05", label: "Film", href: "/film", subs: [] },
-  { num: "06", label: "Store", href: "/shop", subs: [] },
-];
-
-const SECONDARY: [string, string][] = [
-  ["ABOUT", "/about"],
-  ["CONTACT", "/contact"],
-  ["ARCHIVE", "/culture"],
-];
+import { flattenNavLinks, type NavLink } from "@/lib/domain/navigation";
 
 const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   {
@@ -138,8 +69,24 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
  * with `sidebarEntry: 'Fade'`, wordmark + round close, EST. 2026 / serif tagline
  * block, numbered accordion nav (Curtain in, Collapse out), secondary mono
  * links, a pinned BECOME A MEMBER pill and the FOLLOW social ring row.
+ *
+ * `groups` is the header's own menu — the same tree, which is what makes the old
+ * comment here ("the sub-lists are the mega-menu's columns flattened in order,
+ * so the drawer and the desktop mega-menu can never drift apart") true by
+ * construction rather than by both lists having been typed the same way. The
+ * numbering is positional: it is presentation, not content, so it is not stored.
  */
-export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function Drawer({
+  open,
+  onClose,
+  groups = [],
+  secondary = [],
+}: {
+  open: boolean;
+  onClose: () => void;
+  groups?: NavLink[];
+  secondary?: NavLink[];
+}) {
   // `expanded` is the open group; `collapsing` holds it for the 300ms exit.
   const [expanded, setExpanded] = useState<string | null>(null);
   const [collapsing, setCollapsing] = useState<string | null>(null);
@@ -271,14 +218,16 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
 
         {/* Numbered accordion nav */}
         <div data-drawernav className="flex flex-col">
-          {GROUPS.map((g) => {
-            const isOpen = expanded === g.num;
-            const isExiting = collapsing === g.num;
+          {groups.map((g, index) => {
+            const num = String(index + 1).padStart(2, "0");
+            const subs = flattenNavLinks(g.children);
+            const isOpen = expanded === g.id;
+            const isExiting = collapsing === g.id;
             return (
-              <div key={g.num} className="border-b border-white/[0.08]">
+              <div key={g.id} className="border-b border-white/[0.08]">
                 <div className="flex items-center gap-3 py-[9px]">
                   <span className="shrink-0 font-mono text-[10px] leading-[normal] tracking-[0.16em] text-mg-accent">
-                    {g.num}
+                    {num}
                   </span>
                   <Link
                     href={g.href}
@@ -287,10 +236,10 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
                   >
                     {g.label}
                   </Link>
-                  {g.subs.length > 0 && (
+                  {subs.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => toggle(g.num)}
+                      onClick={() => toggle(g.id)}
                       aria-label="Toggle subcategories"
                       aria-expanded={isOpen && !isExiting}
                       className="flex items-center justify-center h-[26px] w-[26px] shrink-0 rounded-full bg-white/[0.06] border border-white/[0.14] text-[rgba(244,244,244,0.7)]"
@@ -315,20 +264,20 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
                     </button>
                   )}
                 </div>
-                {isOpen && g.subs.length > 0 && (
+                {isOpen && subs.length > 0 && (
                   <div
                     data-drawersubs
                     data-exiting={isExiting ? "true" : "false"}
                     className="flex flex-col gap-px pt-0.5 pb-4 pl-[26px]"
                   >
-                    {g.subs.map(([label, href]) => (
+                    {subs.map((sub) => (
                       <Link
-                        key={label}
-                        href={href}
+                        key={sub.id}
+                        href={sub.href}
                         onClick={close}
                         className="w-fit py-1.5 font-grotesk text-[12.5px] leading-[1.15] tracking-[-0.01em] text-[rgba(244,244,244,0.62)] hover:text-white transition-colors"
                       >
-                        {label}
+                        {sub.label}
                       </Link>
                     ))}
                   </div>
@@ -344,9 +293,9 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
           data-dsecondary
           className="flex flex-wrap gap-x-[26px] gap-y-5 mt-[26px] font-mono text-[11px] leading-[normal] tracking-[0.16em] text-[rgba(244,244,244,0.6)]"
         >
-          {SECONDARY.map(([label, href]) => (
-            <Link key={label} href={href} onClick={close} className="mg-underline">
-              {label}
+          {secondary.map((link) => (
+            <Link key={link.id} href={link.href} onClick={close} className="mg-underline uppercase">
+              {link.label}
             </Link>
           ))}
         </div>

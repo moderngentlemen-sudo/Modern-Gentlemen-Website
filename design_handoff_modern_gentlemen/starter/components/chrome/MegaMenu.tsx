@@ -1,135 +1,19 @@
 "use client";
 
 import Link from "next/link";
-
-type Column = { heading: string; links: [string, string][] };
-type Menu = {
-  columns: Column[];
-  feature: { tag: string; title: string; image: string; href: string };
-};
-
-const MENUS: Record<string, Menu> = {
-  STYLE: {
-    columns: [
-      {
-        heading: "Categories",
-        links: [
-          ["Tailoring", "/style"],
-          ["Casualwear", "/style"],
-          ["Footwear", "/style"],
-          ["Accessories", "/style"],
-        ],
-      },
-      {
-        heading: "Guides",
-        links: [
-          ["The Capsule Wardrobe", "/style"],
-          ["Fabric & Cloth", "/style"],
-          ["Seasonal Edits", "/style"],
-        ],
-      },
-    ],
-    feature: {
-      tag: "STYLE · 041",
-      title: "Racing Green Is the New Navy",
-      image: "/images/style-mono.jpg",
-      href: "/style",
-    },
-  },
-  GROOMING: {
-    columns: [
-      {
-        heading: "Categories",
-        links: [
-          ["Skincare", "/grooming"],
-          ["Fragrance", "/grooming"],
-          ["Hair", "/grooming"],
-          ["Shaving", "/grooming"],
-        ],
-      },
-      {
-        heading: "Routines",
-        links: [
-          ["The Seven-Minute Standard", "/grooming"],
-          ["The Travel Kit", "/grooming"],
-          ["Evening Reset", "/grooming"],
-        ],
-      },
-    ],
-    feature: {
-      tag: "GROOMING · 039",
-      title: "The Case Against 12-Step Routines",
-      image: "/images/grooming.jpg",
-      href: "/grooming",
-    },
-  },
-  WATCHES: {
-    columns: [
-      {
-        heading: "Categories",
-        links: [
-          ["Chronographs", "/watches"],
-          ["Dress Watches", "/watches"],
-          ["Dive Watches", "/watches"],
-          ["Vintage", "/watches"],
-        ],
-      },
-      {
-        heading: "Collecting",
-        links: [
-          ["Dial Symmetry", "/watches"],
-          ["Movements 101", "/watches"],
-          ["The Buying Guide", "/watches"],
-        ],
-      },
-    ],
-    feature: {
-      tag: "WATCHES · 040",
-      title: "Chronographs Born on the Grid",
-      image: "/images/watch-gear.jpg",
-      href: "/watches",
-    },
-  },
-  CULTURE: {
-    columns: [
-      {
-        heading: "Sections",
-        links: [
-          ["Essays", "/culture"],
-          ["Interviews", "/culture"],
-          ["Travel", "/culture"],
-          ["Machines", "/culture"],
-        ],
-      },
-      {
-        heading: "Series",
-        links: [
-          ["The Analog Weekend", "/culture"],
-          ["The Art of Arriving Early", "/culture"],
-          ["MG Film", "/film"],
-        ],
-      },
-    ],
-    feature: {
-      tag: "CULTURE · 042",
-      title: "The Art of Arriving Early",
-      image: "/images/film-workshop.jpg",
-      href: "/culture",
-    },
-  },
-};
+import { navColumns, type NavLink } from "@/lib/domain/navigation";
 
 /** Full-width frosted mega-menu. Rendered when a nav item with a menu is
- *  hovered/focused (desktop) or tapped (touch). Parent owns the open key. */
-export function MegaMenu({
-  activeKey,
-  onClose,
-}: {
-  activeKey: string | null;
-  onClose: () => void;
-}) {
-  if (!activeKey || !MENUS[activeKey]) return null;
-  const menu = MENUS[activeKey];
+ *  hovered/focused (desktop) or tapped (touch). Parent owns the open key.
+ *
+ *  The columns and the feature card are the active entry's own data now — its
+ *  children grouped by `options.group`, and `options.feature` — rather than the
+ *  `MENUS` constant that used to live here. Same markup, different source; the
+ *  content moved to `lib/demo/navigation.ts` as seed input. */
+export function MegaMenu({ entry, onClose }: { entry: NavLink | null; onClose: () => void }) {
+  if (!entry || entry.children.length === 0) return null;
+  const columns = navColumns(entry.children);
+  const feature = entry.feature;
   return (
     <div
       data-mega-panel
@@ -149,20 +33,20 @@ export function MegaMenu({
         {/* Columns are a 2-up grid, not a flex row — that's what holds the
             second column at a fixed track rather than hugging its content. */}
         <div className="flex-1 grid grid-cols-2 gap-x-12 gap-y-8">
-          {menu.columns.map((col) => (
-            <div key={col.heading}>
+          {columns.map((col) => (
+            <div key={col.heading ?? "ungrouped"}>
               <div className="font-mono text-[10px] leading-[normal] tracking-[0.22em] text-mg-accent mb-[18px]">
                 {col.heading}
               </div>
               <div className="flex flex-col gap-3">
-                {col.links.map(([label, href]) => (
+                {col.items.map((link) => (
                   <Link
-                    key={label}
-                    href={href}
+                    key={link.id}
+                    href={link.href}
                     onClick={onClose}
                     className="w-fit font-grotesk font-medium text-[17px] leading-[1.05] tracking-[-0.015em] text-[rgba(244,244,244,0.6)] transition-[color,transform] duration-[180ms] hover:text-white hover:translate-x-1"
                   >
-                    {label}
+                    {link.label}
                   </Link>
                 ))}
               </div>
@@ -170,31 +54,31 @@ export function MegaMenu({
           ))}
         </div>
 
-        <Link
-          href={menu.feature.href}
-          onClick={onClose}
-          className="group block w-[342px] shrink-0 overflow-hidden bg-[#161618] border border-white/10 text-white transition-[transform,border-color] duration-[220ms] ease-[cubic-bezier(.4,0,.2,1)] hover:-translate-y-[3px] hover:border-white/[0.28]"
-        >
-          <div
-            className="relative h-[172px] bg-[#0d0d0d] bg-cover bg-center"
-            style={{ backgroundImage: `url(${menu.feature.image})` }}
+        {feature && (
+          <Link
+            href={feature.href}
+            onClick={onClose}
+            className="group block w-[342px] shrink-0 overflow-hidden bg-[#161618] border border-white/10 text-white transition-[transform,border-color] duration-[220ms] ease-[cubic-bezier(.4,0,.2,1)] hover:-translate-y-[3px] hover:border-white/[0.28]"
           >
-            <span className="absolute top-3 left-[14px] bg-[rgba(200,16,46,0.9)] px-2.5 py-1 font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white">
-              FEATURED
-            </span>
-          </div>
-          <div className="px-[18px] pt-4 pb-[18px]">
-            <div className="font-mono text-[9.5px] leading-[normal] tracking-[0.2em] text-[#ff4d5e] mb-2">
-              {menu.feature.tag}
+            <div
+              className="relative h-[172px] bg-[#0d0d0d] bg-cover bg-center"
+              style={{ backgroundImage: `url(${feature.image})` }}
+            >
+              <span className="absolute top-3 left-[14px] bg-[rgba(200,16,46,0.9)] px-2.5 py-1 font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white">
+                FEATURED
+              </span>
             </div>
-            <div className="font-grotesk font-medium text-[19px] leading-[1.2] tracking-[-0.02em]">
-              {menu.feature.title}
+            <div className="px-[18px] pt-4 pb-[18px]">
+              <div className="font-mono text-[9.5px] leading-[normal] tracking-[0.2em] text-[#ff4d5e] mb-2">
+                {feature.tag}
+              </div>
+              <div className="font-grotesk font-medium text-[19px] leading-[1.2] tracking-[-0.02em]">
+                {feature.title}
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        )}
       </div>
     </div>
   );
 }
-
-export const MENU_KEYS = Object.keys(MENUS);

@@ -42,7 +42,7 @@ design_handoff_modern_gentlemen/starter/
 │  │              category-sections.ts  (SEED + TEST FIXTURES, not what the
 │  │              site renders — see the standing rule below)
 │  └─ cart/
-├─ supabase/      config.toml + migrations/ 0001–0014, all applied
+├─ supabase/      config.toml + migrations/ 0001–0015 (0015 written, NOT applied)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, integration/, visual/, support/, setup/
 ```
@@ -98,6 +98,18 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   `blocks`, `render` and `integrations` as leaves. `lib/domain` must stay pure.
   ESLint `no-restricted-imports` enforces the boundaries — if it complains, the
   design is wrong, not the rule.
+- **The chrome is data now, and one menu drives three renderings.** The header
+  nav, the mega-menu and the drawer's accordion are all `header-primary` from
+  `menus`/`menu_items`: top-level items are the nav bar, their children are the
+  mega-menu's columns (grouped by `options.group`, because a column heading is
+  not a link and `menu_item_target_shape` refuses a row with neither a `url` nor
+  a `target_id`), and the drawer flattens those same children. Labels are stored
+  in title case and the header uppercases in CSS. **A menu is not a document** —
+  no `draft_data`, not in `document_table()` — so item writes are live and
+  `revalidatePath("/", "layout")` is what publishes them. `visibility` is stored
+  and deliberately never applied at render: honouring it needs a session, and
+  reading one in the site layout would cost the whole public site static
+  rendering.
 - **Deleting a document must clear its `media_usages` rows.** `asset_id` cascades;
   `entity_id` carries **no foreign key** — it is polymorphic by design — so the
   database cannot notice the page or article on the other end is gone. Left
@@ -132,9 +144,15 @@ It also needs database credentials now; see the standing rule above.
 **A fresh container needs `starter/.env.local` before Playwright will run at
 all.** `middleware.ts` builds a Supabase client on every request, so without it
 the web server never becomes ready and `npm run test:visual` dies on a 120s
-timeout whose message says nothing about credentials. Placeholder values are
-enough for the visual suite — public routes render from demo modules and never
-reach the database. `npm run build` and the E2E suite need real ones. The file
-is gitignored; never commit it.
+timeout whose message says nothing about credentials.
+
+⚠️ **Placeholder values are no longer enough for the visual suite.** This file
+said they were, and that stopped being true at Phase 7a: `app/(site)/layout.tsx`
+reads `products` — and, since 6b, the menus — on *every* public route, so with a
+fake URL and key the layout throws and all 16 baselines fail. The visual suite,
+`npm run build` and the E2E suite all need **real** credentials now. The URL and
+the publishable anon key are enough for the first two and can be read from the
+Supabase MCP (`get_project_url`, `get_publishable_keys`); only the E2E suite
+needs the service-role key. The file is gitignored; never commit it.
 
 Then **update `PROGRESS.md`**. A hook will remind you if you forget.
