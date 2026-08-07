@@ -10,10 +10,13 @@
  *
  *   npx tsx scripts/seed.ts
  */
+import { statSync } from "node:fs";
+import { basename, join } from "node:path";
 import { config } from "dotenv";
 import type { Json } from "../lib/db/database.types";
 import { createAdminClient } from "../lib/db/admin";
 import { DEMO_SECTIONS } from "../lib/demo/home-sections";
+import { MEDIA_BUCKET } from "../lib/domain/media";
 import { poundsToPence } from "../lib/domain/money";
 import { allProducts } from "../lib/catalog";
 import { categorySlugs, getCategory } from "../lib/editorial";
@@ -57,6 +60,122 @@ async function seedProducts() {
   }));
 
   ok("products", await db.from("products").upsert(rows, { onConflict: "slug" }).select("id"));
+  return rows.length;
+}
+
+/**
+ * The catalogue rows for the seven JPEGs in `public/images/`.
+ *
+ * These are not uploads. `0002_media.sql` gives `media_assets` an
+ * `external_url` column for exactly this case — "assets that are not stored by
+ * us (legacy /public files, embeds)" — and Next already serves these files off
+ * disk. So the rows describe where the bytes are rather than moving them: no
+ * storage consumed, no upload step in CI, and the public site keeps resolving
+ * the same `/images/x.jpg` URLs it always has.
+ *
+ * When a real photograph replaces one, the upload sets `storage_path` and
+ * clears `external_url` on the same row. `product_media` points at the asset,
+ * not at the URL, so nothing downstream moves.
+ *
+ * `width`/`height` stay null. They exist so the builder can reserve space
+ * without a fetch, and nothing on the store reads them — inventing numbers here
+ * would be worse than the honest absence.
+ */
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  avif: "image/avif",
+};
+
+/** `images/x.jpg` and `/images/x.jpg` are the same file. Only the name matters. */
+const fileNameOf = (imagePath: string) => basename(imagePath);
+
+function demoImageFileNames(): string[] {
+  return [...new Set(allProducts().flatMap((p) => p.images.map(fileNameOf)))].sort();
+}
+
+async function seedMediaAssets() {
+  const rows = demoImageFileNames().map((fileName) => {
+    const extension = fileName.slice(fileName.lastIndexOf(".") + 1).toLowerCase();
+    const mimeType = MIME_BY_EXTENSION[extension];
+    if (!mimeType) throw new Error(`No MIME type known for ${fileName}`);
+
+    return {
+      bucket: MEDIA_BUCKET,
+      // Namespaced so a later real upload of the same name cannot collide with
+      // the legacy record on `unique (bucket, storage_path)`.
+      storage_path: `legacy/${fileName}`,
+      external_url: `/images/${fileName}`,
+      kind: "image" as const,
+      mime_type: mimeType,
+      file_name: fileName,
+      byte_size: statSync(join(process.cwd(), "public", "images", fileName)).size,
+    };
+  });
+
+  ok(
+    "media assets",
+    await db.from("media_assets").upsert(rows, { onConflict: "bucket,storage_path" }).select("id")
+  );
+  return rows.length;
+}
+
+/**
+ * The gallery join, which is what the public product pages read.
+ *
+ * Ordered by the demo catalog's own `images` array, so the first image is the
+ * one the cards have always shown. Role follows position: the first is
+ * 'primary', the rest 'gallery'.
+ */
+async function seedProductMedia() {
+  const products = ok("product ids", await db.from("products").select("id, slug")) as {
+    id: string;
+    slug: string;
+  }[];
+  const assets = ok(
+    "asset ids",
+    await db.from("media_assets").select("id, storage_path").eq("bucket", MEDIA_BUCKET)
+  ) as { id: string; storage_path: string }[];
+
+  const productIdBySlug = new Map(products.map((p) => [p.slug, p.id]));
+  const assetIdByFileName = new Map(assets.map((a) => [basename(a.storage_path), a.id]));
+
+  const rows: {
+    product_id: string;
+    asset_id: string;
+    position: number;
+    role: "primary" | "gallery";
+  }[] = [];
+
+  for (const product of allProducts()) {
+    const productId = productIdBySlug.get(product.slug);
+    if (!productId) throw new Error(`No seeded product for slug "${product.slug}"`);
+
+    // `product_media`'s primary key is (product_id, asset_id), so the same file
+    // twice in one product would be an upsert onto itself rather than a second
+    // slot. Take the first occurrence and keep the positions contiguous.
+    const seen = new Set<string>();
+    for (const image of product.images) {
+      const assetId = assetIdByFileName.get(fileNameOf(image));
+      if (!assetId) throw new Error(`No seeded asset for image "${image}"`);
+      if (seen.has(assetId)) continue;
+      seen.add(assetId);
+
+      rows.push({
+        product_id: productId,
+        asset_id: assetId,
+        position: seen.size - 1,
+        role: seen.size === 1 ? "primary" : "gallery",
+      });
+    }
+  }
+
+  ok(
+    "product media",
+    await db.from("product_media").upsert(rows, { onConflict: "product_id,asset_id" })
+  );
   return rows.length;
 }
 
@@ -135,6 +254,10 @@ async function grantAdmin(email: string) {
 async function main() {
   console.log("Seeding Modern Gentlemen…");
   console.log(`  products:   ${await seedProducts()}`);
+  // Assets before the join, products before both: `product_media` carries a
+  // foreign key to each side and cannot be written until they exist.
+  console.log(`  media:      ${await seedMediaAssets()} assets`);
+  console.log(`  gallery:    ${await seedProductMedia()} rows`);
   console.log(`  categories: ${await seedCategories()}`);
   console.log(`  home page:  ${await seedHomePage()} sections`);
   await grantAdmin(process.env.SEED_ADMIN_EMAIL ?? "welcome@moderngentlemen.co");
