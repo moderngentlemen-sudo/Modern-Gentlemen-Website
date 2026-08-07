@@ -1,11 +1,24 @@
 /**
  * Editorial demo data for the category landing pages (/style, /grooming,
  * /watches, /culture, /film). Transcribed verbatim from the design prototype
- * design_files/MG Category.dc.html (image paths rebased to /images/*). Runs on
- * demo data today; a Supabase `getCategory()` fetch (lib/queries.ts) slots in
- * behind this same shape. Note: `culture` and `film` have no store products —
- * these pages are article-driven, not product-driven.
+ * design_files/MG Category.dc.html (image paths rebased to /images/*).
+ *
+ * **Seed source and test fixture — not what the site renders.** Since Phase 7c
+ * the category pages read `categories.published_data` from Supabase, with their
+ * lead and grid bound to the `articles` table. This module is what
+ * `scripts/seed.ts` seeds *from*, and what
+ * `tests/integration/publicEditorial.test.ts` compares the database *against*.
+ * Editing it changes what a fresh database is seeded with; it does not change
+ * what the live site shows. That indirection is the point — it is what makes the
+ * test an assertion rather than a tautology.
+ *
+ * Note: `culture` and `film` have no store products — these pages are
+ * article-driven, not product-driven.
  */
+
+import { slugify } from "@/lib/domain/slug";
+
+export { slugify };
 
 export interface Article {
   tag: string; // e.g. "TAILORING · 040"
@@ -314,10 +327,3 @@ export const categorySlugs = Object.keys(CATEGORIES);
 /** Look up a category by slug (case-insensitive); null for unknown slugs. */
 export const getCategory = (slug: string): CategoryData | null =>
   CATEGORIES[slug.toLowerCase()] ?? null;
-
-/** Title → article slug, matching the prototype's slugify (for /article/* hrefs). */
-export const slugify = (t: string): string =>
-  String(t || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "default";

@@ -1,45 +1,39 @@
-import { getCategory, categorySlugs, slugify } from "./editorial";
+import { getCategory, categorySlugs, type CategoryData } from "./editorial";
+import { slugify } from "@/lib/domain/slug";
+import {
+  authorInitial,
+  composeByline,
+  composeCardTag,
+  composeKicker,
+  layoutFor,
+  FALLBACK_RELATED_IMAGE,
+  type ArticleDoc,
+  type BodyVariant,
+  type HeroVariant,
+  type RelatedItem,
+  type ResolvedArticle,
+} from "@/lib/domain/articles";
 
 /**
  * Article template system (demo data). Each of the 20 named templates is a
  * hero-variant × body-variant combo, transcribed from design_files/MG
- * Article.dc.html `config()`. Article stubs are seeded from the category
- * demo data (lib/editorial.ts) so every /article/{slugify(title)} link the
- * category pages emit resolves, plus a canonical showcase per template so all
- * 20 are reachable. Body *content* is fixed per body-variant and lives in the
- * body components (the prototype's own model). Behind the getArticle() seam:
- * a Supabase `articles` row (slug/title/template/category/hero/body) maps onto
- * this same resolved shape later.
+ * Article.dc.html `config()`. Article stubs are seeded from the category demo
+ * data (`./editorial.ts`) so every /article/{slugify(title)} link the category
+ * pages emit resolves, plus a canonical showcase per template so all 20 are
+ * reachable. Body *content* is fixed per body-variant and lives in the body
+ * components (the prototype's own model).
+ *
+ * **Seed source and test fixture — not what the site renders.** Since Phase 7c
+ * `/article/[slug]` reads the `articles` table through
+ * `lib/services/publicEditorial.ts`. The seam this file's header used to promise
+ * is now taken: that service produces the very `ResolvedArticle` this module
+ * produces, and `tests/integration/publicEditorial.test.ts` asserts the two
+ * agree article for article.
+ *
+ * The *layout* half of a template — which hero, which body — moved to
+ * `lib/domain/articles.ts`, because the public route needs it and must not
+ * import a demo module. What stays here is the placeholder copy.
  */
-
-export type HeroVariant =
-  | "full"
-  | "contained"
-  | "cover"
-  | "wide"
-  | "portrait"
-  | "split"
-  | "masthead"
-  | "centered"
-  | "video";
-export type BodyVariant =
-  | "prose"
-  | "essay"
-  | "letter"
-  | "qa"
-  | "ask"
-  | "profile"
-  | "review"
-  | "spec"
-  | "photo"
-  | "gallery"
-  | "film"
-  | "list"
-  | "steps"
-  | "regimen"
-  | "timeline"
-  | "rundown"
-  | "manifesto";
 
 interface TemplateDef {
   hero: HeroVariant;
@@ -303,19 +297,6 @@ export function assignTemplate(slug: string): string {
   return TEMPLATE_NAMES[h % TEMPLATE_NAMES.length];
 }
 
-export interface ArticleDoc {
-  slug: string;
-  title: string;
-  template: string;
-  category: string;
-  issue: string;
-  author: string;
-  read: string; // "N MIN" — byline appends " READ"
-  dek?: string;
-  heroImage?: string;
-  videoUrl?: string;
-}
-
 const CATEGORY_AUTHOR: Record<string, string> = {
   Style: "S. Okafor",
   Grooming: "J. Rees",
@@ -326,6 +307,43 @@ const CATEGORY_AUTHOR: Record<string, string> = {
 
 const normalizeRead = (r: string) => r.replace(/\s*(READ|FILM)\s*$/i, "").trim();
 const parseNo = (tag: string) => tag.match(/(\d+)\s*$/)?.[1] ?? "";
+
+/**
+ * Which category each article is *listed under*, by slug — the filing, as
+ * distinct from `ArticleDoc.category`, which is the label the design prints.
+ *
+ * Only the thirty-five stories the category pages show are filed. The twenty
+ * template showcases and the homepage cover story are not, and that is
+ * load-bearing rather than incidental: several of them carry labels like
+ * "Culture" at issue "042" — the same issue as the Culture lead — so filing them
+ * would tie in the `issue desc` ordering a category page reads and silently
+ * displace the lead. The demo pages never list them either, so an unfiled
+ * showcase is the faithful reading as well as the safe one.
+ *
+ * `scripts/seed.ts` writes `articles.category_id` from this map.
+ */
+export const FILED_UNDER: Record<string, string> = {};
+
+/**
+ * An article's subcategory, as its card prints it: "TAILORING · 040" is tag
+ * "Tailoring", not category "Style". Seeded into `tags` + `article_tags`, which
+ * is what lets the database reproduce a card tag the category name alone cannot.
+ *
+ * A lead has no entry — its card prints the category, which is the fallback
+ * `lib/services/bindingSources.ts` applies when an article carries no tag.
+ */
+export const CARD_TAG_LABEL: Record<string, string> = {};
+
+/**
+ * The card tag's label half, matched back to the category's own chip list so it
+ * keeps the chips' capitalisation ("The Uniform", not "THE UNIFORM"). The last
+ * card in every category is tagged with the category itself and matches nothing,
+ * which is why the fallback is the category name rather than an error.
+ */
+function tagLabelOf(tag: string, category: CategoryData): string {
+  const label = tag.replace(/\s*·\s*\d+\s*$/, "").trim();
+  return category.subs.find((sub) => sub.toUpperCase() === label.toUpperCase()) ?? category.name;
+}
 
 function buildArticles(): Record<string, ArticleDoc> {
   const out: Record<string, ArticleDoc> = {};
@@ -349,6 +367,7 @@ function buildArticles(): Record<string, ArticleDoc> {
     if (!d) continue;
     const leadSlug = slugify(d.lead.title);
     if (!out[leadSlug]) {
+      FILED_UNDER[leadSlug] = cslug;
       out[leadSlug] = {
         slug: leadSlug,
         title: d.lead.title,
@@ -364,6 +383,8 @@ function buildArticles(): Record<string, ArticleDoc> {
     for (const c of d.cards) {
       const s = slugify(c.title);
       if (out[s]) continue;
+      FILED_UNDER[s] = cslug;
+      CARD_TAG_LABEL[s] = tagLabelOf(c.tag, d);
       out[s] = {
         slug: s,
         title: c.title,
@@ -390,7 +411,11 @@ function buildArticles(): Record<string, ArticleDoc> {
       read: normalizeRead(t.read),
       dek: t.dek || undefined,
       heroImage: t.img || undefined,
-      videoUrl: t.hero === "video" ? DEFAULT_HERO_VIDEO : undefined,
+      // `|| undefined` rather than the empty string: an absent video and a video
+      // whose URL is "" render identically, but only one of them survives a
+      // round trip through the database, and the two representations have to
+      // agree for `publicEditorial.test.ts` to compare them.
+      videoUrl: t.hero === "video" ? DEFAULT_HERO_VIDEO || undefined : undefined,
     };
   }
   return out;
@@ -399,50 +424,28 @@ function buildArticles(): Record<string, ArticleDoc> {
 export const ARTICLES = buildArticles();
 export const articleSlugs = Object.keys(ARTICLES);
 
-export interface RelatedItem {
-  tag: string;
-  title: string;
-  image: string;
-  href: string;
-}
-
-export interface ResolvedArticle extends ArticleDoc {
-  hero: HeroVariant;
-  body: BodyVariant;
-  kicker: string;
-  byline: string;
-  authorInitial: string;
-  related: RelatedItem[];
-}
-
-const composeByline = (a: ArticleDoc) =>
-  `WORDS · ${a.author.toUpperCase()} · ${a.read} READ` +
-  (a.heroImage ? " · PHOTOGRAPHY · E. MARLOWE" : "");
-
-function relatedFor(a: ArticleDoc): RelatedItem[] {
+export function relatedFor(a: ArticleDoc): RelatedItem[] {
   const all = articleSlugs.map((s) => ARTICLES[s]);
   const sameCat = all.filter((x) => x.category === a.category && x.slug !== a.slug);
   const pool = sameCat.length >= 3 ? sameCat : all.filter((x) => x.slug !== a.slug);
   return pool.slice(0, 3).map((x) => ({
-    tag: `${x.category.toUpperCase()} · ${x.issue}`,
+    tag: composeCardTag(x.category, x.issue),
     title: x.title,
-    image: x.heroImage ?? "/images/hero-cover.jpg",
+    image: x.heroImage ?? FALLBACK_RELATED_IMAGE,
     href: `/article/${x.slug}`,
   }));
 }
 
-/** Demo resolver behind the getArticle() seam: stub → fully-resolved article. */
+/** Demo resolver: stub → fully-resolved article, the same shape the service returns. */
 export function getArticleBySlug(slug: string): ResolvedArticle | null {
   const a = ARTICLES[slug.toLowerCase()];
   if (!a) return null;
-  const t = ARTICLE_TEMPLATES[a.template] ?? ARTICLE_TEMPLATES["Feature"];
   return {
     ...a,
-    hero: t.hero,
-    body: t.body,
-    kicker: `${a.category} · No. ${a.issue}`.toUpperCase(),
+    ...layoutFor(a.template),
+    kicker: composeKicker(a),
     byline: composeByline(a),
-    authorInitial: (a.author.trim()[0] || "M").toUpperCase(),
+    authorInitial: authorInitial(a.author),
     related: relatedFor(a),
   };
 }

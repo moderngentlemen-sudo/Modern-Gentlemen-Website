@@ -6,7 +6,7 @@ import { useScrollLock } from "@/lib/useScrollLock";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 import { useCatalog } from "@/lib/catalog/CatalogProvider";
 import { formatGBP } from "@/lib/domain/money";
-import { slugify } from "@/lib/editorial";
+import { slugify } from "@/lib/demo/editorial";
 
 type Row = {
   tag: string;

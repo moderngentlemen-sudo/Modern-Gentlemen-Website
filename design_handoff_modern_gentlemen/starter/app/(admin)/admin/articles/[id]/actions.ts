@@ -6,6 +6,7 @@ import { z } from "zod";
 import { saveDraft } from "@/lib/services/documents";
 import { publish, rollback, schedule, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview } from "@/lib/services/preview";
+import { revalidatePublicArticle } from "../revalidate";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../../_lib/action-result";
 import { toActionResult } from "../../_lib/errors";
@@ -61,6 +62,7 @@ export async function publishAction(input: unknown): Promise<ActionResult<{ vers
   try {
     const version = await publish("article", parsed.data.id, parsed.data.note);
     revalidateArticle(parsed.data.id);
+    await revalidatePublicArticle(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -74,6 +76,7 @@ export async function unpublishAction(input: unknown): Promise<ActionResult<{ ve
   try {
     const version = await unpublish("article", parsed.data.id, parsed.data.note);
     revalidateArticle(parsed.data.id);
+    await revalidatePublicArticle(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -113,6 +116,7 @@ export async function rollbackAction(input: unknown): Promise<ActionResult<{ ver
       parsed.data.note
     );
     revalidateArticle(parsed.data.id);
+    await revalidatePublicArticle(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);

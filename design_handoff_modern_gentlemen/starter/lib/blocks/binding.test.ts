@@ -136,6 +136,36 @@ describe("shapeRows", () => {
     expect(out.map((r) => r.title)).toEqual(["a", "b"]);
   });
 
+  it("skips rows with offset, then counts the limit from there", () => {
+    const out = shapeRows(rows, {
+      source: "x",
+      sort: { field: "order", direction: "asc" },
+      offset: 1,
+      limit: 2,
+    }) as { title: string }[];
+    // Not ["b"] — the limit counts rows kept, not rows passed over. This is the
+    // pairing a category page uses: the lead takes row 1, the grid takes the rest.
+    expect(out.map((r) => r.title)).toEqual(["b", "c"]);
+  });
+
+  it("treats an offset with no limit as 'everything after'", () => {
+    const out = shapeRows(rows, {
+      source: "x",
+      sort: { field: "order", direction: "asc" },
+      offset: 2,
+    }) as { title: string }[];
+    expect(out.map((r) => r.title)).toEqual(["c"]);
+  });
+
+  it("treats offset 0 as no offset", () => {
+    expect(shapeRows(rows, { source: "x", offset: 0 })).toEqual(rows);
+  });
+
+  it("returns nothing when the offset runs past the end", () => {
+    expect(shapeRows(rows, { source: "x", offset: 9, limit: 3 })).toEqual([]);
+    expect(shapeRows(rows, { source: "x", offset: 9, single: true })).toBeNull();
+  });
+
   it("renames keys via map", () => {
     expect(shapeRows([{ name: "N" }], { source: "x", map: { title: "name" } })).toEqual([
       { title: "N" },

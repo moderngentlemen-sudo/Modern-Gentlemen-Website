@@ -1,14 +1,30 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getArticleBySlug, articleSlugs } from "@/lib/articles";
+import { getPublishedArticle, listPublishedArticleSlugs } from "@/lib/services/publicEditorial";
 import { ReadingProgress } from "@/components/article/ReadingProgress";
 import { ArticleHero } from "@/components/article/ArticleHero";
 import { ArticleBody } from "@/components/article/ArticleBody";
 import { RelatedGrid } from "@/components/article/RelatedGrid";
 
-/** Pre-render every seeded article slug (category links + template showcases). */
-export function generateStaticParams() {
-  return articleSlugs.map((slug) => ({ slug }));
+/**
+ * Article — a template-driven page, reading the `articles` table since Phase 7c.
+ *
+ * The `template` column names one of the twenty templates and
+ * `lib/domain/articles.ts` maps it to a hero variant × body variant; the body's
+ * *content* is fixed per variant and lives in `components/article/*`, which is
+ * the design prototype's own model and not something a row carries.
+ *
+ * `getPublishedArticle` returns the very `ResolvedArticle` shape
+ * `lib/demo/articles.ts` produced, so the four components below take the props
+ * they were pixel-verified against. Unknown or unpublished slug → 404.
+ *
+ * Statically rendered: the read is cookie-free, so Next prerenders every
+ * published article at build time.
+ */
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return (await listPublishedArticleSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -17,20 +33,14 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const a = getArticleBySlug(slug);
+  const a = await getPublishedArticle(slug);
   if (!a) return { title: "Article not found — Modern Gentlemen" };
   return { title: `${a.title} — Modern Gentlemen`, description: a.dek };
 }
 
-/**
- * Article — a template-driven page. The article's `template` selects a hero
- * variant × body variant (lib/articles.ts, transcribed from MG Article.dc.html).
- * Runs on demo data; a Supabase `getArticle(slug)` returning the same resolved
- * shape slots in behind getArticleBySlug. Unknown slug → 404.
- */
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const a = getArticleBySlug(slug);
+  const a = await getPublishedArticle(slug);
   if (!a) notFound();
 
   return (

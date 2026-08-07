@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RelatedItem } from "@/lib/articles";
+import type { RelatedItem } from "@/lib/domain/articles";
 
 /** "KEEP READING" — a 3-up grid of related article cards (glass caption bar). */
 export function RelatedGrid({ items }: { items: RelatedItem[] }) {

@@ -25,6 +25,16 @@ export function publicPathForArticle(slug: string): string {
   return `/article/${slug}`;
 }
 
+/**
+ * A category's landing page sits at the root, one segment deep — `/style`, not
+ * `/category/style`. Which is why publishing an article has to revalidate two
+ * paths: its own, and this one, because the category page's lead and grid are
+ * bound to the `articles` table and go stale the moment one is published.
+ */
+export function publicPathForCategory(slug: string): string {
+  return `/${slug}`;
+}
+
 export function publicPathForProduct(slug: string): string {
   return `/product/${slug}`;
 }

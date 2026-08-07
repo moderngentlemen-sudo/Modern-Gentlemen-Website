@@ -8,6 +8,7 @@ import { deleteDocument } from "@/lib/services/documents";
 import { ARTICLE_TEMPLATE_NAMES } from "@/lib/domain/articles";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
+import { publicPathsForArticle, revalidatePublicPaths } from "./revalidate";
 
 /**
  * Article actions. Same contract as the pages actions: parse first, call a
@@ -46,10 +47,17 @@ export async function deleteArticleAction(input: unknown): Promise<ActionResult>
   if (!parsed.success) return { ok: false, error: "Invalid input" };
 
   try {
+    // Read the public paths first: once the row is gone there is no category to
+    // look up, and the category page has to be rebuilt precisely *because* the
+    // article it listed no longer exists.
+    const paths = await publicPathsForArticle(parsed.data.id);
+
     // Goes through `deleteDocument`, so the article's media usage records are
     // cleared with it. `media_usages.entity_id` has no foreign key to lean on.
     await deleteDocument("article", parsed.data.id);
+
     revalidatePath("/admin/articles");
+    revalidatePublicPaths(paths);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);
@@ -85,11 +93,20 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
   const { id, tagIds, ...patch } = parsed.data;
 
   try {
+    // Both sides of the write. Re-filing an article from Watches to Culture
+    // takes it off one listing and puts it on another, and only the path set
+    // from before the update knows about the first of those.
+    const before = await publicPathsForArticle(id);
+
     await updateArticleMeta(id, patch);
     if (tagIds) await setArticleTags(id, tagIds);
 
     revalidatePath("/admin/articles");
     revalidatePath(`/admin/articles/${id}`);
+    // The metadata is rendered content — the template, the byline, the reading
+    // time, the tag a category card prints — so a save changes the public pages
+    // even though no block moved.
+    revalidatePublicPaths([...before, ...(await publicPathsForArticle(id))]);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);

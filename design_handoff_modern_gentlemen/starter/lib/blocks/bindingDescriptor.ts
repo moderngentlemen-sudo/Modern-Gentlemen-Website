@@ -25,6 +25,16 @@ export const bindingQuerySchema = z.object({
     })
     .optional(),
   limit: z.number().int().positive().optional(),
+  /**
+   * Rows to skip before `limit` takes its slice.
+   *
+   * A category page reads one ordering twice: the lead takes the first story,
+   * the grid takes the next six. Without an offset the grid's own `limit` would
+   * start at the same row and repeat the lead as its first card. Zero is
+   * permitted and means the same as absent, so a control that writes 0 rather
+   * than clearing the key is not an error.
+   */
+  offset: z.number().int().nonnegative().optional(),
   /** Resolve to a single record rather than a list — for group fields. */
   single: z.boolean().optional(),
   /** Rename source keys onto the block's shape: `{ title: "name" }`. */
