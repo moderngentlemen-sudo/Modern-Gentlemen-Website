@@ -6,6 +6,11 @@ import { z } from "zod";
 import { createProduct, setProductCollections, updateProductMeta } from "@/lib/services/products";
 import { deleteDocument } from "@/lib/services/documents";
 import {
+  publicPathBeforeDelete,
+  revalidateAfterDelete,
+  revalidatePublicProduct,
+} from "./revalidate";
+import {
   PRODUCT_AVAILABILITIES,
   PRODUCT_BADGES,
   PRODUCT_FULFILMENTS,
@@ -57,8 +62,14 @@ export async function deleteProductAction(input: unknown): Promise<ActionResult>
     // and a bespoke product delete would leave every asset it referenced
     // permanently undeletable. This is the whole reason products became a
     // document type rather than growing their own CRUD.
+    // The slug is read first: after the delete there is no row to read it
+    // from, and `/shop` would keep serving the product until the hourly
+    // revalidate expired. CI caught exactly that — publish revalidated the
+    // grid, delete did not, and the shop page came back one row too tall.
+    const publicPath = await publicPathBeforeDelete(parsed.data.id);
     await deleteDocument("product", parsed.data.id);
     revalidatePath("/admin/products");
+    revalidateAfterDelete(publicPath);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);
@@ -137,6 +148,10 @@ export async function updateProductMetaAction(input: unknown): Promise<ActionRes
 
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}`);
+    // Name, price and badges are all on the card and the PDP. A published
+    // product whose price changed is the same staleness as one that was
+    // published or deleted, so it gets the same treatment.
+    await revalidatePublicProduct(id);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);

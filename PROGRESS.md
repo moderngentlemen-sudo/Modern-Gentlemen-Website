@@ -504,7 +504,8 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] Verified against the **live project**: 16 products, **zero field mismatches**; build 70/70 with `/` and `/shop` still `○ (Static)`; **all 16 visual baselines unchanged**, including the shop grid and a populated PDP now rendering from Supabase
 - [ ] The PDP still returns **200** with a "not found" body for an unknown slug — it is a client component, so it cannot call `notFound()`. A server shell would fix it and is a routing change of its own
 - [ ] `product_variants` and `product_collections` have admin UI and no public surface. The PDP shows one price and no variant picker
-- [x] Publish / unpublish / rollback revalidate the product's page **and** `/shop`; `snapshot` deliberately does not, matching the pages actions
+- [x] Publish, unpublish, rollback, **delete** and a details save all revalidate the product's page **and** `/shop`, through one shared `revalidatePublicProduct` helper; `snapshot` and autosave deliberately do not
+  - **CI caught the half-applied version**, and it is worth recording how. The first attempt revalidated on publish but not on delete, so `products.spec.ts` published a product, deleted it, and left it on the cached `/shop`. The symptom was the shop baseline failing at 3748px against an expected 3211px — one grid row too tall. A visual baseline detected a **cache-invalidation** bug, which is not what it was built for; the height delta was the whole diagnosis.
 
 **Phase 6a — Products admin** ✅ (code)
 - [x] `supabase/migrations/0014_product_documents.sql` — `document_table()` gains `'product'`; **applied to the live project** via the Supabase MCP and verified. No `db:types` regeneration needed: it replaces one function and touches no table
