@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { isDocumentType } from "./documents";
 import {
   formatByteSize,
+  galleryReferences,
   isPickableAs,
   mediaKindFromMime,
   publicUrlFor,
@@ -178,5 +180,35 @@ describe("formatByteSize", () => {
   it("returns a dash for a value that is not a size", () => {
     expect(formatByteSize(Number.NaN)).toBe("—");
     expect(formatByteSize(-1)).toBe("—");
+  });
+});
+
+describe("galleryReferences", () => {
+  it("turns product ids into references the usage panel can render", () => {
+    expect(galleryReferences(["p1", "p2"])).toEqual([
+      { id: "gallery:p1", entityType: "product", entityId: "p1", fieldPath: "gallery" },
+      { id: "gallery:p2", entityType: "product", entityId: "p2", fieldPath: "gallery" },
+    ]);
+  });
+
+  it("is empty for an asset no gallery holds", () => {
+    // The case that must stay empty: over-refusing would make the library
+    // unusable, and nothing else in the delete path double-checks this.
+    expect(galleryReferences([])).toEqual([]);
+  });
+
+  it("gives each reference a distinct id", () => {
+    // They share an asset and differ only by product, so a constant id here
+    // would collapse six blocking references into one React key — and one
+    // line in the panel telling an editor to clear "a" product.
+    const ids = galleryReferences(["p1", "p2", "p3"]).map((r) => r.id);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("names the entity type the document repository knows", () => {
+    // `getAssetUsageViews` resolves a title through `getDocument(entityType)`,
+    // which is an allowlist. "products" or "Product" would silently resolve to
+    // no title and the reference would render nameless.
+    expect(isDocumentType(galleryReferences(["p1"])[0].entityType)).toBe(true);
   });
 });

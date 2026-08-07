@@ -140,6 +140,65 @@ test.describe("media library", () => {
     await expect(page.getByRole("button", { name: "Delete asset" })).toBeDisabled();
   });
 
+  /**
+   * A gallery is the other kind of reference, and the one `media_usages` does
+   * not record. `product_media` is written straight by the products admin and
+   * is never walked by the reconciliation that fills `media_usages`, so before
+   * `deleteAsset` learned to ask both tables an asset could be the hero
+   * photograph on six product pages and read as completely unreferenced —
+   * deletable in one click, with `on delete cascade` quietly taking the
+   * photographs off the live storefront.
+   *
+   * Self-contained on purpose: it creates its own product and deletes it again,
+   * so the asset is left exactly as the next test expects to find it.
+   */
+  test("counts a product gallery as a reference", async ({ page }) => {
+    await signIn(page);
+
+    const productName = `E2E Gallery ${Date.now().toString(36)}`;
+    await page.goto("/admin/products");
+    await page.getByRole("button", { name: "New product" }).click();
+    const dialog = page.getByRole("dialog", { name: "New product" });
+    await dialog.getByLabel("Name").fill(productName);
+    await dialog.getByLabel("Slug").fill(productName.toLowerCase().replace(/\s+/g, "-"));
+    await dialog.getByRole("button", { name: "Create", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/products\/[0-9a-f-]{36}$/);
+    const productUrl = page.url();
+
+    await page.getByRole("button", { name: "Attach an image" }).click();
+    await page
+      .getByRole("dialog", { name: "Choose an image" })
+      .getByRole("button", { name: new RegExp(assetName.replace(".png", "")) })
+      .click();
+    await expect(page.getByText("primary")).toBeVisible();
+
+    // The asset now has two references from two different tables. The page one
+    // was already there; this asserts the gallery one joined it rather than
+    // replacing it, because the union is the part that was missing.
+    await page.goto("/admin/media");
+    await page.getByRole("button", { name: new RegExp(assetName.replace(".png", "")) }).click();
+    await expect(page.getByRole("link", { name: productName })).toBeVisible();
+    await expect(page.getByRole("link", { name: pageTitle })).toBeVisible();
+
+    // Deleting the product takes the gallery row with it — `product_media`
+    // cascades on product_id as well as asset_id.
+    await page.goto(productUrl);
+    await page.goto("/admin/products");
+    await page
+      .getByRole("row", { name: new RegExp(productName) })
+      .getByRole("button", { name: "Delete" })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Delete product", exact: true })
+      .click();
+    await expect(page.getByRole("link", { name: productName })).toHaveCount(0);
+
+    await page.goto("/admin/media");
+    await page.getByRole("button", { name: new RegExp(assetName.replace(".png", "")) }).click();
+    await expect(page.getByRole("link", { name: productName })).toHaveCount(0);
+  });
+
   test("deletes the asset once nothing references it, and cleans up", async ({ page }) => {
     await signIn(page);
 

@@ -277,6 +277,21 @@ export async function listProductMedia(db: Db, productId: string): Promise<Produ
   ) ?? []) as ProductMediaRow[];
 }
 
+/**
+ * The inverse: which products hold this asset in their gallery.
+ *
+ * `listProductMedia` answers "what is on this product"; the media library needs
+ * "what would break if this asset went away", and the `on delete cascade` noted
+ * above is exactly why it has to ask. The cascade guarantees no dangling row —
+ * it guarantees nothing about the product still having a photograph.
+ */
+export async function productsForAsset(db: Db, assetId: string): Promise<{ product_id: string }[]> {
+  return (unwrap(
+    "productsForAsset",
+    await db.from("product_media").select("product_id").eq("asset_id", assetId)
+  ) ?? []) as { product_id: string }[];
+}
+
 export async function attachProductMedia(
   db: Db,
   productId: string,
