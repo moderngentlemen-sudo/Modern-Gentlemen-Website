@@ -25,7 +25,7 @@ import {
   galleryReferences,
   MEDIA_BUCKET,
   mediaKindFromMime,
-  publicUrlFor,
+  resolveAssetUrl,
   storagePathFor,
   storagePathFromPublicUrl,
   type FocalPoint,
@@ -103,10 +103,11 @@ export function toAssetView(row: repo.AssetRow): AssetView {
     focalPoint: toFocalPoint(row.focal_point),
     checksum: row.checksum,
     createdAt: row.created_at,
-    // An asset we do not store keeps the URL it came with. 0002 has the column
-    // for exactly this: legacy /public files and third-party embeds catalogued
-    // alongside the ones we host.
-    url: row.external_url ?? publicUrlFor(supabaseUrl(), row.storage_path, row.bucket),
+    url: resolveAssetUrl(supabaseUrl(), {
+      bucket: row.bucket,
+      storagePath: row.storage_path,
+      externalUrl: row.external_url,
+    }),
   };
 }
 

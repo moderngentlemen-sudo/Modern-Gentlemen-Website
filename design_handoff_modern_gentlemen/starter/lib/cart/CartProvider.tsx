@@ -10,7 +10,7 @@
  */
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { CartApi, CartLine, EnrichedLine } from "./types";
-import { getProduct } from "@/lib/catalog";
+import { useCatalog } from "@/lib/catalog/CatalogProvider";
 import { calculateTotals, normaliseQty } from "@/lib/domain/pricing";
 import { MEMBER_DISCOUNT_RATE, penceToPounds, poundsToPence } from "@/lib/domain/money";
 
@@ -28,6 +28,10 @@ function readBag(): CartLine[] {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  // The catalogue arrives from the server layout above. Resolution stays
+  // synchronous, exactly as it was when this read a hardcoded module — the
+  // source moved, the contract did not.
+  const { getProduct } = useCatalog();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [isMember, setIsMember] = useState(false);
 
@@ -99,7 +103,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(MEMBER_KEY, v ? "1" : "0");
       },
     };
-  }, [lines, isMember]);
+  }, [lines, isMember, getProduct]);
 
   return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
 }
@@ -110,6 +114,8 @@ export function useCart(): CartApi {
   return ctx;
 }
 
-// Money formatting has a single source of truth in lib/catalog; re-export it so
-// callers importing from here keep working AND shipping renders £4.95 (not £5).
-export { formatGBP } from "@/lib/catalog";
+// Money formatting has a single source of truth in lib/domain/money; re-export
+// it so callers importing from here keep working AND shipping renders £4.95
+// (not £5). `money.test.ts` pins it against the demo catalog's original, which
+// is what proves the port did not change a single rendered price.
+export { formatGBP } from "@/lib/domain/money";

@@ -210,6 +210,26 @@ export function galleryReferences(productIds: string[]): AssetReference[] {
 }
 
 /**
+ * Where an asset is actually served from, whoever is asking.
+ *
+ * An asset we do not store keeps the URL it came with — 0002 has
+ * `external_url` for exactly that: legacy `/public` files and third-party
+ * embeds catalogued alongside the ones we host. Everything else resolves
+ * through the storage origin.
+ *
+ * One function rather than the expression written out at each call site,
+ * because there are now two — the admin's asset view and the public store's
+ * gallery — and a version of this that forgot `external_url` would render the
+ * whole legacy catalogue as broken images while passing every type check.
+ */
+export function resolveAssetUrl(
+  supabaseUrl: string,
+  asset: { bucket: string; storagePath: string; externalUrl: string | null }
+): string {
+  return asset.externalUrl ?? publicUrlFor(supabaseUrl, asset.storagePath, asset.bucket);
+}
+
+/**
  * The inverse. Returns `null` for any URL this project does not serve — a
  * third-party CDN, a `/public` file, a relative path — which is exactly the set
  * of things we cannot record a usage for.

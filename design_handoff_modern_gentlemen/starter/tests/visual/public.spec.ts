@@ -18,7 +18,12 @@ const ROUTES = [
   { path: "/membership", name: "membership" },
   { path: "/style", name: "category-style" },
   { path: "/article/speed-considered", name: "article" },
-  { path: "/product/the-driving-glove", name: "product" },
+  // `the-driving-glove` is not a catalog slug, so this baseline is the PDP's
+  // "we couldn't find that product" screen — worth keeping, but it exercises
+  // none of the page. `travel-watch-roll` is the populated one: gallery,
+  // thumbnails, price, member price, story, spec table, related row.
+  { path: "/product/the-driving-glove", name: "product-missing" },
+  { path: "/product/travel-watch-roll", name: "product" },
 ];
 
 for (const theme of ["light", "dark"] as const) {

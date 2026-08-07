@@ -12,7 +12,7 @@
  */
 
 import { categorySlugs, getCategory, slugify, type CategoryData } from "@/lib/editorial";
-import { allProducts } from "@/lib/catalog";
+import { allProducts } from "@/lib/demo/catalog";
 import { shapeRows, type BindingQuery, type BindingSource, type BindingSources } from "../binding";
 
 /** Rows are flat and string-keyed so `filter`, `sort` and `map` work uniformly. */

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useFocusTrap } from "@/lib/useFocusTrap";
-import { allProducts, formatGBP } from "@/lib/catalog";
+import { useCatalog } from "@/lib/catalog/CatalogProvider";
+import { formatGBP } from "@/lib/domain/money";
 import { slugify } from "@/lib/editorial";
 
 type Row = {
@@ -148,6 +149,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   }, [open]);
 
   const query = q.trim().toLowerCase();
+  const { allProducts } = useCatalog();
 
   const results = useMemo<Row[]>(() => {
     if (!query) return [];
@@ -172,7 +174,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
         section: "Shop" as const,
       }));
     return ed.concat(shop);
-  }, [query]);
+  }, [query, allProducts]);
 
   const editorial = results.filter((r) => r.section !== "Shop");
   const shop = results.filter((r) => r.section === "Shop");
