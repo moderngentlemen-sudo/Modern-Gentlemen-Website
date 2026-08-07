@@ -14,6 +14,7 @@
 import { createClient } from "@/lib/db/server";
 import { supabaseUrl } from "@/lib/db/env";
 import * as repo from "@/lib/db/repositories/media";
+import * as productsRepo from "@/lib/db/repositories/products";
 import type { Json } from "@/lib/db/database.types";
 import { getDocument as getDocumentRow } from "@/lib/db/repositories/documents";
 import { collectMediaReferences } from "@/lib/blocks/media";
@@ -21,6 +22,7 @@ import type { BlockNode } from "@/lib/blocks/types";
 import { isDocumentType } from "@/lib/domain/documents";
 import {
   CENTRE,
+  galleryReferences,
   MEDIA_BUCKET,
   mediaKindFromMime,
   resolveAssetUrl,
@@ -129,11 +131,51 @@ export async function getAsset(id: string): Promise<AssetView | null> {
   return row ? toAssetView(row) : null;
 }
 
+/**
+ * A product's gallery is a reference too, and `media_usages` does not know it.
+ *
+ * `media_usages` is reconciled from block trees on save. A gallery is
+ * `product_media` — a different table with its own lifecycle, written by the
+ * products admin, never walked by `MediaUsageService`. So an asset can be on
+ * six product pages and look completely unreferenced from here.
+ *
+ * That was survivable while the public store rendered from a hardcoded module,
+ * because nothing downstream read the join. Now that `/shop` and every PDP read
+ * `product_media`, deleting such an asset cascades the gallery rows away and
+ * takes the photographs off the live storefront — with the delete having raised
+ * no objection at all.
+ *
+ * The mapping is `galleryReferences` in lib/domain/media — pure, so the shape
+ * the error and the panel both depend on is unit-tested without a database.
+ */
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+async function galleryUsagesForAsset(db: Db, assetId: string): Promise<AssetUsage[]> {
+  const rows = await productsRepo.productsForAsset(db, assetId);
+  return galleryReferences(rows.map((row) => row.product_id));
+}
+
+/** Everything that references an asset, from both tables that can. */
+async function allUsagesForAsset(db: Db, id: string): Promise<AssetUsage[]> {
+  const [tracked, gallery] = await Promise.all([
+    repo.usagesForAsset(db, id),
+    galleryUsagesForAsset(db, id),
+  ]);
+  return [...tracked.map(toUsage), ...gallery];
+}
+
 export async function getAssetUsages(id: string): Promise<AssetUsage[]> {
   await requirePermission("media.read");
   const db = await createClient();
-  return (await repo.usagesForAsset(db, id)).map(toUsage);
+  return allUsagesForAsset(db, id);
 }
+
+/**
+ * Entity types whose admin route is `/admin/<type>s/<id>`. `template` and
+ * `pattern` are deliberately absent — they are document types with no admin
+ * screen yet, so a link would 404.
+ */
+const LINKABLE_ENTITY_TYPES = new Set(["page", "article", "product"]);
 
 /** A usage with somewhere to go. `null` title means the row is hidden by RLS. */
 export interface AssetUsageView extends AssetUsage {
@@ -158,7 +200,7 @@ export async function getAssetUsageViews(id: string, cap = 30): Promise<AssetUsa
   await requirePermission("media.read");
   const db = await createClient();
 
-  const usages = (await repo.usagesForAsset(db, id)).map(toUsage);
+  const usages = await allUsagesForAsset(db, id);
   const documents = new Map<string, string | null>();
 
   for (const usage of usages.slice(0, cap)) {
@@ -180,10 +222,13 @@ export async function getAssetUsageViews(id: string, cap = 30): Promise<AssetUsa
   return usages.map((usage) => ({
     ...usage,
     title: documents.get(`${usage.entityType}:${usage.entityId}`) ?? null,
-    href:
-      usage.entityType === "page" || usage.entityType === "article"
-        ? `/admin/${usage.entityType}s/${usage.entityId}`
-        : null,
+    // `product` covers both kinds of product reference — a block in its tree
+    // and a row in its gallery — and both land on the same details screen,
+    // which is where either is removed. It was missing before: a product's
+    // block-tree usage resolved a title and then offered nowhere to go.
+    href: LINKABLE_ENTITY_TYPES.has(usage.entityType)
+      ? `/admin/${usage.entityType}s/${usage.entityId}`
+      : null,
   }));
 }
 
@@ -335,6 +380,11 @@ function emptyToNull(value: string | undefined): string | null {
  * than a missing one. The error carries the usages, so the admin can show the
  * editor where to go rather than only telling them no.
  *
+ * It asks **both** tables that can hold a reference. `media_usages` covers
+ * block trees; `product_media` covers galleries and is not reconciled into it.
+ * Checking only the first let an asset on six product pages read as
+ * unreferenced — see `galleryUsagesForAsset`.
+ *
  * The catalogue row goes first and the object second. If the object removal
  * fails, the result is an orphaned file: invisible, harmless, and reclaimable.
  * The other order risks a catalogue row pointing at bytes that no longer exist,
@@ -348,8 +398,8 @@ export async function deleteAsset(id: string): Promise<void> {
   if (!row) return;
 
   const asset = toAssetView(row);
-  const usages = await repo.usagesForAsset(db, id);
-  if (usages.length > 0) throw new AssetInUseError(asset, usages.map(toUsage));
+  const usages = await allUsagesForAsset(db, id);
+  if (usages.length > 0) throw new AssetInUseError(asset, usages);
 
   await repo.deleteAsset(db, id);
 

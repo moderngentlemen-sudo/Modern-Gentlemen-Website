@@ -169,6 +169,46 @@ export function publicUrlFor(
   return `${origin}/storage/v1/object/public/${bucket}/${encodeURI(path)}`;
 }
 
+// ---------------------------------------------------------------------------
+// References to an asset
+// ---------------------------------------------------------------------------
+
+/**
+ * Somewhere an asset is used. Structurally identical to `AssetUsage` in
+ * `lib/services/media.ts`, which is what a `media_usages` row becomes — and
+ * deliberately so, because the two are the same idea arriving from two tables.
+ */
+export interface AssetReference {
+  id: string;
+  entityType: string;
+  entityId: string;
+  fieldPath: string | null;
+}
+
+/** The synthetic `id` prefix for a gallery reference. */
+export const GALLERY_REFERENCE_PREFIX = "gallery:";
+
+/**
+ * Product galleries, as references.
+ *
+ * `media_usages` is reconciled from block trees on save and knows nothing about
+ * `product_media`, which the products admin writes directly. So an asset can be
+ * the hero photograph on six product pages and look entirely unreferenced.
+ *
+ * The `id` is composite because there is no row of its own to borrow one from:
+ * `product_media`'s primary key is (product_id, asset_id). It only has to be
+ * stable and unique within one asset's reference list — it is a React key, not
+ * anything the database will ever be asked about.
+ */
+export function galleryReferences(productIds: string[]): AssetReference[] {
+  return productIds.map((productId) => ({
+    id: `${GALLERY_REFERENCE_PREFIX}${productId}`,
+    entityType: "product",
+    entityId: productId,
+    fieldPath: "gallery",
+  }));
+}
+
 /**
  * Where an asset is actually served from, whoever is asking.
  *
