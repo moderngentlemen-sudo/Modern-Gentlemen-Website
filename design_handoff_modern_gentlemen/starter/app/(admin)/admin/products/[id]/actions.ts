@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { saveDraft } from "@/lib/services/documents";
+import { getDocument, saveDraft } from "@/lib/services/documents";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview } from "@/lib/services/preview";
+import { publicPathForProduct } from "@/lib/domain/routes";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../../_lib/action-result";
 import { toActionResult } from "../../_lib/errors";
@@ -45,6 +46,33 @@ function revalidateProduct(id: string): void {
   revalidatePath(`/admin/products/${id}`);
 }
 
+/**
+ * The public side of a publish, mirroring `revalidatePublicPage` in the pages
+ * actions and load-bearing for the same reason: since Phase 7b the store reads
+ * `products` and is statically rendered, so without this an editor publishes,
+ * sees "Published v3", opens /shop and finds the old catalogue — with nothing
+ * anywhere reporting a problem. The hourly `revalidate` in `(site)/layout.tsx`
+ * would eventually correct it, which is a backstop, not a feature.
+ *
+ * Both paths, because a product appears on two: its own page and the grid.
+ *
+ * Only operations that change what a visitor sees call this. `snapshot` writes
+ * history and touches no published payload, so it is deliberately excluded —
+ * the same list the pages actions keep.
+ */
+async function revalidatePublicProduct(id: string): Promise<void> {
+  try {
+    const product = await getDocument("product", id);
+    if (product) revalidatePath(publicPathForProduct(product.slug));
+    revalidatePath("/shop");
+  } catch (error) {
+    // A publish that succeeded has succeeded. Failing the action because the
+    // cache hint could not be sent would report a false failure for something
+    // the hourly backstop corrects on its own.
+    console.error(`Published product ${id} but could not revalidate its public path:`, error);
+  }
+}
+
 export async function saveDraftAction(input: unknown): Promise<ActionResult<{ savedAt: string }>> {
   const parsed = z.object({ id: Id, payload: SavePayload }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "That product payload is not in a valid shape." };
@@ -66,6 +94,7 @@ export async function publishAction(input: unknown): Promise<ActionResult<{ vers
   try {
     const version = await publish("product", parsed.data.id, parsed.data.note);
     revalidateProduct(parsed.data.id);
+    await revalidatePublicProduct(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -79,6 +108,7 @@ export async function unpublishAction(input: unknown): Promise<ActionResult<{ ve
   try {
     const version = await unpublish("product", parsed.data.id, parsed.data.note);
     revalidateProduct(parsed.data.id);
+    await revalidatePublicProduct(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -118,6 +148,7 @@ export async function rollbackAction(input: unknown): Promise<ActionResult<{ ver
       parsed.data.note
     );
     revalidateProduct(parsed.data.id);
+    await revalidatePublicProduct(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
