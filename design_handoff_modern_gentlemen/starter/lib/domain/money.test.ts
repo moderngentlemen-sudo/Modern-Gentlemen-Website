@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyRate, formatGBP, formatPence, penceToPounds, poundsToPence } from "./money";
-import { formatGBP as catalogFormatGBP } from "@/lib/catalog";
+import { formatGBP as catalogFormatGBP } from "@/lib/demo/catalog";
 
 describe("poundsToPence", () => {
   it.each([

@@ -17,9 +17,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 >
 > So the name is gone. A current-branch name is perishable by construction, and this file cannot hold perishable facts safely. **The `SessionStart` hook already prints the live branch every session** (`node design_handoff_modern_gentlemen/starter/scripts/status.mjs`), which is a source that cannot go stale because it is computed, not written.
 >
-> **Do not build on any `claude/*` branch on the remote.** Every one of them is either merged or abandoned: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11) and `claude/phase-7a-public-rewire` (Phase 7a, PR #12). This list is history and only ever grows; it needs no edit to stay true.
+> **Do not build on any `claude/*` branch on the remote.** Every one of them is either merged or abandoned: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11), `claude/phase-7a-public-rewire` (Phase 7a, PR #12), `claude/env-credential-validation` (PR #15) and `claude/phase-7b-store-from-db` (Phase 7b). This list is history and only ever grows; it needs no edit to stay true.
 
-Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation, auth, the block system, publishing, the admin builder, media, the CMS and **the products admin** are done; navigation, theme, ingestion and the public rewire are not.
+Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation, auth, the block system, publishing, the admin builder, media, the CMS, **the products admin** and **the public store's read path** are done; navigation, theme, ingestion and the editorial content migration are not.
 
 Live state (branch, commits, migrations, test counts) is printed automatically at session start by a hook. Run it any time:
 `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`
@@ -41,7 +41,8 @@ Live state (branch, commits, migrations, test counts) is printed automatically a
 | B | Phase 6a — Products admin | `product` as the 5th document type, domain/repo/service, `/admin/products`, variants, gallery, collections | ✅ done (code); `0014` applied |
 | B | Phase 6b — Integrations & the rest | XML ingestion, Shopify adapter, navigation, theme editor, scheduled-publish runner | ⬜ not started |
 | B | Phase 7a — Public render path | homepage reads `pages` from the DB; static + on-demand revalidation | ✅ done (code) |
-| B | Phase 7b/7c — Rewire the rest | store off `products`; articles/categories content migration | ⬜ not started |
+| B | Phase 7b — Store off the database | `/shop`, PDP, product row and search read `products` + `product_media` | ✅ done (code) |
+| B | Phase 7c — Editorial content migration | articles and categories still render from `lib/demo/` | ⬜ not started |
 
 ### ⚠️ Corrections to earlier guidance in this file
 
@@ -488,8 +489,23 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] Publish / unpublish / rollback revalidate the public path; snapshot deliberately does not
 - [x] CI gains a `Seed content` step — the build reads the database now
 - [x] Verified against the **live project**: payload deep-equals `DEMO_SECTIONS`, `/` stays `○ (Static)`, all 14 visual baselines pass
-- [ ] Only the homepage. `/[category]`, `/article/[slug]`, `/shop` and `/product/[slug]` still render from the demo modules
+- [x] ~~Only the homepage~~ — `/shop` and `/product/[slug]` followed in Phase 7b
+- [ ] `/[category]` and `/article/[slug]` still render from the demo modules (7c)
 - [ ] No Supabase `BindingSource` yet — nothing binds until articles exist (7c)
+
+**Phase 7b — The store reads the database** ✅ (code)
+- [x] `lib/services/publicCatalog.ts` — `listPublishedProducts()`, anonymous, one query embedding `product_media` → `media_assets`. No `requirePermission`: RLS is the guard, same stance as `publicContent.ts`
+- [x] `lib/catalog/CatalogProvider.tsx` — the catalogue is fetched once in `app/(site)/layout.tsx` and read through context, because the bag drawer is in the header and needs it on **every** route. `CartProvider` takes `getProduct` from context; its synchronous contract is unchanged (+9 tests)
+- [x] `lib/domain/media.ts#resolveAssetUrl` — `external_url ?? publicUrlFor(...)`, now shared by the admin asset view and the store gallery so they cannot drift
+- [x] `scripts/seed.ts` seeds `media_assets` (7 legacy `/public` JPEGs, via `external_url`) and `product_media` (48 rows). **This was the blocker**: the database held 16 products and zero imagery, so switching first would have rendered 16 empty frames
+- [x] `lib/catalog.ts` → **`lib/demo/catalog.ts`**. It is now the seed source and the test fixture, not what the site renders
+- [x] Images are ready-to-use URLs; the `"/" + product.images[0]` concatenation is gone. Required for real uploads (absolute Supabase URLs), and it fixed the search overlay rendering `images/x.jpg` relative to the current path
+- [x] `tests/integration/publicCatalog.test.ts` — the mapped `Product[]` deep-equals `lib/demo/catalog`, every product carries imagery, an unpublished product disappears from the anonymous read. CI's integration job gained `Seed content` + the `NEXT_PUBLIC_*` pair, without which it compares 16 products against 0
+- [x] Verified against the **live project**: 16 products, **zero field mismatches**; build 70/70 with `/` and `/shop` still `○ (Static)`; **all 16 visual baselines unchanged**, including the shop grid and a populated PDP now rendering from Supabase
+- [ ] The PDP still returns **200** with a "not found" body for an unknown slug — it is a client component, so it cannot call `notFound()`. A server shell would fix it and is a routing change of its own
+- [ ] `product_variants` and `product_collections` have admin UI and no public surface. The PDP shows one price and no variant picker
+- [x] Publish, unpublish, rollback, **delete** and a details save all revalidate the product's page **and** `/shop`, through one shared `revalidatePublicProduct` helper; `snapshot` and autosave deliberately do not
+  - **CI caught the half-applied version**, and it is worth recording how. The first attempt revalidated on publish but not on delete, so `products.spec.ts` published a product, deleted it, and left it on the cached `/shop`. The symptom was the shop baseline failing at 3748px against an expected 3211px — one grid row too tall. A visual baseline detected a **cache-invalidation** bug, which is not what it was built for; the height delta was the whole diagnosis.
 
 **Phase 6a — Products admin** ✅ (code)
 - [x] `supabase/migrations/0014_product_documents.sql` — `document_table()` gains `'product'`; **applied to the live project** via the Supabase MCP and verified. No `db:types` regeneration needed: it replaces one function and touches no table
@@ -502,7 +518,7 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] **21 new unit tests** (536 total, was 515)
 - [x] `tests/e2e/products.spec.ts` — **green in CI** (PR #11), after three rounds of spec fixes. Create → price → reject a bad compare-at → variant → compose → publish → history → delete, against a real database
 - [ ] `product_sources` has no UI — it is the ingestion pipeline's table and belongs with Phase 6b. Every product created here has `source_id` null, which is what `'native'` means
-- [ ] The public store still renders from `lib/catalog.ts`. Phase 7b rewires it; **no product created in the admin is visible on the site yet**
+- [x] ~~The public store still renders from `lib/catalog.ts`~~ — done in Phase 7b. The store reads `products` + `product_media`; a product published in the admin appears on the site within the hour (or immediately on `revalidatePath`)
 
 **Known issues**
 - [x] ~~CI stopped running entirely~~ — **a GitHub Actions platform outage**, confirmed on githubstatus.com. Nothing in this repository, its settings or the account was ever at fault. Recorded because the *diagnosis* went badly wrong and the lesson is general.

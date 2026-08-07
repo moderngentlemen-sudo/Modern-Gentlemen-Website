@@ -20,6 +20,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { useShallow } from "zustand/react/shallow";
 
 import { CartProvider } from "@/lib/cart/CartProvider";
+import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
+import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
@@ -57,35 +59,47 @@ export function Canvas() {
 
   return (
     /**
-     * CartProvider is REQUIRED, not defensive.
-     * `components/sections/ProductRow.tsx` calls `useCart()`, and CartProvider
-     * throws when the context is missing — so without this wrapper, dropping a
-     * product row onto the canvas takes down the whole builder. Being free of
-     * *server* dependencies is not the same as being free of context.
+     * Both providers are REQUIRED, not defensive.
+     * `components/sections/ProductRow.tsx` calls `useCart()` and `useCatalog()`,
+     * and both throw when the context is missing — so without these wrappers,
+     * dropping a product row onto the canvas takes down the whole builder.
+     * Being free of *server* dependencies is not the same as being free of
+     * context. CatalogProvider goes outside, because CartProvider reads it.
+     *
+     * The canvas is fed the demo catalogue rather than the published rows, for
+     * the same reason `lib/blocks/sources/demo.ts` exists: this is a preview
+     * surface that must render without a fetch. The two agree in practice —
+     * `scripts/seed.ts` seeds the database from this very module.
      */
-    <CartProvider>
-      <div className="flex justify-center px-6 py-6">
-        <div className={clsx("transition-[width]", DEVICE_WIDTH[device])}>
-          {tree.length === 0 ? (
-            <EmptyState eyebrow="Empty page" title="Add your first section">
-              Pick a section from the library on the left. Everything you add renders here exactly
-              as it will on the live site.
-            </EmptyState>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext
-                items={tree.map((node) => node._key)}
-                strategy={verticalListSortingStrategy}
+    <CatalogProvider products={DEMO_PRODUCTS}>
+      <CartProvider>
+        <div className="flex justify-center px-6 py-6">
+          <div className={clsx("transition-[width]", DEVICE_WIDTH[device])}>
+            {tree.length === 0 ? (
+              <EmptyState eyebrow="Empty page" title="Add your first section">
+                Pick a section from the library on the left. Everything you add renders here exactly
+                as it will on the live site.
+              </EmptyState>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={onDragEnd}
               >
-                {tree.map((node) => (
-                  <SortableBlock key={node._key} node={node} />
-                ))}
-              </SortableContext>
-            </DndContext>
-          )}
+                <SortableContext
+                  items={tree.map((node) => node._key)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {tree.map((node) => (
+                    <SortableBlock key={node._key} node={node} />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
         </div>
-      </div>
-    </CartProvider>
+      </CartProvider>
+    </CatalogProvider>
   );
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { products as demoProducts } from "@/lib/catalog";
+import { products as demoProducts } from "@/lib/demo/catalog";
 import { poundsToPence } from "./money";
 import {
   affiliateSchema,

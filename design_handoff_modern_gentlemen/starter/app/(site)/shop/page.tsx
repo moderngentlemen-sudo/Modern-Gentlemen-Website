@@ -3,7 +3,8 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { allProducts, byGroup, groups, formatGBP } from "@/lib/catalog";
+import { groups, useCatalog } from "@/lib/catalog/CatalogProvider";
+import { formatGBP } from "@/lib/domain/money";
 import { useCart } from "@/lib/cart/CartProvider";
 import { ProductCard } from "@/components/store/ProductCard";
 
@@ -20,6 +21,7 @@ function Shop() {
   const router = useRouter();
   const params = useSearchParams();
   const cart = useCart();
+  const { allProducts, byGroup } = useCatalog();
   const [added, setAdded] = useState<string | null>(null);
 
   const raw = params.get("cat") || "";

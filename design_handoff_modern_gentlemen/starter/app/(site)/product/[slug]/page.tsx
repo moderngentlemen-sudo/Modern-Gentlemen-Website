@@ -2,7 +2,8 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { getProduct, related, formatGBP } from "@/lib/catalog";
+import { useCatalog } from "@/lib/catalog/CatalogProvider";
+import { formatGBP } from "@/lib/domain/money";
 import { useCart } from "@/lib/cart/CartProvider";
 import { QtyStepper } from "@/components/store/QtyStepper";
 import { ProductCard } from "@/components/store/ProductCard";
@@ -15,6 +16,7 @@ const ASSURANCES = [
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const { getProduct, related } = useCatalog();
   const product = getProduct(slug);
   const cart = useCart();
   const [img, setImg] = useState(0);
@@ -67,7 +69,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={"/" + product.images[img]}
+              src={product.images[img]}
               alt={product.name}
               className="h-full w-full object-cover"
             />
@@ -86,7 +88,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 className={`h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-mg-bd/15 hover:border-mg-bd/40"}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={"/" + im} alt="" className="h-full w-full object-cover" />
+                <img src={im} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>

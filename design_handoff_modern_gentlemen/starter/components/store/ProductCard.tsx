@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Product } from "@/lib/cart/types";
-import { formatGBP } from "@/lib/catalog";
+import { formatGBP } from "@/lib/domain/money";
 
 /**
  * Store product card — bordered surface tile. Used by the Shop grid and the PDP
@@ -23,9 +23,12 @@ export function ProductCard({
         href={`/product/${product.slug}`}
         className="relative block aspect-[4/5] overflow-hidden"
       >
+        {/* `images` hold ready-to-use URLs. They used to be root-relative paths
+            with the slash added here, which cannot work once an image is a real
+            uploaded asset on an absolute Supabase URL. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={"/" + product.images[0]}
+          src={product.images[0]}
           alt={product.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
         />
