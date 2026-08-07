@@ -587,7 +587,37 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [ ] Nothing calls the endpoint on a timer yet — that is a platform cron or a scheduled workflow, not code
 - [ ] `scheduled_jobs` has no rows and no UI; the runner currently discovers work from document status rather than from that table
 
-*Slices 2–5 — not started:* navigation, theme editor, XML ingestion, Shopify adapter.
+*Slice 2 — navigation: designed, not built.* The schema research is done and is
+the expensive part; recording it so the next session starts from it.
+
+- **Three hardcoded structures feed the chrome today and can already drift from
+  each other**: `Header.NAV` (6 top-level items), `MegaMenu.MENUS` (4 keys, each
+  with columns of links plus a feature card) and `Drawer.GROUPS` (the mega-menu's
+  columns flattened, numbered). One menu tree should feed all three — that is the
+  real value of the slice, beyond making it editable.
+- **The mapping onto `menus`/`menu_items`, which the schema already anticipates:**
+  one menu keyed `header-primary`; top-level items are the six nav entries;
+  their children are the mega-menu links, each carrying `options.group` = its
+  column heading. `menu_items.options` is documented as *"Rendering extras:
+  icons, CTA styling, mega-menu grouping"* — grouping is exactly this. The
+  feature card hangs off the parent's `options.feature`.
+- **⚠️ Column headings must not be menu_items.** `menu_item_target_shape` requires
+  a `url` for `link_type = 'url'` and a `target_id` otherwise, and a heading is
+  neither — it is not a link. Modelling headings as rows would need a fake `#`
+  url. Grouping via `options.group` is both legal and the schema's intent.
+- **The chrome components are `"use client"` and take no props**;
+  `app/(site)/layout.tsx` mounts `<Header />` and `<Footer />` bare. The seam is
+  the same one Phase 7b used for the catalogue: the layout (a server component)
+  reads the published menu and passes it down.
+- **Verification is the 7a–7c pattern**: seed the menu from the current
+  hardcoded structures, deep-compare the resolved tree against them, switch the
+  components, and let the 16 visual baselines be the gate. The header, mega-menu
+  and drawer are all pixel-verified, so any drift is a failing screenshot.
+- Out of scope for the first pass: the drawer's `SECONDARY` links and `SOCIAL`
+  row, and the footer's columns. They are navigation too and want a second menu
+  (`drawer-secondary`, `footer`), but the primary tree is what earns the slice.
+
+*Slices 3–5 — not started:* theme editor, XML ingestion, Shopify adapter.
 
 **Known issues**
 - [x] ~~CI stopped running entirely~~ — **a GitHub Actions platform outage**, confirmed on githubstatus.com. Nothing in this repository, its settings or the account was ever at fault. Recorded because the *diagnosis* went badly wrong and the lesson is general.
