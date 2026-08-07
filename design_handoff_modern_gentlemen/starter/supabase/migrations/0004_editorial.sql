@@ -103,10 +103,13 @@ create table if not exists public.article_relations (
   constraint article_relation_not_self check (article_id <> related_id)
 );
 
+drop trigger if exists authors_touch on public.authors;
 create trigger authors_touch    before update on public.authors
   for each row execute function public.touch_updated_at();
+drop trigger if exists categories_touch on public.categories;
 create trigger categories_touch before update on public.categories
   for each row execute function public.touch_updated_at();
+drop trigger if exists articles_touch on public.articles;
 create trigger articles_touch   before update on public.articles
   for each row execute function public.touch_updated_at();
 
@@ -117,36 +120,49 @@ alter table public.articles          enable row level security;
 alter table public.article_tags      enable row level security;
 alter table public.article_relations enable row level security;
 
+drop policy if exists "authors: public read" on public.authors;
 create policy "authors: public read" on public.authors for select using (true);
+drop policy if exists "authors: write" on public.authors;
 create policy "authors: write" on public.authors for all
   using (public.has_permission('taxonomy.write'))
   with check (public.has_permission('taxonomy.write'));
 
+drop policy if exists "categories: public read published" on public.categories;
 create policy "categories: public read published" on public.categories
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "categories: write" on public.categories;
 create policy "categories: write" on public.categories for all
   using (public.has_permission('taxonomy.write'))
   with check (public.has_permission('taxonomy.write'));
 
+drop policy if exists "tags: public read" on public.tags;
 create policy "tags: public read" on public.tags for select using (true);
+drop policy if exists "tags: write" on public.tags;
 create policy "tags: write" on public.tags for all
   using (public.has_permission('taxonomy.write'))
   with check (public.has_permission('taxonomy.write'));
 
+drop policy if exists "articles: public read published" on public.articles;
 create policy "articles: public read published" on public.articles
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "articles: write" on public.articles;
 create policy "articles: write" on public.articles for all
   using (public.has_permission('article.write'))
   with check (public.has_permission('article.write'));
+drop policy if exists "articles: delete" on public.articles;
 create policy "articles: delete" on public.articles
   for delete using (public.has_permission('article.delete'));
 
+drop policy if exists "article_tags: public read" on public.article_tags;
 create policy "article_tags: public read" on public.article_tags for select using (true);
+drop policy if exists "article_tags: write" on public.article_tags;
 create policy "article_tags: write" on public.article_tags for all
   using (public.has_permission('article.write'))
   with check (public.has_permission('article.write'));
 
+drop policy if exists "article_relations: public read" on public.article_relations;
 create policy "article_relations: public read" on public.article_relations for select using (true);
+drop policy if exists "article_relations: write" on public.article_relations;
 create policy "article_relations: write" on public.article_relations for all
   using (public.has_permission('article.write'))
   with check (public.has_permission('article.write'));

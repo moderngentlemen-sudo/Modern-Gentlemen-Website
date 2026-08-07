@@ -176,7 +176,7 @@ test.describe("products", () => {
     await signIn(page);
     await page.goto("/admin/products");
     await page.getByRole("link", { name: productName }).click();
-    await page.getByRole("link", { name: "History" }).click();
+    await page.getByRole("link", { name: "History", exact: true }).click();
 
     await expect(page).toHaveURL(/\/admin\/products\/[0-9a-f-]{36}\/history$/);
     // The same polymorphic `revisions` and `publish_events` tables, the same

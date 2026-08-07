@@ -1,6 +1,6 @@
 import { ArticleKicker, Byline, Dek, HeroImg } from "./primitives";
 import { HeroVideo } from "./HeroVideo";
-import type { HeroVariant } from "@/lib/articles";
+import type { HeroVariant } from "@/lib/domain/articles";
 
 interface HeroProps {
   variant: HeroVariant;

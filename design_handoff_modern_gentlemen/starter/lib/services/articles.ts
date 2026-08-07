@@ -25,6 +25,15 @@ export async function getArticleMeta(id: string): Promise<ArticleMeta | null> {
   return repo.getArticleMeta(db, id);
 }
 
+/** The public paths an article affects — its own, and its category's listing. */
+export async function getArticleRouting(
+  id: string
+): Promise<{ slug: string; categorySlug: string | null } | null> {
+  await requirePermission("article.read");
+  const db = await createClient();
+  return repo.getArticleRouting(db, id);
+}
+
 /**
  * `slug` is unique, so a collision comes back as 23505. Left alone that reaches
  * an editor as a raw constraint string; translated here it reads as the thing

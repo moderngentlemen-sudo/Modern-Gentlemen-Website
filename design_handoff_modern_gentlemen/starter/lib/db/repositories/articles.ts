@@ -74,6 +74,25 @@ export async function getArticleMeta(db: Db, id: string): Promise<ArticleMetaRow
   );
 }
 
+/**
+ * Where an article shows up on the public site: its own path, and the category
+ * page whose lead and grid are bound to the `articles` table.
+ *
+ * One query rather than a metadata read followed by a taxonomy lookup, because
+ * this runs on every publish and the only thing it is for is a cache hint.
+ */
+export async function getArticleRouting(
+  db: Db,
+  id: string
+): Promise<{ slug: string; categorySlug: string | null } | null> {
+  const row = unwrap(
+    "getArticleRouting",
+    await db.from("articles").select("slug, categories(slug)").eq("id", id).maybeSingle()
+  ) as { slug: string; categories: { slug: string } | null } | null;
+
+  return row ? { slug: row.slug, categorySlug: row.categories?.slug ?? null } : null;
+}
+
 export interface ArticleMetaPatch {
   title?: string;
   slug?: string;

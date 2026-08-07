@@ -1,4 +1,4 @@
-import type { BodyVariant } from "@/lib/articles";
+import type { BodyVariant } from "@/lib/domain/articles";
 import {
   BodyProse,
   BodyEssay,

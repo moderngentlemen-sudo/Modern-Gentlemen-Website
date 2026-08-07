@@ -195,7 +195,13 @@ export function shapeRows(rows: Record<string, unknown>[], query: BindingQuery):
     out.sort((a, b) => sign * compare(a[field], b[field]));
   }
 
-  if (query.limit !== undefined) out = out.slice(0, query.limit);
+  // Offset then limit, in that order: the limit counts rows the caller keeps,
+  // not rows it skipped past. Reversing them would make `offset: 1, limit: 6`
+  // return five.
+  const start = query.offset ?? 0;
+  if (start > 0 || query.limit !== undefined) {
+    out = out.slice(start, query.limit === undefined ? undefined : start + query.limit);
+  }
 
   const shaped: unknown[] = query.pluck
     ? out.map((row) => row[query.pluck!])

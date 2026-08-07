@@ -96,8 +96,10 @@ create table if not exists public.media_usages (
 create index if not exists media_usages_asset_idx  on public.media_usages(asset_id);
 create index if not exists media_usages_entity_idx on public.media_usages(entity_type, entity_id);
 
+drop trigger if exists media_folders_touch on public.media_folders;
 create trigger media_folders_touch before update on public.media_folders
   for each row execute function public.touch_updated_at();
+drop trigger if exists media_assets_touch on public.media_assets;
 create trigger media_assets_touch before update on public.media_assets
   for each row execute function public.touch_updated_at();
 
@@ -113,35 +115,46 @@ alter table public.media_usages     enable row level security;
 -- Assets referenced by published content must be readable anonymously, and
 -- storage itself is the access boundary for the bytes. The catalogue rows are
 -- public-read; only staff can write.
+drop policy if exists "media_assets: public read" on public.media_assets;
 create policy "media_assets: public read" on public.media_assets
   for select using (true);
+drop policy if exists "media_assets: write" on public.media_assets;
 create policy "media_assets: write" on public.media_assets
   for all using (public.has_permission('media.write'))
   with check (public.has_permission('media.write'));
+drop policy if exists "media_assets: delete" on public.media_assets;
 create policy "media_assets: delete" on public.media_assets
   for delete using (public.has_permission('media.delete'));
 
+drop policy if exists "media_folders: public read" on public.media_folders;
 create policy "media_folders: public read" on public.media_folders
   for select using (true);
+drop policy if exists "media_folders: write" on public.media_folders;
 create policy "media_folders: write" on public.media_folders
   for all using (public.has_permission('media.write'))
   with check (public.has_permission('media.write'));
 
+drop policy if exists "media_tags: public read" on public.media_tags;
 create policy "media_tags: public read" on public.media_tags
   for select using (true);
+drop policy if exists "media_tags: write" on public.media_tags;
 create policy "media_tags: write" on public.media_tags
   for all using (public.has_permission('media.write'))
   with check (public.has_permission('media.write'));
 
+drop policy if exists "media_asset_tags: public read" on public.media_asset_tags;
 create policy "media_asset_tags: public read" on public.media_asset_tags
   for select using (true);
+drop policy if exists "media_asset_tags: write" on public.media_asset_tags;
 create policy "media_asset_tags: write" on public.media_asset_tags
   for all using (public.has_permission('media.write'))
   with check (public.has_permission('media.write'));
 
 -- Usage records are an admin concern only.
+drop policy if exists "media_usages: staff read" on public.media_usages;
 create policy "media_usages: staff read" on public.media_usages
   for select using (public.is_staff());
+drop policy if exists "media_usages: write" on public.media_usages;
 create policy "media_usages: write" on public.media_usages
   for all using (public.has_permission('media.write'))
   with check (public.has_permission('media.write'));

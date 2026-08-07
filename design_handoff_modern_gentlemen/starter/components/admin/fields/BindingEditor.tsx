@@ -90,15 +90,26 @@ export function BindingEditor({
         onChange={(source) => patch({ source })}
       />
 
-      <NumberInput
-        label="How many"
-        value={query.limit}
-        min={1}
-        integer
-        disabled={disabled}
-        help="Leave empty for the source's own default."
-        onChange={(limit) => patch({ limit })}
-      />
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput
+          label="How many"
+          value={query.limit}
+          min={1}
+          integer
+          disabled={disabled}
+          help="Leave empty for the source's own default."
+          onChange={(limit) => patch({ limit })}
+        />
+        <NumberInput
+          label="Skip"
+          value={query.offset}
+          min={0}
+          integer
+          disabled={disabled}
+          help="Rows to pass over first — 1 when a lead block above already shows the newest."
+          onChange={(offset) => patch({ offset })}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <TextInput

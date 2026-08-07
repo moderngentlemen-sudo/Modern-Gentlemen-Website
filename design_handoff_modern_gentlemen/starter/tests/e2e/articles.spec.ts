@@ -124,7 +124,14 @@ test.describe("articles", () => {
     await signIn(page);
     await page.goto("/admin/articles");
     await page.getByRole("link", { name: articleTitle }).click();
-    await page.getByRole("link", { name: "History" }).click();
+    // `exact` is load-bearing, and Phase 7c is what proved it. Playwright matches
+    // an accessible name as a *substring* by default, and the seeded content
+    // includes "A Brief History of the Aperitivo" and "…of the Chronograph" — so
+    // on the list page this locator resolved to two article titles and threw a
+    // strict-mode violation before the click had even navigated. Exact matching
+    // also fixes the race for free: it matches nothing on the list, so the
+    // auto-wait carries it through to the detail page instead of failing.
+    await page.getByRole("link", { name: "History", exact: true }).click();
 
     await expect(page).toHaveURL(/\/admin\/articles\/[0-9a-f-]{36}\/history$/);
     // One polymorphic `revisions` table, one `publish_events` table, one

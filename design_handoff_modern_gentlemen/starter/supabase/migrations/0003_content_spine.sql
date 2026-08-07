@@ -146,10 +146,13 @@ create table if not exists public.redirects (
   created_at  timestamptz not null default now()
 );
 
+drop trigger if exists templates_touch on public.templates;
 create trigger templates_touch before update on public.templates
   for each row execute function public.touch_updated_at();
+drop trigger if exists patterns_touch on public.patterns;
 create trigger patterns_touch  before update on public.patterns
   for each row execute function public.touch_updated_at();
+drop trigger if exists pages_touch on public.pages;
 create trigger pages_touch     before update on public.pages
   for each row execute function public.touch_updated_at();
 
@@ -165,40 +168,53 @@ alter table public.patterns             enable row level security;
 alter table public.pages                enable row level security;
 alter table public.redirects            enable row level security;
 
+drop policy if exists "templates: public read published" on public.templates;
 create policy "templates: public read published" on public.templates
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "templates: write" on public.templates;
 create policy "templates: write" on public.templates
   for all using (public.has_permission('template.write'))
   with check (public.has_permission('template.write'));
 
+drop policy if exists "template_assignments: public read" on public.template_assignments;
 create policy "template_assignments: public read" on public.template_assignments
   for select using (true);
+drop policy if exists "template_assignments: write" on public.template_assignments;
 create policy "template_assignments: write" on public.template_assignments
   for all using (public.has_permission('template.write'))
   with check (public.has_permission('template.write'));
 
+drop policy if exists "pattern_categories: public read" on public.pattern_categories;
 create policy "pattern_categories: public read" on public.pattern_categories
   for select using (true);
+drop policy if exists "pattern_categories: write" on public.pattern_categories;
 create policy "pattern_categories: write" on public.pattern_categories
   for all using (public.has_permission('pattern.write'))
   with check (public.has_permission('pattern.write'));
 
+drop policy if exists "patterns: public read published" on public.patterns;
 create policy "patterns: public read published" on public.patterns
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "patterns: write" on public.patterns;
 create policy "patterns: write" on public.patterns
   for all using (public.has_permission('pattern.write'))
   with check (public.has_permission('pattern.write'));
 
+drop policy if exists "pages: public read published" on public.pages;
 create policy "pages: public read published" on public.pages
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "pages: write" on public.pages;
 create policy "pages: write" on public.pages
   for all using (public.has_permission('page.write'))
   with check (public.has_permission('page.write'));
+drop policy if exists "pages: delete" on public.pages;
 create policy "pages: delete" on public.pages
   for delete using (public.has_permission('page.delete') and not is_system);
 
+drop policy if exists "redirects: public read" on public.redirects;
 create policy "redirects: public read" on public.redirects
   for select using (true);
+drop policy if exists "redirects: write" on public.redirects;
 create policy "redirects: write" on public.redirects
   for all using (public.has_permission('page.write'))
   with check (public.has_permission('page.write'));

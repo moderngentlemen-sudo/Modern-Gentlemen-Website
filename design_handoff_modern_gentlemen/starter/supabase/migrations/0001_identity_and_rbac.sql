@@ -40,6 +40,7 @@ create table if not exists public.profiles (
   updated_at         timestamptz not null default now()
 );
 
+drop trigger if exists profiles_touch on public.profiles;
 create trigger profiles_touch
   before update on public.profiles
   for each row execute function public.touch_updated_at();
@@ -157,41 +158,52 @@ alter table public.permissions      enable row level security;
 alter table public.role_permissions enable row level security;
 alter table public.user_roles       enable row level security;
 
+drop policy if exists "profiles: read own or staff" on public.profiles;
 create policy "profiles: read own or staff" on public.profiles
   for select using (auth.uid() = id or public.is_staff());
 
 -- A user may edit their own profile. Note there is no role column here to
 -- escalate: roles live in user_roles, which users cannot write at all.
+drop policy if exists "profiles: update own" on public.profiles;
 create policy "profiles: update own" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
+drop policy if exists "profiles: admin manage" on public.profiles;
 create policy "profiles: admin manage" on public.profiles
   for all using (public.has_permission('user.write'))
   with check (public.has_permission('user.write'));
 
 -- Roles and permissions are readable by staff (the admin UI needs them to
 -- filter navigation) and writable only with user.write.
+drop policy if exists "roles: staff read" on public.roles;
 create policy "roles: staff read" on public.roles
   for select using (public.is_staff());
+drop policy if exists "roles: admin write" on public.roles;
 create policy "roles: admin write" on public.roles
   for all using (public.has_permission('user.write'))
   with check (public.has_permission('user.write'));
 
+drop policy if exists "permissions: staff read" on public.permissions;
 create policy "permissions: staff read" on public.permissions
   for select using (public.is_staff());
+drop policy if exists "permissions: admin write" on public.permissions;
 create policy "permissions: admin write" on public.permissions
   for all using (public.has_permission('user.write'))
   with check (public.has_permission('user.write'));
 
+drop policy if exists "role_permissions: staff read" on public.role_permissions;
 create policy "role_permissions: staff read" on public.role_permissions
   for select using (public.is_staff());
+drop policy if exists "role_permissions: admin write" on public.role_permissions;
 create policy "role_permissions: admin write" on public.role_permissions
   for all using (public.has_permission('user.write'))
   with check (public.has_permission('user.write'));
 
 -- A user may see their own grants; only user.write may change any.
+drop policy if exists "user_roles: read own or staff" on public.user_roles;
 create policy "user_roles: read own or staff" on public.user_roles
   for select using (auth.uid() = user_id or public.is_staff());
+drop policy if exists "user_roles: admin write" on public.user_roles;
 create policy "user_roles: admin write" on public.user_roles
   for all using (public.has_permission('user.write'))
   with check (public.has_permission('user.write'));

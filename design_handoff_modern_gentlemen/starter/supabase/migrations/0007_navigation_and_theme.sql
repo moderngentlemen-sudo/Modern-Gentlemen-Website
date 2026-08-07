@@ -75,12 +75,16 @@ create table if not exists public.site_settings (
   updated_at  timestamptz not null default now()
 );
 
+drop trigger if exists menus_touch on public.menus;
 create trigger menus_touch          before update on public.menus
   for each row execute function public.touch_updated_at();
+drop trigger if exists menu_items_touch on public.menu_items;
 create trigger menu_items_touch     before update on public.menu_items
   for each row execute function public.touch_updated_at();
+drop trigger if exists theme_settings_touch on public.theme_settings;
 create trigger theme_settings_touch before update on public.theme_settings
   for each row execute function public.touch_updated_at();
+drop trigger if exists site_settings_touch on public.site_settings;
 create trigger site_settings_touch  before update on public.site_settings
   for each row execute function public.touch_updated_at();
 
@@ -89,24 +93,32 @@ alter table public.menu_items     enable row level security;
 alter table public.theme_settings enable row level security;
 alter table public.site_settings  enable row level security;
 
+drop policy if exists "menus: public read published" on public.menus;
 create policy "menus: public read published" on public.menus
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "menus: write" on public.menus;
 create policy "menus: write" on public.menus for all
   using (public.has_permission('navigation.write'))
   with check (public.has_permission('navigation.write'));
 
+drop policy if exists "menu_items: public read" on public.menu_items;
 create policy "menu_items: public read" on public.menu_items for select using (true);
+drop policy if exists "menu_items: write" on public.menu_items;
 create policy "menu_items: write" on public.menu_items for all
   using (public.has_permission('navigation.write'))
   with check (public.has_permission('navigation.write'));
 
+drop policy if exists "theme_settings: public read" on public.theme_settings;
 create policy "theme_settings: public read" on public.theme_settings
   for select using (true);
+drop policy if exists "theme_settings: write" on public.theme_settings;
 create policy "theme_settings: write" on public.theme_settings for all
   using (public.has_permission('theme.write'))
   with check (public.has_permission('theme.write'));
 
+drop policy if exists "site_settings: public read" on public.site_settings;
 create policy "site_settings: public read" on public.site_settings for select using (true);
+drop policy if exists "site_settings: write" on public.site_settings;
 create policy "site_settings: write" on public.site_settings for all
   using (public.has_permission('settings.write'))
   with check (public.has_permission('settings.write'));

@@ -1,17 +1,20 @@
 /**
  * Binding sources over the demo modules.
  *
- * These exist so the binding contract is exercised against real content now,
- * rather than shipped as an untested interface. `lib/editorial.ts`,
- * `lib/demo/catalog.ts` and `lib/articles.ts` are pure data with no I/O, so reading
- * them keeps `lib/blocks` a leaf.
+ * These exist so the binding contract is exercised against real content without
+ * a database. `lib/demo/editorial.ts` and `lib/demo/catalog.ts` are pure data
+ * with no I/O, so reading them keeps `lib/blocks` a leaf.
  *
- * Phase 7 adds `sources/supabase.ts` implementing the same `BindingSource`
- * interface over the `articles`, `categories` and `products` tables, and swaps
- * the map the site passes in. Nothing in `binding.ts` changes.
+ * **The database-backed sibling is `lib/services/bindingSources.ts`, not
+ * `sources/supabase.ts`** — this header promised the latter for three phases and
+ * it could never have existed: ESLint bars `lib/blocks/**` from importing
+ * `@/lib/db/*`, which is the whole point of the leaf. The row shapes below and
+ * the ones that service emits are kept identical field for field, so a `$bind`
+ * descriptor means the same thing whichever map the site passes in.
  */
 
-import { categorySlugs, getCategory, slugify, type CategoryData } from "@/lib/editorial";
+import { categorySlugs, getCategory, slugify, type CategoryData } from "@/lib/demo/editorial";
+import { readingTimes } from "@/lib/domain/articles";
 import { allProducts } from "@/lib/demo/catalog";
 import { shapeRows, type BindingQuery, type BindingSource, type BindingSources } from "../binding";
 
@@ -25,6 +28,22 @@ function categories(): CategoryData[] {
 }
 
 /**
+ * The two forms the design prints a reading time in: a grid card says "5 MIN",
+ * a lead card says "7 MIN READ" — or "12 MIN FILM", since a film is watched
+ * rather than read. The demo data carries whichever form it was transcribed
+ * with, so the suffix is stripped and re-applied through the same domain rule
+ * `lib/services/bindingSources.ts` uses. Stripping only "READ" here left the
+ * film lead as "12 MIN FILM READ"; nothing rendered it, so nothing caught it.
+ */
+function readingTimesOf(value: string, categorySlug: string): ReturnType<typeof readingTimes> {
+  const minutes = value.match(/(\d+)/)?.[1];
+  return readingTimes(minutes === undefined ? null : Number(minutes), categorySlug);
+}
+
+/** The issue number a card's tag ends with, e.g. "TAILORING · 040" → "040". */
+const issueOf = (tag: string) => tag.match(/(\d+)\s*$/)?.[1] ?? "";
+
+/**
  * Every category card and lead, flattened. The field names match what the
  * editorial blocks want — `tag`, `title`, `read`, `image`, `href` — so the
  * common case needs no `map` at all.
@@ -33,15 +52,17 @@ function articleRows(): Row[] {
   const rows: Row[] = [];
 
   for (const category of categories()) {
+    const leadTag = `${category.name.toUpperCase()} · ${category.lead.no}`;
     rows.push({
       category: category.slug,
       categoryName: category.name,
-      kicker: `${category.name.toUpperCase()} · ${category.lead.no}`,
-      tag: `${category.name.toUpperCase()} · ${category.lead.no}`,
+      issue: category.lead.no,
+      kicker: leadTag,
+      tag: leadTag,
       title: category.lead.title,
       dek: category.lead.dek,
       author: category.lead.author,
-      read: category.lead.read,
+      ...readingTimesOf(category.lead.read, category.slug),
       image: category.lead.image,
       href: `/article/${slugify(category.lead.title)}`,
       lead: true,
@@ -51,10 +72,11 @@ function articleRows(): Row[] {
       rows.push({
         category: category.slug,
         categoryName: category.name,
-        kicker: card.tag,
+        issue: issueOf(card.tag),
+        kicker: `${category.name.toUpperCase()} · ${issueOf(card.tag)}`,
         tag: card.tag,
         title: card.title,
-        read: card.read,
+        ...readingTimesOf(card.read, category.slug),
         image: card.image,
         href: `/article/${slugify(card.title)}`,
         lead: false,

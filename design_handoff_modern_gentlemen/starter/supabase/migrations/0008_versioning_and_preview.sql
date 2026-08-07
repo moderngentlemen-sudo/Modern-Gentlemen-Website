@@ -95,25 +95,34 @@ alter table public.audit_log        enable row level security;
 alter table public.preview_sessions enable row level security;
 
 -- History is staff-only; nothing here is ever public.
+drop policy if exists "revisions: staff read" on public.revisions;
 create policy "revisions: staff read" on public.revisions
   for select using (public.has_permission('revision.read'));
+drop policy if exists "revisions: staff write" on public.revisions;
 create policy "revisions: staff write" on public.revisions
   for insert with check (public.is_staff());
 
+drop policy if exists "publish_events: staff read" on public.publish_events;
 create policy "publish_events: staff read" on public.publish_events
   for select using (public.is_staff());
+drop policy if exists "publish_events: staff write" on public.publish_events;
 create policy "publish_events: staff write" on public.publish_events
   for insert with check (public.is_staff());
 
+drop policy if exists "audit_log: admin read" on public.audit_log;
 create policy "audit_log: admin read" on public.audit_log
   for select using (public.has_permission('user.read'));
+drop policy if exists "audit_log: staff write" on public.audit_log;
 create policy "audit_log: staff write" on public.audit_log
   for insert with check (public.is_staff());
 
+drop policy if exists "preview_sessions: owner read" on public.preview_sessions;
 create policy "preview_sessions: owner read" on public.preview_sessions
   for select using (created_by = auth.uid() or public.is_staff());
+drop policy if exists "preview_sessions: create" on public.preview_sessions;
 create policy "preview_sessions: create" on public.preview_sessions
   for insert with check (public.has_permission('preview.create'));
+drop policy if exists "preview_sessions: owner delete" on public.preview_sessions;
 create policy "preview_sessions: owner delete" on public.preview_sessions
   for delete using (created_by = auth.uid() or public.is_admin());
 
