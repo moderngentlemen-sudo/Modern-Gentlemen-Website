@@ -39,7 +39,7 @@ Live state (branch, commits, migrations, test counts) is printed automatically a
 | B | Phase 5a — Media library | storage bucket, media domain/repo/service, usage tracking, `/admin/media`, picker | ✅ done; `0013` applied |
 | B | Phase 5b — CMS | article editor, taxonomy (categories/tags/authors) | ✅ done (code) |
 | B | Phase 6a — Products admin | `product` as the 5th document type, domain/repo/service, `/admin/products`, variants, gallery, collections | ✅ done (code); `0014` applied |
-| B | Phase 6b — Integrations & the rest | XML ingestion, Shopify adapter, navigation, theme editor, scheduled-publish runner | ⬜ not started |
+| B | Phase 6b — Integrations & the rest | XML ingestion, Shopify adapter, navigation, theme editor, scheduled-publish runner | 🔨 in progress — the runner is built, `0015` **unapplied** |
 | B | Phase 7a — Public render path | homepage reads `pages` from the DB; static + on-demand revalidation | ✅ done (code) |
 | B | Phase 7b — Store off the database | `/shop`, PDP, product row and search read `products` + `product_media` | ✅ done (code) |
 | B | Phase 7c — Editorial content migration | `/[category]` and `/article/[slug]` read Supabase; categories are documents with a bound listing | ✅ done & verified (deep-compare, build, 16 visual baselines) |
@@ -570,6 +570,24 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] `tests/e2e/products.spec.ts` — **green in CI** (PR #11), after three rounds of spec fixes. Create → price → reject a bad compare-at → variant → compose → publish → history → delete, against a real database
 - [ ] `product_sources` has no UI — it is the ingestion pipeline's table and belongs with Phase 6b. Every product created here has `source_id` null, which is what `'native'` means
 - [x] ~~The public store still renders from `lib/catalog.ts`~~ — done in Phase 7b. The store reads `products` + `product_media`; a product published in the admin appears on the site within the hour (or immediately on `revalidatePath`)
+
+**Phase 6b — Integrations & the rest** 🔨 in progress
+
+*Slice 1 — the scheduled-publish runner* (code complete, unverified against a database)
+- [x] `supabase/migrations/0015_scheduled_publish.sql` — `run_due_publishes()`, the **second `security definer` function** in the schema after `resolve_preview`. The argument that makes it safe: **the authorisation already happened.** `schedule_document` asserted `<type>.publish` when an editor set the date, so the runner carries out a decision rather than making one. It can touch nothing that is not already `scheduled` with a due date, and it is granted to `service_role` alone
+- [x] The publish transaction is **extracted, not duplicated** — `private.publish_document_writes` holds the writes and both `publish_document` (which keeps its permission check and its RLS semantics exactly) and the runner call it. One implementation, two authorisation paths
+- [x] ⚠️ **The helper lives in a `private` schema, and that is load-bearing.** It performs no permission check by design, so exposing it in `public` would let anyone holding `<type>.write` publish over PostgREST — exactly the gate `publishing.test.ts` asserts is real. PostgREST exposes only `public`, so `private` is reachable from other functions and not from a browser. **Any future helper that skips a permission check belongs there too**
+- [x] `lib/services/scheduledJobs.ts` + `app/api/jobs/run/route.ts` — POST only (a GET would be fetched by prefetchers and crawlers), `force-dynamic`, constant-time bearer comparison, and a 503 rather than an open endpoint when `JOBS_SECRET` is unset
+- [x] **`JOBS_SECRET` finally has a reader.** It has been in the deployment notes since Phase 1 with nothing behind it, and was never even listed in `.env.example` — now both are fixed
+- [x] `job_runs` bookkeeping sits outside the publish transaction: a failed log write must not roll back published work, and a run that published nothing is still worth recording, because "alive with nothing to do" and "never ran" look identical otherwise
+- [x] 4 unit tests on the path mapping — an article invalidates **two** paths, its own and the bound category listing, the same rule `revalidatePublicArticle` follows
+- [ ] ⚠️ **`0015` is not applied anywhere.** No database has run it, so the runner has never executed. CI applies it via `supabase start` and the idempotence step; the live project needs it applied before the endpoint does anything
+- [ ] ⚠️ **`npm run db:types` must be re-run once `0015` is applied**, and the cast in `scheduledJobs.ts` deleted with it — the generated types do not know `run_due_publishes` yet
+- [ ] No integration test yet: proving the runner needs a stack that has `0015`, which this container cannot provide
+- [ ] Nothing calls the endpoint on a timer yet — that is a platform cron or a scheduled workflow, not code
+- [ ] `scheduled_jobs` has no rows and no UI; the runner currently discovers work from document status rather than from that table
+
+*Slices 2–5 — not started:* navigation, theme editor, XML ingestion, Shopify adapter.
 
 **Known issues**
 - [x] ~~CI stopped running entirely~~ — **a GitHub Actions platform outage**, confirmed on githubstatus.com. Nothing in this repository, its settings or the account was ever at fault. Recorded because the *diagnosis* went badly wrong and the lesson is general.

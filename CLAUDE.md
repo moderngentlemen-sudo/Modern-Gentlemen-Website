@@ -42,7 +42,7 @@ design_handoff_modern_gentlemen/starter/
 │  │              category-sections.ts  (SEED + TEST FIXTURES, not what the
 │  │              site renders — see the standing rule below)
 │  └─ cart/
-├─ supabase/      config.toml + migrations/ 0001–0014, all applied
+├─ supabase/      config.toml + migrations/ 0001–0015 (0015 NOT yet applied)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, integration/, visual/, support/, setup/
 ```

@@ -92,3 +92,17 @@ export const supabaseServiceRoleKey = () =>
   required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/**
+ * The shared secret a scheduler presents to `/api/jobs/run`.
+ *
+ * Server-only, and **the first code to read this variable** — it has been in
+ * `.env.example` and the deployment notes since Phase 1 with nothing behind it,
+ * which is its own small lesson about configuration that documents intentions
+ * rather than behaviour.
+ *
+ * `required()` throws when it is absent, and that is deliberate: a job endpoint
+ * whose secret is unset must refuse every request, not accept them. Falling back
+ * to a default would make an unconfigured deployment publicly publishable.
+ */
+export const jobsSecret = () => required("JOBS_SECRET", process.env.JOBS_SECRET);
