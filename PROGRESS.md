@@ -8,7 +8,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** always cut a fresh one from `main` — this file no longer names one, see below. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0014`, **all applied**. Apply new ones through the Supabase MCP: the GitHub integration is connected but **cannot safely run this repo's migrations** (version-scheme mismatch — see Known issues).
+**Branch:** see the guidance below — there is an **active unmerged branch** right now, which is new. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0015`; **`0001`–`0014` are applied, `0015` is not** (see Phase 6b). Every migration is now idempotent and a CI step proves it by re-applying all of them, so the GitHub integration's version-scheme mismatch is no longer dangerous — applying through the Supabase MCP is still the safer habit for a one-off.
 
 > ⚠️ **Branch guidance — read this before starting work.** Always start from `main`:
 > `git fetch origin main && git checkout -b <new-branch> origin/main`
@@ -17,12 +17,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 >
 > So the name is gone. A current-branch name is perishable by construction, and this file cannot hold perishable facts safely. **The `SessionStart` hook already prints the live branch every session** (`node design_handoff_modern_gentlemen/starter/scripts/status.mjs`), which is a source that cannot go stale because it is computed, not written.
 >
-> **Do not build on any `claude/*` branch on the remote.** Every one of them is either merged or abandoned: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11), `claude/phase-7a-public-rewire` (Phase 7a, PR #12), `claude/env-credential-validation` (PR #15) and `claude/phase-7b-store-from-db` (Phase 7b). This list is history and only ever grows; it needs no edit to stay true.
+> ⚠️ **One exception, and it is live: `claude/phase-6b-integrations` is ACTIVE and unmerged.** It carries Phase 6b slice 1 (the scheduled-publish runner, migration `0015`), the navigation design, and the MCP permissions allowlist. **Continue Phase 6b on that branch** — `git fetch origin claude/phase-6b-integrations && git checkout claude/phase-6b-integrations`. Cutting fresh from `main` would silently abandon it.
+>
+> **Every *other* `claude/*` branch on the remote is merged or abandoned** — do not build on one: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11), `claude/phase-7a-public-rewire` (Phase 7a, PR #12), `claude/env-credential-validation` (PR #15), `claude/phase-7b-store-from-db` (Phase 7b), `claude/media-delete-gallery-guard` (PR #17), `claude/handoff-refresh-after-7b` (PR #18) and `claude/project-status-review-ai0q37` (Phase 7c + migration idempotence, PR #19).
+>
+> **The previous version of this paragraph said the list "needs no edit to stay true", and that was wrong the moment an unmerged branch existed.** A list of dead branches is safe to append to; a claim that *all* branches are dead is a perishable fact of exactly the kind this file already learned not to hold. Start work from `main` **unless** a branch is named as active above.
 
 Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation, auth, the block system, publishing, the admin builder, media, the CMS, **the products admin** and **the whole public read path** are done; navigation, theme and ingestion are not.
 
 Live state (branch, commits, migrations, test counts) is printed automatically at session start by a hook. Run it any time:
 `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`
+
+### ▶️ Start here — the next session's first four moves
+
+1. **Check the Supabase MCP** with one `list_migrations` call. It was gated for the whole previous session; everything below assumes it works, and Known issues explains what to do if it does not.
+2. **Continue on `claude/phase-6b-integrations`** — it is active and unmerged. Do **not** cut fresh from `main`.
+3. **Apply `0015_scheduled_publish.sql`** to the live project, then `npm run db:types`, then delete the now-unnecessary cast in `lib/services/scheduledJobs.ts` (it is commented with this instruction). Until this happens the scheduled-publish runner has never executed anywhere except CI.
+4. **Build Phase 6b slice 2 — navigation**, from the design already recorded under Phase 6b below. The schema research is done; the 16 visual baselines are the gate.
+
+No PR is open for Phase 6b, deliberately — it was held until there is a reviewable unit.
 
 ### Progress snapshot
 
@@ -155,7 +168,8 @@ All commands from `design_handoff_modern_gentlemen/starter/`.
 3. Check live state: `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`.
 4. For front-end work: the relevant `03_PAGES_AND_COMPONENTS.md` section + its `design_files/MG *.dc.html` prototype + matching screenshot.
 5. Cut a fresh branch from `main`, run the four gates, and **update this file** before finishing. It no longer carries a branch name to update — the hook prints that — so what needs writing is the decisions log and the honest account of what was and was not verified.
-6. If you need `npm run test:visual`, write a gitignored `starter/.env.local` with placeholder Supabase values first — see Known issues. Without it the Playwright web server never starts and the failure looks nothing like its cause.
+6. If you need `npm run test:visual`, write a gitignored `starter/.env.local` first — without it the Playwright web server never starts and the failure looks nothing like its cause. Placeholder values suffice for the visual suite. **For the build, the E2E suite or anything reading the live project you need real ones**, and the URL plus the publishable key come from the Supabase MCP (`get_project_url`, `get_publishable_keys`) — both now allowlisted, and neither is a secret. Only `scripts/seed.ts` and `create-admin.ts` need the service-role key, which is not in any container and is still pending rotation.
+7. **Check the Supabase MCP works before planning around it** — one `list_migrations` call. It was gated for the whole of the previous session; see Known issues for what that cost and how to restore it.
 
 ### Proving a structural refactor is render-safe (updated)
 
@@ -620,6 +634,12 @@ the expensive part; recording it so the next session starts from it.
 *Slices 3–5 — not started:* theme editor, XML ingestion, Shopify adapter.
 
 **Known issues**
+- [ ] ⚠️ **The Supabase MCP can silently become unusable mid-session, and it cost this one a great deal.** Every call — including a one-line `select count(*)` — returned `-32003 requires approval`. Consequences: `0015` is unapplied, the RLS audit did not happen, `db:types` could not be regenerated, and the Phase 7c seed had to be hand-carried as SQL through a browser, **which is what corrupted 11 of 53 rows**. Worth understanding before losing an hour to it again.
+  - **What the evidence shows.** `/tmp/mcp-config-<session>.json` lists four servers. `github` is registered under a *stable name* with no `X-MCP-Server-Origin` header and worked all session. Supabase, Canva and claude-code-remote are registered under *generated UUIDs* and carry that header — they are connector-backed. Supabase worked early on as `mcp__Supabase__*`, then a system notice reported it disconnected, it reconnected as `mcp__810e1762-…__*`, and every call after that required approval.
+  - **The likely cause: approval state is keyed to the server name, and the reconnect orphaned it.** Not proven — the approval layer is not visible from inside the session — but it fits every observation.
+  - **What was done about it:** `.claude/settings.json` now carries a `permissions` block allowing the ten read-only Supabase tools and listing `execute_sql` / `apply_migration` under `ask`. It keys on the **stable** name `mcp__Supabase__*`, so it takes effect when the server reconnects as `Supabase`; allowlisting the UUID form would be useless because it changes every reconnect.
+  - **If it is gated again:** start a fresh session first (cheapest, and the state that worked). If it still returns as a UUID, that points at the connector rather than the permission layer — re-authorize Supabase in claude.ai → Settings → Connectors.
+  - **The general lesson, which is not about Supabase:** when a tool that reaches production becomes unavailable, the workaround is often a worse channel. Hand-carrying SQL through a clipboard has no encoding contract, and the damage was silent. If the safe path is blocked, prefer *stopping and saying so* over routing around it.
 - [x] ~~CI stopped running entirely~~ — **a GitHub Actions platform outage**, confirmed on githubstatus.com. Nothing in this repository, its settings or the account was ever at fault. Recorded because the *diagnosis* went badly wrong and the lesson is general.
   - **Check the provider's status page first.** It is one request, and it discriminates between "our config is broken" and "their platform is down" before any setting is touched. Skipping it cost a settings hunt, four retrigger attempts, and a recommendation to make the repository **public** for free Actions minutes — an irreversible disclosure that was never needed, since billing had already been ruled out arithmetically (~12 min per run × 35 runs ≈ 420 of 2,000 free minutes).
   - **The wrong conclusion was "Actions is disabled at the repository level."** A screenshot disproved it in one glance: *Allow all actions and reusable workflows* was selected, and the Actions tab was visible — which the "Disable actions" option explicitly says it would hide. The tell was available the whole time and was not asked for early enough.

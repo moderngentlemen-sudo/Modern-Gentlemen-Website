@@ -105,12 +105,12 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   blocked by something that no longer exists. `documents.deleteDocument` calls
   `clearEntityMedia`; any new entity type with a delete path must too.
 - **Every migration must be re-runnable, and CI enforces it.** The live project
-  records timestamp versions while this repo numbers its files `0001`–`0014`, so
+  records timestamp versions while this repo numbers its files `0001`–`00NN`, so
   a GitHub-integration sync sees no overlap and **replays all of them**. That is
   now safe: every `create policy` and `create trigger` is preceded by a
   `drop … if exists`, since Postgres has no `if not exists` for either. The
-  `Migrations are idempotent` CI step re-applies all fourteen on top of
-  themselves and fails if any statement complains. **Anything you add must keep
+  `Migrations are idempotent` CI step re-applies every migration on top of
+  itself and fails if any statement complains. **Anything you add must keep
   that true** — guard new policies and triggers the same way.
   Applying through the Supabase MCP is still the safer habit for a one-off, but
   it is no longer the only safe option.
