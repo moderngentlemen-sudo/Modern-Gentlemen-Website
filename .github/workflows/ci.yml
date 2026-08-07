@@ -91,6 +91,24 @@ jobs:
           supabase status --workdir . -o env \
             | sed -E 's/^/SUPABASE_/; s/="(.*)"$/=\1/' >> "$GITHUB_ENV"
 
+      # `supabase start` applies every migration once. This applies them a
+      # second time, on top of themselves, which is the only thing that actually
+      # proves they are re-runnable.
+      #
+      # It matters because the Supabase GitHub integration replays every
+      # migration it does not recognise, and it recognises none of ours: the
+      # live project records 14-digit timestamp versions while this repo numbers
+      # its files 0001–0014. Postgres has no `create policy if not exists` and
+      # none for triggers, so before the drop-if-exists guards were added, a
+      # replay hit 42710 on the first of 92 policies and failed the deploy.
+      # Without this step that guarantee would be a claim in a comment.
+      - name: Migrations are idempotent
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "re-applying $(basename "$f")"
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
       # The stack is empty after `supabase start` — migrations only, no rows.
       # publicCatalog.test.ts asserts the published store equals the demo
       # catalogue, which needs the catalogue to have been seeded; without this

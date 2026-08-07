@@ -91,6 +91,7 @@ create table if not exists public.job_runs (
 
 create index if not exists job_runs_key_idx on public.job_runs(job_key, started_at desc);
 
+drop trigger if exists scheduled_jobs_touch on public.scheduled_jobs;
 create trigger scheduled_jobs_touch before update on public.scheduled_jobs
   for each row execute function public.touch_updated_at();
 
@@ -101,32 +102,42 @@ alter table public.scheduled_jobs      enable row level security;
 alter table public.job_runs            enable row level security;
 
 -- Nothing here is public: imports are entirely an admin concern.
+drop policy if exists "feed_field_mappings: staff read" on public.feed_field_mappings;
 create policy "feed_field_mappings: staff read" on public.feed_field_mappings
   for select using (public.has_permission('integration.read'));
+drop policy if exists "feed_field_mappings: write" on public.feed_field_mappings;
 create policy "feed_field_mappings: write" on public.feed_field_mappings for all
   using (public.has_permission('integration.write'))
   with check (public.has_permission('integration.write'));
 
+drop policy if exists "import_jobs: staff read" on public.import_jobs;
 create policy "import_jobs: staff read" on public.import_jobs
   for select using (public.has_permission('integration.read'));
+drop policy if exists "import_jobs: write" on public.import_jobs;
 create policy "import_jobs: write" on public.import_jobs for all
   using (public.has_permission('integration.run'))
   with check (public.has_permission('integration.run'));
 
+drop policy if exists "import_items: staff read" on public.import_items;
 create policy "import_items: staff read" on public.import_items
   for select using (public.has_permission('integration.read'));
+drop policy if exists "import_items: write" on public.import_items;
 create policy "import_items: write" on public.import_items for all
   using (public.has_permission('integration.run'))
   with check (public.has_permission('integration.run'));
 
+drop policy if exists "scheduled_jobs: staff read" on public.scheduled_jobs;
 create policy "scheduled_jobs: staff read" on public.scheduled_jobs
   for select using (public.has_permission('integration.read'));
+drop policy if exists "scheduled_jobs: write" on public.scheduled_jobs;
 create policy "scheduled_jobs: write" on public.scheduled_jobs for all
   using (public.has_permission('integration.write'))
   with check (public.has_permission('integration.write'));
 
+drop policy if exists "job_runs: staff read" on public.job_runs;
 create policy "job_runs: staff read" on public.job_runs
   for select using (public.has_permission('integration.read'));
+drop policy if exists "job_runs: write" on public.job_runs;
 create policy "job_runs: write" on public.job_runs for all
   using (public.has_permission('integration.run'))
   with check (public.has_permission('integration.run'));

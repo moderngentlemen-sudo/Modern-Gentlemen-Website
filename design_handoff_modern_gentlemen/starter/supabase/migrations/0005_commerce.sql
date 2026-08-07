@@ -141,12 +141,16 @@ create table if not exists public.product_collection_items (
   primary key (collection_id, product_id)
 );
 
+drop trigger if exists product_sources_touch on public.product_sources;
 create trigger product_sources_touch before update on public.product_sources
   for each row execute function public.touch_updated_at();
+drop trigger if exists product_collections_touch on public.product_collections;
 create trigger product_collections_touch before update on public.product_collections
   for each row execute function public.touch_updated_at();
+drop trigger if exists products_touch on public.products;
 create trigger products_touch before update on public.products
   for each row execute function public.touch_updated_at();
+drop trigger if exists product_variants_touch on public.product_variants;
 create trigger product_variants_touch before update on public.product_variants
   for each row execute function public.touch_updated_at();
 
@@ -158,39 +162,52 @@ alter table public.product_media            enable row level security;
 alter table public.product_collection_items enable row level security;
 
 -- Sources may carry provider detail; staff only.
+drop policy if exists "product_sources: staff read" on public.product_sources;
 create policy "product_sources: staff read" on public.product_sources
   for select using (public.is_staff());
+drop policy if exists "product_sources: write" on public.product_sources;
 create policy "product_sources: write" on public.product_sources for all
   using (public.has_permission('integration.write'))
   with check (public.has_permission('integration.write'));
 
+drop policy if exists "product_collections: public read published" on public.product_collections;
 create policy "product_collections: public read published" on public.product_collections
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "product_collections: write" on public.product_collections;
 create policy "product_collections: write" on public.product_collections for all
   using (public.has_permission('product.write'))
   with check (public.has_permission('product.write'));
 
+drop policy if exists "products: public read published" on public.products;
 create policy "products: public read published" on public.products
   for select using (status = 'published' or public.is_staff());
+drop policy if exists "products: write" on public.products;
 create policy "products: write" on public.products for all
   using (public.has_permission('product.write'))
   with check (public.has_permission('product.write'));
+drop policy if exists "products: delete" on public.products;
 create policy "products: delete" on public.products
   for delete using (public.has_permission('product.delete'));
 
+drop policy if exists "product_variants: public read" on public.product_variants;
 create policy "product_variants: public read" on public.product_variants
   for select using (true);
+drop policy if exists "product_variants: write" on public.product_variants;
 create policy "product_variants: write" on public.product_variants for all
   using (public.has_permission('product.write'))
   with check (public.has_permission('product.write'));
 
+drop policy if exists "product_media: public read" on public.product_media;
 create policy "product_media: public read" on public.product_media for select using (true);
+drop policy if exists "product_media: write" on public.product_media;
 create policy "product_media: write" on public.product_media for all
   using (public.has_permission('product.write'))
   with check (public.has_permission('product.write'));
 
+drop policy if exists "product_collection_items: public read" on public.product_collection_items;
 create policy "product_collection_items: public read" on public.product_collection_items
   for select using (true);
+drop policy if exists "product_collection_items: write" on public.product_collection_items;
 create policy "product_collection_items: write" on public.product_collection_items for all
   using (public.has_permission('product.write'))
   with check (public.has_permission('product.write'));

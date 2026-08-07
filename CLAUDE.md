@@ -104,11 +104,16 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   behind, those rows make every asset it referenced permanently undeletable,
   blocked by something that no longer exists. `documents.deleteDocument` calls
   `clearEntityMedia`; any new entity type with a delete path must too.
-- **Migrations go through the Supabase MCP, not the GitHub integration.** The
-  live project records timestamp versions while this repo numbers its files
-  `0001`–`0014`, so a sync sees no overlap and replays everything — and
-  `0001`–`0008` hold 88 `create policy` statements with no `if not exists` to
-  protect them. See PROGRESS.md's Known issues for the two ways to fix it.
+- **Every migration must be re-runnable, and CI enforces it.** The live project
+  records timestamp versions while this repo numbers its files `0001`–`0014`, so
+  a GitHub-integration sync sees no overlap and **replays all of them**. That is
+  now safe: every `create policy` and `create trigger` is preceded by a
+  `drop … if exists`, since Postgres has no `if not exists` for either. The
+  `Migrations are idempotent` CI step re-applies all fourteen on top of
+  themselves and fails if any statement complains. **Anything you add must keep
+  that true** — guard new policies and triggers the same way.
+  Applying through the Supabase MCP is still the safer habit for a one-off, but
+  it is no longer the only safe option.
 - **Never commit secrets.** Real values live only in
   `starter/.env.local` (gitignored). `.env.example` carries placeholder names.
 
