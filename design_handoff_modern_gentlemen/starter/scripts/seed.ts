@@ -18,7 +18,7 @@ import { createAdminClient } from "../lib/db/admin";
 import { DEMO_SECTIONS } from "../lib/demo/home-sections";
 import { MEDIA_BUCKET } from "../lib/domain/media";
 import { poundsToPence } from "../lib/domain/money";
-import { allProducts } from "../lib/catalog";
+import { allProducts } from "../lib/demo/catalog";
 import { categorySlugs, getCategory } from "../lib/editorial";
 
 config({ path: ".env.local" });

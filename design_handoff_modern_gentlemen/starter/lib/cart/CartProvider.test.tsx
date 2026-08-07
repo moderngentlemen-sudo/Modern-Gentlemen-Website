@@ -2,12 +2,18 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CartProvider, useCart, formatGBP } from "./CartProvider";
-import { allProducts } from "@/lib/catalog";
+import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
+import { allProducts } from "@/lib/demo/catalog";
 
 /**
  * Wires the real provider to the real catalog. This is the test that proves the
  * cart UI and lib/domain/pricing agree — if the provider ever grows its own
  * copy of the money rules again, these numbers drift and this fails.
+ *
+ * `CartProvider` resolves slugs through `useCatalog()` since Phase 7b, so it
+ * needs the catalogue around it. The demo module is the fixture here on
+ * purpose: it is also what `scripts/seed.ts` seeds from, so these numbers are
+ * the same ones the live store computes.
  */
 
 const products = allProducts();
@@ -31,7 +37,15 @@ function Harness() {
   );
 }
 
-const renderCart = () => render(<Harness />, { wrapper: CartProvider });
+function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <CatalogProvider products={products}>
+      <CartProvider>{children}</CartProvider>
+    </CatalogProvider>
+  );
+}
+
+const renderCart = () => render(<Harness />, { wrapper: Providers });
 const value = (id: string) => screen.getByTestId(id).textContent;
 
 beforeEach(() => localStorage.clear());

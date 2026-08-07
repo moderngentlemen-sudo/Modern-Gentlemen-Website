@@ -65,6 +65,17 @@ export function isProductAvailability(value: string): value is ProductAvailabili
   return (PRODUCT_AVAILABILITIES as readonly string[]).includes(value);
 }
 
+/**
+ * `badges` is a free `text[]` in the database — the check constraint is on
+ * `status`, not on this — so a row can hold a badge the store has no styling
+ * for. The card renders one badge and `lib/cart/types.ts` spells the same
+ * vocabulary as `Tag`, adding `""` for "no badge"; this is the narrowing that
+ * gets from one to the other without a cast.
+ */
+export function isProductBadge(value: string): value is ProductBadge {
+  return (PRODUCT_BADGES as readonly string[]).includes(value);
+}
+
 // ---------------------------------------------------------------------------
 // The jsonb payloads
 // ---------------------------------------------------------------------------

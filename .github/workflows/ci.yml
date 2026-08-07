@@ -91,11 +91,28 @@ jobs:
           supabase status --workdir . -o env \
             | sed -E 's/^/SUPABASE_/; s/="(.*)"$/=\1/' >> "$GITHUB_ENV"
 
+      # The stack is empty after `supabase start` — migrations only, no rows.
+      # publicCatalog.test.ts asserts the published store equals the demo
+      # catalogue, which needs the catalogue to have been seeded; without this
+      # it compares 16 products against 0.
+      - name: Seed content
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx --yes tsx scripts/seed.ts
+
       - name: Integration tests
         env:
           SUPABASE_TEST_URL: ${{ env.SUPABASE_API_URL }}
           SUPABASE_TEST_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          # `lib/services/publicCatalog.ts` builds its client through
+          # `lib/db/public.ts`, which reads the NEXT_PUBLIC_* pair like the app
+          # does — it is the app's code path, not a test-only one. The
+          # SUPABASE_TEST_* names above are for the fixtures.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
         run: npm run test:integration -- --passWithNoTests
 
       - name: Stop stack

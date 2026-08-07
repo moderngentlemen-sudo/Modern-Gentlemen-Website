@@ -1,9 +1,25 @@
-import type { Product } from "./cart/types";
+import type { Product } from "../cart/types";
 
 /**
  * Ported verbatim from design_files/mg-catalog.js — the 16-product catalog.
- * For a real store, replace this with Shopify Storefront data (keep the helper
- * signatures so callers don't change). See 01_ARCHITECTURE.md.
+ *
+ * **This is no longer what the store renders.** Since Phase 7b the public store
+ * reads Supabase through `lib/services/publicCatalog.ts`; this module moved to
+ * `lib/demo/` to say so. What it still is:
+ *
+ *   * the source `scripts/seed.ts` seeds *from*, so the seeded rows are exactly
+ *     the catalogue the site was pixel-verified against;
+ *   * the fixture the unit tests compare the database against, which is what
+ *     makes `tests/integration/publicCatalog.test.ts` a real assertion rather
+ *     than a tautology;
+ *   * the demo data behind the admin's block sources.
+ *
+ * Editing it changes what a fresh database is seeded with. It does not change
+ * what the live site shows — that comes from the `products` table.
+ *
+ * `images` hold site-root URLs (`/images/x.jpg`). They are used verbatim as
+ * `src`, matching what `media_assets.external_url` stores, so a real uploaded
+ * asset's absolute Supabase URL drops into the same slot without special-casing.
  */
 export const products: Product[] = [
   {
@@ -26,7 +42,7 @@ export const products: Product[] = [
       ["Dimensions", "28 × 12 cm rolled"],
       ["Made in", "Portugal"],
     ],
-    images: ["images/watch-gear.jpg", "images/hero-cover.jpg", "images/film-watchmaker.jpg"],
+    images: ["/images/watch-gear.jpg", "/images/hero-cover.jpg", "/images/film-watchmaker.jpg"],
   },
   {
     slug: "suede-two-piece-strap",
@@ -47,7 +63,7 @@ export const products: Product[] = [
       ["Buckle", "Brushed steel"],
       ["Made in", "Italy"],
     ],
-    images: ["images/hero-cover.jpg", "images/watch-gear.jpg", "images/style-mono.jpg"],
+    images: ["/images/hero-cover.jpg", "/images/watch-gear.jpg", "/images/style-mono.jpg"],
   },
   {
     slug: "field-chronometer",
@@ -68,7 +84,7 @@ export const products: Product[] = [
       ["Lume", "Super-LumiNova BGW9"],
       ["Edition", "300 pieces"],
     ],
-    images: ["images/film-watchmaker.jpg", "images/watch-gear.jpg", "images/hero-cover.jpg"],
+    images: ["/images/film-watchmaker.jpg", "/images/watch-gear.jpg", "/images/hero-cover.jpg"],
   },
   {
     slug: "unstructured-wool-blazer",
@@ -89,7 +105,7 @@ export const products: Product[] = [
       ["Buttons", "Corozo"],
       ["Made in", "Portugal"],
     ],
-    images: ["images/style-mono.jpg", "images/film-tailor.jpg", "images/hero-cover.jpg"],
+    images: ["/images/style-mono.jpg", "/images/film-tailor.jpg", "/images/hero-cover.jpg"],
   },
   {
     slug: "raw-selvedge-denim",
@@ -110,7 +126,7 @@ export const products: Product[] = [
       ["Hardware", "Copper rivets"],
       ["Made in", "Japan"],
     ],
-    images: ["images/film-workshop.jpg", "images/style-mono.jpg", "images/film-tailor.jpg"],
+    images: ["/images/film-workshop.jpg", "/images/style-mono.jpg", "/images/film-tailor.jpg"],
   },
   {
     slug: "oxford-cloth-shirt",
@@ -131,7 +147,7 @@ export const products: Product[] = [
       ["Placket", "Box-pleat back"],
       ["Made in", "Portugal"],
     ],
-    images: ["images/film-tailor.jpg", "images/style-mono.jpg", "images/hero-cover.jpg"],
+    images: ["/images/film-tailor.jpg", "/images/style-mono.jpg", "/images/hero-cover.jpg"],
   },
   {
     slug: "merino-crew-knit",
@@ -152,7 +168,7 @@ export const products: Product[] = [
       ["Care", "Cool hand wash"],
       ["Made in", "Scotland"],
     ],
-    images: ["images/style-mono.jpg", "images/film-workshop.jpg", "images/grooming.jpg"],
+    images: ["/images/style-mono.jpg", "/images/film-workshop.jpg", "/images/grooming.jpg"],
   },
   {
     slug: "seven-minute-kit",
@@ -173,7 +189,7 @@ export const products: Product[] = [
       ["Fragrance", "Trace cedar"],
       ["Packaging", "Refillable aluminium"],
     ],
-    images: ["images/grooming.jpg", "images/film-workshop.jpg", "images/style-mono.jpg"],
+    images: ["/images/grooming.jpg", "/images/film-workshop.jpg", "/images/style-mono.jpg"],
   },
   {
     slug: "cedar-vetiver-edp",
@@ -194,7 +210,7 @@ export const products: Product[] = [
       ["Base", "Virginia cedar, musk"],
       ["Made in", "France"],
     ],
-    images: ["images/film-watchmaker.jpg", "images/grooming.jpg", "images/hero-cover.jpg"],
+    images: ["/images/film-watchmaker.jpg", "/images/grooming.jpg", "/images/hero-cover.jpg"],
   },
   {
     slug: "safety-razor-set",
@@ -215,7 +231,7 @@ export const products: Product[] = [
       ["Blade", "Standard double-edge"],
       ["Made in", "Germany"],
     ],
-    images: ["images/film-workshop.jpg", "images/grooming.jpg", "images/watch-gear.jpg"],
+    images: ["/images/film-workshop.jpg", "/images/grooming.jpg", "/images/watch-gear.jpg"],
   },
   {
     slug: "card-holder",
@@ -236,7 +252,7 @@ export const products: Product[] = [
       ["Edges", "Hand-burnished"],
       ["Made in", "England"],
     ],
-    images: ["images/film-tailor.jpg", "images/style-mono.jpg", "images/hero-cover.jpg"],
+    images: ["/images/film-tailor.jpg", "/images/style-mono.jpg", "/images/hero-cover.jpg"],
   },
   {
     slug: "brass-shoe-horn",
@@ -257,7 +273,7 @@ export const products: Product[] = [
       ["Hang loop", "Leather cord"],
       ["Made in", "England"],
     ],
-    images: ["images/watch-gear.jpg", "images/film-workshop.jpg", "images/film-tailor.jpg"],
+    images: ["/images/watch-gear.jpg", "/images/film-workshop.jpg", "/images/film-tailor.jpg"],
   },
   {
     slug: "waxed-holdall",
@@ -278,7 +294,7 @@ export const products: Product[] = [
       ["Strap", "Detachable, padded"],
       ["Made in", "England"],
     ],
-    images: ["images/hero-cover.jpg", "images/film-tailor.jpg", "images/watch-gear.jpg"],
+    images: ["/images/hero-cover.jpg", "/images/film-tailor.jpg", "/images/watch-gear.jpg"],
   },
   {
     slug: "silk-knit-tie",
@@ -299,7 +315,7 @@ export const products: Product[] = [
       ["Colours", "Six house shades"],
       ["Made in", "Italy"],
     ],
-    images: ["images/film-tailor.jpg", "images/style-mono.jpg", "images/grooming.jpg"],
+    images: ["/images/film-tailor.jpg", "/images/style-mono.jpg", "/images/grooming.jpg"],
   },
   {
     slug: "wool-watch-cap",
@@ -320,7 +336,7 @@ export const products: Product[] = [
       ["Care", "Cool hand wash"],
       ["Made in", "Scotland"],
     ],
-    images: ["images/style-mono.jpg", "images/grooming.jpg", "images/film-workshop.jpg"],
+    images: ["/images/style-mono.jpg", "/images/grooming.jpg", "/images/film-workshop.jpg"],
   },
   {
     slug: "leather-belt",
@@ -341,7 +357,7 @@ export const products: Product[] = [
       ["Sizing", "Punched to order"],
       ["Made in", "England"],
     ],
-    images: ["images/film-tailor.jpg", "images/hero-cover.jpg", "images/style-mono.jpg"],
+    images: ["/images/film-tailor.jpg", "/images/hero-cover.jpg", "/images/style-mono.jpg"],
   },
 ];
 

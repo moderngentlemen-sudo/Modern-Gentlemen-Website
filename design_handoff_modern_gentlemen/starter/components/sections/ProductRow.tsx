@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCart, formatGBP } from "@/lib/cart/CartProvider";
-import { allProducts, byGroup } from "@/lib/catalog";
+import { useCatalog } from "@/lib/catalog/CatalogProvider";
 
 /** The Store — commerce row (library #05, #28 The Drop). Pulls from the catalog.
  *  Pass `group` to filter, or explicit `slugs` to curate. */
@@ -20,6 +20,7 @@ export function ProductRow({
   href?: string;
 }) {
   const cart = useCart();
+  const { allProducts, byGroup } = useCatalog();
   const products = slugs?.length
     ? slugs.map((s) => allProducts().find((p) => p.slug === s)).filter(Boolean)
     : byGroup(group || "All").slice(0, 4);
@@ -44,7 +45,7 @@ export function ProductRow({
                   <div className="aspect-[4/5] overflow-hidden bg-mg-surface">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={"/" + p.images[0]}
+                      src={p.images[0]}
                       alt={p.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
