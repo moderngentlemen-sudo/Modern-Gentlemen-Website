@@ -42,7 +42,7 @@ Live state (branch, commits, migrations, test counts) is printed automatically a
 | B | Phase 6b — Integrations & the rest | XML ingestion, Shopify adapter, navigation, theme editor, scheduled-publish runner | ⬜ not started |
 | B | Phase 7a — Public render path | homepage reads `pages` from the DB; static + on-demand revalidation | ✅ done (code) |
 | B | Phase 7b — Store off the database | `/shop`, PDP, product row and search read `products` + `product_media` | ✅ done (code) |
-| B | Phase 7c — Editorial content migration | `/[category]` and `/article/[slug]` read Supabase; categories are documents with a bound listing | ✅ done (code); live project **not fully seeded** — see below |
+| B | Phase 7c — Editorial content migration | `/[category]` and `/article/[slug]` read Supabase; categories are documents with a bound listing | ✅ done & verified (deep-compare, build, 16 visual baselines) |
 
 ### ⚠️ Corrections to earlier guidance in this file
 
@@ -57,19 +57,18 @@ Instructions below that were true during Track A and are **now wrong**. A sessio
 - **Stripe is out of scope** for now, by decision. Checkout stays demo-only. The commerce layer manages catalog/inventory/merchandising, not payments.
 - **The app is no longer "100% demo data with no env vars."** It needs `.env.local` (see below) and reads a live Supabase project.
 
-### ⚠️ Phase 7c is code-complete and the live project is NOT fully seeded — read before deploying
+### ✅ Phase 7c is verified end to end — the live project is seeded
 
-The routes now read Supabase, but the live project holds **10 authors, 28 tags and 0 articles**, and its five category rows have **empty `published_data.sections`**. Merging or deploying this branch in that state gives a 404 on every `/style`-style landing page and every `/article/*` link on the site. It is also why `npm run build`, `npm run test:visual` and `tests/integration/publicEditorial.test.ts` **have not been run** for this phase.
+The editorial content is in the live project and **every check has now run and passed**:
 
-**To finish it**, from `design_handoff_modern_gentlemen/starter` with real credentials in `.env.local`:
+- `tests/integration/publicEditorial.test.ts` — **green**. All 53 articles deep-equal the demo module field for field, and all five category pages resolve — through the real binding engine, against the real database, under real RLS — to exactly the props the route composed in code before this phase.
+- `npm run build` — 53 article pages and 5 category pages prerendered from the database, all `● (SSG)` with a 1h revalidate.
+- `npm run test:visual` — **all 16 public baselines pass**, including `category-style` and `article` in both themes: the first time either has rendered from Supabase, pixel-identical to the Track A screenshots.
+- Rendered-markup spot checks: `/film` prints `12 MIN FILM`, `/culture` carries its own 042 lead with zero references to the unfiled cover story, every category renders exactly 7 article links, and an unknown category or article slug still returns **404**.
 
-```bash
-npx tsx scripts/seed.ts     # idempotent; seeds authors, tags, 53 articles, the joins and the 5 category documents
-npm run build && npm run test:visual
-npx vitest run tests/integration/publicEditorial.test.ts
-```
+Live counts: 53 articles (35 filed across 5 categories), 10 authors, 28 tags, 30 `article_tags`, 159 `article_relations`, 5 category documents.
 
-Expect afterwards: 53 articles, 35 of them filed across the 5 categories, 30 `article_tags`, 159 `article_relations`. CI needs nothing extra — its `Seed content` step already runs `scripts/seed.ts`, which now covers all of this.
+**Re-seeding is `npx tsx scripts/seed.ts`** from `design_handoff_modern_gentlemen/starter` — idempotent, and what CI runs. Note it overwrites `draft_data`/`published_data` for categories and products, which is harmless today and stops being so once a category document is editable.
 
 ### What runs today
 
@@ -129,7 +128,7 @@ Admin account: `welcome@moderngentlemen.co`, role `admin` (40 permissions). Crea
 
 0. ~~Apply `0013`~~ — **done.** ~~Phase 6 — products~~ — **done as Phase 6a**, `0014` applied.
 1. **Phase 6b** — the rest of commerce & integrations: navigation (`menus`/`menu_items`), the theme editor (`theme_settings`), the scheduled-publish runner (`scheduled_jobs`/`job_runs`, and `JOBS_SECRET` is an env var **no code reads**), then XML ingestion and the Shopify adapter. The builder can schedule a page *or an article* today and says plainly that nothing fires it yet. All the tables already exist and are applied — `0006` and `0007` built them — so this is layers over live schema, as products was.
-2. ~~**Phase 7c**~~ — **done in code**, and the public rewire is complete: 7a (homepage), 7b (store) and now `/[category]` and `/article/[slug]`. The `BindingSource` landed with it, in `lib/services/bindingSources.ts`. **But finish its verification first** — seed the live project and run the build, the visual suite and `publicEditorial.test.ts`; see the warning at the top of this file. The `image`/`video` URL-vs-asset-id decision was *not* revisited: block fields still store URLs, while `featured_asset_id`, `hero_asset_id` and `product_media` store ids. That split is now three phases old and still deliberate.
+2. ~~**Phase 7c**~~ — **done and verified.** The public rewire is complete: 7a (homepage), 7b (store), and now `/[category]` and `/article/[slug]`. The Supabase `BindingSource` landed with it at `lib/services/bindingSources.ts`, with a category page's lead and grid as its first real consumer. The deep-compare, the build and all 16 visual baselines pass against the live project. The `image`/`video` URL-vs-asset-id decision was *not* revisited: block fields still store URLs, while `featured_asset_id`, `hero_asset_id` and `product_media` store ids. That split is now three phases old and still deliberate.
 3. **`pattern` and `template` in the builder.** `article` is now done and, as predicted, needed no builder changes at all — it is one ordered list. `pattern` fits the same way. `template` does not, because `BLOCK_TREE_KEY.template` is `null`: templates hold *named areas*, so the builder would need an area switcher. `templates` and `patterns` are still **empty tables** — no template or pattern has ever existed in the database.
 
 Also outstanding from Phase 1: a repository layer over `lib/db`, and the RLS integration suite (positive *and* negative per role) against a local Supabase stack.
@@ -287,7 +286,10 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
   - **The display label is stored on every article's payload, filed or not.** Only the thirty-five filed articles have a category row to derive a label from, and the showcases print "The Debrief", "Motoring", "Opinion" — labels no category row has. Storing it uniformly avoids a rule with an exception; the join remains the fallback, so an article created in the admin still prints its category.
   - **KEEP READING is seeded into `article_relations` rather than derived.** The demo picks three same-category siblings *in module insertion order*, which no column reproduces — and `/article/speed-considered` has a visual baseline, so "close enough" would have been a failing screenshot. The curated trio is exact; the category-derived fallback stays behind it for articles nobody has curated. `article_relations` had carried a schema and zero rows since `0004`.
   - **Publishing an article now changes two pages.** Its own, and the category page whose listing is bound to it. `revalidatePublicArticle` does both, and the metadata save collects paths on **both sides of the write**, because re-filing an article from Watches to Culture changes two listings and only the before-set knows about the first. The products equivalent — publish revalidated, delete did not — was caught by a visual baseline coming back one grid row too tall; this one was written that way from the start.
-  - **⚠️ Verification honesty — Phase 7c. This phase is the least verified of the three.** What ran in this container: the four gates (**574 unit tests**, up from 536), including the new `offset` cases and the extended template-layout conformance test. What did **not** run: `npm run build`, `npm run test:visual`, and `tests/integration/publicEditorial.test.ts` — the assertion this phase was designed around. All three need seeded data, and the live project was only partially seeded before the Supabase MCP became unavailable to the session (authors and tags landed; categories, articles and the joins did not). **The pixel claim 7a and 7b could both make is not available here**: nobody has yet seen `/style` or `/article/speed-considered` render from the database. Run the three commands at the top of this file before trusting the phase.
+  - **Verification honesty — Phase 7c. Every check ran, and two real defects were caught by them.** The four gates (**577 unit tests**, up from 536), the integration deep-compare, `npm run build` and all 16 visual baselines — the last two executed against the live project with the editorial content seeded. `/style` and `/article/speed-considered` are pixel-identical to their Track A screenshots while rendering from Supabase. Also confirmed on the built server: unknown category and article slugs still 404. **Not** run: the E2E suite, which needs an admin session this container cannot provision.
+  - **⚠️ Do not hand-carry SQL containing non-ASCII text.** The seed was applied by pasting generated SQL into the dashboard's SQL editor, and the em dashes and typographic apostrophes arrived as `â` — UTF-8 bytes decoded as latin-1 somewhere between the file and the browser. The generated files were valid UTF-8; nothing in the repo was wrong. **11 of 53 rows were damaged and it was completely silent** — `Feature â Standard` is still a plausible-looking string. The fix is to emit **pure ASCII**: Postgres `U&'…'` escapes for text (`\2014`) and JSON `\uXXXX` for jsonb, both decoded server-side where the encoding is known. `scripts/seed.ts` was never exposed to this — it sends JSON over HTTPS with a declared charset. The lesson generalises: a clipboard and a browser have no encoding contract, so anything travelling that path should be 7-bit.
+  - **A sensible fallback turned bad data into a plausible page.** One casualty of the encoding damage was `articles.template`, which became `Feature â Standard`. That matches none of the twenty template names, so `layoutFor()` fell back to the default and the article rendered with **the wrong hero variant** — no error, no warning, just a different design. The fallback behaved exactly as specified. Worth remembering when judging defensive defaults: they convert loud failures into quiet ones, which is the trade being made.
+  - **The deep-compare earned its keep, twice.** Neither defect was visible to a screenshot: mojibake is legible enough to skim past, and a wrong hero variant looks like a design choice. Both were caught by comparing every field of all 53 articles against the seed source. This is the argument for `lib/demo/` being seed **input** rather than runtime data — the comparison is only meaningful because the two sides are genuinely independent.
   - **The seeder is the maintained path and covers everything.** `scripts/seed.ts` gained `seedAuthors`, `seedTags`, `seedArticles`, `seedArticleTags`, `seedArticleRelations`, and `seedCategories` now writes the category documents and `hero_asset_id`. It also derives its media list from the editorial *and* product images rather than products alone — the seven files coincide today, and depending on that coincidence would strand an article's hero the moment a photograph left the catalog.
 - **Phase 7a (the public render path) — decisions.**
   - **⚠️ `lib/blocks/sources/supabase.ts` cannot exist, and this file has been promising it since Phase 2.** `sources/demo.ts`'s own header says Phase 7 adds it; the "Next phase" list says the same. But ESLint bars `lib/blocks/**` from importing `@/lib/db/*`, and the rule's message states the resolution: *"binding sources are injected."* `demo.ts` is legal there only because `lib/catalog.ts` and `lib/editorial.ts` are pure data modules. **The interface belongs in the leaf; a database-backed implementation belongs in `lib/services`.** Nothing about the design is wrong — only the filename this file kept repeating.
@@ -544,9 +546,12 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] `lib/editorial.ts` → `lib/demo/editorial.ts`, `lib/articles.ts` → `lib/demo/articles.ts`, plus the new `lib/demo/category-sections.ts` holding the literal fixture and the bound seed payload side by side
 - [x] `scripts/seed.ts` seeds authors, tags, 53 articles, `article_tags`, `article_relations` and the five category documents
 - [x] `revalidatePublicArticle` — the article's path **and** its category's, wired into publish/unpublish/rollback/delete and the metadata save (which collects paths either side of the write, for re-filing)
-- [x] **38 new unit tests** (574 total, was 536)
-- [ ] ⚠️ **`tests/integration/publicEditorial.test.ts` has never run**, nor `npm run build`, nor `npm run test:visual`. All three need a seeded project; the live one holds 0 articles. **This is the phase's outstanding work**, and the deep-compare is the assertion it was designed around
-- [ ] The live project must be seeded before this branch is deployed — see the warning at the top of this file
+- [x] **41 new unit tests** (577 total, was 536)
+- [x] `lib/domain/articles.ts#readingTimes` — the lead card's suffix is category-dependent ("12 MIN FILM" on /film, "7 MIN READ elsewhere"), which an integer `reading_minutes` cannot carry. Both binding sources call it, so they cannot drift
+- [x] **`tests/integration/publicEditorial.test.ts` — green against the live project.** All 53 articles and all 5 category pages match the demo composition
+- [x] `npm run build` — 53 article + 5 category pages prerendered `● (SSG)`; unknown slugs still 404 on the built server
+- [x] **All 16 public visual baselines pass**, `category-style` and `article` included, in both themes
+- [x] The live project is seeded (53 articles, 35 filed, 30 tag rows, 159 relations, 5 category documents)
 - [ ] Category pages have no admin screen: `lib/services/taxonomy.ts` still does not touch `draft_data`, so a category document is seeded and published but not yet editable
 - [ ] `BindingEditor` exposes source, limit, offset, sort and single — but no **filter** editor, so an editor can retarget a category listing's sort but not its category
 - [ ] `article_relations` has rows now, and still no admin UI
