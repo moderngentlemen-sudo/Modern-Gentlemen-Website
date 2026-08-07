@@ -89,7 +89,7 @@ test.describe("page builder", () => {
     await expect(page.getByText("published", { exact: true })).toBeVisible();
 
     // --- history + rollback ----------------------------------------------
-    await page.getByRole("link", { name: "History" }).click();
+    await page.getByRole("link", { name: "History", exact: true }).click();
     await expect(page).toHaveURL(/\/history$/);
 
     const publishRow = page.getByRole("row").filter({ hasText: "publish" }).first();
