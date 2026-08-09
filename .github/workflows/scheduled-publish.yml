@@ -1,0 +1,61 @@
+name: Scheduled publish
+
+# The clock behind `scheduled_for`.
+#
+# Railway has no built-in cron, so something outside the app has to knock on the
+# door. Actions is already this project's automation, it is version-controlled
+# alongside the code it fires, and it costs nothing to add — the alternatives
+# were a third-party pinger (another account, another secret, invisible from the
+# repo) or pg_cron inside Supabase (closer to the data, but it would need its own
+# copy of the URL and secret and would fire even when the site is down).
+#
+# **Every five minutes is the resolution of the whole feature.** An editor who
+# schedules a post for 09:00 sees it live somewhere in 09:00–09:05, which is why
+# the builder now says "give or take the few minutes between runs" rather than
+# promising the minute. GitHub also treats cron as best-effort and delays runs
+# under load, so this is a floor on the granularity, not a guarantee.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # So a run can be forced while debugging without waiting for the next tick.
+  workflow_dispatch:
+
+# A slow run must not overlap the next tick: the SQL takes FOR UPDATE SKIP
+# LOCKED so an overlap is safe, but queueing is cheaper than proving that daily.
+concurrency:
+  group: scheduled-publish
+  cancel-in-progress: false
+
+jobs:
+  fire:
+    name: Publish what is due
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST the jobs route
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          JOBS_SECRET: ${{ secrets.JOBS_SECRET }}
+        run: |
+          if [ -z "$SITE_URL" ] || [ -z "$JOBS_SECRET" ]; then
+            echo "::error::SITE_URL (a repository variable) or JOBS_SECRET (a repository secret) is unset."
+            exit 1
+          fi
+
+          # -sS keeps curl quiet but still prints transport errors; the body is
+          # captured separately from the status so a failure logs both.
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            -X POST "$SITE_URL/api/jobs/publish-scheduled" \
+            -H "Authorization: Bearer $JOBS_SECRET" \
+            -H 'Content-Length: 0')
+
+          echo "HTTP $code"
+          cat "$body"
+          echo
+
+          # A 401 here means the secret drifted between GitHub and Railway, and
+          # it would otherwise look exactly like "nothing was due" — silence.
+          if [ "$code" != "200" ]; then
+            echo "::error::Scheduled publish returned HTTP $code"
+            exit 1
+          fi

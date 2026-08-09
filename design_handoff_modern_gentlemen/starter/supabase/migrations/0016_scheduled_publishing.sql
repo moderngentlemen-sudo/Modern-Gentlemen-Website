@@ -48,12 +48,19 @@
 -- way and asserts the resulting row, revision and publish_event are identical
 -- but for the actor. Behavioural equivalence, checked on every CI run.
 
+-- ON RETURNING `category_slug`. Publishing an article changes two pages: its
+-- own, and the category page whose lead and grid are bound to the `articles`
+-- table. The admin has a helper for that pair (`publicPathsForArticle`), but it
+-- resolves the category through a service that reads the caller's session — and
+-- a job has none. Returning the slug from here means the runner needs no second
+-- round trip and no session to work out what to revalidate. Null for pages.
 create or replace function public.run_due_publishes(p_limit integer default 100)
 returns table (
-  entity_type text,
-  entity_id   uuid,
-  slug        text,
-  version     integer
+  entity_type   text,
+  entity_id     uuid,
+  slug          text,
+  category_slug text,
+  version       integer
 )
 language plpgsql
 security definer
@@ -67,6 +74,7 @@ declare
   v_to     integer;
   v_draft  jsonb;
   v_slug   text;
+  v_cat    text;
   v_count  integer := 0;
 begin
   -- Only the types `schedulable_document_table` admits. Products carry a
@@ -96,6 +104,16 @@ begin
         into v_from, v_draft, v_slug
         using v_row.id;
 
+      -- Only an article has a category, and only then does a second page go
+      -- stale. An unfiled article leaves this null and one path is revalidated.
+      v_cat := null;
+      if v_type = 'article' then
+        select c.slug into v_cat
+          from public.articles a
+          left join public.categories c on c.id = a.category_id
+         where a.id = v_row.id;
+      end if;
+
       v_to := v_from + 1;
 
       -- The same three writes publish_document makes, in one transaction.
@@ -119,10 +137,11 @@ begin
         (entity_type, entity_id, action, from_version, to_version, note, actor_id)
       values (v_type, v_row.id, 'publish', v_from, v_to, 'Published on schedule', null);
 
-      entity_type := v_type;
-      entity_id   := v_row.id;
-      slug        := v_slug;
-      version     := v_to;
+      entity_type   := v_type;
+      entity_id     := v_row.id;
+      slug          := v_slug;
+      category_slug := v_cat;
+      version       := v_to;
       return next;
 
       v_count := v_count + 1;
