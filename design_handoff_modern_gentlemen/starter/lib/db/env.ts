@@ -92,3 +92,32 @@ export const supabaseServiceRoleKey = () =>
   required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/**
+ * The site's own address, for anything a *third party* will read back.
+ *
+ * `siteUrl()` above falls back to localhost, which is right for preview links an
+ * editor clicks in their own browser and wrong for anything that outlives the
+ * request. Canonical tags, `sitemap.xml`, `robots.txt` and JSON-LD all state
+ * "this page's real address is X" to a crawler — and a production build that
+ * quietly filled those in with `http://localhost:3000` would tell Google that
+ * every page on the site lives on a machine it cannot reach. That does not fail
+ * loudly, it fails as a slow deindexing nobody connects to a deploy.
+ *
+ * So in production this refuses the fallback. The build fails, which is the
+ * behaviour this repo already chose for a homepage whose content will not load:
+ * a loud failure beats a plausible artefact built from a missing value.
+ */
+export function canonicalSiteUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return required("NEXT_PUBLIC_SITE_URL", configured);
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL is not set. Canonical URLs, the sitemap and robots.txt " +
+        "would advertise http://localhost:3000 to crawlers. Set it in Railway → Variables."
+    );
+  }
+
+  return "http://localhost:3000";
+}
