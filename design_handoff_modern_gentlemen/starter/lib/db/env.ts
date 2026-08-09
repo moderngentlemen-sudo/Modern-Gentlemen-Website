@@ -107,6 +107,14 @@ export const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localho
  * So in production this refuses the fallback. The build fails, which is the
  * behaviour this repo already chose for a homepage whose content will not load:
  * a loud failure beats a plausible artefact built from a missing value.
+ *
+ * **`NODE_ENV === "production"` means "a `next build`", not "a deploy"** — a CI
+ * build and a developer's local build are both production builds serving nobody.
+ * That is deliberate, and it is why the message names all three places the
+ * variable can be set rather than only Railway: the first time this fired it was
+ * on a CI runner, and a message pointing at a Railway dashboard sent the reader
+ * to the wrong place. The build already needs a reachable seeded database, so
+ * "a bare clone cannot build" is not a new constraint this adds.
  */
 export function canonicalSiteUrl(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -114,8 +122,10 @@ export function canonicalSiteUrl(): string {
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "NEXT_PUBLIC_SITE_URL is not set. Canonical URLs, the sitemap and robots.txt " +
-        "would advertise http://localhost:3000 to crawlers. Set it in Railway → Variables."
+      "Missing environment variable NEXT_PUBLIC_SITE_URL. Canonical URLs, the sitemap " +
+        "and robots.txt would advertise http://localhost:3000 to crawlers. " +
+        "Copy .env.example to .env.local for a local build, or set it in Railway → Variables " +
+        "for the deploy. CI sets it at the top of .github/workflows/ci.yml."
     );
   }
 
