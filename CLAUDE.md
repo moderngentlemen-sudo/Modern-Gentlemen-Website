@@ -29,8 +29,9 @@ finds no migrations and reports that as success.
 ```
 design_handoff_modern_gentlemen/starter/
 ├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, products, media
+│                 sitemap.ts · robots.ts · api/jobs/publish-scheduled/
 ├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/,
-│                 admin/ (ui/, builder/, fields/, media/, history/)
+│                 seo/ (JsonLd), admin/ (ui/, builder/, fields/, media/, history/)
 ├─ lib/
 │  ├─ blocks/     PURE: one defineBlock() manifest per section + validation
 │  ├─ domain/     PURE: types, Zod schemas, business rules. No I/O, no React.
@@ -42,7 +43,7 @@ design_handoff_modern_gentlemen/starter/
 │  │              category-sections.ts  (SEED + TEST FIXTURES, not what the
 │  │              site renders — see the standing rule below)
 │  └─ cart/
-├─ supabase/      config.toml + migrations/ 0001–0015 (0015 written, NOT applied)
+├─ supabase/      config.toml + migrations/ 0001–0016 (all applied to the live project)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, integration/, visual/, support/, setup/
 ```
@@ -117,12 +118,13 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   blocked by something that no longer exists. `documents.deleteDocument` calls
   `clearEntityMedia`; any new entity type with a delete path must too.
 - **Every migration must be re-runnable, and CI enforces it.** The live project
-  records timestamp versions while this repo numbers its files `0001`–`0014`, so
+  records timestamp versions while this repo numbers its files `0001`–`0016`, so
   a GitHub-integration sync sees no overlap and **replays all of them**. That is
   now safe: every `create policy` and `create trigger` is preceded by a
   `drop … if exists`, since Postgres has no `if not exists` for either. The
-  `Migrations are idempotent` CI step re-applies all fourteen on top of
-  themselves and fails if any statement complains. **Anything you add must keep
+  `Migrations are idempotent` CI step re-applies every one of them on top of
+  themselves and fails if any statement complains. (Deliberately not a count —
+  this line has been wrong twice by saying "fourteen" and then "fifteen".) **Anything you add must keep
   that true** — guard new policies and triggers the same way.
   Applying through the Supabase MCP is still the safer habit for a one-off, but
   it is no longer the only safe option.
@@ -150,9 +152,26 @@ timeout whose message says nothing about credentials.
 said they were, and that stopped being true at Phase 7a: `app/(site)/layout.tsx`
 reads `products` — and, since 6b, the menus — on *every* public route, so with a
 fake URL and key the layout throws and all 16 baselines fail. The visual suite,
-`npm run build` and the E2E suite all need **real** credentials now. The URL and
-the publishable anon key are enough for the first two and can be read from the
-Supabase MCP (`get_project_url`, `get_publishable_keys`); only the E2E suite
-needs the service-role key. The file is gitignored; never commit it.
+`npm run build` and the E2E suite all need **real** credentials now.
+
+**Exactly three variables make `npm run build` and `npm run test:visual` work:**
+
+```
+NEXT_PUBLIC_SUPABASE_URL        # Supabase MCP: get_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY   # Supabase MCP: get_publishable_keys
+NEXT_PUBLIC_SITE_URL            # any absolute origin; http://localhost:3000 is fine
+```
+
+⚠️ **The third one is new since the SEO phase, and this file previously said two
+were enough** — the same mistake it records making about placeholders above.
+`canonicalSiteUrl()` refuses its localhost fallback whenever `NODE_ENV` is
+production, and **`next build` sets that on a laptop and a CI runner exactly as
+it does on Railway.** Without it the build dies on `Failed to collect page data
+for /_not-found`, which names neither the variable nor the cause. It cost a CI
+run before it was caught; `.env.example` now declares it and `ci.yml` sets it at
+the top level.
+
+Only the E2E suite and `scripts/seed.ts` need `SUPABASE_SERVICE_ROLE_KEY`. The
+file is gitignored; never commit it.
 
 Then **update `PROGRESS.md`**. A hook will remind you if you forget.
