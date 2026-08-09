@@ -125,12 +125,20 @@ test.describe("theme", () => {
       .fill("rgba(200, 16, 46, 1)");
     await page.getByRole("button", { name: "Save draft", exact: true }).click();
 
-    // By role, not by text. `getByText(/accent/i)` matched four elements — the
-    // Accent label plus "Serif accent" once per context — which is CI run #49's
-    // lesson, committed in this file's own header and then walked into one
-    // assertion later. The error paragraph is the only `role="alert"` on the
-    // page; the toast is deliberately `role="status"`.
-    const alert = page.getByRole("alert");
+    // `p[role="alert"]`, and both halves of that selector are load-bearing.
+    //
+    // `getByText(/accent/i)` matched four elements — the Accent label plus
+    // "Serif accent" once per context. `getByRole("alert")` then matched two,
+    // because **Next injects `<div role="alert" aria-live="assertive"
+    // id="__next-route-announcer__">` into every page**. Grepping this repo for
+    // `role="alert"` does not reveal it and never could: it belongs to the
+    // framework, not the codebase. Any future admin spec reaching for an alert
+    // role will hit the same thing.
+    //
+    // The element type is what separates them — the announcer is a `div`, this
+    // is a `p` — and the toast is deliberately `role="status"`, so it does not
+    // compete either.
+    const alert = page.locator('p[role="alert"]');
     await expect(alert).toBeVisible();
     await expect(alert).toContainText("accent");
   });
