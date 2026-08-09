@@ -2,6 +2,8 @@ import Link from "next/link";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
+import { getChromeNavigation } from "@/lib/services/publicNavigation";
+import { CHROME_MENU_KEYS } from "@/lib/domain/navigation";
 import { Header } from "@/components/chrome/Header";
 import { Footer } from "@/components/chrome/Footer";
 import { MonoLabel } from "@/components/ui/Eyebrow";
@@ -23,14 +25,22 @@ import { MonoLabel } from "@/components/ui/Eyebrow";
  * inheriting the site layout means not inheriting its provider either — the
  * build catches it as a prerender failure on `_not-found`, exactly as the
  * missing-chrome regression above was caught. Search from a 404 finds products.
+ *
+ * And the navigation, since Phase 6b, for the third time for the same reason: a
+ * 404 that renders the chrome has to read what the chrome renders from. Unlike
+ * the site layout this does not throw on an empty menu — the 404 page is where
+ * someone lands when something is already wrong, and it should still draw.
  */
 export default async function NotFound() {
-  const products = await listPublishedProducts();
+  const [products, nav] = await Promise.all([
+    listPublishedProducts(),
+    getChromeNavigation(CHROME_MENU_KEYS),
+  ]);
 
   return (
     <CatalogProvider products={products}>
       <CartProvider>
-        <Header />
+        <Header nav={nav.header} drawerSecondary={nav.drawerSecondary} />
         <main className="pt-[72px]">
           <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
             <MonoLabel>Error 404</MonoLabel>
@@ -49,7 +59,7 @@ export default async function NotFound() {
             </Link>
           </div>
         </main>
-        <Footer />
+        <Footer nav={nav.footer} legal={nav.footerLegal} />
       </CartProvider>
     </CatalogProvider>
   );

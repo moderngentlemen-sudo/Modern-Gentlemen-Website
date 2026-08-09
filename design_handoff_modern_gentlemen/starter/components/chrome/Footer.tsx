@@ -1,13 +1,6 @@
 import Link from "next/link";
+import type { NavLink } from "@/lib/domain/navigation";
 
-const NAV: [string, string][] = [
-  ["Style", "/style"],
-  ["Grooming", "/grooming"],
-  ["Watches", "/watches"],
-  ["Culture", "/culture"],
-  ["Film", "/film"],
-  ["Store", "/shop"],
-];
 const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   {
     label: "Instagram",
@@ -63,16 +56,11 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
     ),
   },
 ];
-const LEGAL: [string, string][] = [
-  ["About", "/about"],
-  ["Contact", "/contact"],
-  ["Store", "/shop"],
-  ["Archive", "/archive"],
-  ["Privacy", "/privacy"],
-];
-
-/** Footer is ALWAYS dark, regardless of theme — do not wire to data-mgtheme. */
-export function Footer() {
+/** Footer is ALWAYS dark, regardless of theme — do not wire to data-mgtheme.
+ *
+ *  Both link rows come from the database (`footer-primary` and `footer-legal`);
+ *  the socials do not, because they are inline SVG marks rather than content. */
+export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavLink[] }) {
   return (
     <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band">
       {/* ≤680 every footer row insets 22px, matching the sections. */}
@@ -96,13 +84,13 @@ export function Footer() {
           className="flex flex-wrap gap-x-5 gap-y-3.5 min-[681px]:gap-x-7 min-[681px]:justify-end"
           aria-label="Footer"
         >
-          {NAV.map(([label, href]) => (
+          {nav.map((link) => (
             <Link
-              key={label}
-              href={href}
+              key={link.id}
+              href={link.href}
               className="mg-underline font-nav font-medium uppercase text-[11px] leading-[normal] tracking-[0.16em] text-[rgba(255,255,255,0.78)]"
             >
-              {label}
+              {link.label}
             </Link>
           ))}
         </nav>
@@ -134,11 +122,11 @@ export function Footer() {
       <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/40">
         <span>© {new Date().getFullYear()} Modern Gentlemen — Est. 2026</span>
         <span className="whitespace-pre-wrap">
-          {LEGAL.map(([label, href], i) => (
-            <span key={label}>
+          {legal.map((link, i) => (
+            <span key={link.id}>
               {i > 0 && " · "}
-              <Link href={href} className="hover:text-white transition-colors">
-                {label}
+              <Link href={link.href} className="hover:text-white transition-colors">
+                {link.label}
               </Link>
             </span>
           ))}

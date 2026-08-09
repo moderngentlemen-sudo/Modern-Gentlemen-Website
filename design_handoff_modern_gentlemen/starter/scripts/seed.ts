@@ -31,6 +31,7 @@ import {
   relatedFor,
 } from "../lib/demo/articles";
 import { categoryDocumentSections } from "../lib/demo/category-sections";
+import { DEMO_MENUS, type DemoMenuLink } from "../lib/demo/navigation";
 import { slugify } from "../lib/domain/slug";
 
 config({ path: ".env.local" });
@@ -437,6 +438,116 @@ async function seedHomePage() {
   return sections.length;
 }
 
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+
+/**
+ * The chrome's four menus.
+ *
+ * **Items are replaced, not upserted, and that is a real trade.** `menu_items`
+ * has no natural key — two entries may legitimately share a label under
+ * different parents — so there is nothing for `onConflict` to key on. Re-seeding
+ * therefore deletes every item of these four menus and writes them again, which
+ * means a re-seed discards navigation an editor has changed. Harmless on a fresh
+ * database and in CI, which is what this script is for; the same caveat the
+ * category and product documents already carry, and worth remembering before
+ * running it against a project someone is editing.
+ *
+ * Two passes, because a child needs its parent's id: top-level items first, then
+ * their children with `parent_id` filled in.
+ */
+async function seedMenus() {
+  const categoryIds = new Map(
+    (ok("category ids", await db.from("categories").select("id, slug")) ?? []).map(
+      (row) => [row.slug, row.id] as const
+    )
+  );
+
+  const targetFor = (
+    link: DemoMenuLink
+  ): { link_type: string; target_id: string | null; url: string | null } => {
+    if (link.type === "url") return { link_type: "url", target_id: null, url: link.url };
+    if (link.type === "category") {
+      const id = categoryIds.get(link.slug);
+      // `menu_item_target_shape` would refuse a null target anyway; failing here
+      // names the slug instead of reporting a constraint violation.
+      if (!id) throw new Error(`menus: no category with slug "${link.slug}"`);
+      return { link_type: "category", target_id: id, url: null };
+    }
+    throw new Error(`menus: seeding ${link.type} links is not implemented`);
+  };
+
+  const menus = ok(
+    "menus",
+    await db
+      .from("menus")
+      .upsert(
+        DEMO_MENUS.map((menu) => ({
+          key: menu.key,
+          name: menu.name,
+          location: menu.location,
+          status: "published" as const,
+        })),
+        { onConflict: "key" }
+      )
+      .select("id, key")
+  );
+
+  const menuIds = new Map((menus ?? []).map((row) => [row.key, row.id] as const));
+  const ids = [...menuIds.values()];
+  if (ids.length > 0)
+    ok("menu items reset", await db.from("menu_items").delete().in("menu_id", ids));
+
+  let count = 0;
+
+  for (const menu of DEMO_MENUS) {
+    const menuId = menuIds.get(menu.key);
+    if (!menuId) throw new Error(`menus: "${menu.key}" was not written`);
+
+    const roots = ok(
+      `menu items (${menu.key})`,
+      await db
+        .from("menu_items")
+        .insert(
+          menu.items.map((item, position) => ({
+            menu_id: menuId,
+            parent_id: null,
+            label: item.label,
+            ...targetFor(item.link),
+            options: (item.feature ? { feature: item.feature } : {}) as Json,
+            position,
+          }))
+        )
+        .select("id, label")
+    );
+
+    count += roots?.length ?? 0;
+
+    const rootIds = new Map((roots ?? []).map((row) => [row.label, row.id] as const));
+    const children = menu.items.flatMap((item) =>
+      (item.children ?? []).map((child, position) => ({
+        menu_id: menuId,
+        parent_id: rootIds.get(item.label) ?? null,
+        label: child.label,
+        ...targetFor(child.link),
+        options: (child.group ? { group: child.group } : {}) as Json,
+        position,
+      }))
+    );
+
+    if (children.length > 0) {
+      const written = ok(
+        `menu children (${menu.key})`,
+        await db.from("menu_items").insert(children).select("id")
+      );
+      count += written?.length ?? 0;
+    }
+  }
+
+  return count;
+}
+
 async function grantAdmin(email: string) {
   const { data, error } = await db.auth.admin.listUsers();
   if (error) throw new Error(`listUsers: ${error.message}`);
@@ -478,6 +589,8 @@ async function main() {
   console.log(`  filed:      ${await seedArticleTags(articleIds)} tag rows`);
   console.log(`  related:    ${await seedArticleRelations(articleIds)} rows`);
   console.log(`  home page:  ${await seedHomePage()} sections`);
+  // After categories: every header and footer entry points at one by id.
+  console.log(`  menus:      ${await seedMenus()} items`);
   await grantAdmin(process.env.SEED_ADMIN_EMAIL ?? "welcome@moderngentlemen.co");
   console.log("Done.");
 }

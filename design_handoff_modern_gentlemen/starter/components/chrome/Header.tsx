@@ -9,16 +9,8 @@ import { useCart } from "@/lib/cart/CartProvider";
 import { Drawer } from "./Drawer";
 import { SearchOverlay } from "./SearchOverlay";
 import { BagDrawer } from "./BagDrawer";
-import { MegaMenu, MENU_KEYS } from "./MegaMenu";
-
-const NAV = [
-  { label: "STYLE", href: "/style", key: "STYLE" },
-  { label: "GROOMING", href: "/grooming", key: "GROOMING" },
-  { label: "WATCHES", href: "/watches", key: "WATCHES" },
-  { label: "CULTURE", href: "/culture", key: "CULTURE" },
-  { label: "FILM", href: "/film", key: "" },
-  { label: "STORE", href: "/shop", key: "" },
-];
+import { MegaMenu } from "./MegaMenu";
+import type { NavLink } from "@/lib/domain/navigation";
 
 /** Routes that show the bag button. The editorial prototypes' header carries
  *  search + theme only (see `Modern Gentlemen Homepage.dc.html` and
@@ -33,8 +25,23 @@ const isStoreRoute = (path: string | null) =>
  *  scroll-down and returns on scroll-up (no resize — brand rejected resize
  *  motion, EXECUTION_PLAN §10), mega-menu, drawer, search, bag drawer, theme
  *  toggle, live bag badge. Always-dark chrome via data-darkband. See
- *  04_CHROME.md. */
-export function Header() {
+ *  04_CHROME.md.
+ *
+ *  The nav is passed in rather than declared here: `app/(site)/layout.tsx` reads
+ *  `header-primary` from Supabase and hands it down. An entry with children
+ *  opens the mega-menu, which is what the `MENU_KEYS` allowlist used to decide —
+ *  the tree now says so itself, so there is nothing to keep in step.
+ *
+ *  Labels arrive in title case ("Style") because the drawer shows them that way;
+ *  the `uppercase` class is what makes this bar read "STYLE" as it always has.
+ *  A CSS transform emits the same glyphs as the literal string it replaced. */
+export function Header({
+  nav = [],
+  drawerSecondary = [],
+}: {
+  nav?: NavLink[];
+  drawerSecondary?: NavLink[];
+}) {
   const { theme, toggle } = useTheme();
   const cart = useCart();
   const showBag = isStoreRoute(usePathname());
@@ -70,7 +77,13 @@ export function Header() {
 
   // Prototype: `on = scrolled || megaOpen || navHover` drives the frost.
   const frosted = scrolled || !!menuKey || navHover;
-  const openMenu = (key: string) => setMenuKey(MENU_KEYS.includes(key) ? key : null);
+
+  // An entry opens the mega-menu if it has children. `menuKey` is that entry's
+  // id — the allowlist it replaced was a constant that had to be kept in step
+  // with the menu data by hand.
+  const megaKeys = new Set(nav.filter((entry) => entry.children.length > 0).map((e) => e.id));
+  const activeEntry = nav.find((entry) => entry.id === menuKey) ?? null;
+  const openMenu = (key: string) => setMenuKey(megaKeys.has(key) ? key : null);
 
   // 'Frost only' nav motion (the prototype's chosen default).
   const MOTION = "0.45s cubic-bezier(.4,0,.2,1)";
@@ -112,7 +125,7 @@ export function Header() {
           const link = t.closest("a[data-mega]");
           if (link) {
             const key = link.getAttribute("data-mega") || "";
-            setMenuKey(MENU_KEYS.includes(key) ? key : null);
+            setMenuKey(megaKeys.has(key) ? key : null);
             setNavHover(true);
           } else if (t.closest("[data-mega-panel]")) {
             setNavHover(true);
@@ -179,25 +192,25 @@ export function Header() {
             className="hidden min-[821px]:flex flex-1 min-w-0 justify-center gap-6 px-4 whitespace-nowrap"
             aria-label="Primary"
           >
-            {NAV.map((n) => {
-              const hasMenu = MENU_KEYS.includes(n.key);
+            {nav.map((n) => {
+              const hasMenu = megaKeys.has(n.id);
               return (
                 <Link
-                  key={n.href}
+                  key={n.id}
                   href={n.href}
                   aria-haspopup={hasMenu || undefined}
-                  aria-expanded={hasMenu ? menuKey === n.key : undefined}
-                  data-mega={n.key}
-                  onFocus={() => openMenu(n.key)}
+                  aria-expanded={hasMenu ? menuKey === n.id : undefined}
+                  data-mega={hasMenu ? n.id : ""}
+                  onFocus={() => openMenu(n.id)}
                   onClick={(e) => {
                     // Coarse-pointer / no-hover: first tap opens the mega-menu
                     // instead of navigating; a second tap follows the link.
-                    if (hasMenu && menuKey !== n.key) {
+                    if (hasMenu && menuKey !== n.id) {
                       e.preventDefault();
-                      setMenuKey(n.key);
+                      setMenuKey(n.id);
                     }
                   }}
-                  className="mg-underline font-nav text-[12.5px] font-medium leading-[normal] tracking-[0.14em] text-[rgba(255,255,255,0.78)] hover:text-white"
+                  className="mg-underline font-nav text-[12.5px] font-medium uppercase leading-[normal] tracking-[0.14em] text-[rgba(255,255,255,0.78)] hover:text-white"
                 >
                   {n.label}
                 </Link>
@@ -246,10 +259,15 @@ export function Header() {
           </div>
         </header>
 
-        <MegaMenu activeKey={menuKey} onClose={() => setMenuKey(null)} />
+        <MegaMenu entry={activeEntry} onClose={() => setMenuKey(null)} />
       </div>
 
-      <Drawer open={drawer} onClose={() => setDrawer(false)} />
+      <Drawer
+        open={drawer}
+        onClose={() => setDrawer(false)}
+        groups={nav}
+        secondary={drawerSecondary}
+      />
       <SearchOverlay open={search} onClose={() => setSearch(false)} />
       {/* Gated on `showBag` too, so navigating off the store journey with the
           drawer open can't leave it hanging with no trigger to close it. */}
