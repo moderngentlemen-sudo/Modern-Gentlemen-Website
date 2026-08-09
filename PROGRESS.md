@@ -8,7 +8,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-**Branch:** always cut a fresh one from `main` — this file no longer names one, see below. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter`. **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0014`, **all applied**. Apply new ones through the Supabase MCP: the GitHub integration is connected but **cannot safely run this repo's migrations** (version-scheme mismatch — see Known issues).
+**Branch:** always cut a fresh one from `main` — this file no longer names one, see below. **Deploy:** Railway, Root Directory `design_handoff_modern_gentlemen/starter` — **live at https://modern-gentlemen-website-production.up.railway.app** (this file went eight phases without recording the URL anywhere, which meant nobody could check a deploy without opening the Railway dashboard). **Database:** Supabase project `qnfoztnyxhubnnulpfwt` — schema applied and seeded, **live**. Migrations `0001`–`0015`, **all applied**. Apply new ones through the Supabase MCP: the GitHub integration is connected but **cannot safely run this repo's migrations** (version-scheme mismatch — see Known issues).
 
 > ⚠️ **Branch guidance — read this before starting work.** Always start from `main`:
 > `git fetch origin main && git checkout -b <new-branch> origin/main`
