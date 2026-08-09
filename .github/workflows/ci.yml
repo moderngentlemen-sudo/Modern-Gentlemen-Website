@@ -25,6 +25,26 @@ env:
   # forgets this one would fail in a way whose message points at Railway.
   NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
+  # The Supabase CLI, pinned rather than `latest`.
+  #
+  # `supabase/setup-cli@v1` with `version: latest` resolves through the GitHub
+  # API on every run, and it rate-limited on 2026-08-09 — failing the Integration
+  # job 21 seconds in, on a commit that touched only PROGRESS.md:
+  #
+  #   ##[error]Failed to resolve latest Supabase CLI release: rate limit exceeded
+  #
+  # Two jobs start a stack, so `latest` cost two lookups per run and made the
+  # toolchain irreproducible into the bargain: the same migrations would meet a
+  # different binary next month. Same trade already made for Playwright, which is
+  # pinned to 1.56.1 to match the preinstalled browsers.
+  #
+  # Top-level for the reason NEXT_PUBLIC_SITE_URL is: a third stack-starting job
+  # added later would otherwise quietly reintroduce `latest`.
+  #
+  # Bumping is a deliberate act. This value is what `latest` resolved to when the
+  # pin was introduced, so adopting it changed nothing.
+  SUPABASE_CLI_VERSION: 2.113.0
+
 defaults:
   run:
     working-directory: design_handoff_modern_gentlemen/starter
@@ -50,6 +70,15 @@ jobs:
 
       - name: ESLint
         run: npm run lint
+
+      # Needs no secrets, no stack and no database — which is why it belongs in
+      # the fast job rather than beside the tests. Fails when code reads an
+      # environment variable `.env.example` does not declare. PROGRESS.md records
+      # that exact bug three times (JOBS_SECRET, SUPABASE_SERVICE_ROLE_KEY,
+      # NEXT_PUBLIC_SITE_URL) and asked for this check by name; it found a fourth
+      # on its first run.
+      - name: Environment variables are declared
+        run: node scripts/check-env.mjs
 
       - name: TypeScript
         run: npm run typecheck
@@ -86,7 +115,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: Start local Supabase stack
         run: supabase start --workdir .
@@ -170,7 +199,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: Start local Supabase stack
         run: supabase start --workdir .
