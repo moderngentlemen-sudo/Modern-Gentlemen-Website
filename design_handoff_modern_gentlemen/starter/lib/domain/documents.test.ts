@@ -22,6 +22,18 @@ describe("document types", () => {
     expect(isDocumentType("")).toBe(false);
   });
 
+  it("leaves `theme` out, even though 0017 puts it on the SQL allowlist", () => {
+    // `theme_settings` carries every document column and `document_table()`
+    // resolves it since 0017, so publish/rollback/history all work — but the
+    // TypeScript union deliberately stays at five. `permissionFor` in
+    // lib/services/documents.ts builds `${type}.${action}` and narrows it to
+    // `Permission`; there is no `theme.delete`, so widening this union does not
+    // typecheck, and forcing it would cascade into DOCUMENT_TABLES,
+    // BLOCK_TREE_KEY, createPreview and the media_usages entity gate.
+    // lib/services/theme.ts passes the literal "theme" to the RPC instead.
+    expect(isDocumentType("theme")).toBe(false);
+  });
+
   it("only lets pages and articles be scheduled", () => {
     // Mirrors schedulable_document_table(): templates have no scheduled_for
     // column and patterns have no 'scheduled' status.
