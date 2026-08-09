@@ -58,6 +58,20 @@ export async function POST(request: NextRequest) {
     // able to tell a failed run from an empty one, and both would otherwise be
     // a 200 with `published: 0`.
     console.error("Scheduled publish run failed:", error);
+
+    // A missing variable is a *deployment* problem, not a failed run, and it is
+    // worth its own answer. The 503/401 split above diagnosed the unconfigured
+    // secret precisely and then left every later misconfiguration as an opaque
+    // 500 — which is how "the secret is right but SUPABASE_SERVICE_ROLE_KEY was
+    // never set in Railway" reads as "the job is broken".
+    //
+    // Safe to return: `required()` in `lib/db/env.ts` names the variable and
+    // never includes its value, deliberately, because these strings reach logs.
+    const message = error instanceof Error ? error.message : "";
+    if (message.startsWith("Missing environment variable")) {
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
+
     return NextResponse.json({ error: "Run failed" }, { status: 500 });
   }
 }
