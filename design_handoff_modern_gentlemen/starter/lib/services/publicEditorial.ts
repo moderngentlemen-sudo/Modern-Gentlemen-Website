@@ -92,6 +92,9 @@ const optionalString = (value: unknown): string | undefined =>
 export interface PublishedCategory {
   slug: string;
   name: string;
+  /** The standfirst, and the only prose the row carries — so it is also what
+   *  `/[category]`'s meta description is built from. */
+  intro: string | null;
   sections: BlockTree;
 }
 
@@ -119,7 +122,7 @@ export async function getPublishedCategory(slug: string): Promise<PublishedCateg
 
   const { data, error } = await db
     .from("categories")
-    .select("slug, name, published_data, status")
+    .select("slug, name, intro, published_data, status")
     .eq("slug", slug.toLowerCase())
     .eq("status", "published")
     .maybeSingle();
@@ -129,7 +132,12 @@ export async function getPublishedCategory(slug: string): Promise<PublishedCateg
   }
   if (!data) return null;
 
-  return { slug: data.slug, name: data.name, sections: sectionsOf(data.published_data) };
+  return {
+    slug: data.slug,
+    name: data.name,
+    intro: data.intro,
+    sections: sectionsOf(data.published_data),
+  };
 }
 
 // ---------------------------------------------------------------------------

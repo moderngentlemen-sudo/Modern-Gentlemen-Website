@@ -5,6 +5,10 @@ import { ReadingProgress } from "@/components/article/ReadingProgress";
 import { ArticleHero } from "@/components/article/ArticleHero";
 import { ArticleBody } from "@/components/article/ArticleBody";
 import { RelatedGrid } from "@/components/article/RelatedGrid";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { canonicalSiteUrl } from "@/lib/db/env";
+import { articleJsonLd, canonicalUrl, metaDescription, pageTitle } from "@/lib/domain/seo";
+import { publicPathForArticle } from "@/lib/domain/routes";
 
 /**
  * Article — a template-driven page, reading the `articles` table since Phase 7c.
@@ -27,6 +31,17 @@ export async function generateStaticParams() {
   return (await listPublishedArticleSlugs()).map((slug) => ({ slug }));
 }
 
+/**
+ * The title suffix here is now `pageTitle`'s rather than this file's own
+ * template literal. It was the convention the rest of the site is being brought
+ * in line with, and leaving the one hand-written copy would mean the definition
+ * lives in two places — which is how a redesign of the suffix later reaches five
+ * routes and misses this one.
+ *
+ * `openGraph.type: "article"` is the difference that matters for sharing: it is
+ * what makes a link preview carry a byline and a date rather than render as a
+ * generic website card.
+ */
 export async function generateMetadata({
   params,
 }: {
@@ -34,8 +49,24 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const a = await getPublishedArticle(slug);
-  if (!a) return { title: "Article not found — Modern Gentlemen" };
-  return { title: `${a.title} — Modern Gentlemen`, description: a.dek };
+  if (!a) return { title: pageTitle("Article not found") };
+
+  const url = canonicalUrl(canonicalSiteUrl(), publicPathForArticle(a.slug));
+  const description = metaDescription(a.dek);
+
+  return {
+    title: pageTitle(a.title),
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      title: pageTitle(a.title),
+      description,
+      url,
+      ...(a.heroImage ? { images: [canonicalUrl(canonicalSiteUrl(), a.heroImage)] } : {}),
+      ...(a.author ? { authors: [a.author] } : {}),
+    },
+  };
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -45,6 +76,25 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
+      {/*
+       * Article structured data. **No `datePublished`, deliberately.**
+       * `articles.published_at` exists in the database, but `ResolvedArticle` does
+       * not carry it, and adding it would break the whole-object deep-compare in
+       * `publicEditorial.test.ts` — which compares the service's output to
+       * `lib/demo/articles.ts`, a fixture that cannot know a timestamp the publish
+       * action writes. Threading the date through is a real improvement and is
+       * recorded as one in PROGRESS.md; inventing one here to fill the field would
+       * be a false claim about when something was written.
+       */}
+      <JsonLd
+        data={articleJsonLd(canonicalSiteUrl(), {
+          title: a.title,
+          slug: a.slug,
+          dek: a.dek,
+          author: a.author,
+          image: a.heroImage,
+        })}
+      />
       <ReadingProgress />
       <ArticleHero
         variant={a.hero}

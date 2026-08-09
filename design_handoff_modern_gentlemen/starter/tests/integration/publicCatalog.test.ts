@@ -17,8 +17,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { listPublishedProducts } from "@/lib/services/publicCatalog";
+import { getPublishedProductSeo, listPublishedProducts } from "@/lib/services/publicCatalog";
 import { allProducts } from "@/lib/demo/catalog";
+import { poundsToPence } from "@/lib/domain/money";
+import { productJsonLd } from "@/lib/domain/seo";
 import { adminClient } from "../support/fixtures";
 import { testEnv } from "../setup/integration.setup";
 
@@ -65,6 +67,43 @@ describe("the published catalogue", () => {
       const expected = demo.find((p) => p.slug === product.slug);
       expect(product.images).toEqual(expected?.images);
     }
+  });
+
+  /**
+   * `getPublishedProductSeo` is a second, narrower read of the same rows, and a
+   * second read is a second chance to disagree with the first. The risk is not
+   * that it fails loudly — it is that a PDP's `<head>` quietly advertises a
+   * different price, or a different photograph, from the one on the page below
+   * it. Structured data that contradicts the visible page is worse than none:
+   * Google treats it as a manipulation signal.
+   */
+  it("agrees with the catalogue read on the fields both return", async () => {
+    for (const expected of demo) {
+      const seo = await getPublishedProductSeo(expected.slug);
+
+      expect(seo, expected.slug).not.toBeNull();
+      expect(seo!.name).toBe(expected.name);
+      expect(seo!.blurb).toBe(expected.blurb);
+      expect(seo!.material).toBe(expected.material);
+      expect(seo!.images).toEqual(expected.images);
+      // The store carries pounds and this carries pence. They are the same
+      // money or the PDP is lying about its price in one of two places.
+      expect(seo!.pricePence).toBe(poundsToPence(expected.price));
+    }
+  });
+
+  it("produces structured data whose price matches the page's, to the penny", async () => {
+    const seo = await getPublishedProductSeo(demo[0].slug);
+    const offers = productJsonLd("https://example.test", seo!).offers as Record<string, unknown>;
+
+    expect(offers.price).toBe(demo[0].price.toFixed(2));
+    expect(offers.priceCurrency).toBe("GBP");
+  });
+
+  it("returns null for an unknown slug rather than throwing", async () => {
+    // The PDP layout renders no JSON-LD at all on this path, and the page shows
+    // its own not-found. A throw here would 500 instead.
+    expect(await getPublishedProductSeo("no-such-product")).toBeNull();
   });
 
   // Every other test here only reads. This one mutates a seeded row, so it runs

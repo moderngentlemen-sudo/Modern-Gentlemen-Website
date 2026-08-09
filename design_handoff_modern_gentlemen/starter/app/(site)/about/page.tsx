@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
+
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
+import { canonicalSiteUrl } from "@/lib/db/env";
+import { canonicalUrl, pageTitle } from "@/lib/domain/seo";
 
 /**
  * About — a composable Block[] (verbatim copy from design_files/MG About.dc.html):
@@ -6,6 +10,29 @@ import { SectionRenderer, type Block } from "@/components/SectionRenderer";
  * masthead → join band. Runs on demo data; a Supabase `getPage("about")` fetch
  * slots in behind this same shape.
  */
+
+const DESCRIPTION =
+  "An editorial house for the considered man — style, grooming, watches, motoring and the culture around a life well kept.";
+
+/**
+ * A static `metadata` export, not `generateMetadata`, because this page is one
+ * of the two public routes still rendering from a constant rather than the
+ * database. When the `getPage("about")` fetch the comment above anticipates
+ * lands, this becomes a `generateMetadata` reading the row — the same shape
+ * `/[category]` already uses.
+ */
+export const metadata: Metadata = {
+  title: pageTitle("About"),
+  description: DESCRIPTION,
+  alternates: { canonical: canonicalUrl(canonicalSiteUrl(), "/about") },
+  openGraph: {
+    type: "website",
+    title: pageTitle("About"),
+    description: DESCRIPTION,
+    url: canonicalUrl(canonicalSiteUrl(), "/about"),
+  },
+};
+
 export default function AboutPage() {
   return <SectionRenderer sections={SECTIONS} />;
 }

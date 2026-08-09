@@ -13,6 +13,18 @@ env:
   # The Next.js app is not at the repository root.
   APP_DIR: design_handoff_modern_gentlemen/starter
 
+  # `canonicalSiteUrl()` refuses to fall back to localhost when NODE_ENV is
+  # production — which `next build` sets, here as much as on Railway — so
+  # without this the build fails on the first route that asks for a canonical
+  # URL. localhost:3000 is the honest answer for CI: it is where the runner
+  # actually serves the built site, so the canonicals and sitemap this build
+  # emits describe the stack under test rather than a machine nobody can reach.
+  #
+  # At the top level rather than per-step deliberately. The Supabase pair is
+  # repeated across eight `env:` blocks, and a ninth step added later that
+  # forgets this one would fail in a way whose message points at Railway.
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
 defaults:
   run:
     working-directory: design_handoff_modern_gentlemen/starter

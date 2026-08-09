@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
+import { canonicalSiteUrl } from "@/lib/db/env";
+import { BRAND } from "@/lib/domain/seo";
 
 // Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
 // variable file with a 300–700 axis range. Pinning discrete weights made 300
@@ -20,8 +22,24 @@ const mono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+/**
+ * The document-wide defaults. Every route below overrides the title and most
+ * override the description; what only lives here is `metadataBase`.
+ *
+ * **`metadataBase` is what stops Next warning on, and mangling, relative URLs**
+ * in Open Graph images. The routes below hand it absolute URLs already — built
+ * through `canonicalUrl`, because a canonical tag has to be absolute to mean
+ * anything — so this is the belt to that braces: anything added later that
+ * passes a bare `/images/x.jpg` resolves against the real origin rather than
+ * against `localhost`.
+ *
+ * `new URL()` and not a string, which is the type Next wants here. It throws on
+ * a malformed origin, and `canonicalSiteUrl()` has already refused an unset
+ * `NEXT_PUBLIC_SITE_URL` in production before this line runs.
+ */
 export const metadata: Metadata = {
-  title: "Modern Gentlemen",
+  metadataBase: new URL(canonicalSiteUrl()),
+  title: BRAND,
   description: "Style, grooming, watches, culture and film — for the considered man.",
 };
 
