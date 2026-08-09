@@ -108,6 +108,33 @@ test.describe("theme", () => {
     ).toHaveCount(0);
   });
 
+  /**
+   * Before the writing tests, deliberately.
+   *
+   * A rejected save writes nothing, so if this one fails the serial group aborts
+   * with the row untouched. Ordered after them — as it first was — a failure
+   * here skipped the restore test and left the stamped draft behind.
+   */
+  test("rejects a non-hex accent with a message naming the field", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/theme");
+
+    // The one token that cannot take rgba(): it also drives --mg-accent-rgb.
+    await section(page, "Dark theme")
+      .getByLabel("Accent", { exact: true })
+      .fill("rgba(200, 16, 46, 1)");
+    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+
+    // By role, not by text. `getByText(/accent/i)` matched four elements — the
+    // Accent label plus "Serif accent" once per context — which is CI run #49's
+    // lesson, committed in this file's own header and then walked into one
+    // assertion later. The error paragraph is the only `role="alert"` on the
+    // page; the toast is deliberately `role="status"`.
+    const alert = page.getByRole("alert");
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("accent");
+  });
+
   test("saves a draft and reads it back", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/theme");
@@ -122,19 +149,6 @@ test.describe("theme", () => {
     await expect(section(page, "Light theme").getByLabel("Surface", { exact: true })).toHaveValue(
       stamp
     );
-  });
-
-  test("rejects a non-hex accent with a message naming the field", async ({ page }) => {
-    await signIn(page);
-    await page.goto("/admin/theme");
-
-    // The one token that cannot take rgba(): it also drives --mg-accent-rgb.
-    await section(page, "Dark theme")
-      .getByLabel("Accent", { exact: true })
-      .fill("rgba(200, 16, 46, 1)");
-    await page.getByRole("button", { name: "Save draft", exact: true }).click();
-
-    await expect(page.getByText(/accent/i)).toBeVisible();
   });
 
   /** Leaves the row as it was found, so a later run and the visual suite are

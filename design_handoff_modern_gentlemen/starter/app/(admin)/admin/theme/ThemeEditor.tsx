@@ -120,8 +120,19 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
         ))}
       </Panel>
 
+      {/*
+        `role="alert"` and not `status`: this is a rejected save an editor must
+        act on before anything is written, where `Toast` is deliberately
+        `role="status"` because it follows work that already succeeded. It also
+        gives the message a unique accessible role, which is what the e2e spec
+        locates it by — the label text alone is not unique, since "Accent" is a
+        substring of "Serif accent" three times over.
+      */}
       {error && (
-        <p className="border border-mg-accentSerif/40 bg-mg-accent/5 px-4 py-3 text-[13px] text-mg-fg">
+        <p
+          role="alert"
+          className="border border-mg-accentSerif/40 bg-mg-accent/5 px-4 py-3 text-[13px] text-mg-fg"
+        >
           {error}
         </p>
       )}
