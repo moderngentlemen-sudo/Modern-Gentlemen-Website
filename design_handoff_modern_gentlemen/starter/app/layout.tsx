@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { BRAND } from "@/lib/domain/seo";
+import { getPublishedThemeColors } from "@/lib/services/publicTheme";
+import { themeCssText } from "@/lib/domain/theme";
 
 // Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
 // variable file with a 300–700 axis range. Pinning discrete weights made 300
@@ -54,8 +56,22 @@ export const metadata: Metadata = {
  * ThemeProvider stays here, above both groups: the admin uses the same
  * light/dark toggle, and the boot script below sets the theme on
  * documentElement before paint for both.
+ *
+ * **The design tokens are read here for the same reason.** They are a
+ * document-level concern, like the fonts and the boot script beside them, and
+ * the admin renders in `mg.*` tokens too — `AdminShell` is `bg-mg-bg text-mg-fg`
+ * — so a theme applied only to `(site)` would leave the Theme editor screen
+ * lying about the change the editor had just made.
+ *
+ * Two things this must not become. It reads through `lib/services/publicTheme.ts`
+ * and therefore `lib/db/public.ts`, which touches **no cookies**: swapping in
+ * `lib/db/server.ts` here would opt every static page in the site out of static
+ * rendering silently. And it never throws — see that file for why this read
+ * takes the opposite stance to the homepage's.
  */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const themeCss = themeCssText(await getPublishedThemeColors());
+
   return (
     <html
       lang="en"
@@ -65,6 +81,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Set theme before paint to avoid a flash (see 01_ARCHITECTURE.md). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+
+        {/*
+          The stored design tokens, overriding the defaults in globals.css.
+          Omitted entirely when there is nothing to say, which is the state
+          until the theme is first seeded.
+
+          No `precedence` prop: React 19 hoists and dedupes styles that carry
+          one, and this block's position and specificity are load-bearing. The
+          text is built by `themeCssText`, whose values have all passed
+          `safeCssColor` — that allowlist is what makes this
+          `dangerouslySetInnerHTML` safe, since anyone with `theme.write` writes
+          into it.
+        */}
+        {themeCss && <style data-mg-theme="" dangerouslySetInnerHTML={{ __html: themeCss }} />}
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
