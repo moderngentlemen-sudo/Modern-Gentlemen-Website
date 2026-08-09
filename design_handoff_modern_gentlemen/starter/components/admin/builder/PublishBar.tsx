@@ -229,7 +229,8 @@ export function PublishBar({
 
         {doc.status !== "published" && isSchedulable(doc.type) && (
           <p className="mt-3 text-[12px] text-mg-fg/40">
-            Scheduling exists in the database but nothing fires it yet — the runner is Phase 6.
+            A scheduled document publishes itself at the time you set, give or take the few minutes
+            between runs. It publishes the draft as it stands then, not as it stands now.
           </p>
         )}
       </Dialog>

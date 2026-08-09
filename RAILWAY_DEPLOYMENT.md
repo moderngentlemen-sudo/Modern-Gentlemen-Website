@@ -35,6 +35,7 @@ Next.js `next start` automatically listens on the port Railway provides via the 
 ### 5. Deploy
 - Railway builds on the first save and on **every push to the default branch** thereafter.
 - Watch **Deployments → Logs**; when it's live, open the generated `*.up.railway.app` URL.
+- **This project's is https://modern-gentlemen-website-production.up.railway.app** — worth knowing without opening the dashboard, since a deploy is now checkable with `curl -o /dev/null -w '%{http_code}' <url>`.
 
 ### 6. (Optional) Custom domain
 - Service → **Settings → Networking → Custom Domain** → add your domain and follow the DNS (CNAME) instructions. Railway provisions HTTPS automatically.
