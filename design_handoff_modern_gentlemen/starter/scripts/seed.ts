@@ -32,6 +32,8 @@ import {
 } from "../lib/demo/articles";
 import { categoryDocumentSections } from "../lib/demo/category-sections";
 import { DEMO_MENUS, type DemoMenuLink } from "../lib/demo/navigation";
+import { DEMO_THEME } from "../lib/demo/theme";
+import { THEME_KEY } from "../lib/domain/theme";
 import { slugify } from "../lib/domain/slug";
 
 config({ path: ".env.local" });
@@ -569,6 +571,46 @@ async function grantAdmin(email: string) {
   console.log(`  granted admin to ${email}`);
 }
 
+/**
+ * The design tokens.
+ *
+ * Simpler than `seedMenus` above, and the difference is worth naming: a menu
+ * item has no natural key, so that function deletes a menu's items and rewrites
+ * them. `theme_settings.key` is unique, so this is one upsert and re-running it
+ * touches exactly one row.
+ *
+ * Writes `published_data` as well as `draft_data`, so the two start in agreement
+ * and the first publish an editor performs is a no-op rather than a surprise
+ * reversal of whatever `0007` left behind (an empty draft and a NULL published
+ * payload).
+ *
+ * Seeding this changes no pixel: the values are the ones already compiled into
+ * `app/globals.css`, and until this runs the site serves them anyway as
+ * `getPublishedThemeColors`'s fallback. What it changes is that an editor now
+ * has something to open.
+ */
+async function seedTheme() {
+  ok(
+    "theme",
+    await db.from("theme_settings").upsert(
+      [
+        {
+          key: THEME_KEY,
+          name: "Site theme",
+          status: "published",
+          draft_data: DEMO_THEME as unknown as Json,
+          published_data: DEMO_THEME as unknown as Json,
+          version: 1,
+          published_at: new Date().toISOString(),
+        },
+      ],
+      { onConflict: "key" }
+    )
+  );
+
+  return `${Object.keys(DEMO_THEME.colors ?? {}).length} contexts`;
+}
+
 async function main() {
   console.log("Seeding Modern Gentlemen…");
   console.log(`  products:   ${await seedProducts()}`);
@@ -591,6 +633,7 @@ async function main() {
   console.log(`  home page:  ${await seedHomePage()} sections`);
   // After categories: every header and footer entry points at one by id.
   console.log(`  menus:      ${await seedMenus()} items`);
+  console.log(`  theme:      ${await seedTheme()}`);
   await grantAdmin(process.env.SEED_ADMIN_EMAIL ?? "welcome@moderngentlemen.co");
   console.log("Done.");
 }
