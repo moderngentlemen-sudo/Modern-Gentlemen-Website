@@ -9,6 +9,13 @@
   --mg-surface: #131315;
   --mg-bd: #ffffff;
   --mg-accent: #c8102e;
+  /* The same red in `R G B` channels, for Tailwind's `mg-accent` utilities.
+     Tailwind cannot compute an alpha from a colour whose value is `var(--x)`,
+     so `bg-mg-accent/5` and its ~20 siblings need the channel form; the three
+     raw uses further down this file need the hex. Kept side by side rather than
+     derived in CSS because `rgb()` cannot destructure a hex. The theme editor
+     emits both from one stored value, so they cannot drift. */
+  --mg-accent-rgb: 200 16 46;
   --mg-accent-serif: #ff4d5e;
   /* Secondary text ramps (prototype `tMuted` / `tFaint`). Flat greys in light,
      translucent paper in dark — not opacities of --mg-fg. */
