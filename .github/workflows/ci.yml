@@ -227,7 +227,13 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:e2e
 
+      # Runs even when the E2E step failed. The two answer different questions,
+      # and a broken spec must not be able to hide a pixel regression: run #53
+      # failed on three locator mistakes in one new spec and took the 16
+      # baselines down with it, which is how a chrome change reached review with
+      # its most important gate unexecuted.
       - name: Visual regression
+        if: always()
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}

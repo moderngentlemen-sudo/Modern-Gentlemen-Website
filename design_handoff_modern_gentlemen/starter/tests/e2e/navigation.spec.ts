@@ -27,6 +27,21 @@ const password = process.env.E2E_ADMIN_PASSWORD;
  *  the database. */
 let entryLabel = "";
 let childLabel = "";
+/** Per-run like the labels, and for the same reason. As a literal it survived
+ *  every retry, so the second attempt's assertion found two of them. */
+let columnLabel = "";
+
+/**
+ * The entry's own row.
+ *
+ * `MenuEditor` renders each top-level entry as an `li` that also contains its
+ * children's `li`s, so this is the outermost match — which is what makes
+ * `.first()` on a button inside it the entry's own rather than a child's, since
+ * the entry's Row renders before the nested list.
+ */
+function entryRow(page: Page) {
+  return page.locator("li").filter({ hasText: entryLabel }).first();
+}
 
 async function signIn(page: Page) {
   await page.goto("/sign-in");
@@ -88,24 +103,21 @@ test.describe("navigation", () => {
     await signIn(page);
     await page.goto("/admin/navigation/header-primary");
 
-    childLabel = `E2E Link ${Date.now().toString(36)}`;
+    const stamp = Date.now().toString(36);
+    childLabel = `E2E Link ${stamp}`;
+    columnLabel = `E2E Column ${stamp}`;
 
     // The "Add sub-link" button inside the new entry's own block.
-    await page
-      .locator("li")
-      .filter({ hasText: entryLabel })
-      .getByRole("button", { name: "Add sub-link", exact: true })
-      .first()
-      .click();
+    await entryRow(page).getByRole("button", { name: "Add sub-link", exact: true }).click();
 
     await page.getByLabel("Label").fill(childLabel);
     await page.getByLabel("Links to").selectOption("url");
     await page.getByLabel("URL or path").fill("/e2e-link");
-    await page.getByLabel("Column").fill("E2E Column");
+    await page.getByLabel("Column").fill(columnLabel);
     await page.getByRole("button", { name: "Add", exact: true }).click();
 
     await expect(page.getByText(childLabel, { exact: true })).toBeVisible();
-    await expect(page.getByText("E2E Column", { exact: true })).toBeVisible();
+    await expect(page.getByText(columnLabel, { exact: true })).toBeVisible();
   });
 
   test("renames the entry", async ({ page }) => {
@@ -114,12 +126,7 @@ test.describe("navigation", () => {
 
     const renamed = `${entryLabel} renamed`;
 
-    await page
-      .locator("div")
-      .filter({ hasText: entryLabel })
-      .getByRole("button", { name: "Edit", exact: true })
-      .first()
-      .click();
+    await entryRow(page).getByRole("button", { name: "Edit", exact: true }).first().click();
 
     await page.getByLabel("Label").fill(renamed);
     await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -132,25 +139,32 @@ test.describe("navigation", () => {
     await signIn(page);
     await page.goto("/admin/navigation/header-primary");
 
-    await page
-      .locator("div")
-      .filter({ hasText: entryLabel })
-      .getByRole("button", { name: "Delete", exact: true })
-      .first()
-      .click();
+    await entryRow(page).getByRole("button", { name: "Delete", exact: true }).first().click();
 
-    // The confirmation names what goes with it — `parent_id` cascades.
-    await expect(page.getByText(/sub-link/)).toBeVisible();
-    await page.getByRole("button", { name: "Delete", exact: true }).last().click();
+    // Scoped to the dialog, not the page. "Its N sub-links will go with it" and
+    // the "Add sub-link" button behind it both match /sub-link/, and every row
+    // carries its own Delete — `.last()` depended on where the dialog mounts.
+    const confirm = page.getByRole("dialog", { name: "Delete link" });
+    await expect(confirm.getByText(/sub-link/)).toBeVisible();
+    await confirm.getByRole("button", { name: "Delete", exact: true }).click();
 
     await expect(page.getByText(entryLabel, { exact: true })).toHaveCount(0);
     await expect(page.getByText(childLabel, { exact: true })).toHaveCount(0);
   });
+});
 
-  test("the public header still renders the seeded menu", async ({ page }) => {
-    // The point of the whole phase: the chrome reads these rows. If the seed's
-    // six entries are not in the header, the public read path is broken
-    // regardless of what the admin screen shows.
+/**
+ * Deliberately outside the serial group above, and deliberately not gated on
+ * E2E_ADMIN_*.
+ *
+ * This is the assertion the whole phase rests on — the chrome renders from
+ * `menus`/`menu_items` rather than from constants — and it needs no session to
+ * make it. Inside the serial group it ran last and behind a credential check,
+ * so CI run #53 never executed it: a failure five tests earlier was enough to
+ * skip the one test that proves the feature works.
+ */
+test.describe("the public header", () => {
+  test("renders the seeded menu", async ({ page }) => {
     await page.goto("/");
 
     const nav = page.getByRole("navigation", { name: "Primary" });
