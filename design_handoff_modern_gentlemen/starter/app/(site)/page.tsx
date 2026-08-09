@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
+
 import { SectionRenderer } from "@/components/SectionRenderer";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { getPublishedPage } from "@/lib/services/publicContent";
+import { canonicalSiteUrl } from "@/lib/db/env";
+import { BRAND, canonicalUrl, organizationJsonLd } from "@/lib/domain/seo";
 
 /**
  * Homepage — the first public route to render from the database rather than
@@ -18,6 +23,32 @@ import { getPublishedPage } from "@/lib/services/publicContent";
  */
 export const revalidate = 3600;
 
+/**
+ * The homepage keeps the bare brand as its title — no suffix, because
+ * "Modern Gentlemen — Modern Gentlemen" is what `pageTitle("")` exists to avoid.
+ *
+ * Its canonical is the bare origin. That matters more here than anywhere else:
+ * `/` and `//` and `/index` are three URLs to a crawler and one page to a user,
+ * and a homepage whose ranking is split across them is the classic version of
+ * this bug. `canonicalUrl(base, "/")` strips the trailing slash for exactly this.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const base = canonicalSiteUrl();
+
+  return {
+    title: BRAND,
+    description: "Style, grooming, watches, culture and film — for the considered man.",
+    alternates: { canonical: canonicalUrl(base, "/") },
+    openGraph: {
+      type: "website",
+      siteName: BRAND,
+      title: BRAND,
+      description: "Style, grooming, watches, culture and film — for the considered man.",
+      url: canonicalUrl(base, "/"),
+    },
+  };
+}
+
 export default async function HomePage() {
   const page = await getPublishedPage("home");
 
@@ -32,5 +63,13 @@ export default async function HomePage() {
     );
   }
 
-  return <SectionRenderer sections={page.sections} />;
+  return (
+    <>
+      {/* Site identity, emitted once and only here — an Organization block on
+          every page is the same claim repeated, and search engines take the
+          homepage's as canonical anyway. Renders no markup. */}
+      <JsonLd data={organizationJsonLd(canonicalSiteUrl())} />
+      <SectionRenderer sections={page.sections} />
+    </>
+  );
 }

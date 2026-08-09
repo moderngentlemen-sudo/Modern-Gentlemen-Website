@@ -14,6 +14,7 @@
  */
 
 import { penceToPounds } from "./money";
+import type { ProductAvailability } from "./products";
 import { publicPathForArticle, publicPathForProduct } from "./routes";
 
 export const BRAND = "Modern Gentlemen";
@@ -69,11 +70,28 @@ export function canonicalUrl(siteUrl: string, path: string): string {
   return `${origin}${suffix}`;
 }
 
-/** `availability` as schema.org spells it. Anything not positively in stock is
- *  OutOfStock: guessing "PreOrder" or "BackOrder" from a zero would be inventing
- *  a claim about fulfilment the catalogue does not make. */
-export function schemaAvailability(inStock: boolean): string {
-  return inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+/**
+ * `products.availability` as schema.org spells it.
+ *
+ * A one-to-one map over the four values `0005_commerce.sql`'s CHECK allows,
+ * rather than a boolean "in stock or not". The column already distinguishes a
+ * preorder from a sold-out item and a discontinued one from both, and
+ * collapsing that to `OutOfStock` would state something false to a shopping
+ * feed: `OutOfStock` means "come back later", `Discontinued` means "do not",
+ * and `PreOrder` means "buy it now, it ships later". Merchant Center reads
+ * these and acts on them.
+ */
+export function schemaAvailability(availability: ProductAvailability): string {
+  switch (availability) {
+    case "in_stock":
+      return "https://schema.org/InStock";
+    case "out_of_stock":
+      return "https://schema.org/OutOfStock";
+    case "preorder":
+      return "https://schema.org/PreOrder";
+    case "discontinued":
+      return "https://schema.org/Discontinued";
+  }
 }
 
 export interface ProductForSchema {
@@ -82,7 +100,7 @@ export interface ProductForSchema {
   blurb?: string | null;
   material?: string | null;
   pricePence: number;
-  inStock: boolean;
+  availability: ProductAvailability;
   images: string[];
 }
 
@@ -115,7 +133,7 @@ export function productJsonLd(siteUrl: string, product: ProductForSchema): Recor
       priceCurrency: "GBP",
       // toFixed(2), because 14500 pence is 145 and a crawler expects "145.00".
       price: penceToPounds(product.pricePence).toFixed(2),
-      availability: schemaAvailability(product.inStock),
+      availability: schemaAvailability(product.availability),
     },
   };
 }

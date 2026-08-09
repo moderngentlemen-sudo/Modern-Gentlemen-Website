@@ -22,9 +22,17 @@ import { canonicalSiteUrl } from "@/lib/db/env";
  * - `/bag`, `/checkout` — a session's private state. Nothing to index, and a
  *   crawler walking checkout is a crawler filling in forms.
  *
- * `/sign-in` is deliberately *not* disallowed: it is an ordinary public page,
- * and hiding it from crawlers while linking to it from every admin redirect is
- * the sort of inconsistency that looks like a mistake later.
+ * `/sign-in` is deliberately *not* disallowed, and the reason is the one thing
+ * about robots.txt that is most often got backwards. The page sets
+ * `robots: { index: false }` in its own metadata — has since Track A — and **a
+ * disallowed URL is never fetched, so its noindex is never read.** Disallowing
+ * it here would therefore make it *more* likely to be indexed, not less: a
+ * crawler that finds the link elsewhere may list the bare URL it was forbidden
+ * to look at. Allowing the crawl is what lets the page say "do not index me".
+ *
+ * The same logic is why `/bag` and `/checkout` carry a `noindex` of their own
+ * as well as a disallow here: the disallow is the cheap first line, the meta tag
+ * is the one that survives being linked to from outside.
  */
 export default function robots(): MetadataRoute.Robots {
   const base = canonicalSiteUrl();

@@ -10,6 +10,7 @@ import {
   productJsonLd,
   schemaAvailability,
 } from "./seo";
+import { PRODUCT_AVAILABILITIES } from "./products";
 
 const SITE = "https://modern-gentlemen-website-production.up.railway.app";
 
@@ -87,7 +88,7 @@ describe("productJsonLd", () => {
     blurb: "A jacket.",
     material: "Waxed cotton",
     pricePence: 14_500,
-    inStock: true,
+    availability: "in_stock" as const,
     images: ["/images/jacket.jpg"],
   };
 
@@ -118,13 +119,34 @@ describe("productJsonLd", () => {
     expect(ld.image).toEqual([`${SITE}/images/jacket.jpg`]);
   });
 
-  it("marks a product out of stock rather than guessing a fulfilment story", () => {
-    const offers = (productJsonLd(SITE, { ...product, inStock: false }).offers ?? {}) as Record<
-      string,
-      unknown
-    >;
+  it("carries availability through from the product rather than assuming in stock", () => {
+    const offers = (productJsonLd(SITE, { ...product, availability: "out_of_stock" }).offers ??
+      {}) as Record<string, unknown>;
     expect(offers.availability).toBe("https://schema.org/OutOfStock");
-    expect(schemaAvailability(true)).toBe("https://schema.org/InStock");
+  });
+
+  /**
+   * The four the CHECK in `0005_commerce.sql` allows, each to its own schema.org
+   * term. This is the assertion that stops someone "simplifying" the map back to
+   * a boolean: a preorder reported as OutOfStock tells a shopping feed the item
+   * cannot be bought, when the whole point of a preorder is that it can.
+   */
+  it.each([
+    ["in_stock", "https://schema.org/InStock"],
+    ["out_of_stock", "https://schema.org/OutOfStock"],
+    ["preorder", "https://schema.org/PreOrder"],
+    ["discontinued", "https://schema.org/Discontinued"],
+  ] as const)("maps %s to %s", (availability, expected) => {
+    expect(schemaAvailability(availability)).toBe(expected);
+  });
+
+  it("covers every availability the database allows", () => {
+    // If a migration adds a fifth value, `schemaAvailability`'s switch stops
+    // being exhaustive and typecheck fails — but only if something imports the
+    // list. This is that something.
+    for (const availability of PRODUCT_AVAILABILITIES) {
+      expect(schemaAvailability(availability)).toMatch(/^https:\/\/schema\.org\/\w+$/);
+    }
   });
 
   it("omits material when there is none rather than emitting an empty claim", () => {

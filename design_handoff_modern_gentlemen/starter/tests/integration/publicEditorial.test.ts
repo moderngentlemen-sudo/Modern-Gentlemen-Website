@@ -31,7 +31,7 @@ import {
 } from "@/lib/services/publicEditorial";
 import { ARTICLES, articleSlugs, getArticleBySlug } from "@/lib/demo/articles";
 import { categoryDocumentSections, demoCategorySections } from "@/lib/demo/category-sections";
-import { categorySlugs } from "@/lib/demo/editorial";
+import { categorySlugs, getCategory } from "@/lib/demo/editorial";
 import { adminClient } from "../support/fixtures";
 import { testEnv } from "../setup/integration.setup";
 
@@ -102,6 +102,20 @@ describe("the published articles", () => {
 describe("the published category pages", () => {
   it("publishes all five", async () => {
     expect((await listPublishedCategorySlugs()).sort()).toEqual([...categorySlugs].sort());
+  });
+
+  /**
+   * `intro` is the category page's meta description and nothing else reads it —
+   * which is exactly why it needs an assertion. A read that silently dropped the
+   * column would leave five landing pages with no description at all, and
+   * nothing on the rendered page would look any different.
+   */
+  it("carries the intro every category page's meta description is built from", async () => {
+    for (const slug of categorySlugs) {
+      const doc = await getPublishedCategory(slug);
+      expect(doc!.intro, slug).toBe(getCategory(slug)?.blurb ?? null);
+      expect(doc!.intro, slug).toBeTruthy();
+    }
   });
 
   it("renders exactly what the route composed in code before Phase 7c", async () => {
