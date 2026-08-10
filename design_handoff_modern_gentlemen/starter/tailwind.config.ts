@@ -10,7 +10,19 @@ const config: Config = {
           fg: "var(--mg-fg)",
           surface: "var(--mg-surface)",
           bd: "var(--mg-bd)",
-          accent: "#C8102E",
+          // Channel form, not `var(--mg-accent)`, so the theme editor can drive
+          // the racing red WITHOUT breaking the ~21 alpha-modified accent
+          // utilities. Tailwind 3.4's `withAlphaValue` runs `parseColor` over
+          // the theme value and drops the utility entirely when it cannot parse
+          // one — `var(--x)` never parses. `mg.accentSerif` below is the proof
+          // rather than the theory: it is already a bare `var()`, and every one
+          // of its eight alpha modifiers compiles to no CSS at all today.
+          //
+          // `--mg-accent` stays a hex for the three raw `var(--mg-accent)` uses
+          // in globals.css and for the token table in the design baseline; the
+          // theme emitter derives `--mg-accent-rgb` from it, so the two cannot
+          // drift and an editor still stores one value.
+          accent: "rgb(var(--mg-accent-rgb) / <alpha-value>)",
           accentSerif: "var(--mg-accent-serif)",
           // Prototype's `tMuted` / `tFaint` secondary text ramps.
           muted: "var(--mg-muted)",

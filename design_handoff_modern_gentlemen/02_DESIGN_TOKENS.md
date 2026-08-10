@@ -13,15 +13,24 @@ Exact values, lifted from the prototype design system. Set these as the single s
 | `--mg-accent-serif` | `#C8102E` | `#ff4d5e` | Brighter red for serif accents on dark |
 
 - **Default theme is light.** Dark regions that must stay dark in both themes (hero scrims, red CTA bands) are marked `data-darkband` in the prototype — in React, wrap them in a `<DarkBand>` that pins `--mg-fg:#f4f4f4; --mg-bd:#ffffff` regardless of theme.
-- Muted text in the prototype = `color-mix(in srgb, var(--mg-fg) XX%, transparent)`. Reproduce with Tailwind opacity utilities on the fg color, or keep the `color-mix` approach.
+- ⚠️ **Muted text is NOT a `color-mix` of `--mg-fg`, and this line used to say it was.** The implementation settled on four discrete values, and `starter/app/globals.css:13-14` states why: "Flat greys in light, translucent paper in dark — not opacities of `--mg-fg`." Those values are `--mg-muted` `#8a8a8a` / `rgba(244,244,244,0.5)` and `--mg-faint` `#b0b0b0` / `rgba(244,244,244,0.35)` (light / dark). A ramp derived from `--mg-fg` does not reproduce them.
 - Keep whites/blacks subtly toned (they already are). Don't introduce new saturated colors beyond the red.
 
 ### CSS-variable setup
 ```css
-:root { --mg-bg:#0d0d0d; --mg-fg:#f4f4f4; --mg-surface:#131315; --mg-bd:#ffffff; --mg-accent:#C8102E; --mg-accent-serif:#ff4d5e; }
-html[data-mgtheme="light"] { --mg-bg:#f4f4f4; --mg-fg:#141414; --mg-surface:#ffffff; --mg-bd:#141414; --mg-accent-serif:#C8102E; }
+:root { --mg-bg:#0d0d0d; --mg-fg:#f4f4f4; --mg-surface:#131315; --mg-bd:#ffffff; --mg-accent:#c8102e; --mg-accent-rgb:200 16 46; --mg-accent-serif:#ff4d5e;
+        --mg-muted:rgba(244,244,244,0.5); --mg-faint:rgba(244,244,244,0.35); --mg-band-border:rgba(255,255,255,0.12); }
+html[data-mgtheme="light"] { --mg-bg:#f4f4f4; --mg-fg:#141414; --mg-surface:#ffffff; --mg-bd:#141414; --mg-accent-serif:#c8102e;
+        --mg-muted:#8a8a8a; --mg-faint:#b0b0b0; --mg-band-border:transparent; }
 ```
 Then in Tailwind reference them (`bg-[var(--mg-bg)]`) or map to theme colors (below).
+
+**`--mg-accent-rgb` is the same red in `R G B` channels**, added when the theme editor made the accent editable. Tailwind cannot compute an alpha from a colour whose value is `var(--x)` — it drops the utility entirely — so `mg.accent` maps to `rgb(var(--mg-accent-rgb) / <alpha-value>)` and the ~21 `bg-mg-accent/5`-style utilities keep working. `--mg-accent` stays a hex for the three raw `var(--mg-accent)` uses in `globals.css`. The theme editor derives one from the other, so they cannot drift.
+
+Three token facts the table above does not carry, all load-bearing:
+- `--mg-accent` is the **only** token never overridden — same value in light, dark and inside a dark band.
+- `--mg-band-border` is deliberately **absent** from `[data-darkband]`: the hairline is keyed off the *page* theme, so a dark band on a light page still takes no hairline.
+- `--mg-surface` genuinely differs inside a band (`#161618`) from `:root` (`#131315`), which is why the dark-band context is a full set of values rather than a delta.
 
 ## Typography
 Four families, each with a fixed role:

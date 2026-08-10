@@ -30,7 +30,10 @@ Modern Gentlemen — a men's editorial + lifestyle brand (style, grooming, watch
 
 - Default theme **light**; boot before paint (inline script) to avoid flash.
 - `[data-darkband]` regions stay dark in both themes (hero scrims, red CTA bands): pin `--mg-fg:#f4f4f4; --mg-bd:#ffffff`.
-- Muted text = `color-mix(in srgb, var(--mg-fg) N%, transparent)`. Footer is **always dark**, not theme-reactive.
+- ⚠️ **Muted text is NOT `color-mix(in srgb, var(--mg-fg) N%, transparent)` — this line said so and was wrong.** `--mg-muted` and `--mg-faint` are four discrete values (`#8a8a8a` / `#b0b0b0` in light, `rgba(244,244,244,0.5)` / `rgba(244,244,244,0.35)` in dark), and `starter/app/globals.css:13-14` says why: "Flat greys in light, translucent paper in dark — not opacities of `--mg-fg`." The implementation won this disagreement long ago; the doc is only now catching up.
+- Footer is **always dark**, not theme-reactive.
+
+> **The colour tokens are editable data since Phase 6b.** `/admin/theme` writes them to `theme_settings` and `app/layout.tsx` emits them as a `<style>` block over the defaults above. The values in this table remain the baseline and the fallback — they are what a fresh database is seeded with and what the site serves when nothing is published — so this table is still authoritative about what the design *is*. Two additions it now needs: `--mg-accent-rgb` (`200 16 46`), the same red in channels, because Tailwind cannot compute an alpha from a bare `var()`; and `--mg-band-border` / `--mg-muted` / `--mg-faint`, which were always in `globals.css` and never in this table. See `02_DESIGN_TOKENS.md`.
 
 ### Typography
 | Family | Role |
