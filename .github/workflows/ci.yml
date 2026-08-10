@@ -25,6 +25,26 @@ env:
   # forgets this one would fail in a way whose message points at Railway.
   NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
+  # The Supabase CLI, pinned rather than `latest`.
+  #
+  # `supabase/setup-cli@v1` with `version: latest` resolves through the GitHub
+  # API on every run, and it rate-limited on 2026-08-09 — failing the Integration
+  # job 21 seconds in, on a commit that touched only PROGRESS.md:
+  #
+  #   ##[error]Failed to resolve latest Supabase CLI release: rate limit exceeded
+  #
+  # Two jobs start a stack, so `latest` cost two lookups per run and made the
+  # toolchain irreproducible into the bargain: the same migrations would meet a
+  # different binary next month. Same trade already made for Playwright, which is
+  # pinned to 1.56.1 to match the preinstalled browsers.
+  #
+  # Top-level for the reason NEXT_PUBLIC_SITE_URL is: a third stack-starting job
+  # added later would otherwise quietly reintroduce `latest`.
+  #
+  # Bumping is a deliberate act. This value is what `latest` resolved to when the
+  # pin was introduced, so adopting it changed nothing.
+  SUPABASE_CLI_VERSION: 2.113.0
+
 defaults:
   run:
     working-directory: design_handoff_modern_gentlemen/starter
@@ -51,6 +71,15 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      # Needs no secrets, no stack and no database — which is why it belongs in
+      # the fast job rather than beside the tests. Fails when code reads an
+      # environment variable `.env.example` does not declare. PROGRESS.md records
+      # that exact bug three times (JOBS_SECRET, SUPABASE_SERVICE_ROLE_KEY,
+      # NEXT_PUBLIC_SITE_URL) and asked for this check by name; it found a fourth
+      # on its first run.
+      - name: Environment variables are declared
+        run: node scripts/check-env.mjs
+
       - name: TypeScript
         run: npm run typecheck
 
@@ -58,11 +87,39 @@ jobs:
         run: npm test
 
       # Advisory only: docs discipline must never block a hotfix.
+      #
+      # ⚠️ This step did nothing at all until 2026-08-09, on every PR since it was
+      # written. `actions/checkout` clones shallow (fetch-depth 1), so
+      # `origin/<base>` is not a ref in the runner's clone and the diff died with
+      #
+      #   fatal: ambiguous argument 'origin/main...HEAD': unknown revision …
+      #
+      # which the old `|| true` swallowed. CHANGED came out empty, the greps
+      # matched nothing, and the step exited 0 having checked nothing. It was
+      # found by reading a *green* log — which is the only way a silent no-op is
+      # ever found.
+      #
+      # Two changes fix it and keep it advisory:
+      #   * fetch the base branch explicitly, one branch at depth 1 rather than
+      #     `fetch-depth: 0` on the checkout — this repo carries a 15 MB
+      #     screenshot bundle and no other job needs full history;
+      #   * drop `|| true` for an explicit branch that WARNS when the fetch
+      #     fails, so a future breakage is visible instead of silent.
+      #
+      # Two-dot, not three-dot: on a pull_request event HEAD is already the merge
+      # of this PR into base, so `FETCH_HEAD..HEAD` is exactly what the PR
+      # changes — and three-dot would need a merge base a shallow fetch may not
+      # have.
       - name: PROGRESS.md freshness
         if: github.event_name == 'pull_request'
         working-directory: .
         run: |
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)
+          if ! git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"; then
+            echo "::warning title=PROGRESS.md check skipped::could not fetch ${{ github.base_ref }} to diff against"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only FETCH_HEAD HEAD)
           if echo "$CHANGED" | grep -q '^design_handoff_modern_gentlemen/starter/'; then
             if ! echo "$CHANGED" | grep -q '^PROGRESS.md$'; then
               echo "::warning title=PROGRESS.md not updated::This PR changes starter/ but does not update PROGRESS.md - it is the session handoff document, please refresh it."
@@ -86,7 +143,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: Start local Supabase stack
         run: supabase start --workdir .
@@ -170,7 +227,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: Start local Supabase stack
         run: supabase start --workdir .
