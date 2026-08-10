@@ -28,8 +28,13 @@ type Rpc = keyof Database["public"]["Functions"];
  * `0010` raises `42501` for its own permission checks and for anything RLS
  * refuses, and `P0002` when the row is absent — which is also what a caller
  * sees when RLS hides it, and correctly so.
+ *
+ * Exported for `theme.ts`, which calls the same RPCs for an entity that is a
+ * document in SQL but deliberately not a `DocumentType` in TypeScript, and so
+ * cannot come through the functions below. Shared rather than copied because a
+ * second copy of this mapping would drift the first time `0010` grew a code.
  */
-function rpcError(
+export function rpcError(
   fn: Rpc,
   permission: Permission,
   error: { code?: string; message: string }

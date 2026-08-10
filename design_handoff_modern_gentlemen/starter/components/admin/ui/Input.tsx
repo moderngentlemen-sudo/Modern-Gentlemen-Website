@@ -133,4 +133,79 @@ export function TextArea({
   );
 }
 
+export interface ColorInputProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  help?: string;
+  error?: string;
+  disabled?: boolean;
+  /** Shown as the placeholder and restored by the swatch's clear affordance. */
+  fallback?: string;
+}
+
+/**
+ * A colour, as a swatch and as text — both, always, and the text field is not
+ * the optional half.
+ *
+ * `<input type="color">` can only express an opaque `#rrggbb`. Four of the
+ * nine design tokens are not that: `--mg-muted` and `--mg-faint` are
+ * `rgba(244, 244, 244, 0.5)` and `rgba(…, 0.35)` in dark, and
+ * `--mg-band-border` is `transparent` in light. A swatch-only control would
+ * quietly flatten each of those to a solid colour the first time anyone touched
+ * it, and the change would look deliberate. So the text field is the real
+ * control and the swatch is an affordance on top of it.
+ *
+ * The swatch therefore shows `#000000` for a value it cannot represent, which is
+ * a lie it cannot avoid — hence `aria-hidden` and `tabIndex={-1}`: it is a
+ * pointer convenience, and the text input is what assistive technology and the
+ * keyboard get. That is also why the accessible label belongs to the text input
+ * and the swatch has none.
+ */
+export function ColorInput({
+  label,
+  value,
+  onChange,
+  help,
+  error,
+  disabled,
+  fallback,
+}: ColorInputProps) {
+  const id = useId();
+  const swatchable = /^#[0-9a-fA-F]{6}$/.test(value.trim());
+
+  return (
+    <FieldShell label={label} help={help} error={error} htmlFor={id}>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          aria-hidden="true"
+          tabIndex={-1}
+          disabled={disabled}
+          value={swatchable ? value.trim().toLowerCase() : "#000000"}
+          onChange={(e) => onChange(e.target.value)}
+          className={clsx(
+            "h-9 w-9 shrink-0 cursor-pointer border border-mg-bd/25 bg-transparent p-0.5",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            !swatchable && "opacity-40"
+          )}
+        />
+        <input
+          id={id}
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          value={value}
+          disabled={disabled}
+          placeholder={fallback}
+          onChange={(e) => onChange(e.target.value)}
+          data-invalid={error ? "" : undefined}
+          aria-invalid={!!error}
+          className={clsx(CONTROL, "font-mono text-[13px]")}
+        />
+      </div>
+    </FieldShell>
+  );
+}
+
 export { FieldShell };
