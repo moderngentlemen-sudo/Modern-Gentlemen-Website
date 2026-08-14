@@ -69,5 +69,10 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
 ## Rules for changes
 - No resizing, merging, simplifying, or cleaning up elements/spacing/components — implement as designed even if non-standard.
 - Infer breakpoints only from the prototypes/screenshots — do not invent your own.
+  > ⚠️ **One scoped exception, decided deliberately and recorded here rather than only in `PROGRESS.md`.** A **layout/columns block** for the page builder — nesting, column widths and their responsive behaviour — **may define its own breakpoints**, because the handoff bundle contains no layout primitive to infer them from. `05_SECTION_BUILDER.md` says the renderer "just stacks" blocks, so there is nothing to copy; building it means inventing, and that has been accepted as the cost of an arbitrary-nesting layout engine.
+  >
+  > **The exception is narrow.** It covers a new layout block and nothing else. The tokens, the type scale, the 1320px column, the motion timings and every existing component stay exactly as specified — and the sixteen baselines in `handoff/screenshots/` remain the gate, so anything already rendering must still render byte-identically.
+  >
+  > This note lives beside the rule it modifies on purpose: an override recorded somewhere else is not an override, it is a contradiction the next session has to adjudicate. See the decisions log in `/PROGRESS.md` for the reasoning.
 - After building each screen, screenshot your output and diff against `handoff/screenshots/`; fix pixel differences before moving on.
 - One section block = one component with a tight prop contract; variants via a `variant` prop (see `MODULE_MAP.md`).
