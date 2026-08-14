@@ -171,6 +171,108 @@ async function makeMenuWithItem(
   return { menuId: menu.id, itemId: item.id };
 }
 
+/**
+ * An article with one tag attached. The join row cascades with the article, so
+ * only the tag itself needs tracking.
+ */
+async function makeTaggedArticle(
+  status: "draft" | "published"
+): Promise<{ articleId: string; tagId: string }> {
+  const article = await makeArticle(status);
+
+  const { data: tag, error } = await db
+    .from("tags")
+    .insert({ slug: prefixed("rls-tag"), label: "RLS fixture tag" })
+    .select("id")
+    .single();
+  if (error || !tag) throw new Error(`makeTag: ${error?.message}`);
+  fixtures.track("tags", tag.id);
+
+  const { error: linkError } = await db
+    .from("article_tags")
+    .insert({ article_id: article.id, tag_id: tag.id });
+  if (linkError) throw new Error(`makeArticleTag: ${linkError.message}`);
+
+  return { articleId: article.id, tagId: tag.id };
+}
+
+/** Two articles and the relation between them, each end independently staged. */
+async function makeRelatedArticles(
+  ownerStatus: "draft" | "published",
+  relatedStatus: "draft" | "published"
+): Promise<{ ownerId: string; relatedId: string }> {
+  const owner = await makeArticle(ownerStatus);
+  const related = await makeArticle(relatedStatus);
+
+  const { error } = await db
+    .from("article_relations")
+    .insert({ article_id: owner.id, related_id: related.id });
+  if (error) throw new Error(`makeArticleRelation: ${error.message}`);
+
+  return { ownerId: owner.id, relatedId: related.id };
+}
+
+/** A product carrying the two children that would disclose its pricing. */
+async function makeProductWithChildren(
+  status: "draft" | "published"
+): Promise<{ productId: string; variantId: string; assetId: string }> {
+  const product = await makeProduct(status);
+
+  const { data: variant, error } = await db
+    .from("product_variants")
+    .insert({ product_id: product.id, title: "RLS fixture variant", sku: prefixed("rls-sku") })
+    .select("id")
+    .single();
+  if (error || !variant) throw new Error(`makeVariant: ${error?.message}`);
+
+  const { data: asset, error: assetError } = await db
+    .from("media_assets")
+    .insert({
+      storage_path: prefixed("rls/child.jpg"),
+      kind: "image",
+      mime_type: "image/jpeg",
+      file_name: "child.jpg",
+    })
+    .select("id")
+    .single();
+  if (assetError || !asset) throw new Error(`makeAsset: ${assetError?.message}`);
+  fixtures.track("media_assets", asset.id);
+
+  const { error: linkError } = await db
+    .from("product_media")
+    .insert({ product_id: product.id, asset_id: asset.id });
+  if (linkError) throw new Error(`makeProductMedia: ${linkError.message}`);
+
+  return { productId: product.id, variantId: variant.id, assetId: asset.id };
+}
+
+/** A collection membership, with each end independently staged. */
+async function makeCollectionItem(
+  collectionStatus: "draft" | "published",
+  productStatus: "draft" | "published"
+): Promise<{ collectionId: string; productId: string }> {
+  const { data: collection, error } = await db
+    .from("product_collections")
+    .insert({
+      slug: prefixed("rls-collection"),
+      name: "RLS fixture collection",
+      status: collectionStatus,
+    })
+    .select("id")
+    .single();
+  if (error || !collection) throw new Error(`makeCollection: ${error?.message}`);
+  fixtures.track("product_collections", collection.id);
+
+  const product = await makeProduct(productStatus);
+
+  const { error: linkError } = await db
+    .from("product_collection_items")
+    .insert({ collection_id: collection.id, product_id: product.id });
+  if (linkError) throw new Error(`makeCollectionItem: ${linkError.message}`);
+
+  return { collectionId: collection.id, productId: product.id };
+}
+
 /* ------------------------------------------------- anonymous read behaviour */
 
 describe("anon reads: unpublished documents are invisible", () => {
@@ -216,6 +318,136 @@ describe("anon reads: unpublished documents are invisible", () => {
 
     const { data: shownItems } = await anon.from("menu_items").select("id").eq("id", live.itemId);
     expect(shownItems ?? [], "items of a published menu").toHaveLength(1);
+  });
+});
+
+/**
+ * `0019`. Five child tables shipped `using (true)` while their parents were
+ * scoped to published-or-staff, so a draft parent hid itself and disclosed its
+ * children — a draft product's sku and price_pence being the sharpest case,
+ * because ingestion creates imported products as drafts.
+ *
+ * Each test asserts both halves. The positive half is what stops the fix from
+ * being "deny everything", which would pass every negative assertion here and
+ * empty the PDP gallery in production.
+ */
+describe("anon reads: a child row follows its parent's publish state", () => {
+  it("hides the tags of a draft article", async () => {
+    const draft = await makeTaggedArticle("draft");
+    const live = await makeTaggedArticle("published");
+
+    const { data: hidden } = await anon
+      .from("article_tags")
+      .select("tag_id")
+      .eq("article_id", draft.articleId);
+    expect(hidden ?? [], "tags of an unpublished article").toHaveLength(0);
+
+    const { data: shown } = await anon
+      .from("article_tags")
+      .select("tag_id")
+      .eq("article_id", live.articleId);
+    expect(shown ?? [], "tags of a published article").toHaveLength(1);
+  });
+
+  it("hides a relation whose other end is still a draft", async () => {
+    const bothLive = await makeRelatedArticles("published", "published");
+    const relatedIsDraft = await makeRelatedArticles("published", "draft");
+    const ownerIsDraft = await makeRelatedArticles("draft", "published");
+
+    const { data: shown } = await anon
+      .from("article_relations")
+      .select("related_id")
+      .eq("article_id", bothLive.ownerId);
+    expect(shown ?? [], "both ends published").toHaveLength(1);
+
+    // The published owner is readable, so only the far end's check can hide
+    // this row — which is the half a one-sided policy would have missed.
+    const { data: hiddenFarEnd } = await anon
+      .from("article_relations")
+      .select("related_id")
+      .eq("article_id", relatedIsDraft.ownerId);
+    expect(hiddenFarEnd ?? [], "a published article related to a draft").toHaveLength(0);
+
+    const { data: hiddenOwner } = await anon
+      .from("article_relations")
+      .select("related_id")
+      .eq("article_id", ownerIsDraft.ownerId);
+    expect(hiddenOwner ?? [], "relations belonging to a draft article").toHaveLength(0);
+  });
+
+  it("hides the variants of a draft product — the sku and price case", async () => {
+    const draft = await makeProductWithChildren("draft");
+    const live = await makeProductWithChildren("published");
+
+    const { data: hidden } = await anon
+      .from("product_variants")
+      .select("sku, price_pence")
+      .eq("id", draft.variantId);
+    expect(hidden ?? [], "variants of an unpublished product").toHaveLength(0);
+
+    const { data: shown } = await anon
+      .from("product_variants")
+      .select("sku, price_pence")
+      .eq("id", live.variantId);
+    expect(shown ?? [], "variants of a published product").toHaveLength(1);
+  });
+
+  it("hides the gallery of a draft product", async () => {
+    const draft = await makeProductWithChildren("draft");
+    const live = await makeProductWithChildren("published");
+
+    const { data: hidden } = await anon
+      .from("product_media")
+      .select("asset_id")
+      .eq("product_id", draft.productId);
+    expect(hidden ?? [], "gallery of an unpublished product").toHaveLength(0);
+
+    const { data: shown } = await anon
+      .from("product_media")
+      .select("asset_id")
+      .eq("product_id", live.productId);
+    expect(shown ?? [], "gallery of a published product").toHaveLength(1);
+  });
+
+  it("hides a collection membership when either end is a draft", async () => {
+    const bothLive = await makeCollectionItem("published", "published");
+    const draftProduct = await makeCollectionItem("published", "draft");
+    const draftCollection = await makeCollectionItem("draft", "published");
+
+    const { data: shown } = await anon
+      .from("product_collection_items")
+      .select("product_id")
+      .eq("collection_id", bothLive.collectionId);
+    expect(shown ?? [], "both ends published").toHaveLength(1);
+
+    const { data: hiddenProduct } = await anon
+      .from("product_collection_items")
+      .select("product_id")
+      .eq("collection_id", draftProduct.collectionId);
+    expect(hiddenProduct ?? [], "a draft product inside a published collection").toHaveLength(0);
+
+    const { data: hiddenCollection } = await anon
+      .from("product_collection_items")
+      .select("product_id")
+      .eq("collection_id", draftCollection.collectionId);
+    expect(hiddenCollection ?? [], "membership of an unpublished collection").toHaveLength(0);
+  });
+
+  it("still shows all five to staff, because the policies keep is_staff()", async () => {
+    const article = await makeTaggedArticle("draft");
+    const product = await makeProductWithChildren("draft");
+
+    const { data: tags } = await editorDb
+      .from("article_tags")
+      .select("tag_id")
+      .eq("article_id", article.articleId);
+    expect(tags ?? [], "an editor must still see a draft article's tags").toHaveLength(1);
+
+    const { data: variants } = await editorDb
+      .from("product_variants")
+      .select("id")
+      .eq("product_id", product.productId);
+    expect(variants ?? [], "and a draft product's variants").toHaveLength(1);
   });
 });
 
