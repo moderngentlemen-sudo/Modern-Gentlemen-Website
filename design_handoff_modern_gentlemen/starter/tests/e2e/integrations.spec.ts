@@ -114,6 +114,19 @@ test.describe("integrations", () => {
 
     await page.getByRole("button", { name: "Save mappings" }).click();
 
+    // ⚠️ Wait for the app's own success signal before reloading. Without this the
+    // reload races the server action and can abort it mid-flight — and because
+    // `replaceMappings` is delete-then-insert and not transactional, the delete
+    // can land while the insert is lost, leaving the source with *zero*
+    // mappings. That is why the failure looked like "element(s) not found"
+    // rather than a stale value, and why all three retries failed together.
+    //
+    // The toast is the right signal: it is pushed only after the action returns.
+    // Matched by text rather than by `getByRole("status")`, because the toast
+    // container is always mounted even when empty. It is deliberately `status`
+    // and not `alert`, so it does not collide with Next's route announcer.
+    await expect(page.getByText("Mappings saved")).toBeVisible();
+
     await page.reload();
 
     // Read back from `feed_field_mappings`, not from the component's state.
