@@ -65,10 +65,11 @@ test.describe("password recovery — signed in", () => {
   test("the admin can reach its own password page", async ({ page }) => {
     await signIn(page);
 
-    // Scoped to the navigation rail: "Password" is also a field label on the
-    // page it opens, so an unscoped locator becomes ambiguous the moment the
-    // assertion below succeeds. Same trap as "Integrations" on the feeds screen.
-    await page.getByRole("navigation").getByRole("link", { name: "Password" }).click();
+    // NOT scoped to `getByRole("navigation")` — this link deliberately lives in
+    // the rail's account footer, beside Light/Dark and Sign out, which is
+    // outside the `<nav>`. Scoping it there found nothing. `exact` because the
+    // page it opens has a "Password" heading and two labels containing the word.
+    await page.getByRole("link", { name: "Password", exact: true }).click();
 
     await expect(page).toHaveURL(/\/admin\/password$/);
     await expect(page.getByRole("heading", { name: "Password" })).toBeVisible();
@@ -82,14 +83,24 @@ test.describe("password recovery — signed in", () => {
 
     const update = page.getByRole("button", { name: "Update password" });
 
-    await page.getByLabel("New password").fill("short");
-    await page.getByLabel("Confirm new password").fill("short");
-    await expect(page.getByText(/at least 12 characters/i)).toBeVisible();
+    // ⚠️ `exact` on both, because `getByLabel` matches substrings: plain
+    // "New password" also matches "Confirm **new password**", which is two
+    // elements and a strict-mode failure rather than the first match.
+    const next = page.getByLabel("New password", { exact: true });
+    const confirm = page.getByLabel("Confirm new password", { exact: true });
+
+    await next.fill("short");
+    await confirm.fill("short");
+    // ⚠️ Matched on the full sentence, not /at least 12 characters/. The field's
+    // own help text reads "At least 12 characters, and under 72 bytes…", so the
+    // loose pattern matches the help *and* the error. These strings come from
+    // `lib/domain/passwords.ts`.
+    await expect(page.getByText("Use at least 12 characters.")).toBeVisible();
     await expect(update).toBeDisabled();
 
-    await page.getByLabel("New password").fill("correct horse battery staple");
-    await page.getByLabel("Confirm new password").fill("correct horse battery stapl");
-    await expect(page.getByText(/do not match/i)).toBeVisible();
+    await next.fill("correct horse battery staple");
+    await confirm.fill("correct horse battery stapl");
+    await expect(page.getByText("Those two passwords do not match.")).toBeVisible();
     await expect(update).toBeDisabled();
   });
 
