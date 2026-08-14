@@ -1,21 +1,8 @@
 "use client";
 
-import { type ComponentType } from "react";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { Fragment, type ComponentType } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useShallow } from "zustand/react/shallow";
 
@@ -33,6 +20,7 @@ import { EmptyState } from "@/components/admin/ui/EmptyState";
 
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { useBuilder } from "./StoreContext";
+import { gapDropId } from "./dnd";
 
 /** Widths the device switcher previews at. */
 const DEVICE_WIDTH = {
@@ -41,21 +29,30 @@ const DEVICE_WIDTH = {
   mobile: "w-[390px]",
 } as const;
 
-export function Canvas() {
+/**
+ * The page preview, and the drop surface for the library rail.
+ *
+ * `DndContext` lives in `Builder.tsx`, not here — it has to wrap the rail as
+ * well as the canvas for a cross-container drag to be possible at all, and it
+ * has to be outside the empty-tree branch or a brand-new page (the first thing
+ * an editor meets) would have no drag context whatsoever.
+ *
+ * The two props are that context's state, passed down rather than read from
+ * `useDndContext` so the rendering rule stays a function of its inputs and can
+ * be asserted without a layout engine. `libraryDragType` is the type being
+ * dragged in, or `null`; `dropIndex` is the insertion point under the pointer.
+ */
+export function Canvas({
+  libraryDragType = null,
+  dropIndex = null,
+}: {
+  libraryDragType?: string | null;
+  dropIndex?: number | null;
+} = {}) {
   const tree = useBuilder(useShallow((s) => s.tree));
   const device = useBuilder((s) => s.device);
-  const move = useBuilder((s) => s.move);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  function onDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    move(String(active.id), String(over.id));
-  }
+  const dragging = libraryDragType !== null;
 
   return (
     /**
@@ -76,30 +73,65 @@ export function Canvas() {
         <div className="flex justify-center px-6 py-6">
           <div className={clsx("transition-[width]", DEVICE_WIDTH[device])}>
             {tree.length === 0 ? (
-              <EmptyState eyebrow="Empty page" title="Add your first section">
-                Pick a section from the library on the left. Everything you add renders here exactly
-                as it will on the live site.
-              </EmptyState>
+              <EmptyDropZone dragging={dragging} over={dropIndex === 0} />
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={onDragEnd}
+              <SortableContext
+                items={tree.map((node) => node._key)}
+                strategy={verticalListSortingStrategy}
               >
-                <SortableContext
-                  items={tree.map((node) => node._key)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {tree.map((node) => (
-                    <SortableBlock key={node._key} node={node} />
-                  ))}
-                </SortableContext>
-              </DndContext>
+                {tree.map((node, index) => (
+                  <Fragment key={node._key}>
+                    {dragging && <GapDropZone index={index} over={dropIndex === index} />}
+                    <SortableBlock node={node} />
+                  </Fragment>
+                ))}
+                {dragging && <GapDropZone index={tree.length} over={dropIndex === tree.length} />}
+              </SortableContext>
             )}
           </div>
         </div>
       </CartProvider>
     </CatalogProvider>
+  );
+}
+
+/**
+ * One insertion point, rendered only while a library item is in flight.
+ *
+ * Registering them conditionally is what keeps block reordering unaffected: a
+ * gap is never a candidate `over` target for a drag that started on the canvas,
+ * so `closestCenter` still resolves to a block exactly as it did before.
+ */
+function GapDropZone({ index, over }: { index: number; over: boolean }) {
+  const { setNodeRef } = useDroppable({ id: gapDropId(index) });
+
+  return (
+    <div ref={setNodeRef} data-gap-index={index} className="relative h-6">
+      <div
+        className={clsx(
+          "absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 transition-colors",
+          over ? "bg-mg-accent" : "bg-transparent"
+        )}
+      />
+    </div>
+  );
+}
+
+/** The empty page — itself the drop target, resolving to index 0. */
+function EmptyDropZone({ dragging, over }: { dragging: boolean; over: boolean }) {
+  const { setNodeRef } = useDroppable({ id: gapDropId(0), disabled: !dragging });
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-gap-index={dragging ? 0 : undefined}
+      className={clsx("transition-shadow", over && "ring-2 ring-mg-accent")}
+    >
+      <EmptyState eyebrow="Empty page" title="Add your first section">
+        Pick a section from the library on the left, or drag one onto the page. Everything you add
+        renders here exactly as it will on the live site.
+      </EmptyState>
+    </div>
   );
 }
 

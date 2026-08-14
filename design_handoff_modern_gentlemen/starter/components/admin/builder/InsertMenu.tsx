@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type PointerEventHandler } from "react";
+import { useDraggable } from "@dnd-kit/core";
+
 import { clsx } from "@/components/ui/clsx";
 import { blockCatalog } from "@/components/sections/registry";
 import { BLOCK_CATEGORIES } from "@/lib/blocks/types";
 import { TextInput } from "@/components/admin/ui/Input";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
+
+import { libraryDragId } from "./dnd";
 
 /**
  * The section picker.
@@ -17,6 +21,11 @@ import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
  * Groups iterate `BLOCK_CATEGORIES` rather than the categories present in the
  * catalogue, so the order is the declared one (hero, editorial, commerce, bands,
  * people) instead of whatever order blocks happen to be registered in.
+ *
+ * Entries are draggable *and* clickable. The rail only sits inside a drag
+ * context because `DndContext` was hoisted to `Builder.tsx` — while it lived in
+ * `Canvas.tsx`, dragging from here onto the canvas was structurally impossible
+ * rather than merely unimplemented.
  */
 export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
   const [query, setQuery] = useState("");
@@ -56,19 +65,7 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
             <ul>
               {group.blocks.map((block) => (
                 <li key={block.type}>
-                  <button
-                    type="button"
-                    onClick={() => onInsert(block.type)}
-                    className={clsx(
-                      "block w-full px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
-                      FOCUS_RING
-                    )}
-                  >
-                    <span className="block text-[13px] font-medium">{block.label}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
-                      {block.description}
-                    </span>
-                  </button>
+                  <LibraryItem block={block} onInsert={onInsert} />
                 </li>
               ))}
             </ul>
@@ -76,5 +73,57 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * One catalogue entry: a button that inserts on click, and a drag source.
+ *
+ * **Only the pointer activator is wired.** `listeners` also carries the
+ * `KeyboardSensor`'s `onKeyDown`, which claims Enter and Space and calls
+ * `preventDefault` — so spreading it would turn the keyboard's click-to-insert
+ * into a keyboard drag and take away the accessible path this rail has always
+ * had. dnd-kit's `attributes` are skipped for the same reason: announcing the
+ * entry as draggable to a screen reader would be a promise nothing here keeps.
+ *
+ * Click and drag coexist on one control **because of the 6px activation
+ * constraint `Builder.tsx` configures**, and that coupling is easy to break
+ * from a distance. A stationary press never activates a drag, so the click
+ * lands; once a drag *has* activated, dnd-kit adds a capture-phase `click`
+ * listener on the document that stops propagation before React's root sees it,
+ * so a completed drop inserts exactly one block rather than two. Remove the
+ * constraint and every click here becomes a one-pixel drag instead.
+ */
+function LibraryItem({
+  block,
+  onInsert,
+}: {
+  block: (typeof blockCatalog)[number];
+  onInsert: (type: string) => void;
+}) {
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id: libraryDragId(block.type) });
+
+  // dnd-kit types its activator map as `Record<string, Function>`, so picking a
+  // single listener out of it needs the handler's real shape naming here.
+  const onPointerDown = listeners?.onPointerDown as
+    PointerEventHandler<HTMLButtonElement> | undefined;
+
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      onClick={() => onInsert(block.type)}
+      onPointerDown={onPointerDown}
+      className={clsx(
+        "block w-full cursor-grab px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
+        isDragging && "opacity-40",
+        FOCUS_RING
+      )}
+    >
+      <span className="block text-[13px] font-medium">{block.label}</span>
+      <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
+        {block.description}
+      </span>
+    </button>
   );
 }

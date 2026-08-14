@@ -138,3 +138,133 @@ test.describe("page builder", () => {
     await expect(page.getByRole("link", { name: pageTitle })).toHaveCount(0);
   });
 });
+
+/** Its own scratch page, minted per attempt for the reason above. */
+let dragTitle = "";
+let dragSlug = "";
+
+/**
+ * Drags a library entry onto the canvas and drops it in gap `gapIndex`.
+ *
+ * **Stepped moves, not `page.dragAndDrop()`.** The `PointerSensor` activates
+ * only after the pointer has travelled more than 6px, and it counts that over
+ * real `pointermove` events — a single-shot helper jumps straight to the target
+ * and typically does nothing at all while reporting success.
+ *
+ * The gap droppables are the other half of the timing: they do not exist until
+ * the drag has *started*, so the target cannot be located before the press.
+ * Waiting for one is therefore also the proof that the drag engaged, which is
+ * why the count assertion sits mid-drag rather than at the end.
+ *
+ * ⚠️ **The target gap must already be in the viewport.** A gap below the fold
+ * is attached, has a box, and silently drops nothing: a scripted drag jumps to
+ * the coordinates and releases, giving dnd-kit's autoscroll — which is what
+ * carries a *human* down a long page — no time to run. Found by driving this by
+ * hand against a throwaway harness, where dropping onto the fourth gap of a
+ * three-section page left the count unchanged. So the cases below stay near the
+ * top of the canvas deliberately; a "drop at the very bottom of a long page"
+ * test would need the drag to dwell at the edge instead.
+ */
+async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
+  const source = page.getByRole("button", { name: entry }).first();
+  await source.scrollIntoViewIfNeeded();
+
+  const from = await source.boundingBox();
+  expect(from, "the library entry has no box to drag from").not.toBeNull();
+
+  const startX = from!.x + from!.width / 2;
+  const startY = from!.y + from!.height / 2;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 40, startY, { steps: 8 });
+
+  const gap = page.locator(`[data-gap-index="${gapIndex}"]`);
+  await expect(gap).toHaveCount(1);
+
+  const to = await gap.boundingBox();
+  expect(to, "the insertion point has no box to drop onto").not.toBeNull();
+
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
+  await page.mouse.up();
+}
+
+test.describe("page builder — drag from the library", () => {
+  test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
+  test.describe.configure({ mode: "serial" });
+
+  test("drops onto an empty page, then above the block already there", async ({ page }) => {
+    await signIn(page);
+
+    await page.goto("/admin/pages");
+    const stamp = Date.now().toString(36);
+    dragTitle = `E2E Drag ${stamp}`;
+    dragSlug = `e2e-drag-${stamp}`;
+
+    await page.getByRole("button", { name: "New page" }).click();
+    const newPage = page.getByRole("dialog", { name: "New page" });
+    await newPage.getByLabel("Title").fill(dragTitle);
+    await newPage.getByLabel("Slug").fill(dragSlug);
+    await newPage.getByRole("button", { name: "Create", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
+    await expect(page.getByText("Add your first section")).toBeVisible();
+
+    // The empty canvas is the case the hoisted DndContext repairs: before it,
+    // a brand-new page had no drag context at all.
+    await dragFromLibrary(page, /^Pull quote/i, 0);
+    const blocks = page.locator("[data-block-key]");
+    await expect(blocks).toHaveCount(1);
+
+    // The trailing gap, then the leading one — the two ends of the index
+    // arithmetic, in that order so both targets stay above the fold.
+    await dragFromLibrary(page, /^Newsletter/i, 1);
+    await expect(blocks).toHaveCount(2);
+
+    await dragFromLibrary(page, /^Story band/i, 0);
+    await expect(blocks).toHaveCount(3);
+
+    // Order, not count. Appending every drop would satisfy all three counts
+    // above and fail here — which is the whole point of the slice.
+    await expect(blocks.nth(0).getByRole("button", { name: "Drag Story band" })).toHaveCount(1);
+    await expect(blocks.nth(1).getByRole("button", { name: "Drag Pull quote" })).toHaveCount(1);
+    await expect(blocks.nth(2).getByRole("button", { name: "Drag Newsletter" })).toHaveCount(1);
+
+    // Dropped blocks are ordinary edits: they leave the document dirty and save
+    // like any other, so the drag is not a UI-only illusion.
+    await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
+
+    await page.reload();
+    await expect(page.locator("[data-block-key]")).toHaveCount(3);
+  });
+
+  test("still inserts on click, which is the accessible path", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/pages");
+    await page.getByRole("link", { name: dragTitle }).click();
+
+    await expect(page.locator("[data-block-key]")).toHaveCount(3);
+
+    // The library entries became drag sources in the same change. A click that
+    // silently turned into a zero-distance drag would insert nothing, and a
+    // click arriving *after* a drag would insert twice — so the count is the
+    // assertion in both directions.
+    await page
+      .getByRole("button", { name: /^Timeline/i })
+      .first()
+      .click();
+    await expect(page.locator("[data-block-key]")).toHaveCount(4);
+  });
+
+  test("cleans up the page it created", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/pages");
+
+    const row = page.getByRole("row").filter({ hasText: dragTitle });
+    await row.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Delete page" }).click();
+
+    await expect(page.getByRole("link", { name: dragTitle })).toHaveCount(0);
+  });
+});
