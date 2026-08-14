@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 
@@ -70,5 +70,75 @@ describe("InsertMenu", () => {
     await userEvent.type(screen.getByLabelText("Add a section"), "no such section");
 
     expect(screen.getByText(/No section matches/)).toBeInTheDocument();
+  });
+});
+
+describe("section previews", () => {
+  it("shows nothing until an entry is hovered", () => {
+    renderMenu();
+    expect(document.querySelector("[data-block-preview]")).toBeNull();
+  });
+
+  it("previews the real section on hover, not a picture of one", async () => {
+    renderMenu();
+
+    await userEvent.hover(screen.getByRole("button", { name: new RegExp(LABEL) }));
+
+    const preview = document.querySelector("[data-block-preview]");
+    expect(preview).not.toBeNull();
+    expect(preview!.getAttribute("data-block-preview")).toBe("pullQuote");
+    // The component's own output, rendered from its insert defaults — which is
+    // the whole point: a thumbnail could not contain this.
+    expect(preview!.textContent).toContain(
+      manifestFor("pullQuote")!.insertDefaults.quote as string
+    );
+  });
+
+  it("hides the preview when the pointer leaves", async () => {
+    renderMenu();
+    const entry = screen.getByRole("button", { name: new RegExp(LABEL) });
+
+    await userEvent.hover(entry);
+    await userEvent.unhover(entry);
+
+    expect(document.querySelector("[data-block-preview]")).toBeNull();
+  });
+
+  it("previews on keyboard focus too", async () => {
+    // The rail's accessible path is the keyboard; a preview only a mouse could
+    // reach would be a feature built for half its users.
+    //
+    // `act` is not ceremony here: a bare `.focus()` leaves React's state update
+    // unflushed, so the assertion reads the DOM from before the event.
+    renderMenu();
+
+    await act(async () => {
+      screen.getByRole("button", { name: new RegExp(LABEL) }).focus();
+    });
+
+    expect(document.querySelector("[data-block-preview]")).not.toBeNull();
+  });
+
+  it("keeps the preview out of the accessibility tree", async () => {
+    // A whole section's markup pushed into the tree on hover would bury the
+    // label and description that actually describe the block.
+    renderMenu();
+    await userEvent.hover(screen.getByRole("button", { name: new RegExp(LABEL) }));
+
+    expect(document.querySelector("[data-block-preview]")!.getAttribute("aria-hidden")).toBe(
+      "true"
+    );
+  });
+
+  it("renders one preview at a time", async () => {
+    renderMenu();
+    const other = manifestFor("newsletter")!.label;
+
+    await userEvent.hover(screen.getByRole("button", { name: new RegExp(LABEL) }));
+    await userEvent.hover(screen.getByRole("button", { name: new RegExp(other) }));
+
+    const previews = document.querySelectorAll("[data-block-preview]");
+    expect(previews).toHaveLength(1);
+    expect(previews[0].getAttribute("data-block-preview")).toBe("newsletter");
   });
 });

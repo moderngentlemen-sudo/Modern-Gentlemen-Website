@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type PointerEventHandler } from "react";
-import { useDraggable } from "@dnd-kit/core";
+import { useDndContext, useDraggable } from "@dnd-kit/core";
 
 import { clsx } from "@/components/ui/clsx";
 import { blockCatalog } from "@/components/sections/registry";
@@ -10,6 +10,7 @@ import { TextInput } from "@/components/admin/ui/Input";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 
 import { libraryDragId } from "./dnd";
+import { BlockPreview, PREVIEW_HEIGHT } from "./BlockPreview";
 
 /**
  * The section picker.
@@ -26,9 +27,24 @@ import { libraryDragId } from "./dnd";
  * context because `DndContext` was hoisted to `Builder.tsx` — while it lived in
  * `Canvas.tsx`, dragging from here onto the canvas was structurally impossible
  * rather than merely unimplemented.
+ *
+ * Hovering or focusing an entry previews the real section beside the rail. One
+ * is rendered at a time, on demand: mounting twenty-three live sections into a
+ * 230px column would make opening the library the slowest thing in the builder.
  */
 export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
   const [query, setQuery] = useState("");
+  const [preview, setPreview] = useState<{ type: string; top: number; left: number } | null>(null);
+
+  /**
+   * A drag hides the preview and keeps it hidden.
+   *
+   * Without this it fights the drag overlay for the same screen: the pointer
+   * leaves the entry, which should dismiss it, but the entry it left is also
+   * the thing now attached to the cursor.
+   */
+  const { active } = useDndContext();
+  const showing = active ? null : preview;
 
   const grouped = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -65,13 +81,19 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
             <ul>
               {group.blocks.map((block) => (
                 <li key={block.type}>
-                  <LibraryItem block={block} onInsert={onInsert} />
+                  <LibraryItem block={block} onInsert={onInsert} onPreview={setPreview} />
                 </li>
               ))}
             </ul>
           </section>
         ))}
       </div>
+
+      {showing && (
+        <div className="fixed z-50" style={{ top: showing.top, left: showing.left }}>
+          <BlockPreview type={showing.type} />
+        </div>
+      )}
     </div>
   );
 }
@@ -97,9 +119,11 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
 function LibraryItem({
   block,
   onInsert,
+  onPreview,
 }: {
   block: (typeof blockCatalog)[number];
   onInsert: (type: string) => void;
+  onPreview: (preview: { type: string; top: number; left: number } | null) => void;
 }) {
   const { setNodeRef, listeners, isDragging } = useDraggable({ id: libraryDragId(block.type) });
 
@@ -108,12 +132,32 @@ function LibraryItem({
   const onPointerDown = listeners?.onPointerDown as
     PointerEventHandler<HTMLButtonElement> | undefined;
 
+  /**
+   * Anchored off the entry's own rect rather than a hardcoded rail width, and
+   * clamped so an entry near the bottom does not preview off-screen.
+   */
+  function show(element: HTMLElement) {
+    const rect = element.getBoundingClientRect();
+    onPreview({
+      type: block.type,
+      top: Math.max(8, Math.min(rect.top, window.innerHeight - PREVIEW_HEIGHT - 8)),
+      left: rect.right + 8,
+    });
+  }
+
   return (
     <button
       ref={setNodeRef}
       type="button"
       onClick={() => onInsert(block.type)}
       onPointerDown={onPointerDown}
+      onMouseEnter={(event) => show(event.currentTarget)}
+      onMouseLeave={() => onPreview(null)}
+      // Focus as well as hover: the keyboard is the accessible path through
+      // this rail, and a preview only a mouse can reach would be a feature
+      // added for one half of the users.
+      onFocus={(event) => show(event.currentTarget)}
+      onBlur={() => onPreview(null)}
       className={clsx(
         "block w-full cursor-grab px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
         isDragging && "opacity-40",
