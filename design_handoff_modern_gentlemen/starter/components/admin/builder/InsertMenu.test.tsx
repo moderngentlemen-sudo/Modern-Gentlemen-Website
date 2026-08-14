@@ -142,3 +142,19 @@ describe("section previews", () => {
     expect(previews[0].getAttribute("data-block-preview")).toBe("newsletter");
   });
 });
+
+describe("the preview never blocks the canvas", () => {
+  it("is inert to the pointer, wrapper included", async () => {
+    // The panel is positioned over the canvas and stays open while the pointer
+    // rests on an entry — which is exactly where click-to-insert leaves it. An
+    // interactive wrapper therefore swallows the next click on the section
+    // underneath, and CI found it as a media spec that clicks a block right
+    // after inserting one.
+    renderMenu();
+    await userEvent.hover(screen.getByRole("button", { name: new RegExp(LABEL) }));
+
+    const preview = document.querySelector("[data-block-preview]")!;
+    expect(preview.className).toContain("pointer-events-none");
+    expect(preview.parentElement!.className).toContain("pointer-events-none");
+  });
+});

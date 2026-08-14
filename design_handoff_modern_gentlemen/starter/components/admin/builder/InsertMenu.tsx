@@ -90,7 +90,20 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
       </div>
 
       {showing && (
-        <div className="fixed z-50" style={{ top: showing.top, left: showing.left }}>
+        /*
+          ⚠️ `pointer-events-none` belongs on the WRAPPER, not only on the
+          preview inside it.
+
+          Click-to-insert leaves the pointer resting on the entry, so the
+          preview stays open by design — and it is positioned over the canvas.
+          With an interactive wrapper it swallows every click on the section
+          underneath: CI failed a media spec that clicks a block right after
+          inserting one, which is the exact sequence an editor performs.
+        */
+        <div
+          className="pointer-events-none fixed z-50"
+          style={{ top: showing.top, left: showing.left }}
+        >
           <BlockPreview type={showing.type} />
         </div>
       )}
