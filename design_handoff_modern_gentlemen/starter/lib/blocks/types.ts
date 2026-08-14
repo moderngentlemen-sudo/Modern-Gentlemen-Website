@@ -43,9 +43,42 @@ export type BlockTree = BlockNode[];
  * Insert-menu grouping. The first four mirror the `pattern_categories` slugs
  * seeded by `0003_content_spine.sql` so the block picker and the pattern
  * library read as one library rather than two vocabularies.
+ *
+ * `layout` is appended rather than inserted: the rail iterates these in
+ * declaration order, so appending leaves every existing group where editors
+ * already expect to find it.
  */
-export const BLOCK_CATEGORIES = ["hero", "editorial", "commerce", "bands", "people"] as const;
+export const BLOCK_CATEGORIES = [
+  "hero",
+  "editorial",
+  "commerce",
+  "bands",
+  "people",
+  "layout",
+] as const;
 export type BlockCategory = (typeof BLOCK_CATEGORIES)[number];
+
+/**
+ * A block's child slot: what `BlockNode.children` may hold.
+ *
+ * Singular by construction. `children` is one array, so a block has at most one
+ * slot — named *areas* are a different shape (`{ areas: Record<string,
+ * BlockTree> }`, which is why `BLOCK_TREE_KEY.template` is `null`) and a
+ * different problem. Conflating the two doubles the work and buys nothing.
+ *
+ * Declaring a slot is what makes children legal at all: `validateBlock` refuses
+ * children on a block whose manifest has none, so a container is opt-in and the
+ * other twenty-two blocks stay leaves.
+ */
+export interface BlockSlot {
+  /** Shown in the builder where the slot is edited. */
+  readonly label: string;
+  /** Types accepted as children. Omitted means any registered block. */
+  readonly allow?: readonly string[];
+  /** Publish-time bounds. `min` is what stops an empty container shipping. */
+  readonly min?: number;
+  readonly max?: number;
+}
 
 export interface BlockManifest {
   /** Matches the key in `components/sections/registry.ts`. Conformance asserts it. */
@@ -67,4 +100,9 @@ export interface BlockManifest {
   readonly insertDefaults: Readonly<Record<string, unknown>>;
   /** Field names that may hold a `$bind` descriptor instead of a literal value. */
   readonly bindable: readonly string[];
+  /**
+   * Declared only by container blocks. Its absence is the assertion that this
+   * block is a leaf, and `validateBlock` enforces it.
+   */
+  readonly slot?: BlockSlot;
 }

@@ -9,15 +9,23 @@
 
 import { describe, expect, it } from "vitest";
 
-import { dropIndexFor, gapDropId, gapIndexes, libraryDragId, parseDragId } from "./dnd";
+import { dropLocationFor, gapDropId, gapIndexes, libraryDragId, parseDragId } from "./dnd";
 
 describe("parseDragId", () => {
   it("reads a library entry", () => {
     expect(parseDragId(libraryDragId("pullQuote"))).toEqual({ kind: "library", type: "pullQuote" });
   });
 
-  it("reads a gap", () => {
-    expect(parseDragId(gapDropId(3))).toEqual({ kind: "gap", index: 3 });
+  it("reads a root gap", () => {
+    expect(parseDragId(gapDropId(3))).toEqual({ kind: "gap", parentKey: null, index: 3 });
+  });
+
+  it("reads a gap inside a container", () => {
+    expect(parseDragId(gapDropId(1, "k_abc"))).toEqual({
+      kind: "gap",
+      parentKey: "k_abc",
+      index: 1,
+    });
   });
 
   it("treats anything else as a block key", () => {
@@ -40,25 +48,25 @@ describe("gapIndexes", () => {
   });
 });
 
-describe("dropIndexFor", () => {
-  it("resolves a gap to its index", () => {
-    expect(dropIndexFor(gapDropId(2), 4)).toBe(2);
+describe("dropLocationFor", () => {
+  it("resolves a root gap", () => {
+    expect(dropLocationFor(gapDropId(2))).toEqual({ parentKey: null, index: 2 });
   });
 
-  it("clamps past the end of the tree", () => {
-    expect(dropIndexFor(gapDropId(9), 4)).toBe(4);
+  it("resolves a gap inside a container", () => {
+    expect(dropLocationFor(gapDropId(0, "k_abc"))).toEqual({ parentKey: "k_abc", index: 0 });
   });
 
-  it("refuses a block key — a library item may only land in a gap", () => {
-    expect(dropIndexFor("k_9f2c11ab", 4)).toBeNull();
+  it("does not clamp — the list it lands in is what knows its own length", () => {
+    expect(dropLocationFor(gapDropId(9))).toEqual({ parentKey: null, index: 9 });
+  });
+
+  it("refuses a block key — a drop must name a gap", () => {
+    expect(dropLocationFor("k_9f2c11ab")).toBeNull();
   });
 
   it("refuses nothing at all, which is a drop outside the canvas", () => {
-    expect(dropIndexFor(null, 4)).toBeNull();
-    expect(dropIndexFor(undefined, 4)).toBeNull();
-  });
-
-  it("resolves index 0 on an empty page", () => {
-    expect(dropIndexFor(gapDropId(0), 0)).toBe(0);
+    expect(dropLocationFor(null)).toBeNull();
+    expect(dropLocationFor(undefined)).toBeNull();
   });
 });

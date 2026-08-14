@@ -33,7 +33,8 @@ import { findBlock } from "@/lib/blocks/traverse";
 import type { BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
 import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 
-import { moveIndex, reorderByKey } from "./dnd";
+import { moveIndex } from "./dnd";
+import { insertAfter, insertAt, moveByKey, moveInto, removeByKey } from "./tree";
 import { cloneJson, cloneWithNewKeys, keysOf, newBlockNode } from "./node";
 
 enableMapSet();
@@ -93,10 +94,17 @@ export interface BuilderActions {
   hover: (key: string | null) => void;
   setDevice: (device: BuilderState["device"]) => void;
 
-  insert: (type: string, at?: number) => void;
+  /**
+   * `parentKey` names the container to insert into; the root when omitted.
+   * Kept as a third positional argument rather than an options object so every
+   * existing call site — and the whole click-to-insert path — is untouched.
+   */
+  insert: (type: string, at?: number, parentKey?: string | null) => void;
   duplicate: (key: string) => void;
   remove: (key: string) => void;
   move: (activeKey: string, overKey: string) => void;
+  /** The drop-into-a-gap case: a position rather than another block. */
+  moveTo: (activeKey: string, parentKey: string | null, index: number) => void;
 
   setSetting: (key: string, path: (string | number)[], value: unknown) => void;
   unsetSetting: (key: string, path: (string | number)[]) => void;
@@ -168,6 +176,25 @@ function writeIn(root: Record<string, unknown>, path: (string | number)[], value
   current[path[path.length - 1]] = value;
 }
 
+/**
+ * The node with `key`, anywhere in an immer draft.
+ *
+ * `traverse.ts#findBlock` cannot serve here: it takes a `BlockTree`, and a
+ * draft's nodes are `Draft<BlockNode>` — mutating what it returned would write
+ * to a copy immer never finalises, so the edit would vanish with no error. The
+ * two recursions are deliberately separate for that reason.
+ */
+function findDraft(list: Draft<BlockNode>[], key: string): Draft<BlockNode> | undefined {
+  for (const node of list) {
+    if (node._key === key) return node;
+    if (Array.isArray(node.children)) {
+      const found = findDraft(node.children, key);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 function deleteIn(root: Record<string, unknown>, path: (string | number)[]): void {
   const parent = path.length === 1 ? root : readIn(root, path.slice(0, -1));
   if (parent === null || typeof parent !== "object") return;
@@ -211,6 +238,25 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       });
     }
 
+    /**
+     * Commits a tree that a pure function in `tree.ts` has already built.
+     *
+     * Structural edits are done there rather than inside a `produce` recipe
+     * because they need to reach into a container the root array cannot name.
+     * The history, dirtiness and validation bookkeeping is `commit`'s either
+     * way, so this routes through it rather than around it — the recipe simply
+     * swaps the contents. **An unchanged tree returns early**, which is what
+     * keeps a refused move (a container into its own subtree, a drop on the gap
+     * a block already occupies) out of the undo stack.
+     */
+    function replaceWith(next: BlockTree): void {
+      if (next === get().tree) return;
+      commit(null, (draft) => {
+        draft.length = 0;
+        draft.push(...(next as Draft<BlockTree>));
+      });
+    }
+
     /** Field mutations are refused on a locked block rather than silently applied. */
     function editSettings(
       key: string,
@@ -220,7 +266,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       if (findBlock(get().tree, key)?.locked) return;
 
       commit(tag, (draft) => {
-        const node = draft.find((n) => n._key === key);
+        const node = findDraft(draft, key);
         if (!node) return;
         if (!node.settings) node.settings = {};
         edit(node.settings as Record<string, unknown>);
@@ -247,46 +293,35 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       hover: (key) => set({ hoveredKey: key }),
       setDevice: (device) => set({ device }),
 
-      insert: (type, at) => {
+      insert: (type, at, parentKey = null) => {
         const node = newBlockNode(type, keysOf(get().tree));
-        commit(null, (draft) => {
-          const index = at ?? draft.length;
-          draft.splice(Math.max(0, Math.min(draft.length, index)), 0, node as Draft<BlockNode>);
-        });
+        replaceWith(insertAt(get().tree, node, parentKey, at));
         set({ selectedKey: node._key });
       },
 
       duplicate: (key) => {
         const state = get();
-        const source = state.tree.find((n) => n._key === key);
+        // `findBlock` rather than `tree.find`: a nested block is duplicable
+        // too, and its copy belongs beside it rather than at the root.
+        const source = findBlock(state.tree, key);
         if (!source) return;
 
         const copy = cloneWithNewKeys(source, keysOf(state.tree));
-        commit(null, (draft) => {
-          const index = draft.findIndex((n) => n._key === key);
-          draft.splice(index + 1, 0, copy as Draft<BlockNode>);
-        });
+        replaceWith(insertAfter(state.tree, key, copy));
         set({ selectedKey: copy._key });
       },
 
       remove: (key) => {
-        commit(null, (draft) => {
-          const index = draft.findIndex((n) => n._key === key);
-          if (index !== -1) draft.splice(index, 1);
-        });
+        replaceWith(removeByKey(get().tree, key));
         // A panel pointed at a block that no longer exists renders nothing and
         // reads as a bug, so drop the selection with the block.
         if (get().selectedKey === key) set({ selectedKey: null });
       },
 
-      move: (activeKey, overKey) => {
-        const reordered = reorderByKey(get().tree, activeKey, overKey);
-        if (reordered === get().tree) return;
-        commit(null, (draft) => {
-          draft.length = 0;
-          draft.push(...(reordered as Draft<BlockTree>));
-        });
-      },
+      move: (activeKey, overKey) => replaceWith(moveByKey(get().tree, activeKey, overKey)),
+
+      moveTo: (activeKey, parentKey, index) =>
+        replaceWith(moveInto(get().tree, activeKey, parentKey, index)),
 
       setSetting: (key, path, value) =>
         editSettings(key, `set:${key}:${path.join(".")}`, (settings) =>
@@ -316,7 +351,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
 
       setVisibility: (key, patch) =>
         commit(null, (draft) => {
-          const node = draft.find((n) => n._key === key);
+          const node = findDraft(draft, key);
           if (!node) return;
           node.visibility = { ...node.visibility, ...patch };
         }),
@@ -325,7 +360,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       // work on a block that is already locked, or it could never be unlocked.
       setLocked: (key, locked) =>
         commit(null, (draft) => {
-          const node = draft.find((n) => n._key === key);
+          const node = findDraft(draft, key);
           if (node) node.locked = locked;
         }),
 

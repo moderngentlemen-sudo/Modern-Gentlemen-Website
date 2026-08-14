@@ -23,6 +23,7 @@ import { Manifesto } from "./Manifesto";
 import { CoverCards } from "./CoverCards";
 import { PullQuote } from "./PullQuote";
 import { Masthead } from "./Masthead";
+import { Columns } from "./Columns";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
@@ -61,6 +62,7 @@ export const registry = {
   coverCards: CoverCards,
   pullQuote: PullQuote,
   masthead: Masthead,
+  columns: Columns,
   // Each block owns its own prop contract, so the map is heterogeneous by
   // nature: a lookup by string cannot narrow to one component's props. The
   // manifests restore the guarantee where it counts — content is validated

@@ -19,6 +19,8 @@ import { BindingEditor, BindingModeSwitch } from "@/components/admin/fields/Bind
 import { FieldControl, type ControlContext } from "@/components/admin/fields/FieldControl";
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
 
+import { findBlock } from "@/lib/blocks/traverse";
+
 import { useBuilder } from "./StoreContext";
 
 const DEVICES = ["mobile", "tablet", "desktop"] as const;
@@ -34,7 +36,14 @@ const DEVICES = ["mobile", "tablet", "desktop"] as const;
  */
 export function PropertiesPanel() {
   const selectedKey = useBuilder((s) => s.selectedKey);
-  const node = useBuilder((s) => s.tree.find((n) => n._key === selectedKey) ?? null);
+  /**
+   * `findBlock`, not `tree.find`: a nested block could otherwise be selected on
+   * the canvas and then show the panel's empty state, since the selection is a
+   * key and the lookup was a root-array scan. `store.ts` already used the
+   * recursive lookup for its lock check, so a nested block was lock-checkable
+   * but not editable — a latent inconsistency that containers made reachable.
+   */
+  const node = useBuilder((s) => findBlock(s.tree, selectedKey ?? "") ?? null);
   const issues = useBuilder(useShallow((s) => [...s.issues, ...s.serverIssues]));
 
   if (!node) {

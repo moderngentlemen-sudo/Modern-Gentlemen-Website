@@ -144,7 +144,9 @@ let dragTitle = "";
 let dragSlug = "";
 
 /**
- * Drags a library entry onto the canvas and drops it in gap `gapIndex`.
+ * Drags a library entry onto the canvas and drops it on `target` — a CSS
+ * selector for an insertion point, since one is now identified by its container
+ * as well as its index.
  *
  * **Stepped moves, not `page.dragAndDrop()`.** The `PointerSensor` activates
  * only after the pointer has travelled more than 6px, and it counts that over
@@ -165,7 +167,7 @@ let dragSlug = "";
  * top of the canvas deliberately; a "drop at the very bottom of a long page"
  * test would need the drag to dwell at the edge instead.
  */
-async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
+async function dragFromLibrary(page: Page, entry: RegExp, target: string) {
   const source = page.getByRole("button", { name: entry }).first();
   await source.scrollIntoViewIfNeeded();
 
@@ -179,7 +181,7 @@ async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
   await page.mouse.down();
   await page.mouse.move(startX + 40, startY, { steps: 8 });
 
-  const gap = page.locator(`[data-gap-index="${gapIndex}"]`);
+  const gap = page.locator(target).first();
   await expect(gap).toHaveCount(1);
 
   const to = await gap.boundingBox();
@@ -187,7 +189,26 @@ async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
 
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
   await page.mouse.up();
+
+  /*
+    ⚠️ The first click after a drop is swallowed, and this wait is not padding.
+
+    On activation dnd-kit adds a capture-phase `click` listener on the document
+    that stops propagation — the very mechanism that stops a completed drag from
+    also firing the library entry's click and inserting twice. It removes that
+    listener on a `setTimeout(…, 50)` after the drag ends, so for 50ms *every*
+    click anywhere is discarded, including one on a block's own toolbar.
+
+    Clicking inside that window looks like a click that worked and did nothing:
+    Playwright reports success, the handler never runs, and only the assertion
+    afterwards fails. It cost three CI runs, flaky each time, all at the same
+    line. 150ms clears the window with room for a slow runner.
+  */
+  await page.waitForTimeout(150);
 }
+
+/** A gap in the page's own list, rather than one inside a container. */
+const rootGap = (index: number) => `[data-gap-index="${index}"]:not([data-gap-parent])`;
 
 test.describe("page builder — drag from the library", () => {
   test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
@@ -212,16 +233,16 @@ test.describe("page builder — drag from the library", () => {
 
     // The empty canvas is the case the hoisted DndContext repairs: before it,
     // a brand-new page had no drag context at all.
-    await dragFromLibrary(page, /^Pull quote/i, 0);
+    await dragFromLibrary(page, /^Pull quote/i, rootGap(0));
     const blocks = page.locator("[data-block-key]");
     await expect(blocks).toHaveCount(1);
 
     // The trailing gap, then the leading one — the two ends of the index
     // arithmetic, in that order so both targets stay above the fold.
-    await dragFromLibrary(page, /^Newsletter/i, 1);
+    await dragFromLibrary(page, /^Newsletter/i, rootGap(1));
     await expect(blocks).toHaveCount(2);
 
-    await dragFromLibrary(page, /^Story band/i, 0);
+    await dragFromLibrary(page, /^Story band/i, rootGap(0));
     await expect(blocks).toHaveCount(3);
 
     // Order, not count. Appending every drop would satisfy all three counts
@@ -255,6 +276,70 @@ test.describe("page builder — drag from the library", () => {
       .first()
       .click();
     await expect(page.locator("[data-block-key]")).toHaveCount(4);
+  });
+
+  test("nests a section inside a columns block", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/pages");
+    await page.getByRole("link", { name: dragTitle }).click();
+
+    const blocks = page.locator("[data-block-key]");
+    const nested = page.locator("[data-block-key] [data-block-key]");
+
+    /*
+      Counted relative to whatever is already here, never against a fixed
+      number. The preceding test inserts a block and does NOT save it, and
+      autosave is debounced — so whether that block is still on the page when
+      this one loads is a race, and asserting an absolute count made this test
+      depend on the outcome of it. (It lost: the first CI run failed here
+      expecting 4 and finding 3, before reaching any nesting at all.)
+    */
+    // ⚠️ Wait for the canvas before counting. The locator resolves to 0 while
+    // the page hydrates — the failing run's log shows exactly that, "3 ×
+    // locator resolved to 0 elements" — and a `before` of 0 would poison every
+    // assertion below while looking like a nesting bug.
+    await blocks.first().waitFor();
+    const before = await blocks.count();
+    await expect(nested).toHaveCount(0);
+
+    // A container arrives empty and advertises its own drop target, which is
+    // registered whatever is being dragged — the only way into an empty one.
+    await dragFromLibrary(page, /^Columns/i, rootGap(0));
+    await expect(blocks).toHaveCount(before + 1);
+
+    const slot = page.locator("[data-gap-parent]");
+    await expect(slot).toHaveCount(1);
+    await expect(page.getByText(/drop a section here/i)).toBeVisible();
+
+    // Into the container, not beside it: the assertion is the descendant
+    // relationship, since a count alone cannot tell the two apart.
+    await dragFromLibrary(page, /^Timeline/i, "[data-gap-parent]");
+    await expect(blocks).toHaveCount(before + 2);
+    await expect(nested).toHaveCount(1);
+
+    // ⚠️ The nested block's own toolbar must work. The canvas kills pointer
+    // events on links and buttons inside a section, and that selector is a
+    // descendant one — applied to a container it would reach every nested
+    // block's controls and disable them with nothing failing anywhere.
+    // Scoped to the nested frame, not `getByRole(...).first()` across the page:
+    // an unsaved Timeline from the previous test may or may not still be at the
+    // root, and a page-wide match could pick that one's button instead.
+    await nested
+      .first()
+      .getByRole("button", { name: /^Duplicate/ })
+      .click();
+    await expect(nested).toHaveCount(2);
+
+    // A nested block is selectable and editable — `PropertiesPanel` used a root
+    // `tree.find`, so before this it would have shown its empty state instead.
+    await nested.first().click();
+    await expect(page.getByRole("textbox", { name: "Heading" }).first()).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
+
+    await page.reload();
+    await expect(nested).toHaveCount(2);
   });
 
   test("cleans up the page it created", async ({ page }) => {

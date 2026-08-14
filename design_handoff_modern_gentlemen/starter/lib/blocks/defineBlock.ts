@@ -17,7 +17,7 @@
 import { z } from "zod";
 
 import { fieldSetDefaults, fieldSetToZod, fieldToZod, type FieldSet } from "./fields";
-import type { BlockCategory, BlockManifest } from "./types";
+import type { BlockCategory, BlockManifest, BlockSlot } from "./types";
 
 export interface BlockSpec {
   /** Must equal the key this block has in `components/sections/registry.ts`. */
@@ -35,6 +35,14 @@ export interface BlockSpec {
   insertDefaults?: Record<string, unknown>;
   /** Field names that may hold a `$bind` descriptor instead of a literal value. */
   bindable?: readonly string[];
+  /**
+   * Declared only by containers. Children live in `BlockNode.children` — the
+   * structural home every traversal in `lib/blocks` already recurses into — and
+   * NOT in a field, which is why this sits beside `fields` rather than in it.
+   * Putting blocks in `settings` would route them around `walkBlocks`, and with
+   * it around publish validation, media extraction, diffing and binding.
+   */
+  slot?: BlockSlot;
 }
 
 export function defineBlock(spec: BlockSpec): BlockManifest {
@@ -84,6 +92,16 @@ export function defineBlock(spec: BlockSpec): BlockManifest {
     }
   }
 
+  if (
+    spec.slot?.min !== undefined &&
+    spec.slot.max !== undefined &&
+    spec.slot.min > spec.slot.max
+  ) {
+    throw new Error(
+      `Block manifest "${spec.type}": slot min (${spec.slot.min}) exceeds max (${spec.slot.max}).`
+    );
+  }
+
   return Object.freeze({
     type: spec.type,
     label: spec.label,
@@ -94,5 +112,6 @@ export function defineBlock(spec: BlockSpec): BlockManifest {
     strictSchema,
     insertDefaults,
     bindable,
+    slot: spec.slot ? Object.freeze({ ...spec.slot }) : undefined,
   });
 }

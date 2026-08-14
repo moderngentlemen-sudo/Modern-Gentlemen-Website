@@ -4,29 +4,15 @@
  * dnd-kit measures the DOM, and jsdom has no layout engine — `ResizeObserver` is
  * stubbed in the unit setup but inert, so a simulated drag proves nothing. The
  * canvas therefore reduces a drag to "this key moved onto that key" and calls
- * this, which is pure.
+ * a pure function with it. The moves themselves live in `tree.ts`, which
+ * replaced this file's root-array `reorderByKey` when containers arrived: a
+ * `findIndex` over the root cannot express "into that container".
  *
  * Drag-from-library follows the same philosophy: the identifiers below encode
  * everything a drop needs, `parseDragId` and `dropIndexFor` decide what it
  * means, and the React layer is left as a dispatcher. A real drag is proved in
  * `tests/e2e/builder.spec.ts`, which is the only place it can be.
  */
-
-import type { BlockTree } from "@/lib/blocks/types";
-
-/** `activeKey` moves to `overKey`'s position. Unknown keys leave the tree alone. */
-export function reorderByKey(tree: BlockTree, activeKey: string, overKey: string): BlockTree {
-  if (activeKey === overKey) return tree;
-
-  const from = tree.findIndex((node) => node._key === activeKey);
-  const to = tree.findIndex((node) => node._key === overKey);
-  if (from === -1 || to === -1) return tree;
-
-  const next = [...tree];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
-}
 
 /**
  * What a dnd-kit identifier refers to.
@@ -36,8 +22,15 @@ export function reorderByKey(tree: BlockTree, activeKey: string, overKey: string
  */
 export type DragId =
   | { kind: "library"; type: string }
-  | { kind: "gap"; index: number }
+  | { kind: "gap"; parentKey: string | null; index: number }
   | { kind: "block"; key: string };
+
+/** A place a block can land: a list, and a position in it. */
+export interface DropLocation {
+  /** The container to drop into, or `null` for the root list. */
+  parentKey: string | null;
+  index: number;
+}
 
 const LIBRARY_PREFIX = "library:";
 const GAP_PREFIX = "gap:";
@@ -47,9 +40,15 @@ export function libraryDragId(type: string): string {
   return `${LIBRARY_PREFIX}${type}`;
 }
 
-/** The droppable id for the insertion point before block `index`. */
-export function gapDropId(index: number): string {
-  return `${GAP_PREFIX}${index}`;
+/**
+ * The droppable id for the insertion point before `index` in `parentKey`'s list.
+ *
+ * The parent is encoded in the id because that is all dnd-kit hands back on a
+ * drop — an index alone was enough while every list was the root one, and stops
+ * being enough the moment a container has a list of its own.
+ */
+export function gapDropId(index: number, parentKey: string | null = null): string {
+  return parentKey === null ? `${GAP_PREFIX}${index}` : `${GAP_PREFIX}${parentKey}:${index}`;
 }
 
 /** Every insertion point in a tree of `length` blocks: before each, and after the last. */
@@ -65,31 +64,39 @@ export function parseDragId(id: string | number): DragId {
   }
 
   if (raw.startsWith(GAP_PREFIX)) {
-    const index = Number(raw.slice(GAP_PREFIX.length));
-    if (Number.isInteger(index)) return { kind: "gap", index };
+    const body = raw.slice(GAP_PREFIX.length);
+    const split = body.lastIndexOf(":");
+
+    // Block keys are `k_…` and carry no colon, so the last one separates the
+    // parent from the index without ambiguity.
+    const parentKey = split === -1 ? null : body.slice(0, split);
+    const index = Number(split === -1 ? body : body.slice(split + 1));
+
+    if (Number.isInteger(index)) return { kind: "gap", parentKey, index };
   }
 
   return { kind: "block", key: raw };
 }
 
 /**
- * Where a library item dropped on `overId` lands, or `null` when that is not
- * somewhere a new block can go.
+ * Where a block dropped on `overId` lands, or `null` when that is not somewhere
+ * a block can go.
  *
  * Gaps are explicit droppables rather than a midpoint inferred from whichever
- * block is hovered: the index is then unambiguous, the indicator has a DOM home,
- * and both are assertable without a layout engine.
+ * block is hovered: the position is then unambiguous, the indicator has a DOM
+ * home, and both are assertable without a layout engine.
+ *
+ * No clamping happens here, and none is needed — `tree.ts#insertAt` clamps
+ * against the list it is actually inserting into, which is the only place that
+ * knows how long a container's list is.
  */
-export function dropIndexFor(
-  overId: string | number | null | undefined,
-  treeLength: number
-): number | null {
+export function dropLocationFor(overId: string | number | null | undefined): DropLocation | null {
   if (overId === null || overId === undefined) return null;
 
   const over = parseDragId(overId);
   if (over.kind !== "gap") return null;
 
-  return Math.max(0, Math.min(Math.max(0, treeLength), over.index));
+  return { parentKey: over.parentKey, index: over.index };
 }
 
 /** `from` moves to index `to`, clamped. Used by the list repeater and keyboard moves. */
