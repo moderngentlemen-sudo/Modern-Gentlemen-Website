@@ -189,6 +189,22 @@ async function dragFromLibrary(page: Page, entry: RegExp, target: string) {
 
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
   await page.mouse.up();
+
+  /*
+    ⚠️ The first click after a drop is swallowed, and this wait is not padding.
+
+    On activation dnd-kit adds a capture-phase `click` listener on the document
+    that stops propagation — the very mechanism that stops a completed drag from
+    also firing the library entry's click and inserting twice. It removes that
+    listener on a `setTimeout(…, 50)` after the drag ends, so for 50ms *every*
+    click anywhere is discarded, including one on a block's own toolbar.
+
+    Clicking inside that window looks like a click that worked and did nothing:
+    Playwright reports success, the handler never runs, and only the assertion
+    afterwards fails. It cost three CI runs, flaky each time, all at the same
+    line. 150ms clears the window with room for a slow runner.
+  */
+  await page.waitForTimeout(150);
 }
 
 /** A gap in the page's own list, rather than one inside a container. */
