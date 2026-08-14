@@ -268,12 +268,28 @@ test.describe("page builder — drag from the library", () => {
     await page.getByRole("link", { name: dragTitle }).click();
 
     const blocks = page.locator("[data-block-key]");
-    await expect(blocks).toHaveCount(4);
+    const nested = page.locator("[data-block-key] [data-block-key]");
+
+    /*
+      Counted relative to whatever is already here, never against a fixed
+      number. The preceding test inserts a block and does NOT save it, and
+      autosave is debounced — so whether that block is still on the page when
+      this one loads is a race, and asserting an absolute count made this test
+      depend on the outcome of it. (It lost: the first CI run failed here
+      expecting 4 and finding 3, before reaching any nesting at all.)
+    */
+    // ⚠️ Wait for the canvas before counting. The locator resolves to 0 while
+    // the page hydrates — the failing run's log shows exactly that, "3 ×
+    // locator resolved to 0 elements" — and a `before` of 0 would poison every
+    // assertion below while looking like a nesting bug.
+    await blocks.first().waitFor();
+    const before = await blocks.count();
+    await expect(nested).toHaveCount(0);
 
     // A container arrives empty and advertises its own drop target, which is
     // registered whatever is being dragged — the only way into an empty one.
     await dragFromLibrary(page, /^Columns/i, rootGap(0));
-    await expect(blocks).toHaveCount(5);
+    await expect(blocks).toHaveCount(before + 1);
 
     const slot = page.locator("[data-gap-parent]");
     await expect(slot).toHaveCount(1);
@@ -282,29 +298,32 @@ test.describe("page builder — drag from the library", () => {
     // Into the container, not beside it: the assertion is the descendant
     // relationship, since a count alone cannot tell the two apart.
     await dragFromLibrary(page, /^Timeline/i, "[data-gap-parent]");
-    await expect(blocks).toHaveCount(6);
-    await expect(page.locator("[data-block-key] [data-block-key]")).toHaveCount(1);
+    await expect(blocks).toHaveCount(before + 2);
+    await expect(nested).toHaveCount(1);
 
     // ⚠️ The nested block's own toolbar must work. The canvas kills pointer
     // events on links and buttons inside a section, and that selector is a
     // descendant one — applied to a container it would reach every nested
     // block's controls and disable them with nothing failing anywhere.
-    await page
-      .getByRole("button", { name: "Duplicate Timeline — a brief history" })
+    // Scoped to the nested frame, not `getByRole(...).first()` across the page:
+    // an unsaved Timeline from the previous test may or may not still be at the
+    // root, and a page-wide match could pick that one's button instead.
+    await nested
       .first()
+      .getByRole("button", { name: /^Duplicate/ })
       .click();
-    await expect(page.locator("[data-block-key] [data-block-key]")).toHaveCount(2);
+    await expect(nested).toHaveCount(2);
 
     // A nested block is selectable and editable — `PropertiesPanel` used a root
     // `tree.find`, so before this it would have shown its empty state instead.
-    await page.locator("[data-block-key] [data-block-key]").first().click();
+    await nested.first().click();
     await expect(page.getByRole("textbox", { name: "Heading" }).first()).toBeVisible();
 
     await page.keyboard.press("ControlOrMeta+s");
     await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
 
     await page.reload();
-    await expect(page.locator("[data-block-key] [data-block-key]")).toHaveCount(2);
+    await expect(nested).toHaveCount(2);
   });
 
   test("cleans up the page it created", async ({ page }) => {
