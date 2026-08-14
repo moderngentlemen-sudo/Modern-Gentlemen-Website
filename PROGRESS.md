@@ -52,6 +52,8 @@ Live state (branch, commits, migrations, test counts) is printed automatically a
 | B | Phase 7a — Public render path | homepage reads `pages` from the DB; static + on-demand revalidation | ✅ done (code) |
 | B | Phase 7b — Store off the database | `/shop`, PDP, product row and search read `products` + `product_media` | ✅ done (code) |
 | B | Phase 7c — Editorial content migration | `/[category]` and `/article/[slug]` read Supabase; categories are documents with a bound listing | ✅ done & verified (deep-compare, build, 16 visual baselines) |
+| B | Auth — password recovery | `/forgot-password` → emailed link → `/auth/callback` → `/admin/password`; `redirectTo` passed per request; `lib/domain/passwords.ts` (12 chars min, 72-**byte** bcrypt ceiling) | ✅ **done & verified end to end — CI green on PR #29** (844 unit tests, **55/55 E2E nothing skipped**, 16 baselines) **and run against a real inbox in production.** ⚠️ Needs `<origin>/**` in Supabase → Redirect URLs; nothing in the repo can assert that, so it fails silently if missing |
+| B | Auth — the proxy redirect fix | `app/auth/_lib/publicUrl.ts`; `/auth/callback` and `/auth/sign-out` | ✅ **done, and confirmed in production by probe** (PR #29, verified after `74fbd5d`). The deployed callback had been serving `Location: https://localhost:8080/…` — behind a proxy a route handler's `request.nextUrl` is the **container's** address. **Middleware was never affected**, which is why it hid. ⚠️ No test here can catch it: everything runs single-host |
 
 ### ⚠️ Corrections to earlier guidance in this file
 
