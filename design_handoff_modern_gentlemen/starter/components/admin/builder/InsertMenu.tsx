@@ -32,7 +32,27 @@ import { BlockPreview, PREVIEW_HEIGHT } from "./BlockPreview";
  * is rendered at a time, on demand: mounting twenty-three live sections into a
  * 230px column would make opening the library the slowest thing in the builder.
  */
-export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
+/**
+ * A pattern as the rail offers it. The blocks themselves stay on the Builder —
+ * the rail only needs enough to label the entry and report which one was
+ * clicked.
+ */
+export interface PatternEntry {
+  id: string;
+  name: string;
+  description: string | null;
+  blockCount: number;
+}
+
+export function InsertMenu({
+  onInsert,
+  patterns = [],
+  onInsertPattern,
+}: {
+  onInsert: (type: string) => void;
+  patterns?: PatternEntry[];
+  onInsertPattern?: (id: string) => void;
+}) {
   const [query, setQuery] = useState("");
   const [preview, setPreview] = useState<{ type: string; top: number; left: number } | null>(null);
 
@@ -62,6 +82,16 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
     })).filter((group) => group.blocks.length > 0);
   }, [query]);
 
+  const matchingPatterns = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return patterns;
+    return patterns.filter(
+      (pattern) =>
+        pattern.name.toLowerCase().includes(term) ||
+        (pattern.description ?? "").toLowerCase().includes(term)
+    );
+  }, [patterns, query]);
+
   return (
     <div className="flex h-full flex-col">
       <div className={clsx("border-b px-3 py-3", HAIRLINE)}>
@@ -69,10 +99,47 @@ export function InsertMenu({ onInsert }: { onInsert: (type: string) => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {grouped.length === 0 && (
+        {grouped.length === 0 && matchingPatterns.length === 0 && (
           <p className="px-3 py-6 text-center text-[12px] text-mg-fg/40">
             No section matches “{query}”.
           </p>
+        )}
+
+        {/*
+          Patterns lead the rail because they are the coarser move — an editor
+          reaching for a saved group wants it before the individual sections.
+
+          ⚠️ These entries are click-only, deliberately. The block entries below
+          are also drag sources, which works because `Builder.tsx` configures a
+          6px activation constraint; a pattern drag would additionally need a
+          drag id, an overlay and an `active.type` branch in the drop handler.
+          Click-to-insert is the accessible path the rail has always had, so
+          shipping it alone leaves nothing unreachable.
+        */}
+        {onInsertPattern && matchingPatterns.length > 0 && (
+          <section className={clsx("border-b", HAIRLINE)}>
+            <h3 className={clsx(LABEL_SM, "px-3 pb-1 pt-3")}>Patterns</h3>
+            <ul>
+              {matchingPatterns.map((pattern) => (
+                <li key={pattern.id}>
+                  <button
+                    type="button"
+                    onClick={() => onInsertPattern(pattern.id)}
+                    className={clsx(
+                      "block w-full px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
+                      FOCUS_RING
+                    )}
+                  >
+                    <span className="block text-[13px] font-medium">{pattern.name}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
+                      {pattern.description ??
+                        `${pattern.blockCount} section${pattern.blockCount === 1 ? "" : "s"}`}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {grouped.map((group) => (
