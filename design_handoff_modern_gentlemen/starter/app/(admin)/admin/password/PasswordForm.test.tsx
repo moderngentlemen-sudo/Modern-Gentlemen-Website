@@ -7,12 +7,20 @@
  * asserted here instead, where they run on every save. Both traps below were
  * real failures, not hypotheticals.
  *
- * ⚠️ Note the query style. Testing Library's `getByLabelText` matches a label's
- * **text content**, which includes the `aria-hidden` required asterisk;
- * Playwright's `getByLabel` matches the **accessible name**, which does not. So
- * a test written with `getByLabelText("New password", { exact: true })` fails
- * here while the Playwright locator it is meant to guard succeeds. Accessible
- * names are asserted explicitly below, because those are what the spec sees.
+ * ⚠️ **Label text, not accessible name — and an earlier version of this file got
+ * that backwards.** `FieldShell` appends the required asterisk inside an
+ * `aria-hidden` span, so the two differ: the accessible name is
+ * "New password", the label's rendered text is "New password *". This file
+ * originally asserted `toHaveAccessibleName`, on the theory that Playwright's
+ * `getByLabel` computes accessible names. **CI disproved that** —
+ * `getByLabel("New password", { exact: true })` matched *zero* elements against
+ * this markup, which only happens if the asterisk is part of what Playwright
+ * compares.
+ *
+ * So the queries below mirror Playwright's actual behaviour, which is also
+ * Testing Library's: match the label's text content, asterisk included. A guard
+ * that asserts the wrong property is worse than none, because it reads as
+ * covered.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -43,23 +51,31 @@ function renderForm() {
 }
 
 describe("the field labels", () => {
-  it("names each field exactly, with the required asterisk excluded", () => {
-    const { next, confirm } = renderForm();
-
-    // `FieldShell` marks the asterisk aria-hidden for exactly this reason — CI
-    // once found a field named `Quote *`.
-    expect(next).toHaveAccessibleName("New password");
-    expect(confirm).toHaveAccessibleName("Confirm new password");
-  });
-
-  it("⚠️ needs `exact`, because a loose match hits both fields", () => {
+  it("⚠️ is ambiguous under a loose match — both fields answer to 'new password'", () => {
     const { fields } = renderForm();
 
-    // The trap: "Confirm new password" *contains* "new password", so
-    // Playwright's substring-by-default `getByLabel` matched two elements and
-    // failed strict mode rather than taking the first. This asserts the
-    // ambiguity is real, so nobody "simplifies" the `exact: true` out of the spec.
+    // Trap one: "Confirm new password" *contains* "new password", so
+    // Playwright's substring-by-default getByLabel matched two elements and
+    // failed strict mode rather than taking the first.
     expect(fields).toHaveLength(2);
+  });
+
+  it("⚠️ carries the required asterisk in its label text, so an exact string matches nothing", () => {
+    renderForm();
+
+    // Trap two, and the one that cost a second CI round: `exact` looks like the
+    // fix for trap one and is not, because the label reads "New password *".
+    expect(screen.queryByLabelText("New password", { exact: true })).toBeNull();
+    expect(screen.getByLabelText("New password *", { exact: true })).toBeInTheDocument();
+  });
+
+  it("is disambiguated by an anchored regex, which is what the spec uses", () => {
+    renderForm();
+
+    // The locator that actually works, asserted here so a change to the label
+    // breaks this fast test rather than a six-minute CI job.
+    expect(screen.getAllByLabelText(/^New password/)).toHaveLength(1);
+    expect(screen.getAllByLabelText(/^Confirm new password/)).toHaveLength(1);
   });
 
   it("masks both fields", () => {

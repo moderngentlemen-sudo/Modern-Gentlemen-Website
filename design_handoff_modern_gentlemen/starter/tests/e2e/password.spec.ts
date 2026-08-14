@@ -83,11 +83,20 @@ test.describe("password recovery — signed in", () => {
 
     const update = page.getByRole("button", { name: "Update password" });
 
-    // ⚠️ `exact` on both, because `getByLabel` matches substrings: plain
-    // "New password" also matches "Confirm **new password**", which is two
-    // elements and a strict-mode failure rather than the first match.
-    const next = page.getByLabel("New password", { exact: true });
-    const confirm = page.getByLabel("Confirm new password", { exact: true });
+    // ⚠️ Anchored regexes, and neither a plain string nor `exact` works here.
+    // Both were tried and both failed in CI, for opposite reasons:
+    //
+    //   getByLabel("New password")                 → 2 elements. Substring by
+    //     default, and "Confirm **new password**" contains it.
+    //   getByLabel("New password", {exact: true})  → 0 elements. `FieldShell`
+    //     appends a required asterisk in an `aria-hidden` span, so the label's
+    //     text is "New password *". Playwright matches that rendered text —
+    //     `aria-hidden` does *not* exclude it, even though the accessible name
+    //     does. So the exact string never matches.
+    //
+    // `^` disambiguates the two fields without depending on the asterisk.
+    const next = page.getByLabel(/^New password/);
+    const confirm = page.getByLabel(/^Confirm new password/);
 
     await next.fill("short");
     await confirm.fill("short");
