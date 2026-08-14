@@ -62,7 +62,12 @@ describe("adapterFor", () => {
     expect(() => adapterFor("native")).toThrow(/no feed to import from/);
   });
 
-  it("refuses a kind with no adapter yet", () => {
-    expect(() => adapterFor("shopify")).toThrow(/not implemented|No adapter/);
+  // This assertion used to be its inverse — "refuses a kind with no adapter
+  // yet", asserting that `shopify` threw. Inverting it is the point of the
+  // Shopify slice, not an incidental fix: `adapterFor`'s refusal branch is still
+  // reached by any kind added to `PRODUCT_SOURCE_KINDS` without an adapter,
+  // which is what it was really guarding.
+  it("serves the Shopify adapter", () => {
+    expect(adapterFor("shopify").kind).toBe("shopify");
   });
 });

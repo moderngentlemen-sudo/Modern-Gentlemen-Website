@@ -38,6 +38,7 @@ const password = process.env.E2E_ADMIN_PASSWORD;
 /** Minted inside the first test, not at module scope: Playwright retries a
  *  serial group from its first test, and a literal would survive the retry. */
 let sourceName = "";
+let shopifyName = "";
 
 async function signIn(page: Page) {
   await page.goto("/sign-in");
@@ -58,6 +59,7 @@ test.describe("integrations", () => {
 
   test("reaches the integrations list from the admin nav", async ({ page }) => {
     sourceName = `E2E feed ${Date.now()}`;
+    shopifyName = `E2E shop ${Date.now()}`;
 
     await signIn(page);
 
@@ -74,8 +76,10 @@ test.describe("integrations", () => {
     await signIn(page);
     await page.goto("/admin/integrations");
 
-    await page.getByRole("button", { name: "New feed" }).click();
+    await page.getByRole("button", { name: "New source" }).click();
 
+    // XML feed is the dialog's default kind, so this leaves the selector alone
+    // on purpose — the Shopify spec below is what proves it can be changed.
     await dialog(page).getByLabel("Name").fill(sourceName);
     await dialog(page).getByLabel("Feed URL").fill("https://example.com/e2e-products.xml");
     await dialog(page).getByLabel("Item path").fill("products/product");
@@ -121,15 +125,55 @@ test.describe("integrations", () => {
     await expect(page.getByRole("button", { name: "Run now" })).toBeEnabled();
   });
 
-  test("deletes the source, and its mappings go with it", async ({ page }) => {
+  /**
+   * The kind selector, and the half of the Shopify slice that unit tests cannot
+   * reach: the create dialog's discriminated union, and an edit form that shows
+   * the store's own fields rather than an XML feed's.
+   *
+   * It creates a source against a domain that does not resolve and never runs
+   * it, for the reason in this file's header. What is being proved here is the
+   * round trip through `product_sources.config` — that a Shopify config is
+   * written, read back through `shopifyConfigSchema`, and rendered — not that
+   * Shopify answers.
+   */
+  test("creates a Shopify source, and its config survives a reload", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/integrations");
 
-    const row = page.getByRole("row").filter({ hasText: sourceName });
-    await row.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "New source" }).click();
+    await dialog(page).getByLabel("Kind").selectOption("shopify");
 
-    await dialog(page).getByRole("button", { name: "Delete" }).click();
+    await dialog(page).getByLabel("Name").fill(shopifyName);
+    await dialog(page).getByLabel("Shop domain").fill("mg-e2e.myshopify.com");
+    await dialog(page).getByLabel("Credential variable").fill("FEED_E2E_SHOPIFY_TOKEN");
+    await dialog(page).getByRole("button", { name: "Create" }).click();
 
-    await expect(page.getByRole("link", { name: sourceName })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/integrations\/[0-9a-f-]{36}$/);
+
+    // The store's fields, not a feed's — and no "Feed URL" anywhere on the page.
+    await expect(page.getByLabel("Shop domain")).toHaveValue("mg-e2e.myshopify.com");
+    await expect(page.getByLabel("Page size")).toHaveValue("250");
+    await expect(page.getByLabel("Feed URL")).toHaveCount(0);
+
+    // Read back from the row rather than from the component's initial state:
+    // this is what would catch a config written under the wrong schema.
+    await page.reload();
+    await expect(page.getByLabel("Shop domain")).toHaveValue("mg-e2e.myshopify.com");
+    await expect(page.getByLabel("API version")).toHaveValue(/^\d{4}-\d{2}$/);
+  });
+
+  test("deletes both sources, and their mappings go with them", async ({ page }) => {
+    await signIn(page);
+
+    for (const name of [sourceName, shopifyName]) {
+      await page.goto("/admin/integrations");
+
+      const row = page.getByRole("row").filter({ hasText: name });
+      await row.getByRole("button", { name: "Delete" }).click();
+
+      await dialog(page).getByRole("button", { name: "Delete" }).click();
+
+      await expect(page.getByRole("link", { name })).toHaveCount(0);
+    }
   });
 });

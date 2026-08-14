@@ -273,6 +273,72 @@ export const xmlFeedConfigSchema = z
 export type XmlFeedConfig = z.infer<typeof xmlFeedConfigSchema>;
 
 // ---------------------------------------------------------------------------
+// The Shopify source config
+// ---------------------------------------------------------------------------
+
+/**
+ * `product_sources.config` for `kind = 'shopify'`.
+ *
+ * Same stance on credentials as the XML schema above: the token is never stored
+ * here. It is `credentials_ref` naming a `FEED_`-prefixed environment variable,
+ * resolved at run time.
+ *
+ * The two fields worth explaining are the caps. `page_size` and `max_pages`
+ * exist because a Shopify catalogue is paginated and a run holds a server action
+ * open for its whole duration — an unbounded walk over a large merchant's
+ * products is the failure mode, and it arrives as a timeout with no explanation.
+ * The defaults (250 x 20) admit 5,000 products, which is well past what this
+ * store is for and small enough to fail quickly when a domain is wrong.
+ */
+export const shopifyConfigSchema = z
+  .object({
+    /**
+     * The `*.myshopify.com` admin domain, not the storefront's custom domain and
+     * not a URL. Validated rather than normalised: a merchant pasting
+     * `https://shop.example.com/admin` has given the wrong thing, and repairing
+     * it silently would send a token to a host they did not name.
+     */
+    shop_domain: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(
+        /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/,
+        "Use the shop's myshopify.com domain, e.g. modern-gentlemen.myshopify.com — not a URL and not a custom domain."
+      ),
+    /**
+     * Shopify versions its Admin API quarterly and retires a version after a
+     * year. Pinned per source so one merchant can move without moving the rest,
+     * and explicit so an upgrade is a deliberate edit rather than a silent drift
+     * in what the same mapping means.
+     */
+    api_version: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/, "An API version looks like 2025-01.")
+      .optional()
+      .default("2025-01"),
+    /** Shopify's own maximum is 250. */
+    page_size: z.number().int().min(1).max(250).optional().default(250),
+    /** Bounds a run — see the header. */
+    max_pages: z.number().int().min(1).max(100).optional().default(20),
+    /**
+     * `any` is offered but not the default: a merchant's drafts and archived
+     * products are theirs, and importing them by default stages proposals nobody
+     * asked for.
+     */
+    status: z.enum(["active", "archived", "draft", "any"]).optional().default("active"),
+    /** Applied to every record the run stages — see `FEED_TARGET_FIELDS`. */
+    fulfilment: z.enum(PRODUCT_FULFILMENTS).optional().default("direct"),
+    /** ISO 4217. The column defaults to GBP and pence assume it. */
+    currency: z.string().length(3).optional().default("GBP"),
+    /** Per page request, not for the whole walk. */
+    timeout_ms: z.number().int().min(1_000).max(120_000).optional().default(30_000),
+  })
+  .strict();
+
+export type ShopifyConfig = z.infer<typeof shopifyConfigSchema>;
+
+// ---------------------------------------------------------------------------
 // Coercion: strings out of a feed, typed values into the catalogue
 // ---------------------------------------------------------------------------
 

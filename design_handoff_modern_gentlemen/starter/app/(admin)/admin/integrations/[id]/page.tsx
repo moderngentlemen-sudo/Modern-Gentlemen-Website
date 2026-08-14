@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
+import type { z } from "zod";
 
 import { requirePermission } from "@/lib/services/auth";
 import { getSource, listJobs, listMappings } from "@/lib/services/ingestion";
-import { xmlFeedConfigSchema } from "@/lib/domain/ingestion";
+import { shopifyConfigSchema, xmlFeedConfigSchema } from "@/lib/domain/ingestion";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Button } from "@/components/admin/ui/Button";
 import { SourceEditor } from "./SourceEditor";
@@ -25,16 +26,23 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
 
   const [mappings, jobs] = await Promise.all([listMappings(id), listJobs(id)]);
 
-  const parsedConfig = xmlFeedConfigSchema.safeParse(source.config);
-  const config = parsedConfig.success
-    ? parsedConfig.data
-    : {
-        url: "",
-        item_path: "",
-        fulfilment: "direct" as const,
-        currency: "GBP",
-        timeout_ms: 30_000,
-      };
+  const isShopify = source.kind === "shopify";
+
+  // Parsed against the schema for *this* source's kind. Reading a Shopify row
+  // through the XML schema would fail every time and hand the editor a form full
+  // of blanks, which saved would overwrite a working config with nothing.
+  const parsedConfig = isShopify
+    ? shopifyConfigSchema.safeParse(source.config)
+    : xmlFeedConfigSchema.safeParse(source.config);
+
+  const shopify =
+    isShopify && parsedConfig.success
+      ? (parsedConfig.data as z.infer<typeof shopifyConfigSchema>)
+      : null;
+  const xml =
+    !isShopify && parsedConfig.success
+      ? (parsedConfig.data as z.infer<typeof xmlFeedConfigSchema>)
+      : null;
 
   return (
     <>
@@ -50,7 +58,9 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
         <p className="mt-2 text-[13px] text-mg-fg/50">
           {source.kind === "xml_feed"
             ? "An XML feed. Map its fields onto ours, then run it — everything it finds is staged for review."
-            : `A ${source.kind} source.`}
+            : source.kind === "shopify"
+              ? "A Shopify store, over the Admin API. Map its product fields onto ours, then run it — everything it finds is staged for review."
+              : `A ${source.kind} source.`}
         </p>
       </AdminPageHeader>
 
@@ -63,10 +73,15 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
             enabled: source.enabled,
             credentialsRef: source.credentials_ref,
             configValid: parsedConfig.success,
-            url: config.url,
-            itemPath: config.item_path,
-            fulfilment: config.fulfilment,
-            currency: config.currency,
+            url: xml?.url ?? "",
+            itemPath: xml?.item_path ?? "",
+            shopDomain: shopify?.shop_domain ?? "",
+            apiVersion: shopify?.api_version ?? "2025-01",
+            pageSize: shopify?.page_size ?? 250,
+            maxPages: shopify?.max_pages ?? 20,
+            status: shopify?.status ?? "active",
+            fulfilment: (shopify ?? xml)?.fulfilment ?? "direct",
+            currency: (shopify ?? xml)?.currency ?? "GBP",
           }}
           mappings={mappings.map((mapping) => ({
             target_field: mapping.target_field,

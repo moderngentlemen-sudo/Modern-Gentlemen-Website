@@ -19,16 +19,47 @@ import { toActionResult } from "../../_lib/errors";
  * back as `ok: false`, because then there is nothing to link to.
  */
 
-const Config = z.object({
+/**
+ * Shared by both kinds. Split out so the two config schemas below cannot drift
+ * on the fields that have nothing to do with the provider.
+ */
+const Common = {
   id: z.string().uuid(),
   name: z.string().trim().min(1, "A source needs a name."),
   enabled: z.boolean(),
-  url: z.string().trim().min(1),
-  itemPath: z.string().trim().min(1),
   fulfilment: z.enum(PRODUCT_FULFILMENTS),
   currency: z.string().trim().length(3),
   credentialsRef: z.string().trim().nullable(),
+};
+
+/**
+ * A discriminated union, and the editor sends every field of whichever arm
+ * applies.
+ *
+ * That completeness is not incidental. `updateSource` replaces
+ * `product_sources.config` wholesale, so any field the form does not send comes
+ * back from `parseSourceConfig` as its schema default — a Shopify source edited
+ * through a form that omitted `page_size` would silently reset it. Adding a
+ * field to a config schema therefore means adding it here and to the editor.
+ */
+const XmlFeedConfig = z.object({
+  ...Common,
+  kind: z.literal("xml_feed"),
+  url: z.string().trim().min(1),
+  itemPath: z.string().trim().min(1),
 });
+
+const ShopifyConfig = z.object({
+  ...Common,
+  kind: z.literal("shopify"),
+  shopDomain: z.string().trim().min(1),
+  apiVersion: z.string().trim().min(1),
+  pageSize: z.number().int(),
+  maxPages: z.number().int(),
+  status: z.enum(["active", "archived", "draft", "any"]),
+});
+
+const Config = z.discriminatedUnion("kind", [XmlFeedConfig, ShopifyConfig]);
 
 const Mappings = z.object({
   id: z.string().uuid(),
@@ -57,18 +88,26 @@ export async function saveSourceAction(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return invalid(parsed.error);
 
   try {
-    await updateSource(parsed.data.id, {
-      name: parsed.data.name,
-      enabled: parsed.data.enabled,
-      config: {
-        url: parsed.data.url,
-        item_path: parsed.data.itemPath,
-        fulfilment: parsed.data.fulfilment,
-        currency: parsed.data.currency.toUpperCase(),
-      },
-      credentialsRef: parsed.data.credentialsRef || null,
+    const input = parsed.data;
+    const shared = { fulfilment: input.fulfilment, currency: input.currency.toUpperCase() };
+
+    await updateSource(input.id, {
+      name: input.name,
+      enabled: input.enabled,
+      config:
+        input.kind === "xml_feed"
+          ? { ...shared, url: input.url, item_path: input.itemPath }
+          : {
+              ...shared,
+              shop_domain: input.shopDomain,
+              api_version: input.apiVersion,
+              page_size: input.pageSize,
+              max_pages: input.maxPages,
+              status: input.status,
+            },
+      credentialsRef: input.credentialsRef || null,
     });
-    revalidatePath(`/admin/integrations/${parsed.data.id}`);
+    revalidatePath(`/admin/integrations/${input.id}`);
     revalidatePath("/admin/integrations");
     return ok(undefined);
   } catch (error) {

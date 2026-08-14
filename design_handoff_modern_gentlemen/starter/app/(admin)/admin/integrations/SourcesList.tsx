@@ -10,6 +10,7 @@ import { Dialog } from "@/components/admin/ui/Dialog";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { TextInput } from "@/components/admin/ui/Input";
 import { Panel } from "@/components/admin/ui/Panel";
+import { Select } from "@/components/admin/ui/Select";
 import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { useToast } from "@/components/admin/ui/Toast";
 import type { SourceSyncStatus } from "@/lib/domain/ingestion";
@@ -38,6 +39,17 @@ const STATUS_TONES: Record<SourceSyncStatus, BadgeTone> = {
   failed: "danger",
 };
 
+/**
+ * The kinds a person may create. `native` is absent on purpose — `0005` seeds
+ * the one native source and a second would mean nothing.
+ */
+const KIND_OPTIONS = [
+  { value: "xml_feed", label: "XML feed" },
+  { value: "shopify", label: "Shopify" },
+] as const;
+
+type CreatableKind = (typeof KIND_OPTIONS)[number]["value"];
+
 function formatWhen(value: string | null): string {
   if (!value) return "never";
   return new Date(value).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
@@ -49,16 +61,29 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
   const [pending, startTransition] = useTransition();
 
   const [creating, setCreating] = useState(false);
+  const [kind, setKind] = useState<CreatableKind>("xml_feed");
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [itemPath, setItemPath] = useState("rss/channel/item");
+  const [shopDomain, setShopDomain] = useState("");
+  const [credentialsRef, setCredentialsRef] = useState("");
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<SourceRow | null>(null);
+
+  const complete =
+    name.trim() !== "" &&
+    (kind === "xml_feed"
+      ? url.trim() !== "" && itemPath.trim() !== ""
+      : shopDomain.trim() !== "" && credentialsRef.trim() !== "");
 
   function create() {
     setError(undefined);
     startTransition(async () => {
-      const result = await createSourceAction({ name, kind: "xml_feed", url, itemPath });
+      const result = await createSourceAction(
+        kind === "xml_feed"
+          ? { name, kind, url, itemPath }
+          : { name, kind, shopDomain, credentialsRef }
+      );
       if (!result.ok) {
         setError(result.error);
         return;
@@ -66,6 +91,8 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
       setCreating(false);
       setName("");
       setUrl("");
+      setShopDomain("");
+      setCredentialsRef("");
       toast.push("Source created", "success");
       router.push(`/admin/integrations/${result.data.id}`);
     });
@@ -89,7 +116,7 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
         {canWrite && (
           <div className="mb-4 flex justify-end">
             <Button variant="solid" onClick={() => setCreating(true)}>
-              New feed
+              New source
             </Button>
           </div>
         )}
@@ -102,13 +129,13 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
               action={
                 canWrite ? (
                   <Button variant="solid" onClick={() => setCreating(true)}>
-                    Connect the first feed
+                    Connect the first source
                   </Button>
                 ) : undefined
               }
             >
-              A source is a feed the catalogue can import from. Map its fields onto ours once, then
-              every run stages what changed for review.
+              A source is somewhere the catalogue can import from — an XML feed or a Shopify store.
+              Map its fields onto ours once, then every run stages what changed for review.
             </EmptyState>
           ) : (
             <Table caption="Product sources">
@@ -169,46 +196,72 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
       <Dialog
         open={creating}
         onClose={() => setCreating(false)}
-        title="New XML feed"
-        description="Where the feed lives, and which element repeats once per product."
+        title="New source"
+        description="Where the products come from. Everything a run finds is staged for review before it reaches the catalogue."
         footer={
           <>
             <Button variant="ghost" onClick={() => setCreating(false)}>
               Cancel
             </Button>
-            <Button
-              variant="solid"
-              onClick={create}
-              loading={pending}
-              disabled={!name.trim() || !url.trim() || !itemPath.trim()}
-            >
+            <Button variant="solid" onClick={create} loading={pending} disabled={!complete}>
               Create
             </Button>
           </>
         }
       >
         <div className="space-y-4">
+          <Select
+            label="Kind"
+            value={kind}
+            onChange={(value) => setKind(value as CreatableKind)}
+            options={KIND_OPTIONS}
+          />
           <TextInput
             label="Name"
             value={name}
             onChange={setName}
-            placeholder="Merchant XYZ affiliate feed"
+            placeholder={
+              kind === "xml_feed" ? "Merchant XYZ affiliate feed" : "Modern Gentlemen Shopify"
+            }
             required
           />
-          <TextInput
-            label="Feed URL"
-            value={url}
-            onChange={setUrl}
-            placeholder="https://example.com/products.xml"
-            required
-          />
-          <TextInput
-            label="Item path"
-            value={itemPath}
-            onChange={setItemPath}
-            help="The repeating element, slash-separated from the document root — rss/channel/item for an RSS feed, products/product for a plain one."
-            required
-          />
+          {kind === "xml_feed" ? (
+            <>
+              <TextInput
+                label="Feed URL"
+                value={url}
+                onChange={setUrl}
+                placeholder="https://example.com/products.xml"
+                required
+              />
+              <TextInput
+                label="Item path"
+                value={itemPath}
+                onChange={setItemPath}
+                help="The repeating element, slash-separated from the document root — rss/channel/item for an RSS feed, products/product for a plain one."
+                required
+              />
+            </>
+          ) : (
+            <>
+              <TextInput
+                label="Shop domain"
+                value={shopDomain}
+                onChange={setShopDomain}
+                placeholder="modern-gentlemen.myshopify.com"
+                help="The shop's myshopify.com domain — not a custom storefront domain, and not a URL."
+                required
+              />
+              <TextInput
+                label="Credential variable"
+                value={credentialsRef}
+                onChange={setCredentialsRef}
+                placeholder="FEED_SHOPIFY_TOKEN"
+                help="The name of an environment variable holding the Admin API access token. It must begin with FEED_, and the token itself is never stored in the database."
+                required
+              />
+            </>
+          )}
           {error && (
             <p role="alert" className="text-[12px] text-mg-accentSerif">
               {error}
