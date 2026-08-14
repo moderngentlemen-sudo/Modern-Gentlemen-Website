@@ -135,11 +135,13 @@ function BlockList({
   parentKey,
   dragging,
   drop,
+  depth = 0,
 }: {
   nodes: BlockNode[];
   parentKey: string | null;
   dragging: boolean;
   drop: DropLocation | null;
+  depth?: number;
 }) {
   return (
     <SortableContext items={nodes.map((node) => node._key)} strategy={verticalListSortingStrategy}>
@@ -152,7 +154,7 @@ function BlockList({
               over={isOver(drop, parentKey, index)}
             />
           )}
-          <SortableBlock node={node} dragging={dragging} drop={drop} />
+          <SortableBlock node={node} dragging={dragging} drop={drop} depth={depth} />
         </Fragment>
       ))}
       {dragging && (
@@ -224,10 +226,12 @@ function SortableBlock({
   node,
   dragging,
   drop,
+  depth,
 }: {
   node: BlockNode;
   dragging: boolean;
   drop: DropLocation | null;
+  depth: number;
 }) {
   const selectedKey = useBuilder((s) => s.selectedKey);
   const select = useBuilder((s) => s.select);
@@ -326,6 +330,7 @@ function SortableBlock({
                     parentKey={node._key}
                     dragging={dragging}
                     drop={drop}
+                    depth={depth + 1}
                   />
                 )}
               </Component>
@@ -350,7 +355,20 @@ function SortableBlock({
         )}
       />
 
-      <div className="absolute right-2 top-2 z-10 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+      {/*
+        ⚠️ Deeper chrome sits above shallower chrome, and this is not polish.
+
+        Every frame pins its toolbar to its own top-right, and a nested block's
+        corner can fall under its container's — Tailwind's `group-hover` fires
+        for every ancestor group, so both are on screen at once. With one flat
+        `z-10` the container's toolbar wins by document order and swallows
+        clicks meant for the block inside it. CI caught it as a flake before a
+        person could report it as a mystery.
+      */}
+      <div
+        style={{ zIndex: 10 + depth }}
+        className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+      >
         <span className="mr-1 bg-black/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white">
           {label}
         </span>

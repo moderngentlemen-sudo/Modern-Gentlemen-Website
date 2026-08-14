@@ -305,3 +305,26 @@ describe("selecting inside a container", () => {
     expect(outer.querySelector(":scope > .ring-mg-accent")).toBeNull();
   });
 });
+
+describe("nested chrome", () => {
+  it("stacks a nested block's toolbar above its container's", async () => {
+    // Both frames pin their controls to their own top-right, and `group-hover`
+    // fires for every ancestor group — so both are on screen at once and their
+    // corners can overlap. Flat z-indexes let the container's toolbar swallow
+    // clicks meant for the block inside it, which CI found as a flaky drag spec
+    // rather than as a bug report.
+    renderCanvas([{ _key: "C1", _type: "columns", children: [newBlockNode("pullQuote")] }]);
+
+    const frames = [...document.querySelectorAll("[data-block-key]")];
+    const outer = frames.find((f) => f.getAttribute("data-block-key") === "C1")!;
+    const inner = frames.find((f) => f.getAttribute("data-block-key") !== "C1")!;
+
+    const zOf = (frame: Element) =>
+      Number(
+        [...frame.querySelectorAll<HTMLElement>(":scope > div")].find((d) => d.style.zIndex)?.style
+          .zIndex ?? "0"
+      );
+
+    expect(zOf(inner)).toBeGreaterThan(zOf(outer));
+  });
+});
