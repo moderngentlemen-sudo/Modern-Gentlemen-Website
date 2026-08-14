@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/admin/ui/EmptyState";
 
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { useBuilder } from "./StoreContext";
-import { gapDropId } from "./dnd";
+import { gapDropId, type DropLocation } from "./dnd";
 
 /** Widths the device switcher previews at. */
 const DEVICE_WIDTH = {
@@ -40,14 +40,15 @@ const DEVICE_WIDTH = {
  * The two props are that context's state, passed down rather than read from
  * `useDndContext` so the rendering rule stays a function of its inputs and can
  * be asserted without a layout engine. `libraryDragType` is the type being
- * dragged in, or `null`; `dropIndex` is the insertion point under the pointer.
+ * dragged in, or `null`; `drop` is the insertion point under the pointer, which
+ * names a container as well as an index now that lists nest.
  */
 export function Canvas({
   libraryDragType = null,
-  dropIndex = null,
+  drop = null,
 }: {
   libraryDragType?: string | null;
-  dropIndex?: number | null;
+  drop?: DropLocation | null;
 } = {}) {
   const tree = useBuilder(useShallow((s) => s.tree));
   const device = useBuilder((s) => s.device);
@@ -73,26 +74,20 @@ export function Canvas({
         <div className="flex justify-center px-6 py-6">
           <div className={clsx("transition-[width]", DEVICE_WIDTH[device])}>
             {tree.length === 0 ? (
-              <EmptyDropZone dragging={dragging} over={dropIndex === 0} />
+              <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
             ) : (
-              <SortableContext
-                items={tree.map((node) => node._key)}
-                strategy={verticalListSortingStrategy}
-              >
-                {tree.map((node, index) => (
-                  <Fragment key={node._key}>
-                    {dragging && <GapDropZone index={index} over={dropIndex === index} />}
-                    <SortableBlock node={node} />
-                  </Fragment>
-                ))}
-                {dragging && <GapDropZone index={tree.length} over={dropIndex === tree.length} />}
-              </SortableContext>
+              <BlockList nodes={tree} parentKey={null} dragging={dragging} drop={drop} />
             )}
           </div>
         </div>
       </CartProvider>
     </CatalogProvider>
   );
+}
+
+/** True when the pointer is over the gap at `index` in `parentKey`'s list. */
+function isOver(drop: DropLocation | null, parentKey: string | null, index: number): boolean {
+  return drop !== null && drop.parentKey === parentKey && drop.index === index;
 }
 
 /**
@@ -102,17 +97,107 @@ export function Canvas({
  * gap is never a candidate `over` target for a drag that started on the canvas,
  * so `closestCenter` still resolves to a block exactly as it did before.
  */
-function GapDropZone({ index, over }: { index: number; over: boolean }) {
-  const { setNodeRef } = useDroppable({ id: gapDropId(index) });
+function GapDropZone({
+  index,
+  parentKey,
+  over,
+}: {
+  index: number;
+  parentKey: string | null;
+  over: boolean;
+}) {
+  const { setNodeRef } = useDroppable({ id: gapDropId(index, parentKey) });
 
   return (
-    <div ref={setNodeRef} data-gap-index={index} className="relative h-6">
+    <div
+      ref={setNodeRef}
+      data-gap-index={index}
+      data-gap-parent={parentKey ?? undefined}
+      className="relative h-6"
+    >
       <div
         className={clsx(
           "absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 transition-colors",
           over ? "bg-mg-accent" : "bg-transparent"
         )}
       />
+    </div>
+  );
+}
+
+/**
+ * A list of blocks and the insertion points around it — the root list, or a
+ * container's children. One component for both, so nesting cannot drift into a
+ * second rendering rule.
+ */
+function BlockList({
+  nodes,
+  parentKey,
+  dragging,
+  drop,
+}: {
+  nodes: BlockNode[];
+  parentKey: string | null;
+  dragging: boolean;
+  drop: DropLocation | null;
+}) {
+  return (
+    <SortableContext items={nodes.map((node) => node._key)} strategy={verticalListSortingStrategy}>
+      {nodes.map((node, index) => (
+        <Fragment key={node._key}>
+          {dragging && (
+            <GapDropZone
+              index={index}
+              parentKey={parentKey}
+              over={isOver(drop, parentKey, index)}
+            />
+          )}
+          <SortableBlock node={node} dragging={dragging} drop={drop} />
+        </Fragment>
+      ))}
+      {dragging && (
+        <GapDropZone
+          index={nodes.length}
+          parentKey={parentKey}
+          over={isOver(drop, parentKey, nodes.length)}
+        />
+      )}
+    </SortableContext>
+  );
+}
+
+/**
+ * A container with nothing in it.
+ *
+ * Registered as a droppable **whatever is being dragged**, unlike the gaps —
+ * which is how an existing block is moved into an empty container, and it
+ * cannot compete with sibling reordering because it exists only while the
+ * container has no siblings to reorder.
+ */
+function EmptySlot({
+  parentKey,
+  label,
+  over,
+}: {
+  parentKey: string;
+  label: string;
+  over: boolean;
+}) {
+  const { setNodeRef } = useDroppable({ id: gapDropId(0, parentKey) });
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-gap-index={0}
+      data-gap-parent={parentKey}
+      className={clsx(
+        "flex min-h-[120px] items-center justify-center border border-dashed p-6 text-center",
+        over ? "border-mg-accent bg-mg-accent/5" : "border-mg-fg/20"
+      )}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/40">
+        {label} — drop a section here
+      </p>
     </div>
   );
 }
@@ -135,7 +220,15 @@ function EmptyDropZone({ dragging, over }: { dragging: boolean; over: boolean })
   );
 }
 
-function SortableBlock({ node }: { node: BlockNode }) {
+function SortableBlock({
+  node,
+  dragging,
+  drop,
+}: {
+  node: BlockNode;
+  dragging: boolean;
+  drop: DropLocation | null;
+}) {
   const selectedKey = useBuilder((s) => s.selectedKey);
   const select = useBuilder((s) => s.select);
   const duplicate = useBuilder((s) => s.duplicate);
@@ -157,9 +250,14 @@ function SortableBlock({ node }: { node: BlockNode }) {
     disabled: locked,
   });
 
+  const manifest = manifestFor(node._type);
   const Component = registry[node._type as keyof typeof registry] as
     ComponentType<Record<string, unknown>> | undefined;
-  const label = manifestFor(node._type)?.label ?? node._type;
+  const label = manifest?.label ?? node._type;
+
+  /** Only a block whose manifest declares a slot may hold children. */
+  const slot = manifest?.slot;
+  const children = node.children ?? [];
 
   return (
     <div
@@ -181,13 +279,47 @@ function SortableBlock({ node }: { node: BlockNode }) {
       */}
       <div
         className={clsx(
-          "[&_a]:pointer-events-none [&_button]:pointer-events-none",
+          /*
+            ⚠️ The navigation killer is applied to LEAVES ONLY, and that is not
+            a shortcut.
+
+            It compiles to `.wrapper button { pointer-events: none }`, which is
+            a descendant selector — so on a container it would reach every
+            nested block's own toolbar and make the drag handle, lock, duplicate
+            and delete buttons of everything inside it silently unclickable. A
+            `pointer-events-auto` utility on those buttons cannot win: the
+            arbitrary variant's specificity is higher.
+
+            A container's own markup carries no links or buttons (`Columns` is a
+            section and a grid), and each nested leaf still applies the killer to
+            its own content, so nothing about the guarantee is lost.
+          */
+          !slot && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
           hidden && "opacity-40"
         )}
       >
         {Component ? (
           <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
-            <Component {...normalizeBlock(node)} />
+            {slot ? (
+              <Component {...normalizeBlock(node)}>
+                {children.length === 0 ? (
+                  <EmptySlot
+                    parentKey={node._key}
+                    label={slot.label}
+                    over={isOver(drop, node._key, 0)}
+                  />
+                ) : (
+                  <BlockList
+                    nodes={children}
+                    parentKey={node._key}
+                    dragging={dragging}
+                    drop={drop}
+                  />
+                )}
+              </Component>
+            ) : (
+              <Component {...normalizeBlock(node)} />
+            )}
           </BlockErrorBoundary>
         ) : (
           <div className="border border-mg-accentSerif/40 bg-mg-accent/5 px-6 py-10 text-center">

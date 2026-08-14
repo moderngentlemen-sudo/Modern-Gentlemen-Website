@@ -29,7 +29,8 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { PublishBar } from "./PublishBar";
 import { ValidationTray } from "./ValidationTray";
 import { useAutosave } from "./useAutosave";
-import { dropIndexFor, parseDragId } from "./dnd";
+import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
+import { locate } from "./tree";
 import type { BuilderInit } from "./store";
 
 /**
@@ -115,13 +116,21 @@ function BuilderLayout({
 
   const insert = useBuilder((s) => s.insert);
   const move = useBuilder((s) => s.move);
+  const moveTo = useBuilder((s) => s.moveTo);
   const selectedKey = useBuilder((s) => s.selectedKey);
   const tree = useBuilder((s) => s.tree);
 
-  /** The library entry in flight, and the gap under the pointer. */
-  const [libraryDrag, setLibraryDrag] = useState<{ type: string; index: number | null } | null>(
-    null
-  );
+  /**
+   * The library entry in flight, if any, and the insertion point under the
+   * pointer — which names a container as well as an index now that a container
+   * has a list of its own.
+   *
+   * `drop` is tracked for a *block* drag too, not only a library one: dropping
+   * an existing block onto an empty container's placeholder is how it gets
+   * moved in there.
+   */
+  const [libraryType, setLibraryType] = useState<string | null>(null);
+  const [drop, setDrop] = useState<DropLocation | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -142,31 +151,42 @@ function BuilderLayout({
 
   function onDragStart(event: DragStartEvent) {
     const active = parseDragId(event.active.id);
-    if (active.kind === "library") setLibraryDrag({ type: active.type, index: null });
+    if (active.kind === "library") setLibraryType(active.type);
   }
 
   function onDragOver(event: DragOverEvent) {
-    const index = dropIndexFor(event.over?.id, tree.length);
-    setLibraryDrag((current) =>
-      current === null || current.index === index ? current : { ...current, index }
+    const next = dropLocationFor(event.over?.id);
+    setDrop((current) =>
+      current?.parentKey === (next?.parentKey ?? null) && current?.index === next?.index
+        ? current
+        : next
     );
   }
 
   function onDragEnd(event: DragEndEvent) {
-    setLibraryDrag(null);
+    setLibraryType(null);
+    setDrop(null);
 
     const active = parseDragId(event.active.id);
     const overId = event.over?.id;
+    const location = dropLocationFor(overId);
 
     if (active.kind === "library") {
-      const index = dropIndexFor(overId, tree.length);
-      if (index !== null) insert(active.type, index);
+      if (location) insert(active.type, location.index, location.parentKey);
       return;
     }
 
     if (active.kind !== "block" || overId === undefined) return;
 
-    // Reordering is unchanged: block onto block, and never onto a gap.
+    // A block onto an insertion point — today that is an empty container's
+    // placeholder, which is the only way into one.
+    if (location) {
+      moveTo(active.key, location.parentKey, location.index);
+      return;
+    }
+
+    // Block onto block, unchanged — and cross-container for free, since
+    // `moveByKey` works on locations rather than root indexes.
     const over = parseDragId(overId);
     if (over.kind === "block" && over.key !== active.key) move(active.key, over.key);
   }
@@ -181,25 +201,28 @@ function BuilderLayout({
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
-        onDragCancel={() => setLibraryDrag(null)}
+        onDragCancel={() => {
+          setLibraryType(null);
+          setDrop(null);
+        }}
       >
         <div className="flex min-h-0 flex-1">
           <aside className={clsx("w-[230px] shrink-0 overflow-hidden border-r", HAIRLINE)}>
             <InsertMenu
               onInsert={(type) => {
                 // Insert after whatever is selected, so building a page reads
-                // top-to-bottom rather than always appending to the end.
-                const index = tree.findIndex((node) => node._key === selectedKey);
-                insert(type, index === -1 ? undefined : index + 1);
+                // top-to-bottom rather than always appending to the end — and
+                // `locate`, not a root `findIndex`, so clicking with a block
+                // inside a container selected adds the next one beside it
+                // rather than silently at the end of the page.
+                const at = selectedKey ? locate(tree, selectedKey) : null;
+                insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
               }}
             />
           </aside>
 
           <main className="min-w-0 flex-1 overflow-y-auto bg-mg-bg">
-            <Canvas
-              libraryDragType={libraryDrag?.type ?? null}
-              dropIndex={libraryDrag?.index ?? null}
-            />
+            <Canvas libraryDragType={libraryType} drop={drop} />
           </main>
 
           <aside className={clsx("w-[320px] shrink-0 overflow-hidden border-l", HAIRLINE)}>
@@ -213,9 +236,9 @@ function BuilderLayout({
           load-bearing rather than decoration.
         */}
         <DragOverlay dropAnimation={null}>
-          {libraryDrag && (
+          {libraryType && (
             <div className="border border-mg-accent bg-mg-surface px-3 py-2 text-[13px] font-medium shadow-lg">
-              {manifestFor(libraryDrag.type)?.label ?? libraryDrag.type}
+              {manifestFor(libraryType)?.label ?? libraryType}
             </div>
           )}
         </DragOverlay>

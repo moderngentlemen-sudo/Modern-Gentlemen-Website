@@ -37,7 +37,10 @@ import { newBlockNode } from "./node";
 
 function renderCanvas(
   tree: BlockTree,
-  drag: { libraryDragType?: string | null; dropIndex?: number | null } = {}
+  drag: {
+    libraryDragType?: string | null;
+    drop?: { parentKey: string | null; index: number } | null;
+  } = {}
 ) {
   return render(
     <BuilderStoreProvider
@@ -63,7 +66,7 @@ function renderCanvas(
 }
 
 describe("every registered block renders on the canvas", () => {
-  it("mounts one node of all 22 types without throwing", () => {
+  it("mounts one node of every registered type without throwing", () => {
     const tree = blockTypes.map((type) => newBlockNode(type));
 
     expect(() => renderCanvas(tree)).not.toThrow();
@@ -198,5 +201,85 @@ describe("BlockErrorBoundary", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe("containers on the canvas", () => {
+  const container = (children: BlockTree): BlockTree => [
+    { _key: "C1", _type: "columns", children },
+  ];
+
+  it("renders a container's children inside it", () => {
+    renderCanvas(container([newBlockNode("pullQuote"), newBlockNode("masthead")]));
+
+    // Three frames: the container and its two children, all in one document
+    // order — which is what the nested SortableContexts have to preserve.
+    expect(document.querySelectorAll("[data-block-key]")).toHaveLength(3);
+  });
+
+  it("offers an empty container its own drop target, whatever is being dragged", () => {
+    // Unlike the gaps, this one is registered even for a block drag: it is the
+    // only way an existing block can be moved into an empty container.
+    renderCanvas(container([]));
+
+    const slot = document.querySelector("[data-gap-parent='C1']");
+    expect(slot).not.toBeNull();
+    expect(slot!.getAttribute("data-gap-index")).toBe("0");
+  });
+
+  it("renders insertion points inside a container during a library drag", () => {
+    renderCanvas(container([newBlockNode("pullQuote")]), { libraryDragType: "newsletter" });
+
+    const nested = [...document.querySelectorAll("[data-gap-parent='C1']")].map((n) =>
+      n.getAttribute("data-gap-index")
+    );
+    expect(nested).toEqual(["0", "1"]);
+
+    // The root list keeps its own, and they are distinguishable by parent.
+    const root = [...document.querySelectorAll("[data-gap-index]")].filter(
+      (n) => !n.hasAttribute("data-gap-parent")
+    );
+    expect(root).toHaveLength(2);
+  });
+
+  it("highlights only the gap the pointer is in, container included", () => {
+    renderCanvas(container([newBlockNode("pullQuote")]), {
+      libraryDragType: "newsletter",
+      drop: { parentKey: "C1", index: 1 },
+    });
+
+    const highlighted = [...document.querySelectorAll("[data-gap-index]")].filter((n) =>
+      n.querySelector(".bg-mg-accent")
+    );
+    expect(highlighted).toHaveLength(1);
+    expect(highlighted[0].getAttribute("data-gap-parent")).toBe("C1");
+    expect(highlighted[0].getAttribute("data-gap-index")).toBe("1");
+  });
+
+  it("does not disable pointer events inside a container", () => {
+    // The navigation killer is a descendant selector, so applying it to a
+    // container would reach every nested block's own toolbar and make its drag,
+    // lock, duplicate and delete buttons silently unclickable.
+    renderCanvas(container([newBlockNode("pullQuote")]));
+
+    const frames = [...document.querySelectorAll("[data-block-key]")];
+    const containerFrame = frames.find((f) => f.getAttribute("data-block-key") === "C1")!;
+    const inner = containerFrame.querySelector("div")!;
+
+    expect(inner.className).not.toContain("pointer-events-none");
+  });
+
+  it("still disables pointer events on a leaf", () => {
+    renderCanvas([newBlockNode("pullQuote")]);
+    const inner = document.querySelector("[data-block-key] > div")!;
+    expect(inner.className).toContain("[&_a]:pointer-events-none");
+  });
+
+  it("keeps a nested block's frame actions reachable by name", async () => {
+    const label = manifestFor("pullQuote")!.label;
+    renderCanvas(container([newBlockNode("pullQuote")]));
+
+    await userEvent.click(screen.getByRole("button", { name: `Duplicate ${label}` }));
+    expect(document.querySelectorAll("[data-block-key]")).toHaveLength(3);
   });
 });

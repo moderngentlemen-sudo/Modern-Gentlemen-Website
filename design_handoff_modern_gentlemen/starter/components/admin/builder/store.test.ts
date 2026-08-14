@@ -15,7 +15,7 @@ import type { BlockTree } from "@/lib/blocks/types";
 
 import { COALESCE_MS, HISTORY_LIMIT, createBuilderStore, type BuilderStore } from "./store";
 import { cloneWithNewKeys, keysOf, newBlockNode, newKey } from "./node";
-import { reorderByKey } from "./dnd";
+import { moveByKey } from "./tree";
 
 function makeStore(tree: BlockTree = []): BuilderStore {
   return createBuilderStore({
@@ -195,10 +195,152 @@ describe("remove and move", () => {
     expect(store.getState().tree.map((n) => n._key)).toEqual([c, a, b]);
   });
 
-  it("reorderByKey leaves the tree alone for unknown keys", () => {
+  it("moveByKey leaves the tree alone for unknown keys", () => {
     const tree: BlockTree = [{ _key: "a", _type: "pullQuote" }];
-    expect(reorderByKey(tree, "a", "nope")).toBe(tree);
-    expect(reorderByKey(tree, "a", "a")).toBe(tree);
+    expect(moveByKey(tree, "a", "nope")).toBe(tree);
+    expect(moveByKey(tree, "a", "a")).toBe(tree);
+  });
+});
+
+describe("containers", () => {
+  /** A store holding one empty `columns` block, plus its key. */
+  function withContainer() {
+    const store = makeStore();
+    store.getState().insert("columns");
+    return { store, container: store.getState().tree[0]._key };
+  }
+
+  it("inserts into a container rather than the root", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+
+    expect(store.getState().tree).toHaveLength(1);
+    expect(store.getState().tree[0].children!.map((n) => n._type)).toEqual(["pullQuote"]);
+  });
+
+  it("selects the block it inserted, wherever it went", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    expect(store.getState().selectedKey).toBe(store.getState().tree[0].children![0]._key);
+  });
+
+  it("edits a nested block's settings", () => {
+    // The whole point of `findDraft`: `draft.find` would never reach this node,
+    // and the edit would silently do nothing.
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    const nested = store.getState().tree[0].children![0]._key;
+
+    store.getState().setSetting(nested, ["quote"], "From inside a column");
+
+    const settings = store.getState().tree[0].children![0].settings as { quote: string };
+    expect(settings.quote).toBe("From inside a column");
+  });
+
+  it("locks and hides a nested block", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    const nested = store.getState().tree[0].children![0]._key;
+
+    store.getState().setLocked(nested, true);
+    store.getState().setVisibility(nested, { hidden: true });
+
+    const node = store.getState().tree[0].children![0];
+    expect(node.locked).toBe(true);
+    expect(node.visibility?.hidden).toBe(true);
+  });
+
+  it("refuses a field edit on a locked nested block", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    const nested = store.getState().tree[0].children![0]._key;
+    store.getState().setLocked(nested, true);
+
+    const before = store.getState().tree;
+    store.getState().setSetting(nested, ["quote"], "Should not land");
+    expect(store.getState().tree).toBe(before);
+  });
+
+  it("duplicates a nested block beside itself, not at the root", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    const nested = store.getState().tree[0].children![0]._key;
+
+    store.getState().duplicate(nested);
+
+    expect(store.getState().tree).toHaveLength(1);
+    expect(store.getState().tree[0].children).toHaveLength(2);
+  });
+
+  it("removes a nested block, and its container with everything in it", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    store.getState().insert("masthead", 1, container);
+    const nested = store.getState().tree[0].children![0]._key;
+
+    store.getState().remove(nested);
+    expect(store.getState().tree[0].children).toHaveLength(1);
+
+    store.getState().remove(container);
+    expect(store.getState().tree).toEqual([]);
+  });
+
+  it("moves a root block into a container and back out", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    store.getState().insert("newsletter");
+    const outside = store.getState().tree[1]._key;
+    const inside = store.getState().tree[0].children![0]._key;
+
+    store.getState().move(outside, inside);
+    expect(store.getState().tree).toHaveLength(1);
+    expect(store.getState().tree[0].children).toHaveLength(2);
+
+    store.getState().moveTo(outside, null, 0);
+    expect(store.getState().tree.map((n) => n._key)).toEqual([outside, container]);
+  });
+
+  it("refuses to move a container into itself, and records no history for it", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    const nested = store.getState().tree[0].children![0]._key;
+
+    const before = store.getState().tree;
+    const history = store.getState().past.length;
+
+    store.getState().move(container, nested);
+
+    expect(store.getState().tree).toBe(before);
+    expect(store.getState().past).toHaveLength(history);
+  });
+
+  it("undoes a nested edit", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    store.getState().undo();
+
+    expect(store.getState().tree[0].children ?? []).toHaveLength(0);
+  });
+
+  it("keeps a nested selection through undo, and drops one that did not survive", () => {
+    const { store, container } = withContainer();
+    store.getState().insert("pullQuote", 0, container);
+    const nested = store.getState().tree[0].children![0]._key;
+
+    store.getState().setSetting(nested, ["quote"], "x");
+    store.getState().undo();
+    // `findBlock` recurses, so a nested selection survives an undo that keeps
+    // the block — which is what makes the panel stay put.
+    expect(store.getState().selectedKey).toBe(nested);
+
+    store.getState().undo();
+    expect(store.getState().selectedKey).toBeNull();
+  });
+
+  it("reports an empty container as a publish issue", () => {
+    const { store } = withContainer();
+    // The slot declares `min: 1`, so a container is invalid until it is filled.
+    expect(store.getState().issues.some((i) => i.path === "children")).toBe(true);
   });
 });
 
