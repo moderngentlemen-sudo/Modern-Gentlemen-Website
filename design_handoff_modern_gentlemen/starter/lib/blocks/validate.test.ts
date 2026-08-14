@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateBlock, validateTree } from "./validate";
+import { slotIssues, validateBlock, validateTree } from "./validate";
 import type { BlockNode } from "./types";
 
 const quote = (props: Partial<BlockNode> = {}): BlockNode => ({
@@ -77,13 +77,68 @@ describe("validateBlock", () => {
   });
 });
 
+/** A container holding whatever it is given. `columns` is the only one today. */
+const columns = (children: BlockNode[], props: Partial<BlockNode> = {}): BlockNode => ({
+  _key: "c1",
+  _type: "columns",
+  children,
+  ...props,
+});
+
+describe("child slots", () => {
+  it("accepts children on a block whose manifest declares a slot", () => {
+    expect(validateBlock(columns([quote()])).ok).toBe(true);
+  });
+
+  it("refuses children on a leaf", () => {
+    // The other twenty-two blocks are leaves, and a tree that nests inside one
+    // was built by something that ignored the manifest.
+    const result = validateBlock({ ...quote(), children: [quote()] });
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((i) => i.path)).toContain("children");
+  });
+
+  it("refuses an empty container, so one cannot be published blank", () => {
+    const result = validateBlock(columns([]));
+    expect(result.ok).toBe(false);
+    expect(result.issues[0].message).toMatch(/at least 1 block/);
+  });
+
+  it("refuses more children than the slot holds", () => {
+    const five = Array.from({ length: 5 }, (_, i) => quote({ _key: `q${i}` }));
+    const result = validateBlock(columns(five));
+    expect(result.ok).toBe(false);
+    expect(result.issues[0].message).toMatch(/at most 4 blocks/);
+  });
+
+  it("reports a disallowed child against its own index", () => {
+    // Driven through `slotIssues` directly: `columns` accepts anything, so no
+    // shipped manifest can reach this branch, and asserting it through one
+    // would only prove that today's policy is today's policy.
+    const node = columns([quote(), { _key: "n1", _type: "newsletter" }]);
+    const issues = slotIssues(node, "c1", { label: "Columns", allow: ["pullQuote"] });
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0].path).toBe("children.1");
+    expect(issues[0].message).toMatch(/"newsletter" is not allowed/);
+  });
+
+  it("says nothing about a leaf with no children, which is every other block", () => {
+    expect(slotIssues(quote(), "q1", undefined)).toEqual([]);
+  });
+});
+
 describe("validateTree", () => {
   it("walks nested children", () => {
-    const result = validateTree([
-      { ...quote(), children: [{ _key: "bad", _type: "pullQuote", quote: "Q" }] },
-    ]);
+    const result = validateTree([columns([{ _key: "bad", _type: "pullQuote", quote: "Q" }])]);
     expect(result.ok).toBe(false);
+    // The child's own missing `attribution`, found through the container.
     expect(result.issues.some((i) => i.key === "bad")).toBe(true);
+  });
+
+  it("validates a container and its children in one pass", () => {
+    const result = validateTree([columns([])]);
+    expect(result.issues.map((i) => i.key)).toContain("c1");
   });
 
   it("reports a duplicate key once", () => {

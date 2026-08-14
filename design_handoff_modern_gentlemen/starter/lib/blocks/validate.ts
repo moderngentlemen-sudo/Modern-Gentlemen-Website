@@ -18,7 +18,7 @@ import { bindingQuerySchema, hasBindingShape } from "./bindingDescriptor";
 import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
 import { walkBlocks } from "./traverse";
-import type { BlockNode, BlockTree } from "./types";
+import type { BlockNode, BlockSlot, BlockTree } from "./types";
 
 export interface BlockIssue {
   /** `_key` of the offending block, or `""` when the node has none. */
@@ -113,7 +113,79 @@ export function validateBlock(node: BlockNode): ValidationResult {
     }
   }
 
+  issues.push(...slotIssues(node, key, manifest.slot));
+
   return { ok: issues.length === 0, issues };
+}
+
+/**
+ * The container contract: what a block's `children` may hold.
+ *
+ * Only the *shape* of the slot is checked here. Each child is validated in its
+ * own right by `validateTree`, whose `walkBlocks` already descends — so this
+ * deliberately says nothing about a child's props, and a nested tree gets the
+ * same scrutiny as a flat one for free.
+ *
+ * Exported for its own tests: `allow` has no consumer among the shipped
+ * manifests (`columns` accepts anything), so reaching that branch through a
+ * real manifest is impossible and testing it through one would only assert
+ * that today's policy is today's policy.
+ */
+export function slotIssues(
+  node: BlockNode,
+  key: string,
+  slot: BlockSlot | undefined
+): BlockIssue[] {
+  const children = Array.isArray(node.children) ? node.children : [];
+  const issues: BlockIssue[] = [];
+
+  if (!slot) {
+    // Silence on a leaf with no children is the common case; children on a leaf
+    // means the tree has been built by something that ignored the manifest.
+    if (children.length > 0) {
+      issues.push({
+        key,
+        type: node._type,
+        path: "children",
+        message: `"${node._type}" does not accept child blocks.`,
+      });
+    }
+    return issues;
+  }
+
+  if (slot.min !== undefined && children.length < slot.min) {
+    issues.push({
+      key,
+      type: node._type,
+      path: "children",
+      message: `${slot.label} needs at least ${slot.min} block${slot.min === 1 ? "" : "s"}.`,
+    });
+  }
+
+  if (slot.max !== undefined && children.length > slot.max) {
+    issues.push({
+      key,
+      type: node._type,
+      path: "children",
+      message: `${slot.label} holds at most ${slot.max} block${slot.max === 1 ? "" : "s"}.`,
+    });
+  }
+
+  if (slot.allow) {
+    children.forEach((child, index) => {
+      if (slot.allow!.includes(child._type)) return;
+      issues.push({
+        key,
+        type: node._type,
+        // Indexed, so the panel can point at the offending child rather than
+        // the container.
+        path: `children.${index}`,
+        message: `"${child._type}" is not allowed in ${slot.label}.`,
+      });
+    });
+  }
+
+  return issues;
 }
 
 export function validateTree(tree: BlockTree | undefined): ValidationResult {
