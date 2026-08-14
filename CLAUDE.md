@@ -33,7 +33,8 @@ design_handoff_modern_gentlemen/starter/
 │                 theme, integrations, password
 │                 auth/ callback · sign-out · _lib/publicUrl.ts (see the rule below)
 │                 sitemap.ts · robots.ts · api/jobs/publish-scheduled/
-├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/,
+├─ components/    sections/ (blocks + registry; the hook prints the true count),
+│                 article/, chrome/, store/, ui/,
 │                 seo/ (JsonLd), admin/ (ui/, builder/, fields/, media/, history/)
 ├─ lib/
 │  ├─ blocks/     PURE: one defineBlock() manifest per section + validation
@@ -101,9 +102,21 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   reordering, no "tidying".
 - **A section block is not done until it has a manifest.** Build the component,
   register it in `components/sections/registry.ts`, then write
-  `lib/blocks/manifests/<type>.ts`. `lib/blocks/conformance.test.ts` fails the
-  build if either half is missing. Manifests *describe* components — where the
-  two disagree, the component wins and the manifest is the bug.
+  `lib/blocks/manifests/<type>.ts` **and add it to `manifests/index.ts`**.
+  `lib/blocks/conformance.test.ts` fails the build if either half is missing.
+  Manifests *describe* components — where the two disagree, the component wins
+  and the manifest is the bug.
+- **A block may hold other blocks only if its manifest declares a `slot`.**
+  Children live in `BlockNode.children` — the structural home `traverse.ts`
+  recurses into, and through it `validate.ts`, `media.ts`, `diff.ts` and
+  `binding.ts` — never in a field, which would route them around all four at
+  once. `validateBlock` refuses children on a manifest without a slot, so every
+  other block is *provably* a leaf. `columns` is the only container today.
+  ⚠️ Two things about the canvas follow from nesting and are easy to undo by
+  accident: `[&_button]:pointer-events-none` is applied to **leaves only**
+  (a descendant selector disables every nested block's toolbar, and
+  `pointer-events-auto` cannot out-specify it), and each frame's `onMouseDown`
+  calls `stopPropagation` so the **innermost** block wins the selection.
 - **A `lib/domain` module that a client component imports may not touch a Node
   built-in.** `lib/domain` is pure, so client components import it freely for
   vocabularies and schemas — and that makes any `node:crypto` in one of those
