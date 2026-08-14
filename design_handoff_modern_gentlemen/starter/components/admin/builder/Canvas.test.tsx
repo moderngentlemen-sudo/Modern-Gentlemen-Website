@@ -11,12 +11,21 @@
  *
  * Drag behaviour is NOT simulated: dnd-kit measures the DOM and jsdom has no
  * layout engine (the ResizeObserver stub in the unit setup is inert). Reordering
- * is asserted in store.test.ts, against the pure function the canvas calls.
+ * is asserted in store.test.ts, against the pure function the canvas calls, and
+ * a real drag is proved in `tests/e2e/builder.spec.ts`.
+ *
+ * What *is* asserted here is the rendering rule the drop targets follow, which
+ * is a plain function of the canvas's props — the reason those props exist
+ * rather than the canvas reading `useDndContext` for itself.
+ *
+ * The `DndContext` wrapper below mirrors the real tree: it lives in
+ * `Builder.tsx` now, so the canvas is no longer self-sufficient.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { DndContext } from "@dnd-kit/core";
 
 import { blockTypes, manifestFor } from "@/lib/blocks/manifests";
 import type { BlockTree } from "@/lib/blocks/types";
@@ -26,7 +35,10 @@ import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { BuilderStoreProvider } from "./StoreContext";
 import { newBlockNode } from "./node";
 
-function renderCanvas(tree: BlockTree) {
+function renderCanvas(
+  tree: BlockTree,
+  drag: { libraryDragType?: string | null; dropIndex?: number | null } = {}
+) {
   return render(
     <BuilderStoreProvider
       init={{
@@ -43,7 +55,9 @@ function renderCanvas(tree: BlockTree) {
         tree,
       }}
     >
-      <Canvas />
+      <DndContext>
+        <Canvas {...drag} />
+      </DndContext>
     </BuilderStoreProvider>
   );
 }
@@ -111,6 +125,51 @@ describe("block frames", () => {
   it("renders a placeholder for a type with no registered component", () => {
     renderCanvas([{ _key: "k1", _type: "noSuchBlock" }]);
     expect(screen.getByText(/unknown block/i)).toBeInTheDocument();
+  });
+});
+
+describe("drop targets for a library drag", () => {
+  it("renders no insertion points when nothing is being dragged in", () => {
+    renderCanvas([newBlockNode("pullQuote"), newBlockNode("masthead")]);
+    expect(document.querySelectorAll("[data-gap-index]")).toHaveLength(0);
+  });
+
+  it("renders one insertion point before each block and one after the last", () => {
+    renderCanvas([newBlockNode("pullQuote"), newBlockNode("masthead")], {
+      libraryDragType: "newsletter",
+    });
+
+    const gaps = [...document.querySelectorAll("[data-gap-index]")].map((node) =>
+      node.getAttribute("data-gap-index")
+    );
+    expect(gaps).toEqual(["0", "1", "2"]);
+  });
+
+  it("interleaves the insertion points with the blocks, in document order", () => {
+    const tree = [newBlockNode("pullQuote"), newBlockNode("masthead")];
+    renderCanvas(tree, { libraryDragType: "newsletter" });
+
+    const marks = [...document.querySelectorAll("[data-gap-index], [data-block-key]")].map(
+      (node) =>
+        node.hasAttribute("data-gap-index") ? `gap:${node.getAttribute("data-gap-index")}` : "block"
+    );
+    expect(marks).toEqual(["gap:0", "block", "gap:1", "block", "gap:2"]);
+  });
+
+  it("makes the empty page itself a drop target", () => {
+    renderCanvas([], { libraryDragType: "newsletter" });
+
+    const gaps = document.querySelectorAll("[data-gap-index]");
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0].getAttribute("data-gap-index")).toBe("0");
+    // The empty state stays visible underneath — it is the drop target, not a
+    // thing the drop target replaces.
+    expect(screen.getByText("Add your first section")).toBeInTheDocument();
+  });
+
+  it("leaves the empty page inert when nothing is being dragged in", () => {
+    renderCanvas([]);
+    expect(document.querySelectorAll("[data-gap-index]")).toHaveLength(0);
   });
 });
 
