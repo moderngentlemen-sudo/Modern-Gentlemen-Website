@@ -7,17 +7,20 @@
  */
 
 import type { ProductSourceKind } from "@/lib/domain/ingestion";
+import { shopifyAdapter } from "./shopify";
 import { AdapterError, type SourceAdapter } from "./types";
 import { xmlFeedAdapter } from "./xmlFeed";
 
 export { AdapterError } from "./types";
 export type { AdapterContext, SourceAdapter } from "./types";
 export { applyTransform, TRANSFORMS } from "./transforms";
+export { shopifyAdapter } from "./shopify";
 export { xmlFeedAdapter } from "./xmlFeed";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ADAPTERS: Partial<Record<ProductSourceKind, SourceAdapter<any>>> = {
   xml_feed: xmlFeedAdapter,
+  shopify: shopifyAdapter,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

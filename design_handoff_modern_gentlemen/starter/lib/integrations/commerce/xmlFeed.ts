@@ -22,15 +22,9 @@
 import { XMLParser } from "fast-xml-parser";
 
 import { xmlFeedConfigSchema, type XmlFeedConfig } from "@/lib/domain/ingestion";
+import { fetchCapped } from "./http";
+import { isPresent, segmentsOf, walk } from "./paths";
 import { AdapterError, type AdapterContext, type SourceAdapter } from "./types";
-
-/**
- * A feed that never finishes is a request that never finishes, and this runs
- * inside a server action. The cap is generous for a catalogue feed and small
- * enough that a misconfigured URL pointing at something enormous fails quickly
- * rather than filling the container's memory.
- */
-const MAX_FEED_BYTES = 20 * 1024 * 1024;
 
 const PARSER_OPTIONS = {
   ignoreAttributes: false,
@@ -67,7 +61,7 @@ export const xmlFeedAdapter: SourceAdapter<XmlFeedConfig> = {
       );
     }
 
-    const node = walk(parsed, config.item_path.split("/").filter(Boolean));
+    const node = walk(parsed, segmentsOf(config.item_path));
 
     if (node === null || node === undefined) {
       throw new AdapterError(
@@ -97,7 +91,7 @@ export const xmlFeedAdapter: SourceAdapter<XmlFeedConfig> = {
    * `<category></category>` vanished while `<title></title>` came back as "".
    */
   readPath(record: unknown, path: string): unknown {
-    const value = walk(record, path.split("/").filter(Boolean));
+    const value = walk(record, segmentsOf(path));
     if (value === undefined) return null;
 
     if (Array.isArray(value)) {
@@ -110,38 +104,6 @@ export const xmlFeedAdapter: SourceAdapter<XmlFeedConfig> = {
     return isPresent(text) ? text : null;
   },
 };
-
-/**
- * Walk a slash-separated path, flattening across any array met on the way.
- *
- * The flattening is what makes `item/category` work on a record holding three
- * `<category>` elements: the walk returns all three, and `coerceValue` refuses
- * them for every target except a list. That refusal is the point — a mapping
- * that matches three nodes has not found one value, and picking the first would
- * import a third of the truth silently.
- */
-function walk(node: unknown, segments: readonly string[]): unknown {
-  let current: unknown = node;
-
-  for (const segment of segments) {
-    if (current === null || current === undefined) return undefined;
-
-    if (Array.isArray(current)) {
-      const collected = current
-        .map((entry) => walk(entry, [segment]))
-        .filter((entry) => entry !== undefined && entry !== null);
-      if (collected.length === 0) return undefined;
-      current = collected.flat();
-      continue;
-    }
-
-    if (typeof current !== "object") return undefined;
-
-    current = (current as Record<string, unknown>)[segment];
-  }
-
-  return current;
-}
 
 /**
  * An element carrying attributes parses as an object, with its text under
@@ -157,10 +119,6 @@ function textOf(value: unknown): unknown {
   return value;
 }
 
-function isPresent(value: unknown): boolean {
-  return value !== null && value !== undefined && String(value).trim() !== "";
-}
-
 function describeKeys(parsed: unknown): string {
   if (parsed === null || typeof parsed !== "object") return "none";
   const keys = Object.keys(parsed as Record<string, unknown>).filter((key) => key !== "?xml");
@@ -168,13 +126,8 @@ function describeKeys(parsed: unknown): string {
 }
 
 /**
- * Fetch the feed with a timeout and a size cap.
- *
- * Both guards exist because the URL is operator-supplied: an editor with
- * `integration.write` types it into a form, and the server then makes that
- * request. The timeout keeps a stalled feed from holding a server action open;
- * the cap is enforced while streaming rather than after, so an unbounded
- * response is abandoned instead of buffered.
+ * Fetch the feed with a timeout and a size cap — both from `./http`, which is
+ * where they moved when the Shopify adapter needed the same two guards.
  *
  * `credentials_ref` is sent as a bearer token when the source has one. Feeds
  * that authenticate by embedding a key in the URL need nothing here, which
@@ -188,67 +141,11 @@ async function fetchFeed(config: XmlFeedConfig, context: AdapterContext): Promis
   };
   if (context.credential) headers.authorization = `Bearer ${context.credential}`;
 
-  let response: Response;
-  try {
-    response = await context.fetch(config.url, {
-      headers,
-      redirect: "follow",
-      signal: AbortSignal.timeout(config.timeout_ms),
-      cache: "no-store",
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
-      throw new AdapterError(`The feed did not respond within ${config.timeout_ms}ms.`);
-    }
-    throw new AdapterError(
-      `The feed could not be reached: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+  const response = await fetchCapped(context.fetch, config.url, {
+    subject: "The feed",
+    headers,
+    timeoutMs: config.timeout_ms,
+  });
 
-  if (!response.ok) {
-    throw new AdapterError(`The feed answered ${response.status} ${response.statusText}.`);
-  }
-
-  return readCapped(response);
-}
-
-async function readCapped(response: Response): Promise<string> {
-  const declared = Number(response.headers.get("content-length") ?? "");
-  if (Number.isFinite(declared) && declared > MAX_FEED_BYTES) {
-    throw new AdapterError(
-      `The feed declares ${declared} bytes, over the ${MAX_FEED_BYTES}-byte limit.`
-    );
-  }
-
-  if (!response.body) return response.text();
-
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_FEED_BYTES) {
-        // Cancelling matters: without it the connection stays open pulling
-        // bytes we have already decided not to keep.
-        await reader.cancel();
-        throw new AdapterError(`The feed exceeded the ${MAX_FEED_BYTES}-byte limit.`);
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-
-  return new TextDecoder("utf-8").decode(merged);
+  return response.text;
 }

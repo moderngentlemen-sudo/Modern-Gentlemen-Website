@@ -40,6 +40,7 @@ import {
   normalisedProductSchema,
   feedFieldMappingSchema,
   isFeedTargetField,
+  shopifyConfigSchema,
   sourceStatusFor,
   xmlFeedConfigSchema,
   type FeedTargetField,
@@ -86,6 +87,7 @@ export async function getSource(id: string): Promise<ProductSource | null> {
  */
 export function parseSourceConfig(kind: ProductSourceKind, config: unknown): Json {
   if (kind === "xml_feed") return xmlFeedConfigSchema.parse(config ?? {}) as unknown as Json;
+  if (kind === "shopify") return shopifyConfigSchema.parse(config ?? {}) as unknown as Json;
   if (kind === "native") return {} as Json;
   throw new Error(`A ${kind} source cannot be configured yet.`);
 }

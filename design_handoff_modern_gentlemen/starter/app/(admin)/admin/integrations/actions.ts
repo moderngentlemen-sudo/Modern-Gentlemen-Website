@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createSource, deleteSource } from "@/lib/services/ingestion";
-import { PRODUCT_SOURCE_KINDS } from "@/lib/domain/ingestion";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 
@@ -20,12 +19,40 @@ import { toActionResult } from "../_lib/errors";
  * `integration.write` on both of these and RLS re-asserts it underneath.
  */
 
-const Create = z.object({
+/**
+ * A discriminated union rather than one schema with optional halves.
+ *
+ * The previous version required `url` and `itemPath` for every kind, which was
+ * honest while XML was the only one. With two adapters, a shared schema would
+ * either demand a feed URL from a Shopify source or make both optional — and
+ * "optional" here means a source can be created with no way to reach anything,
+ * failing at the first run instead of at the form.
+ *
+ * `native` is deliberately absent: `0005_commerce.sql` seeds the one native
+ * source and nothing should create a second.
+ */
+const CreateXmlFeed = z.object({
   name: z.string().trim().min(1, "A source needs a name."),
-  kind: z.enum(PRODUCT_SOURCE_KINDS),
+  kind: z.literal("xml_feed"),
   url: z.string().trim().min(1, "A feed needs a URL."),
   itemPath: z.string().trim().min(1, "Name the repeating element."),
 });
+
+const CreateShopify = z.object({
+  name: z.string().trim().min(1, "A source needs a name."),
+  kind: z.literal("shopify"),
+  shopDomain: z.string().trim().min(1, "A Shopify source needs its myshopify.com domain."),
+  /**
+   * Required at creation, unlike a feed's. There is no anonymous Shopify
+   * products endpoint, so a source without one cannot run at all.
+   */
+  credentialsRef: z
+    .string()
+    .trim()
+    .min(1, "Name the environment variable holding the Admin API token."),
+});
+
+const Create = z.discriminatedUnion("kind", [CreateXmlFeed, CreateShopify]);
 
 function invalid(error: z.ZodError): ActionResult<never> {
   const issue = error.issues[0];
@@ -41,11 +68,21 @@ export async function createSourceAction(input: unknown): Promise<ActionResult<{
   if (!parsed.success) return invalid(parsed.error);
 
   try {
-    const created = await createSource({
-      kind: parsed.data.kind,
-      name: parsed.data.name,
-      config: { url: parsed.data.url, item_path: parsed.data.itemPath },
-    });
+    const input = parsed.data;
+    const created = await createSource(
+      input.kind === "xml_feed"
+        ? {
+            kind: input.kind,
+            name: input.name,
+            config: { url: input.url, item_path: input.itemPath },
+          }
+        : {
+            kind: input.kind,
+            name: input.name,
+            config: { shop_domain: input.shopDomain },
+            credentialsRef: input.credentialsRef,
+          }
+    );
     revalidatePath("/admin/integrations");
     return ok(created);
   } catch (error) {

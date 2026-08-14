@@ -30,10 +30,17 @@ export interface SourceView {
   enabled: boolean;
   credentialsRef: string | null;
   configValid: boolean;
-  url: string;
-  itemPath: string;
   fulfilment: "direct" | "affiliate";
   currency: string;
+  /** `xml_feed` only; empty for other kinds. */
+  url: string;
+  itemPath: string;
+  /** `shopify` only; the schema defaults for other kinds. */
+  shopDomain: string;
+  apiVersion: string;
+  pageSize: number;
+  maxPages: number;
+  status: string;
 }
 
 export interface MappingView {
@@ -59,6 +66,13 @@ export interface JobView {
 const FULFILMENT_OPTIONS = [
   { value: PRODUCT_FULFILMENTS[0], label: "Direct — we sell and ship it" },
   { value: PRODUCT_FULFILMENTS[1], label: "Affiliate — we link out to a merchant" },
+];
+
+const SHOPIFY_STATUS_OPTIONS = [
+  { value: "active", label: "Active only" },
+  { value: "draft", label: "Drafts only" },
+  { value: "archived", label: "Archived only" },
+  { value: "any", label: "Any status" },
 ];
 
 const TRANSFORM_OPTIONS = FEED_TRANSFORMS.map((transform) => ({
@@ -93,10 +107,17 @@ export function SourceEditor({
   const [saving, startSaving] = useTransition();
   const [running, startRunning] = useTransition();
 
+  const isShopify = source.kind === "shopify";
+
   const [name, setName] = useState(source.name);
   const [enabled, setEnabled] = useState(source.enabled);
   const [url, setUrl] = useState(source.url);
   const [itemPath, setItemPath] = useState(source.itemPath);
+  const [shopDomain, setShopDomain] = useState(source.shopDomain);
+  const [apiVersion, setApiVersion] = useState(source.apiVersion);
+  const [pageSize, setPageSize] = useState(String(source.pageSize));
+  const [maxPages, setMaxPages] = useState(String(source.maxPages));
+  const [status, setStatus] = useState(source.status);
   const [fulfilment, setFulfilment] = useState<string>(source.fulfilment);
   const [currency, setCurrency] = useState(source.currency);
   const [credentialsRef, setCredentialsRef] = useState(source.credentialsRef ?? "");
@@ -111,16 +132,29 @@ export function SourceEditor({
 
   function saveConfig() {
     startSaving(async () => {
-      const result = await saveSourceAction({
+      const shared = {
         id: source.id,
         name,
         enabled,
-        url,
-        itemPath,
         fulfilment,
         currency,
         credentialsRef: credentialsRef.trim() || null,
-      });
+      };
+      const result = await saveSourceAction(
+        isShopify
+          ? {
+              ...shared,
+              kind: "shopify",
+              shopDomain,
+              apiVersion,
+              // The controls hold strings; the schema wants integers. NaN from a
+              // cleared field fails the action rather than silently becoming 0.
+              pageSize: Number(pageSize),
+              maxPages: Number(maxPages),
+              status,
+            }
+          : { ...shared, kind: "xml_feed", url, itemPath }
+      );
       if (!result.ok) toast.push(result.error, "error");
       else {
         toast.push("Source saved", "success");
@@ -194,24 +228,77 @@ export function SourceEditor({
       )}
 
       <Panel>
-        <PanelSection title="Feed">
+        <PanelSection title={isShopify ? "Store" : "Feed"}>
           <div className="space-y-4">
             <TextInput label="Name" value={name} onChange={setName} disabled={!canWrite} required />
-            <TextInput
-              label="Feed URL"
-              value={url}
-              onChange={setUrl}
-              disabled={!canWrite}
-              required
-            />
-            <TextInput
-              label="Item path"
-              value={itemPath}
-              onChange={setItemPath}
-              disabled={!canWrite}
-              help="The repeating element, slash-separated from the document root."
-              required
-            />
+            {isShopify ? (
+              <>
+                <TextInput
+                  label="Shop domain"
+                  value={shopDomain}
+                  onChange={setShopDomain}
+                  disabled={!canWrite}
+                  placeholder="modern-gentlemen.myshopify.com"
+                  help="The shop's myshopify.com domain — not a custom storefront domain, and not a URL."
+                  required
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <TextInput
+                    label="API version"
+                    value={apiVersion}
+                    onChange={setApiVersion}
+                    disabled={!canWrite}
+                    placeholder="2025-01"
+                    help="Shopify versions quarterly and retires a version after a year."
+                    required
+                  />
+                  <Select
+                    label="Product status"
+                    value={status}
+                    onChange={setStatus}
+                    options={SHOPIFY_STATUS_OPTIONS}
+                    disabled={!canWrite}
+                    help="Which of the store's products a run asks for."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <TextInput
+                    label="Page size"
+                    value={pageSize}
+                    onChange={setPageSize}
+                    disabled={!canWrite}
+                    help="Products per request. Shopify's maximum is 250."
+                    required
+                  />
+                  <TextInput
+                    label="Page limit"
+                    value={maxPages}
+                    onChange={setMaxPages}
+                    disabled={!canWrite}
+                    help="How many pages one run may walk. A run holds a request open for its whole duration, so this is what bounds it."
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <TextInput
+                  label="Feed URL"
+                  value={url}
+                  onChange={setUrl}
+                  disabled={!canWrite}
+                  required
+                />
+                <TextInput
+                  label="Item path"
+                  value={itemPath}
+                  onChange={setItemPath}
+                  disabled={!canWrite}
+                  help="The repeating element, slash-separated from the document root."
+                  required
+                />
+              </>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Select
                 label="Fulfilment"
@@ -234,8 +321,13 @@ export function SourceEditor({
               value={credentialsRef}
               onChange={setCredentialsRef}
               disabled={!canWrite}
-              placeholder="FEED_MERCHANT_TOKEN"
-              help="Optional. Names an environment variable on the deployment — the value is never stored here. Must begin with FEED_, and is sent as a bearer token."
+              placeholder={isShopify ? "FEED_SHOPIFY_TOKEN" : "FEED_MERCHANT_TOKEN"}
+              help={
+                isShopify
+                  ? "Required. Names an environment variable holding the Admin API access token — the value is never stored here. Must begin with FEED_."
+                  : "Optional. Names an environment variable on the deployment — the value is never stored here. Must begin with FEED_, and is sent as a bearer token."
+              }
+              required={isShopify}
             />
             <Toggle
               label="Enabled"
@@ -247,7 +339,7 @@ export function SourceEditor({
             {canWrite && (
               <div className="flex justify-end">
                 <Button variant="solid" onClick={saveConfig} loading={saving}>
-                  Save feed
+                  {isShopify ? "Save store" : "Save feed"}
                 </Button>
               </div>
             )}
@@ -258,9 +350,21 @@ export function SourceEditor({
       <Panel>
         <PanelSection title="Field mapping">
           <p className="mb-4 text-[13px] text-mg-fg/50">
-            Each row reads one path out of a feed record and writes one of our fields. Paths are
-            slash-separated and relative to the item element; an attribute is{" "}
-            <code className="font-mono">@_name</code>.
+            Each row reads one path out of a source record and writes one of our fields. Paths are
+            slash-separated and relative to one product.{" "}
+            {isShopify ? (
+              <>
+                A number selects one entry of a list, so{" "}
+                <code className="font-mono">variants/0/price</code> is the first variant&rsquo;s
+                price; without one, <code className="font-mono">variants/sku</code> matches every
+                variant.
+              </>
+            ) : (
+              <>
+                They are relative to the item element; an attribute is{" "}
+                <code className="font-mono">@_name</code>.
+              </>
+            )}
           </p>
 
           {missing.length > 0 && (
