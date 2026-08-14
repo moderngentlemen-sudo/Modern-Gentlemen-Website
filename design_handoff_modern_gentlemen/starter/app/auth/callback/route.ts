@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { publicUrl } from "../_lib/publicUrl";
 
 /**
  * OAuth / magic-link / password-recovery landing.
@@ -16,14 +17,11 @@ export async function GET(request: NextRequest) {
   // Same-origin paths only — never redirect to an attacker-supplied absolute URL.
   const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/admin";
 
-  // Same reasoning as sign-out: build redirects from nextUrl so the user stays
-  // on the host they arrived on.
-  const to = (pathname: string, error?: string) => {
-    const url = request.nextUrl.clone();
-    url.pathname = pathname;
-    url.search = error ? `?error=${error}` : "";
-    return url;
-  };
+  // `publicUrl`, not `nextUrl.clone()` — behind Railway's proxy the latter is
+  // the internal origin, and this route was redirecting recovering users to
+  // https://localhost:8080. See the note in ../_lib/publicUrl.ts.
+  const to = (pathname: string, error?: string) =>
+    publicUrl(request, pathname, error ? `?error=${error}` : "");
 
   if (!code) return NextResponse.redirect(to("/sign-in", "missing_code"));
 
