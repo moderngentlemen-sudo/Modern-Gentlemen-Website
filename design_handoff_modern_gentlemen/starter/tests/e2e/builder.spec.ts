@@ -144,7 +144,9 @@ let dragTitle = "";
 let dragSlug = "";
 
 /**
- * Drags a library entry onto the canvas and drops it in gap `gapIndex`.
+ * Drags a library entry onto the canvas and drops it on `target` — a CSS
+ * selector for an insertion point, since one is now identified by its container
+ * as well as its index.
  *
  * **Stepped moves, not `page.dragAndDrop()`.** The `PointerSensor` activates
  * only after the pointer has travelled more than 6px, and it counts that over
@@ -165,7 +167,7 @@ let dragSlug = "";
  * top of the canvas deliberately; a "drop at the very bottom of a long page"
  * test would need the drag to dwell at the edge instead.
  */
-async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
+async function dragFromLibrary(page: Page, entry: RegExp, target: string) {
   const source = page.getByRole("button", { name: entry }).first();
   await source.scrollIntoViewIfNeeded();
 
@@ -179,7 +181,7 @@ async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
   await page.mouse.down();
   await page.mouse.move(startX + 40, startY, { steps: 8 });
 
-  const gap = page.locator(`[data-gap-index="${gapIndex}"]`);
+  const gap = page.locator(target).first();
   await expect(gap).toHaveCount(1);
 
   const to = await gap.boundingBox();
@@ -188,6 +190,9 @@ async function dragFromLibrary(page: Page, entry: RegExp, gapIndex: number) {
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
   await page.mouse.up();
 }
+
+/** A gap in the page's own list, rather than one inside a container. */
+const rootGap = (index: number) => `[data-gap-index="${index}"]:not([data-gap-parent])`;
 
 test.describe("page builder — drag from the library", () => {
   test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
@@ -212,16 +217,16 @@ test.describe("page builder — drag from the library", () => {
 
     // The empty canvas is the case the hoisted DndContext repairs: before it,
     // a brand-new page had no drag context at all.
-    await dragFromLibrary(page, /^Pull quote/i, 0);
+    await dragFromLibrary(page, /^Pull quote/i, rootGap(0));
     const blocks = page.locator("[data-block-key]");
     await expect(blocks).toHaveCount(1);
 
     // The trailing gap, then the leading one — the two ends of the index
     // arithmetic, in that order so both targets stay above the fold.
-    await dragFromLibrary(page, /^Newsletter/i, 1);
+    await dragFromLibrary(page, /^Newsletter/i, rootGap(1));
     await expect(blocks).toHaveCount(2);
 
-    await dragFromLibrary(page, /^Story band/i, 0);
+    await dragFromLibrary(page, /^Story band/i, rootGap(0));
     await expect(blocks).toHaveCount(3);
 
     // Order, not count. Appending every drop would satisfy all three counts
@@ -255,6 +260,51 @@ test.describe("page builder — drag from the library", () => {
       .first()
       .click();
     await expect(page.locator("[data-block-key]")).toHaveCount(4);
+  });
+
+  test("nests a section inside a columns block", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/pages");
+    await page.getByRole("link", { name: dragTitle }).click();
+
+    const blocks = page.locator("[data-block-key]");
+    await expect(blocks).toHaveCount(4);
+
+    // A container arrives empty and advertises its own drop target, which is
+    // registered whatever is being dragged — the only way into an empty one.
+    await dragFromLibrary(page, /^Columns/i, rootGap(0));
+    await expect(blocks).toHaveCount(5);
+
+    const slot = page.locator("[data-gap-parent]");
+    await expect(slot).toHaveCount(1);
+    await expect(page.getByText(/drop a section here/i)).toBeVisible();
+
+    // Into the container, not beside it: the assertion is the descendant
+    // relationship, since a count alone cannot tell the two apart.
+    await dragFromLibrary(page, /^Timeline/i, "[data-gap-parent]");
+    await expect(blocks).toHaveCount(6);
+    await expect(page.locator("[data-block-key] [data-block-key]")).toHaveCount(1);
+
+    // ⚠️ The nested block's own toolbar must work. The canvas kills pointer
+    // events on links and buttons inside a section, and that selector is a
+    // descendant one — applied to a container it would reach every nested
+    // block's controls and disable them with nothing failing anywhere.
+    await page
+      .getByRole("button", { name: "Duplicate Timeline — a brief history" })
+      .first()
+      .click();
+    await expect(page.locator("[data-block-key] [data-block-key]")).toHaveCount(2);
+
+    // A nested block is selectable and editable — `PropertiesPanel` used a root
+    // `tree.find`, so before this it would have shown its empty state instead.
+    await page.locator("[data-block-key] [data-block-key]").first().click();
+    await expect(page.getByRole("textbox", { name: "Heading" }).first()).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
+
+    await page.reload();
+    await expect(page.locator("[data-block-key] [data-block-key]")).toHaveCount(2);
   });
 
   test("cleans up the page it created", async ({ page }) => {

@@ -283,3 +283,25 @@ describe("containers on the canvas", () => {
     expect(document.querySelectorAll("[data-block-key]")).toHaveLength(3);
   });
 });
+
+describe("selecting inside a container", () => {
+  it("selects the innermost block, not the container around it", async () => {
+    // Every frame carries the same mousedown handler, so without
+    // `stopPropagation` the click bubbles to the container's frame, whose
+    // handler runs last and wins — leaving the panel showing the container
+    // whenever an editor clicks something inside one. Nothing throws, which is
+    // why this was found by driving a real browser rather than by reading.
+    renderCanvas([{ _key: "C1", _type: "columns", children: [newBlockNode("pullQuote")] }]);
+
+    const frames = [...document.querySelectorAll("[data-block-key]")];
+    const outer = frames.find((f) => f.getAttribute("data-block-key") === "C1")!;
+    const inner = frames.find((f) => f.getAttribute("data-block-key") !== "C1")!;
+
+    await userEvent.click(inner);
+
+    // The selection ring is the observable: the inner frame wears it, and the
+    // container's own ring — its direct child, not the nested one — does not.
+    expect(inner.querySelector(".ring-mg-accent")).not.toBeNull();
+    expect(outer.querySelector(":scope > .ring-mg-accent")).toBeNull();
+  });
+});

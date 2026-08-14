@@ -265,7 +265,19 @@ function SortableBlock({
       data-block-key={node._key}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={clsx("group relative", isDragging && "opacity-60")}
-      onMouseDown={() => select(node._key)}
+      /*
+        ⚠️ `stopPropagation` is what makes the INNERMOST block win.
+
+        Every frame carries this handler, so without it a mousedown on a nested
+        block bubbles to its container's frame, whose handler runs afterwards
+        and overwrites the selection — leaving the panel showing the container
+        every time an editor clicks something inside one. Nothing throws; the
+        panel simply shows the wrong block's fields.
+      */
+      onMouseDown={(event) => {
+        event.stopPropagation();
+        select(node._key);
+      }}
     >
       {/*
         The section renders untouched. Every piece of editor chrome below is an
