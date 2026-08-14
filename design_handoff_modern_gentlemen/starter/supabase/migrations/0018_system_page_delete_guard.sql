@@ -1,0 +1,67 @@
+-- 0018 — `is_system` starts actually protecting a page from deletion.
+--
+-- `0003` shipped the guard as part of a PERMISSIVE policy:
+--
+--   create policy "pages: delete" on pages
+--     for delete using (has_permission('page.delete') and not is_system);
+--
+-- and `0001` had already shipped, alongside it:
+--
+--   create policy "pages: write" on pages
+--     for all using (has_permission('page.write')) ...
+--
+-- **Permissive policies are OR-ed**, and a policy with `cmd=ALL` applies to
+-- DELETE. So the effective rule has always been
+--
+--   page.write OR (page.delete AND NOT is_system)
+--
+-- which means `not is_system` binds only an actor who lacks `page.write` — and
+-- no actor who can reach a delete button lacks it. Both seeded roles that hold
+-- `page.delete` (admin, editor) hold `page.write` too, so the guard has never
+-- once applied to anybody. `lib/services/documents.ts:192` says "`is_system`
+-- pages are additionally protected by their RLS delete policy"; that comment
+-- becomes true with this migration and was not before it.
+--
+-- Found by reading the policy catalogue during the RLS suite, then **proven** by
+-- `tests/integration/rls.test.ts`: a fixture user holding exactly
+-- `page.read`+`page.write` deleted a page marked `is_system`, on a real stack.
+--
+-- ---------------------------------------------------------------------------
+-- Why RESTRICTIVE rather than editing either existing policy
+-- ---------------------------------------------------------------------------
+-- Restrictive policies are AND-ed with the combined permissive set, so one of
+-- them constrains *every* route to a DELETE at once — including any policy added
+-- later. Folding `not is_system` into `pages: write` instead would fix today's
+-- two policies and silently reopen the hole the next time somebody adds a third,
+-- which is exactly how this one arrived.
+--
+-- It is deliberately about `is_system` ALONE and says nothing about permissions.
+-- Who may delete a page stays entirely with the permissive policies; this only
+-- removes system pages from what any of them can reach.
+--
+-- ---------------------------------------------------------------------------
+-- What this does NOT change
+-- ---------------------------------------------------------------------------
+--   * `service_role` has BYPASSRLS (verified on the live project), so seeds,
+--     `scripts/seed.ts`, the scheduled-publish job and the integration suite's
+--     own fixture teardown are unaffected. A system page can still be removed
+--     deliberately, with the service-role client — which is the right home for
+--     an operation that should never be one click away in a CMS.
+--   * Nothing about *reading*, *writing* or *publishing* a system page. Editing
+--     one is still ordinary `page.write` work.
+--   * The other tables. `articles`, `products` and `media_assets` have the same
+--     OR-ed shape, so their `x.delete` permissions likewise grant rather than
+--     restrict — but none of them has an `is_system` equivalent, so there is no
+--     guard being bypassed there, only a permission that gates less than its
+--     name suggests. Making those real gates would REMOVE delete access that
+--     write-holding roles have today, which is a product decision and not this
+--     migration's business. See PROGRESS.md.
+--
+-- Re-runnable, like every migration here: Postgres has no
+-- `create policy if not exists`, so the drop is what makes a replay safe. The
+-- `Migrations are idempotent` CI step re-applies all of them onto themselves and
+-- fails if any statement complains.
+
+drop policy if exists "pages: system pages are undeletable" on public.pages;
+create policy "pages: system pages are undeletable" on public.pages
+  as restrictive for delete using (not is_system);

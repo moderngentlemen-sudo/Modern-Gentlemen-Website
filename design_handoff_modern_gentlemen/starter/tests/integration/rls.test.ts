@@ -453,15 +453,70 @@ describe("a staff account cannot widen its own access", () => {
 /* ------------------------------------------------------------- known gaps */
 
 /**
- * These two record behaviour this suite found and did NOT fix. They assert what
- * the database does today, so the facts are executable rather than only written
- * down — and so that closing either gap turns this file red and forces the
- * assertion to be inverted deliberately.
+ * `is_system` is enforced by `0018`, and this is the test that says so.
  *
- * Both are described in PROGRESS.md under "Known issues"; neither is fixed here
- * because both want a migration and their own decision.
+ * It was written as a characterisation test asserting the opposite — a
+ * `page.write` holder deleting a system page — because the bypass was found by
+ * reading the policy catalogue and had never been demonstrated. It passed,
+ * which is what promoted the finding from inference to fact and justified the
+ * migration. This is that same test, inverted: the mechanism it guards is
+ * subtle enough (permissive policies OR, so a guard living in one of them
+ * constrains nothing) that a future policy could reopen it without anybody
+ * noticing.
  */
-describe("known gaps — these assert current behaviour, not desired behaviour", () => {
+describe("system pages", () => {
+  it("refuses to let a page.write holder delete one", async () => {
+    const system = await makePage("published", { isSystem: true });
+
+    // The actor can edit it — so the refusal below is about `is_system`
+    // specifically, and not about reaching the row at all.
+    const { error: editError } = await pageWriterDb
+      .from("pages")
+      .update({ title: "Edited, which is allowed" })
+      .eq("id", system.id);
+    expect(editError, "editing a system page is ordinary page.write work").toBeNull();
+
+    await pageWriterDb.from("pages").delete().eq("id", system.id);
+
+    const { count } = await db
+      .from("pages")
+      .select("*", { count: "exact", head: true })
+      .eq("id", system.id);
+
+    expect(count, "`0018`'s restrictive policy must survive the permissive OR").toBe(1);
+  });
+
+  it("still allows deleting an ordinary page, so the guard is not a blanket refusal", async () => {
+    const ordinary = await makePage("published");
+
+    // The same actor as above, holding page.write and NOT page.delete — and it
+    // deletes this one, because `pages: write` is a cmd=ALL permissive policy
+    // that covers DELETE. That is finding #2 in PROGRESS.md: `page.delete`
+    // grants rather than restricts. `0018` deliberately did not touch it, so
+    // this assertion is the proof that the restrictive policy is narrow —
+    // scoped to `is_system` and nothing else.
+    await pageWriterDb.from("pages").delete().eq("id", ordinary.id);
+
+    const { count } = await db
+      .from("pages")
+      .select("*", { count: "exact", head: true })
+      .eq("id", ordinary.id);
+
+    expect(count, "a non-system page is still deletable").toBe(0);
+  });
+});
+
+/**
+ * Records behaviour this suite found and did NOT fix. It asserts what the
+ * database does today, so the fact is executable rather than only written down
+ * — and so that closing the gap turns this file red and forces the assertion to
+ * be inverted deliberately, which is exactly what happened to the `is_system`
+ * test above.
+ *
+ * Described in PROGRESS.md under "Known issues"; not fixed here because it
+ * spans six tables and wants its own decision.
+ */
+describe("known gaps — this asserts current behaviour, not desired behaviour", () => {
   it("KNOWN GAP: anon can read draft_data on a published row", async () => {
     const live = await makePage("published");
 
@@ -475,21 +530,5 @@ describe("known gaps — these assert current behaviour, not desired behaviour",
       (data?.draft_data as { seo?: { title?: string } })?.seo?.title,
       "if this is undefined the gap has been closed — invert this test"
     ).toBe("draft title");
-  });
-
-  it("KNOWN GAP: page.write alone can delete a system page", async () => {
-    const system = await makePage("published", { isSystem: true });
-
-    await pageWriterDb.from("pages").delete().eq("id", system.id);
-
-    const { count } = await db
-      .from("pages")
-      .select("*", { count: "exact", head: true })
-      .eq("id", system.id);
-
-    // `pages: delete` guards `not is_system`, but `pages: write` is a PERMISSIVE
-    // policy with cmd=ALL, and permissive policies are OR-ed — so the guard only
-    // binds an actor who lacks page.write, which no page-deleting actor is.
-    expect(count, "if this is 1 the guard now binds — invert this test").toBe(0);
   });
 });
