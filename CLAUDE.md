@@ -28,7 +28,8 @@ finds no migrations and reports that as success.
 
 ```
 design_handoff_modern_gentlemen/starter/
-├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, products, media
+├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, products, media,
+│                 navigation, theme, integrations
 │                 sitemap.ts · robots.ts · api/jobs/publish-scheduled/
 ├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/,
 │                 seo/ (JsonLd), admin/ (ui/, builder/, fields/, media/, history/)
@@ -39,11 +40,15 @@ design_handoff_modern_gentlemen/starter/
 │  │              and the generated database.types.ts
 │  ├─ services/   orchestration + permission checks
 │  ├─ catalog/    CatalogProvider — the published catalogue, in React context
+│  ├─ integrations/  commerce/ — the SourceAdapter interface, the XML feed adapter
+│  │              and the named feed transforms. A LEAF: no services, no UI.
 │  ├─ demo/       home-sections.ts, catalog.ts, editorial.ts, articles.ts,
 │  │              category-sections.ts  (SEED + TEST FIXTURES, not what the
 │  │              site renders — see the standing rule below)
 │  └─ cart/
-├─ supabase/      config.toml + migrations/ 0001–0016 (all applied to the live project)
+├─ supabase/      config.toml + migrations/ (all applied to the live project; the
+│                 SessionStart hook prints the true count — this line has been
+│                 stale twice, so it deliberately no longer names one)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
 └─ tests/         e2e/, integration/, visual/, support/, setup/
 ```
@@ -95,6 +100,24 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   `lib/blocks/manifests/<type>.ts`. `lib/blocks/conformance.test.ts` fails the
   build if either half is missing. Manifests *describe* components — where the
   two disagree, the component wins and the manifest is the bug.
+- **A `lib/domain` module that a client component imports may not touch a Node
+  built-in.** `lib/domain` is pure, so client components import it freely for
+  vocabularies and schemas — and that makes any `node:crypto` in one of those
+  modules a build failure, `UnhandledSchemeError`, with `tsc`, ESLint and the
+  whole unit suite green beforehand (Vitest runs in Node and resolves it
+  happily). `lib/domain/contentHash.ts` exists solely to hold the one such
+  function away from `ingestion.ts`, which the mapping editor imports;
+  `lib/domain/jobs.ts` keeps its `node:crypto` because nothing on a client
+  imports it. **The difference is the importer, not the module** — so check both
+  ends before adding a Node import to a leaf.
+- **An import never publishes, never renames, never rewrites the tree.** A feed
+  run stages proposals into `import_items`; `applyJob` is the only thing in
+  `lib/services/ingestion.ts` that writes `products`. It creates **drafts**
+  (`columnsForApply` never writes `status`), it never writes `slug` on an update
+  (the slug is the PDP's URL, and a merchant's rename would break every link to
+  it), and it never touches `draft_data`. Money arriving from a feed is guarded
+  too: a bare decimal in a pence target is refused, because `145.00` is pounds
+  and importing it as 145 pence is silent and live.
 - **Layering flows downward only**: `app → services → db`, with `domain`,
   `blocks`, `render` and `integrations` as leaves. `lib/domain` must stay pure.
   ESLint `no-restricted-imports` enforces the boundaries — if it complains, the
