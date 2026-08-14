@@ -28,8 +28,10 @@ finds no migrations and reports that as success.
 
 ```
 design_handoff_modern_gentlemen/starter/
-├─ app/           (site)/ public routes · (admin)/ pages, articles, taxonomy, products, media,
-│                 navigation, theme, integrations
+├─ app/           (site)/ public routes incl. sign-in, forgot-password
+│                 (admin)/ pages, articles, taxonomy, products, media, navigation,
+│                 theme, integrations, password
+│                 auth/ callback · sign-out · _lib/publicUrl.ts (see the rule below)
 │                 sitemap.ts · robots.ts · api/jobs/publish-scheduled/
 ├─ components/    sections/ (22 blocks + registry), article/, chrome/, store/, ui/,
 │                 seo/ (JsonLd), admin/ (ui/, builder/, fields/, media/, history/)
@@ -40,8 +42,10 @@ design_handoff_modern_gentlemen/starter/
 │  │              and the generated database.types.ts
 │  ├─ services/   orchestration + permission checks
 │  ├─ catalog/    CatalogProvider — the published catalogue, in React context
-│  ├─ integrations/  commerce/ — the SourceAdapter interface, the XML feed adapter
-│  │              and the named feed transforms. A LEAF: no services, no UI.
+│  ├─ integrations/  commerce/ — the SourceAdapter interface, TWO adapters
+│  │              (xmlFeed.ts, shopify.ts), the shared http.ts (timeout + 20 MB
+│  │              streamed cap) and paths.ts (the slash-path walk), plus the
+│  │              named feed transforms. A LEAF: no services, no UI.
 │  ├─ demo/       home-sections.ts, catalog.ts, editorial.ts, articles.ts,
 │  │              category-sections.ts  (SEED + TEST FIXTURES, not what the
 │  │              site renders — see the standing rule below)
@@ -151,6 +155,16 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   that true** — guard new policies and triggers the same way.
   Applying through the Supabase MCP is still the safer habit for a one-off, but
   it is no longer the only safe option.
+- **A redirect from a route handler must go through `app/auth/_lib/publicUrl.ts`.**
+  Behind Railway's proxy a route handler sees the **container's** address, so
+  neither `request.url` nor `request.nextUrl` is the host the browser is on —
+  `/auth/callback` shipped `Location: https://localhost:8080/...` to production
+  and broke password recovery. `publicUrl` uses `x-forwarded-host`, honoured only
+  when it matches `NEXT_PUBLIC_SITE_URL`'s host so a forged header cannot make an
+  open redirect. **Middleware is exempt** — its `nextUrl` does reflect the
+  original request, which is exactly why this hid for so long. Nothing in the
+  test suite can catch it: everything runs single-host with no proxy. `curl -o
+  /dev/null -w '%{redirect_url}'` against the live URL finds it in one request.
 - **Never commit secrets.** Real values live only in
   `starter/.env.local` (gitignored). `.env.example` carries placeholder names.
 
@@ -161,6 +175,13 @@ Run all four from `design_handoff_modern_gentlemen/starter/`:
 ```bash
 npm run format:check && npm run lint && npm run typecheck && npm test
 ```
+
+⚠️ **`format:check` walks `starter/` only, so it does not check this file, or
+`PROGRESS.md`, or `design_handoff_modern_gentlemen/CLAUDE.md`** — CI runs it with
+`working-directory: design_handoff_modern_gentlemen/starter`. All three sit above
+it, none has ever been Prettier-formatted, and `--write` on them would reflow the
+lot and bury whatever you changed. **Leave them unformatted**, and do not read a
+green `format:check` as covering a docs edit.
 
 `npm run build` before anything that touches routing — Next enforces rules
 (such as which symbols a route file may export) that only surface at build time.
