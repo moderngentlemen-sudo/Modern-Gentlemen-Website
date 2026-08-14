@@ -60,11 +60,22 @@ export function Checkbox({
   checked,
   onChange,
   disabled,
+  ariaLabel,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  /**
+   * The accessible name when `label` is empty.
+   *
+   * A checkbox in a table cell has its meaning in the column heading, so
+   * repeating it beside every row would be visual noise — but an empty `<label>`
+   * leaves the control with no accessible name at all, which fails the WCAG AA
+   * bar the design baseline sets. This is how a cell-bound checkbox keeps the
+   * name without printing it.
+   */
+  ariaLabel?: string;
 }) {
   return (
     <label className="inline-flex cursor-pointer items-center gap-2 text-[12px] text-mg-fg/80">
@@ -72,6 +83,7 @@ export function Checkbox({
         type="checkbox"
         checked={checked}
         disabled={disabled}
+        aria-label={label === "" ? ariaLabel : undefined}
         onChange={(e) => onChange(e.target.checked)}
         className={clsx("h-3.5 w-3.5 accent-mg-accent", FOCUS_RING)}
       />

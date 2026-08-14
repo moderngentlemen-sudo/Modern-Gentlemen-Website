@@ -32,6 +32,7 @@ const NAV: NavItem[] = [
   { href: "/admin/articles", label: "Articles", needs: "article.read" },
   { href: "/admin/taxonomy", label: "Taxonomy", needs: "article.read" },
   { href: "/admin/products", label: "Products", needs: "product.read" },
+  { href: "/admin/integrations", label: "Integrations", needs: "integration.read" },
   { href: "/admin/media", label: "Media", needs: "media.read" },
   { href: "/admin/navigation", label: "Navigation", needs: "navigation.read" },
   { href: "/admin/theme", label: "Theme", needs: "theme.read" },
