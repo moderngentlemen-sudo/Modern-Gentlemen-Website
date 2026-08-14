@@ -114,6 +114,17 @@ export function AdminShell({
               >
                 {theme === "dark" ? "Light" : "Dark"}
               </button>
+              {/* Beside the account details rather than in the nav rail: it is
+                  not a section of the site, and it needs no permission. */}
+              <Link
+                href="/admin/password"
+                className={clsx(
+                  "border border-mg-bd/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-mg-fg/70 hover:border-mg-fg hover:text-mg-fg",
+                  FOCUS_RING
+                )}
+              >
+                Password
+              </Link>
               <form action="/auth/sign-out" method="post">
                 <button
                   type="submit"

@@ -4,22 +4,45 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Field } from "@/components/store/Field";
-import { signIn, type SignInState } from "./actions";
+import { requestPasswordReset, type ForgotPasswordState } from "./actions";
 
 /**
- * Sign-in form. Deliberately built from the existing site primitives —
- * `Field` already carries the mono uppercase label and the `data-invalid` red
- * border treatment, so this introduces no new form language (see §4.1).
+ * Built from the same primitives as `SignInForm` — `Field` carries the mono
+ * uppercase label and the `data-invalid` red border, so this introduces no new
+ * form language.
  */
-export function SignInForm({ next }: { next?: string }) {
-  const [state, formAction] = useActionState<SignInState, FormData>(signIn, {});
+export function ForgotPasswordForm() {
+  const [state, formAction] = useActionState<ForgotPasswordState, FormData>(
+    requestPasswordReset,
+    {}
+  );
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+
+  if (state.sent) {
+    return (
+      <div className="grid gap-5">
+        <p
+          role="status"
+          className="border border-mg-bd/25 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-mg-fg/70"
+        >
+          If that email has an account, a reset link is on its way.
+        </p>
+        <p className="text-[13px] leading-relaxed text-mg-fg/60">
+          The link signs you in and takes you straight to a page where you can set a new password.
+          It expires, and it can only be used once — request another if it goes stale.
+        </p>
+        <Link
+          href="/sign-in"
+          className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/70 underline underline-offset-4 hover:text-mg-accent"
+        >
+          Back to sign in
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="grid gap-5" noValidate>
-      {next && <input type="hidden" name="next" value={next} />}
-
       <Field
         label="Email"
         type="email"
@@ -32,20 +55,9 @@ export function SignInForm({ next }: { next?: string }) {
           into a hidden input the server action can read from FormData. */}
       <input type="hidden" name="email" value={email} />
 
-      <Field
-        label="Password"
-        type="password"
-        value={password}
-        onChange={setPassword}
-        autoComplete="current-password"
-        error={state.fieldErrors?.password}
-      />
-      <input type="hidden" name="password" value={password} />
-
       {state.error && (
         <p
           role="alert"
-          data-testid="sign-in-error"
           className="border border-mg-accentSerif/40 bg-mg-accent/5 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-mg-accentSerif"
         >
           {state.error}
@@ -55,10 +67,10 @@ export function SignInForm({ next }: { next?: string }) {
       <SubmitButton />
 
       <Link
-        href="/forgot-password"
+        href="/sign-in"
         className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/50 underline underline-offset-4 hover:text-mg-accent"
       >
-        Forgot your password?
+        Back to sign in
       </Link>
     </form>
   );
@@ -72,7 +84,7 @@ function SubmitButton() {
       disabled={pending}
       className="mt-1 inline-flex items-center justify-center bg-mg-accent px-8 py-3 font-mono text-xs uppercase tracking-[0.15em] text-white transition-colors hover:bg-mg-fg hover:text-mg-bg disabled:opacity-60"
     >
-      {pending ? "Signing in…" : "Sign in"}
+      {pending ? "Sending…" : "Send reset link"}
     </button>
   );
 }
