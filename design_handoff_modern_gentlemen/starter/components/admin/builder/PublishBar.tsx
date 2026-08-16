@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/admin/ui/Badge";
 import { useToast } from "@/components/admin/ui/Toast";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 import { isSchedulable } from "@/lib/domain/documents";
+import { adminPathForDocument } from "@/lib/domain/routes";
 
 import { useBuilder } from "./StoreContext";
 import type { BuilderCallbacks } from "./Builder";
@@ -166,7 +167,11 @@ export function PublishBar({
               Preview
             </Button>
           )}
-          <Button size="sm" variant="ghost" href={`/admin/pages/${doc.id}/history`}>
+          <Button
+            size="sm"
+            variant="ghost"
+            href={`${adminPathForDocument(doc.type, doc.id)}/history`}
+          >
             History
           </Button>
           {canPublish && (

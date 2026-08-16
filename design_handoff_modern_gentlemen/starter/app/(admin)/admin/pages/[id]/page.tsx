@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
 import { getDocument } from "@/lib/services/documents";
+import { listInsertablePatterns } from "@/lib/services/patterns";
 import { BLOCK_TREE_KEY } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
 import { Builder } from "@/components/admin/builder/Builder";
@@ -22,6 +23,13 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
   const user = await requirePermission("page.write");
   const page = await getDocument("page", id);
   if (!page) notFound();
+
+  // Patterns are offered in the library rail, and reading them needs
+  // `pattern.read` — which a page editor is not guaranteed to hold. Checked
+  // here rather than caught around the call, because `listInsertablePatterns`
+  // *throws* on a missing permission and a swallowed throw would hide a real
+  // failure just as effectively as a missing permission.
+  const patterns = user.permissions.has("pattern.read") ? await listInsertablePatterns() : [];
 
   const treeKey = BLOCK_TREE_KEY.page;
   const draft = (page.draft_data ?? {}) as Record<string, unknown>;
@@ -57,6 +65,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
         snapshot: snapshotAction,
         createPreview: createPreviewAction,
       }}
+      patterns={patterns}
       canPublish={user.permissions.has("page.publish")}
       canPreview={user.permissions.has("preview.create")}
     />

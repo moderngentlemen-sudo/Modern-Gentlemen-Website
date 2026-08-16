@@ -32,6 +32,7 @@ import { useAutosave } from "./useAutosave";
 import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
 import { locate } from "./tree";
 import type { BuilderInit } from "./store";
+import type { BlockTree } from "@/lib/blocks/types";
 
 /**
  * The server actions the builder may call.
@@ -73,16 +74,34 @@ export interface BuilderCallbacks {
 
 export type { SerializedIssue };
 
+/**
+ * A pattern the rail may insert, with the blocks it would copy in.
+ *
+ * The blocks travel with the entry rather than being fetched on click: a
+ * pattern's payload is already loaded server-side to build this list, and a
+ * server round-trip on click would put a spinner in the middle of an operation
+ * that is otherwise a local tree edit.
+ */
+export interface BuilderPattern {
+  id: string;
+  name: string;
+  description: string | null;
+  blockCount: number;
+  blocks: BlockTree;
+}
+
 export function Builder({
   init,
   actions,
   canPublish,
   canPreview,
+  patterns = [],
 }: {
   init: BuilderInit;
   actions: BuilderServerActions;
   canPublish: boolean;
   canPreview: boolean;
+  patterns?: BuilderPattern[];
 }) {
   const id = init.doc.id;
 
@@ -98,7 +117,12 @@ export function Builder({
 
   return (
     <BuilderStoreProvider init={init}>
-      <BuilderLayout callbacks={callbacks} canPublish={canPublish} canPreview={canPreview} />
+      <BuilderLayout
+        callbacks={callbacks}
+        canPublish={canPublish}
+        canPreview={canPreview}
+        patterns={patterns}
+      />
     </BuilderStoreProvider>
   );
 }
@@ -107,14 +131,17 @@ function BuilderLayout({
   callbacks,
   canPublish,
   canPreview,
+  patterns,
 }: {
   callbacks: BuilderCallbacks;
   canPublish: boolean;
   canPreview: boolean;
+  patterns: BuilderPattern[];
 }) {
   useAutosave(callbacks.saveDraft);
 
   const insert = useBuilder((s) => s.insert);
+  const insertMany = useBuilder((s) => s.insertMany);
   const move = useBuilder((s) => s.move);
   const moveTo = useBuilder((s) => s.moveTo);
   const selectedKey = useBuilder((s) => s.selectedKey);
@@ -217,6 +244,17 @@ function BuilderLayout({
                 // rather than silently at the end of the page.
                 const at = selectedKey ? locate(tree, selectedKey) : null;
                 insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
+              }}
+              patterns={patterns}
+              onInsertPattern={(patternId) => {
+                const pattern = patterns.find((entry) => entry.id === patternId);
+                if (!pattern) return;
+
+                // Same placement rule as a section: after the selection, so a
+                // pattern lands where the editor is working rather than at the
+                // end of the page.
+                const at = selectedKey ? locate(tree, selectedKey) : null;
+                insertMany(pattern.blocks, at ? at.index + 1 : undefined, at?.parentKey ?? null);
               }}
             />
           </aside>

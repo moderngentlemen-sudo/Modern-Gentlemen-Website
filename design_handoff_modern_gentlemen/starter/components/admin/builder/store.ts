@@ -100,6 +100,13 @@ export interface BuilderActions {
    * existing call site — and the whole click-to-insert path — is untouched.
    */
   insert: (type: string, at?: number, parentKey?: string | null) => void;
+  /**
+   * Insert a ready-made group of blocks — a pattern — as a copy.
+   *
+   * Separate from `insert` because that one builds a single empty block from a
+   * type name, while this one is handed real content to clone.
+   */
+  insertMany: (nodes: BlockTree, at?: number, parentKey?: string | null) => void;
   duplicate: (key: string) => void;
   remove: (key: string) => void;
   move: (activeKey: string, overKey: string) => void;
@@ -297,6 +304,34 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         const node = newBlockNode(type, keysOf(get().tree));
         replaceWith(insertAt(get().tree, node, parentKey, at));
         set({ selectedKey: node._key });
+      },
+
+      insertMany: (nodes, at, parentKey = null) => {
+        if (nodes.length === 0) return;
+
+        // The taken set is threaded across the whole batch rather than
+        // recomputed per node. `cloneWithNewKeys` only avoids the keys it is
+        // handed, so cloning each node against `keysOf(tree)` alone would let
+        // two blocks *within the same pattern* draw the same key — a tree that
+        // fails its own duplicate-key validation, produced by an operation the
+        // editor would have no reason to suspect.
+        const taken = new Set(keysOf(get().tree));
+        const clones = nodes.map((node) => {
+          const clone = cloneWithNewKeys(node, taken);
+          for (const key of keysOf([clone])) taken.add(key);
+          return clone;
+        });
+
+        // Inserted one at a time so the group keeps its order at the drop
+        // point; `insertAt` with an undefined index appends, which is the
+        // click-to-insert-at-the-end case.
+        let tree = get().tree;
+        clones.forEach((clone, offset) => {
+          tree = insertAt(tree, clone, parentKey, at === undefined ? undefined : at + offset);
+        });
+
+        replaceWith(tree);
+        set({ selectedKey: clones[0]._key });
       },
 
       duplicate: (key) => {

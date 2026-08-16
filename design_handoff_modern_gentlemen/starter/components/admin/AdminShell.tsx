@@ -36,9 +36,17 @@ const NAV: NavItem[] = [
   { href: "/admin/media", label: "Media", needs: "media.read" },
   { href: "/admin/navigation", label: "Navigation", needs: "navigation.read" },
   { href: "/admin/theme", label: "Theme", needs: "theme.read" },
-  { href: "/admin/templates", label: "Templates", needs: "template.read" },
   { href: "/admin/patterns", label: "Patterns", needs: "pattern.read" },
 ];
+
+// ⚠️ **Templates is deliberately absent, and this comment is why it should stay
+// absent until the route exists.** Both `Templates` and `Patterns` sat in this
+// array from Phase 4 with neither route built, so anyone holding
+// `template.read`/`pattern.read` — which every seeded admin does — got a 404
+// straight from the sidebar. Patterns earned its link back by acquiring a route;
+// templates has not, because `BLOCK_TREE_KEY.template` is `null` and the builder
+// would need an area switcher to edit one. A nav entry is a promise that a
+// screen exists, and a permission check is not a substitute for the screen.
 
 export function AdminShell({
   email,

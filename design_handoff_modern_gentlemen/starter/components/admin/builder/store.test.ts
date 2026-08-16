@@ -33,6 +33,85 @@ function makeStore(tree: BlockTree = []): BuilderStore {
   });
 }
 
+describe("insertMany — inserting a pattern as a copy", () => {
+  /** Two blocks, as a saved pattern's payload would hold them. */
+  function patternBlocks(): BlockTree {
+    const a = newBlockNode("latestGrid", new Set());
+    const b = newBlockNode("latestGrid", new Set([a._key]));
+    return [a, b];
+  }
+
+  it("inserts every block in the group, in order", () => {
+    const store = makeStore();
+    store.getState().insertMany(patternBlocks());
+
+    expect(store.getState().tree).toHaveLength(2);
+    expect(store.getState().tree.every((node) => node._type === "latestGrid")).toBe(true);
+  });
+
+  it("gives every inserted block a key that is new to this tree", () => {
+    const existing = newBlockNode("latestGrid", new Set());
+    const store = makeStore([existing]);
+
+    const blocks = patternBlocks();
+    store.getState().insertMany(blocks);
+
+    // `keysOf` returns a Set, so it cannot itself reveal a duplicate — the
+    // tree is walked directly for that.
+    const keys = [...keysOf(store.getState().tree)];
+    const walked = store.getState().tree.map((node) => node._key);
+    expect(new Set(walked).size, "no duplicate keys among the roots").toBe(walked.length);
+    expect(keys).toHaveLength(3);
+    // The pattern's own stored keys must not survive the copy, or inserting the
+    // same pattern twice would collide with itself.
+    for (const source of blocks) {
+      expect(keys).not.toContain(source._key);
+    }
+  });
+
+  it("does not let two blocks of one pattern draw the same key", () => {
+    // The regression this guards: cloning each node against `keysOf(tree)`
+    // alone, rather than threading the taken set through the batch, lets the
+    // second clone reuse the first clone's fresh key. Both blocks are identical
+    // here, so nothing but the keys distinguishes them.
+    const store = makeStore();
+    store.getState().insertMany(patternBlocks());
+
+    const [first, second] = store.getState().tree;
+    expect(first._key).not.toBe(second._key);
+  });
+
+  it("inserts at a position, keeping the group's order", () => {
+    const first = newBlockNode("latestGrid", new Set());
+    const last = newBlockNode("latestGrid", new Set([first._key]));
+    const store = makeStore([first, last]);
+
+    store.getState().insertMany(patternBlocks(), 1);
+
+    const keys = store.getState().tree.map((node) => node._key);
+    expect(keys[0]).toBe(first._key);
+    expect(keys[3]).toBe(last._key);
+    expect(keys).toHaveLength(4);
+  });
+
+  it("is one undo, not one per block", () => {
+    const store = makeStore();
+    store.getState().insertMany(patternBlocks());
+    expect(store.getState().tree).toHaveLength(2);
+
+    store.getState().undo();
+    expect(store.getState().tree, "undoing an insert removes the whole pattern").toHaveLength(0);
+  });
+
+  it("does nothing when handed an empty pattern", () => {
+    const store = makeStore();
+    store.getState().insertMany([]);
+
+    expect(store.getState().tree).toHaveLength(0);
+    expect(store.getState().past, "an empty insert is not an undo entry").toHaveLength(0);
+  });
+});
+
 describe("insert", () => {
   it("carries the manifest's insert defaults into settings", () => {
     const store = makeStore();

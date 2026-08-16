@@ -1,3 +1,5 @@
+import type { DocumentType } from "./documents";
+
 /**
  * Where a document appears on the public site — pure, no I/O.
  *
@@ -37,4 +39,29 @@ export function publicPathForCategory(slug: string): string {
 
 export function publicPathForProduct(slug: string): string {
   return `/product/${slug}`;
+}
+
+/**
+ * Where a document is edited in the admin.
+ *
+ * The builder is shared by every document type, but `PublishBar` hard-coded
+ * `/admin/pages/${doc.id}/history` — correct while `page` was the only type with
+ * a builder route, and a 404 for the first type that got one. Deriving the
+ * segment from the document's own type is what makes the shared builder
+ * genuinely type-agnostic, and it is here rather than in the component so there
+ * is one definition rather than one per screen that needs it.
+ *
+ * `product` is listed for completeness; the products admin has its own editor
+ * and does not reach the builder today.
+ */
+export const ADMIN_SEGMENT = {
+  page: "pages",
+  template: "templates",
+  pattern: "patterns",
+  article: "articles",
+  product: "products",
+} as const satisfies Record<DocumentType, string>;
+
+export function adminPathForDocument(type: DocumentType, id: string): string {
+  return `/admin/${ADMIN_SEGMENT[type]}/${id}`;
 }

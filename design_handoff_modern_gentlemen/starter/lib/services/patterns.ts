@@ -27,6 +27,48 @@ export async function getPatternByKey(key: string) {
   return repo.getPatternByKey(db, key);
 }
 
+/** What the builder's library rail needs to offer a pattern for insertion. */
+export interface InsertablePattern {
+  id: string;
+  name: string;
+  description: string | null;
+  blockCount: number;
+  blocks: BlockTree;
+}
+
+/**
+ * The patterns a page editor may insert.
+ *
+ * Prefers `published_data` and falls back to the draft, which is the opposite
+ * of `expandPatternRefs({ preferDraft: true })` and deliberately so: a preview
+ * asks "what would publishing this page produce", while inserting asks "give me
+ * the approved version of this pattern". A pattern whose draft is mid-edit
+ * should not drop half-finished blocks into someone else's page.
+ *
+ * Patterns with no blocks are dropped rather than listed — an entry that
+ * inserts nothing is a dead control, and a freshly created pattern is empty
+ * until someone composes it.
+ */
+export async function listInsertablePatterns(): Promise<InsertablePattern[]> {
+  await requirePermission("pattern.read");
+  const db = await createClient();
+  const rows = await repo.listPatterns(db);
+
+  return rows
+    .map((row) => {
+      const payload = (row.published_data ?? row.draft_data) as { blocks?: unknown } | null;
+      const blocks = Array.isArray(payload?.blocks) ? (payload.blocks as BlockTree) : [];
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        blockCount: blocks.length,
+        blocks,
+      };
+    })
+    .filter((pattern) => pattern.blockCount > 0);
+}
+
 export async function createPattern(input: {
   key: string;
   name: string;
