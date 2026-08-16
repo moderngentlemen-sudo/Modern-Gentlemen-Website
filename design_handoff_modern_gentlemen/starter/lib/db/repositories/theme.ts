@@ -40,6 +40,22 @@ const THEME_COLUMNS =
   "id, key, name, status, draft_data, published_data, version, published_at, updated_at";
 
 /**
+ * The same row without the draft.
+ *
+ * ⚠️ **`anon` may no longer select `draft_data` (`0020`), so the public path
+ * must not ask for it.** Asking anyway does not fail loudly: `getPublishedTheme`
+ * is called inside a `try/catch` that falls back to the built-in tokens, so a
+ * refused column would show up as the whole site quietly reverting to its
+ * default palette with the editor's published theme still sitting in the
+ * database. That is why this list exists rather than a `select("*")` or a shared
+ * constant.
+ */
+const PUBLIC_THEME_COLUMNS =
+  "id, key, name, status, published_data, version, published_at, updated_at";
+
+export type PublicThemeRow = Omit<ThemeRow, "draft_data">;
+
+/**
  * `null` rather than a throw.
  *
  * Through the anonymous client this is also the answer for a theme that exists
@@ -51,6 +67,18 @@ export async function getThemeByKey(db: Db, key: string): Promise<ThemeRow | nul
     "getThemeByKey",
     await db.from("theme_settings").select(THEME_COLUMNS).eq("key", key).maybeSingle()
   ) as ThemeRow | null;
+}
+
+/**
+ * The anonymous read. Identical to `getThemeByKey` but for the columns, and
+ * separate from it so the public path cannot acquire a draft column by someone
+ * editing a shared constant. See `PUBLIC_THEME_COLUMNS`.
+ */
+export async function getPublishedThemeByKey(db: Db, key: string): Promise<PublicThemeRow | null> {
+  return unwrap(
+    "getPublishedThemeByKey",
+    await db.from("theme_settings").select(PUBLIC_THEME_COLUMNS).eq("key", key).maybeSingle()
+  ) as PublicThemeRow | null;
 }
 
 /**

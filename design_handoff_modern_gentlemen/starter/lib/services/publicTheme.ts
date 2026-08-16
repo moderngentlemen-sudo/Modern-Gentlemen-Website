@@ -48,7 +48,10 @@ import {
 export async function getPublishedThemeColors(): Promise<ThemeColors> {
   try {
     const db = createPublicClient();
-    const row = await repo.getThemeByKey(db, THEME_KEY);
+    // `getPublishedThemeByKey`, not `getThemeByKey`: `0020` revoked
+    // `draft_data` from `anon`, and the catch below would turn a refused column
+    // into a silent fallback to the built-in palette.
+    const row = await repo.getPublishedThemeByKey(db, THEME_KEY);
 
     // Absent, still a draft, or published with nothing in it — all the same
     // answer from out here, and `parseThemeColors` gives it for the third case.

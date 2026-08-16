@@ -739,28 +739,74 @@ describe("system pages", () => {
 });
 
 /**
- * Records behaviour this suite found and did NOT fix. It asserts what the
- * database does today, so the fact is executable rather than only written down
- * — and so that closing the gap turns this file red and forces the assertion to
- * be inverted deliberately, which is exactly what happened to the `is_system`
- * test above.
+ * `0020`. This block used to be `known gaps` and asserted the **wrong**
+ * behaviour on purpose: that `anon` could read `draft_data` on a published row.
+ * That is the second characterisation test in this file to go through the full
+ * cycle — asserted as a gap, used to justify a migration, then inverted in the
+ * same commit as the fix, exactly as the `is_system` one was for `0018`.
  *
- * Described in PROGRESS.md under "Known issues"; not fixed here because it
- * spans six tables and wants its own decision.
+ * RLS is row-level, so the fix is not a policy: `0012` granted table-level
+ * SELECT to `anon`, and a table-level grant covers every column. `0020` revokes
+ * it and re-grants the columns individually, minus the draft.
  */
-describe("known gaps — this asserts current behaviour, not desired behaviour", () => {
-  it("KNOWN GAP: anon can read draft_data on a published row", async () => {
+describe("anon reads: the draft column is not public", () => {
+  it("refuses anon the draft_data column on a published page", async () => {
     const live = await makePage("published");
 
-    const { data } = await anon.from("pages").select("draft_data").eq("id", live.id).single();
+    const { data, error } = await anon
+      .from("pages")
+      .select("draft_data")
+      .eq("id", live.id)
+      .maybeSingle();
 
-    // RLS is row-level; `0012` grants the whole row, column included. Today the
-    // seeded rows carry no divergent draft, so nothing unpublished is actually
-    // exposed — but the moment an editor starts an edit on a live page, its
-    // unpublished text is served to anyone who asks for this column.
-    expect(
-      (data?.draft_data as { seo?: { title?: string } })?.seo?.title,
-      "if this is undefined the gap has been closed — invert this test"
-    ).toBe("draft title");
+    // PostgREST surfaces a missing column privilege as 42501, the same code a
+    // refused row carries — the request never reaches the data.
+    expect(error?.code, "selecting draft_data as anon must be refused").toBe(DENIED);
+    expect(data, "and it must not arrive by another route").toBeNull();
+  });
+
+  it("serves the published columns of that same row", async () => {
+    const live = await makePage("published");
+
+    const { data, error } = await anon
+      .from("pages")
+      .select("slug, title, status, published_data")
+      .eq("id", live.id)
+      .single();
+
+    // The half that stops the fix from being "revoke everything": a revoke with
+    // no re-grant would satisfy the assertion above and take the public site
+    // down with it.
+    expect(error, "the published columns must still be readable").toBeNull();
+    expect(data?.slug).toBe(live.slug);
+  });
+
+  it("refuses the draft column on every table that carries one", async () => {
+    const article = await makeArticle("published");
+    const product = await makeProduct("published");
+
+    for (const [table, id] of [
+      ["articles", article.id],
+      ["products", product.id],
+    ] as const) {
+      const { error } = await anon.from(table).select("draft_data").eq("id", id).maybeSingle();
+      expect(error?.code, `${table}.draft_data must be refused`).toBe(DENIED);
+    }
+  });
+
+  it("keeps draft_data readable by staff, because the admin is built on it", async () => {
+    const draft = await makePage("draft");
+
+    const { data, error } = await editorDb
+      .from("pages")
+      .select("draft_data")
+      .eq("id", draft.id)
+      .single();
+
+    // `0020` is a column *grant* change and grants cannot distinguish staff from
+    // non-staff — `authenticated` keeps the column, which is what makes the
+    // builder work and is also the documented remainder of this gap.
+    expect(error, "an editor must still read a draft").toBeNull();
+    expect((data?.draft_data as { seo?: { title?: string } })?.seo?.title).toBe("draft title");
   });
 });
