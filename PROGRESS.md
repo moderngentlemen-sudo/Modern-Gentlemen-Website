@@ -969,7 +969,7 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
   **Do not rotate the legacy key.** `anon` and `service_role` are JWTs signed by the project's JWT secret, so rotating one means rotating that secret — which invalidates the **anon** key too (inlined into the bundle at build time, so it needs a rebuild *and* redeploy) and signs out every existing admin session. Supabase's own migration guide calls the legacy keys "hard to rotate without downtime". The project already has the modern key system enabled.
 
   **The runbook**, in this order, because only the last step is hard to undo:
-  1. Dashboard → Settings → API Keys → create the `default` **secret** key (`sb_secret_…`).
+  1. Dashboard → Settings → API Keys → the `default` **secret** key (`sb_secret_…`). **Create it only if it is not already there** — a secret key stays revealable in the dashboard, so an existing one is copied rather than replaced. ⚠️ Never delete a key Railway still holds: when rotating one later, create the replacement *first*, swap, then delete.
   2. Railway → Variables → replace `SUPABASE_SERVICE_ROLE_KEY`. Server-only and read at call time, so a restart suffices — **no rebuild**, unlike the anon key.
   3. Verify with the `Scheduled publish` workflow's `workflow_dispatch` — the jobs route is the only production consumer of this key. Read the log, not the tick: the workflow `exit 0`s with a notice when `SITE_URL`/`JOBS_SECRET` are unset, which is green and proves nothing. `HTTP 200` is the pass; `503` means the variable never arrived; **`500` means the key was rejected**.
   4. Only then deactivate the legacy key in the dashboard. Reversible — Supabase lets you re-activate it.
