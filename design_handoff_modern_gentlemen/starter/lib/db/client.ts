@@ -3,6 +3,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
 import { supabaseAnonKey, supabaseUrl } from "./env";
+import { fetchForKey } from "./apiKey";
 
 /**
  * Browser client — Client Components only (auth UI, the builder canvas, cart
@@ -11,5 +12,11 @@ import { supabaseAnonKey, supabaseUrl } from "./env";
  * .eslintrc.json enforces that.
  */
 export function createClient() {
-  return createBrowserClient<Database>(supabaseUrl(), supabaseAnonKey());
+  const key = supabaseAnonKey();
+
+  // See ./apiKey: a publishable key must not travel as a Bearer token, and a
+  // signed-out visitor is exactly when the SDK would send it as one.
+  return createBrowserClient<Database>(supabaseUrl(), key, {
+    global: { fetch: fetchForKey(key) },
+  });
 }

@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 import { supabaseAnonKey, supabaseUrl } from "./env";
+import { fetchForKey } from "./apiKey";
 
 /**
  * Server client — Server Components, Route Handlers and Server Actions.
@@ -18,7 +19,13 @@ import { supabaseAnonKey, supabaseUrl } from "./env";
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(supabaseUrl(), supabaseAnonKey(), {
+  const key = supabaseAnonKey();
+
+  return createServerClient<Database>(supabaseUrl(), key, {
+    // Only strips the Bearer when it carries the key verbatim, so a signed-in
+    // editor's own token is untouched — it is the signed-out request that would
+    // otherwise send a publishable key as a Bearer. See ./apiKey.
+    global: { fetch: fetchForKey(key) },
     cookies: {
       getAll() {
         return cookieStore.getAll();

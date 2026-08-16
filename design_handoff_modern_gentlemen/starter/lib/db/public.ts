@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { supabaseAnonKey, supabaseUrl } from "./env";
+import { fetchForKey } from "./apiKey";
 
 /**
  * Public read client — anonymous, session-free, safe to use during static
@@ -30,7 +31,13 @@ import { supabaseAnonKey, supabaseUrl } from "./env";
  * `supabase-js` client is the honest expression of "no user".
  */
 export function createPublicClient() {
-  return createSupabaseClient<Database>(supabaseUrl(), supabaseAnonKey(), {
+  const key = supabaseAnonKey();
+
+  return createSupabaseClient<Database>(supabaseUrl(), key, {
+    // A signed-out visitor has no session token, so the SDK would fall back to
+    // sending the key itself as a Bearer — which a publishable key is refused
+    // for. `undefined` while the key is a legacy JWT. See ./apiKey.
+    global: { fetch: fetchForKey(key) },
     auth: {
       // Nothing here should ever look at, refresh or persist a session. On the
       // server there is no storage to persist to, and leaving these on makes a
