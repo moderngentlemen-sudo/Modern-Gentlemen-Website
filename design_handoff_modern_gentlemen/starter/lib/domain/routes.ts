@@ -60,6 +60,9 @@ export const ADMIN_SEGMENT = {
   pattern: "patterns",
   article: "articles",
   product: "products",
+  // Categories are edited from the taxonomy screen, which owns the list; this
+  // is the builder route the shared PublishBar links its History button to.
+  category: "categories",
 } as const satisfies Record<DocumentType, string>;
 
 export function adminPathForDocument(type: DocumentType, id: string): string {

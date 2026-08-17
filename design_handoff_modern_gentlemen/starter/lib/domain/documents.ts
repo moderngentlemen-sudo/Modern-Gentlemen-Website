@@ -12,7 +12,14 @@
  * pre-check that produces a good error message, not the enforcement.
  */
 
-export const DOCUMENT_TYPES = ["page", "template", "pattern", "article", "product"] as const;
+export const DOCUMENT_TYPES = [
+  "page",
+  "template",
+  "pattern",
+  "article",
+  "product",
+  "category",
+] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
 
 export const DOCUMENT_STATUSES = ["draft", "published", "scheduled", "archived"] as const;
@@ -50,7 +57,9 @@ export function isSchedulable(type: DocumentType): boolean {
 /**
  * `patterns.status` is checked against ('draft','published','archived') — it has
  * no 'scheduled'. Offering it in a UI would produce a constraint violation on
- * save rather than a clear refusal.
+ * save rather than a clear refusal. `categories` is the same shape, and unlike
+ * `products` it has no unreachable 'scheduled' value in its CHECK to worry
+ * about — see `0021`.
  */
 export function statusesFor(type: DocumentType): DocumentStatus[] {
   return DOCUMENT_STATUSES.filter((status) => status !== "scheduled" || isSchedulable(type));
@@ -70,6 +79,7 @@ export const BLOCK_TREE_KEY = {
   pattern: "blocks",
   template: null,
   product: "sections",
+  category: "sections",
 } as const satisfies Record<DocumentType, string | null>;
 
 /**

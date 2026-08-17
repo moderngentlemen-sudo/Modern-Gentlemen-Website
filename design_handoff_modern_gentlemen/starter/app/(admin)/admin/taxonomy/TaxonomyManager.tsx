@@ -111,17 +111,24 @@ export function TaxonomyManager({
   tags,
   authors,
   canWrite,
+  canEditLayout,
 }: {
   categories: TaxonomyRow[];
   tags: TaxonomyRow[];
   authors: TaxonomyRow[];
   canWrite: boolean;
+  canEditLayout: boolean;
 }) {
   return (
     <div className="space-y-8 px-8 py-8">
-      <TaxonomySection kind="category" rows={categories} canWrite={canWrite} />
-      <TaxonomySection kind="tag" rows={tags} canWrite={canWrite} />
-      <TaxonomySection kind="author" rows={authors} canWrite={canWrite} />
+      <TaxonomySection
+        kind="category"
+        rows={categories}
+        canWrite={canWrite}
+        canEditLayout={canEditLayout}
+      />
+      <TaxonomySection kind="tag" rows={tags} canWrite={canWrite} canEditLayout={false} />
+      <TaxonomySection kind="author" rows={authors} canWrite={canWrite} canEditLayout={false} />
     </div>
   );
 }
@@ -130,10 +137,13 @@ function TaxonomySection({
   kind,
   rows,
   canWrite,
+  canEditLayout,
 }: {
   kind: Kind;
   rows: TaxonomyRow[];
   canWrite: boolean;
+  /** `category.write`, which is a different grant from `taxonomy.write`. */
+  canEditLayout: boolean;
 }) {
   const config = CONFIG[kind];
   const router = useRouter();
@@ -250,6 +260,15 @@ function TaxonomySection({
                     <Td className="max-w-[380px] truncate text-mg-fg/60">{row.detail ?? "—"}</Td>
                   )}
                   <Td className="text-right">
+                    {/* Categories only: a category is a *document* since `0021`,
+                        so it has a layout as well as a name and an intro. The
+                        other two kinds are plain rows with nothing to compose,
+                        which is why this is not part of `KindConfig`. */}
+                    {kind === "category" && canEditLayout && (
+                      <Button size="sm" variant="ghost" href={`/admin/categories/${row.id}`}>
+                        Edit layout
+                      </Button>
+                    )}
                     {canWrite && (
                       <>
                         <Button

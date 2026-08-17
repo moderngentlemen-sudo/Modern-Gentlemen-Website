@@ -14,18 +14,22 @@ import {
 } from "./documents";
 
 describe("document types", () => {
-  it("recognises the four versioned entities and nothing else", () => {
+  it("recognises the six versioned entities and nothing else", () => {
     expect(isDocumentType("page")).toBe(true);
-    // `categories` carries the same columns but is not independently
-    // publishable, and 0010's allowlist leaves it out too.
-    expect(isDocumentType("category")).toBe(false);
+    // ⚠️ **Inverted by `0021`, not deleted.** This asserted `false` from Phase 1
+    // until the category editor existed, and the reason it gave was accurate at
+    // the time: `categories` carried the document columns but nothing could
+    // publish one, because `document_table()` is an allowlist it was not on.
+    // `0014`'s header set the condition explicitly — adding it "would imply a UI
+    // that does not exist" — and `/admin/categories/[id]` is that UI.
+    expect(isDocumentType("category")).toBe(true);
     expect(isDocumentType("")).toBe(false);
   });
 
   it("leaves `theme` out, even though 0017 puts it on the SQL allowlist", () => {
     // `theme_settings` carries every document column and `document_table()`
     // resolves it since 0017, so publish/rollback/history all work — but the
-    // TypeScript union deliberately stays at five. `permissionFor` in
+    // TypeScript union deliberately stays put. `permissionFor` in
     // lib/services/documents.ts builds `${type}.${action}` and narrows it to
     // `Permission`; there is no `theme.delete`, so widening this union does not
     // typecheck, and forcing it would cascade into DOCUMENT_TABLES,
@@ -41,6 +45,11 @@ describe("document types", () => {
     expect(isSchedulable("article")).toBe(true);
     expect(isSchedulable("template")).toBe(false);
     expect(isSchedulable("pattern")).toBe(false);
+    // Categories are the clean case: no `scheduled_for` column *and* no
+    // 'scheduled' value in the status CHECK, so unlike products there is no
+    // unreachable status being held out of a UI. See `0021`.
+    expect(isSchedulable("category")).toBe(false);
+    expect(statusesFor("category")).not.toContain("scheduled");
   });
 
   it("omits 'scheduled' from the statuses a pattern can hold", () => {
@@ -54,6 +63,10 @@ describe("document types", () => {
     expect(BLOCK_TREE_KEY.pattern).toBe("blocks");
     // Templates hold named areas rather than one ordered list.
     expect(BLOCK_TREE_KEY.template).toBeNull();
+    // A category page is a document with a bound listing — one ordered list of
+    // sections, exactly like a page, whose `featuredLead` and `articleGrid`
+    // carry `$bind` descriptors resolved against `articles` at render time.
+    expect(BLOCK_TREE_KEY.category).toBe("sections");
   });
 });
 
