@@ -55,6 +55,14 @@
 -- themselves and fails if any statement complains.
 
 -- ------------------------------------------------------- the allowlist itself
+--
+-- ⚠️ **`create or replace` replaces the WHOLE body, so every earlier addition
+-- has to be reproduced here.** The first cut of this migration was written from
+-- `0014`'s version and silently dropped `theme`, which `0017` had added —
+-- breaking theme publishing everywhere it was applied, with nothing failing
+-- until `publicTheme.test.ts` said "not a publishable entity type: theme".
+-- **Copy the current definition, not the one in the migration you are
+-- imitating.**
 
 create or replace function public.document_table(p_entity_type text)
 returns text
@@ -68,6 +76,7 @@ as $$
     when 'pattern'  then 'patterns'
     when 'article'  then 'articles'
     when 'product'  then 'products'
+    when 'theme'    then 'theme_settings'
     when 'category' then 'categories'
   end;
 $$;
@@ -115,6 +124,23 @@ on conflict do nothing;
 insert into public.role_permissions (role_key, permission_key)
 select 'viewer', key from public.permissions where action = 'read'
 on conflict do nothing;
+
+-- ------------------------------------------------- the columns publishing needs
+--
+-- ⚠️ **`categories` never had `created_by`/`updated_by`**, unlike every other
+-- document table, and `publish_document` writes `updated_by = auth.uid()` in
+-- five separate statements. Without these the allowlist entry above is a
+-- promise the function cannot keep: publishing raised 42703, "column
+-- updated_by of relation categories does not exist".
+--
+-- Caught by the integration test added alongside this migration rather than by
+-- anything local — `document_table()` resolving and the permissions existing
+-- both looked correct without a single category having been published.
+
+alter table public.categories
+  add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.categories
+  add column if not exists updated_by uuid references auth.users(id) on delete set null;
 
 -- --------------------------------------------------------------------- RLS
 
