@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { fetchForKey } from "@/lib/db/apiKey";
+
 /**
  * Refreshes the Supabase session cookie on every matched request, and keeps
  * signed-out visitors out of /admin.
@@ -18,24 +20,30 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request: { headers: request.headers } });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
+  // ⚠️ **The fifth Supabase client, and the one that is easy to forget.** It is
+  // built here rather than through `lib/db/server.ts` because middleware has its
+  // own cookie plumbing, which means it does not inherit anything that file
+  // does — including the modern-key header rule. `lib/db/apiKey.ts` explains
+  // why a `sb_publishable_…` key must not travel as a Bearer token; this runs on
+  // every matched request and calls `auth.getUser()`, so it is the last place
+  // that should be relying on getting away with it.
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+    global: { fetch: fetchForKey(key) },
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request: { headers: request.headers } });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
   const {
     data: { user },

@@ -914,6 +914,12 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 
   **The lesson worth keeping is about the shape of the mistake, not the API.** The fix was scoped to the credential being changed rather than to the *rule* that changed, and the runbook inherited that scope. A migration step that says "deactivate the old thing" deserves a check of what else the old thing is holding up — here, one toggle covered two keys, and only one of them had been migrated.
 
+  ⚠️ **And the same mistake had one more layer: there are FIVE clients, not four.** `middleware.ts` builds its own `createServerClient` — it has bespoke cookie plumbing, so it inherits nothing from `lib/db/server.ts` — and it runs on *every matched request*, calling `auth.getUser()`. It was missed twice: once when the rule shipped in `admin.ts`, and again when it was generalised to `lib/db/*`, because both passes enumerated the files under `lib/db/` rather than asking what constructs a client.
+
+  **So the third pass asserted the property instead of the list.** `lib/db/apiKeyCoverage.test.ts` walks the source, finds every file importing a Supabase client constructor, and fails if one does not reference `fetchForKey`. Two details earn their keep: it matches the **import** rather than the call site, because `admin.ts` imports `createClient as createSupabaseClient` and no call-site regex finds that; and it asserts the scan finds **at least five** known files first, so a broken walk fails loudly instead of passing vacuously over zero results — the `--passWithNoTests` failure mode this repo has hit three times. The guard was verified by removing the wrapper from `middleware.ts` and watching it name that file.
+
+  **A per-file unit test could not have caught any of this.** The gap was never a wrong assertion in a file someone thought about; it was a file nobody thought about. When the same omission happens twice, the fix is to stop maintaining the list.
+
 - **A modern Supabase key is not a drop-in, and the SDK is why.** "It is read from the environment, so rotation needs no code change" was in Known issues for phases and was wrong in one specific way, found by doing it: a `sb_secret_…` key went into Railway and every scheduled-publish tick returned **HTTP 500**.
 
   **The mechanism.** The new keys are not JWTs, and the platform rejects them on `Authorization: Bearer` — it tries to parse one as a token and answers `Invalid JWT`. They belong on `apikey` alone. `supabase-js` sets `Authorization: Bearer <session token ?? the api key>`, and a service-role client never has a session token, so the fallback is always the key itself.
@@ -986,7 +992,7 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
      - Railway → `NEXT_PUBLIC_SUPABASE_ANON_KEY` → the `sb_publishable_…` value. ⚠️ **This one is `NEXT_PUBLIC_`, so it is inlined at build time — it needs a rebuild and redeploy, not just a restart**, unlike the service-role swap.
      - Verify the public site renders and an admin sign-in works. Use the dashboard's **"last used" indicators** to confirm neither legacy key is still being hit before flipping the toggle.
      - Then deactivate the pair. Reversible — Supabase lets you re-activate them.
-     The Bearer fix already covers all four clients (`lib/db/apiKey.ts`), so the publishable swap needs no further code change.
+     The Bearer fix covers **all five** Supabase clients (`lib/db/apiKey.ts`), so the publishable swap needs no further code change. ⚠️ **Five, not four** — `middleware.ts` builds its own `createServerClient` with its own cookie plumbing, so it inherits nothing from `lib/db/server.ts`, and it was missed on the first pass. `lib/db/apiKeyCoverage.test.ts` now scans the source and fails if any file importing a Supabase client constructor does not reference `fetchForKey`, which is what would catch a sixth.
   5. Update any local `.env.local`, or the seed, admin and E2E scripts break.
 
   **The old value is never lost**: it stays readable in the dashboard until step 4, so there is nothing to save beforehand.
