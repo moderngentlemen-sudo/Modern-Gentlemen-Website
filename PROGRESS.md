@@ -298,13 +298,14 @@ Compare the rendered `<body>` with `<script>` bodies emptied and runs of them co
 - [x] Checkout (4 steps + validation + confirmation) — `checkout-desktop.png` (step indicator, per-step validation, empty-bag guard, confirmation)
 
 ## Phase 6 — Section Library + builder
-- [ ] Section Library picker page — `section-library.png`
-- [ ] Drag-and-drop builder wired to the block registry
+> ⚠️ **This section was stale and is corrected here rather than left to be re-derived.** Track B's builder superseded it; both lines below described work that has shipped or been deliberately replaced.
+- [x] ~~Section Library picker page~~ — **superseded, not built as a page.** The library is a rail inside the builder (`components/admin/builder/InsertMenu.tsx`), fed from `blockCatalog`, with live previews on hover/focus. A standalone picker page would be a second place for a block to be described.
+- [x] ~~Drag-and-drop builder wired to the block registry~~ — **done (PR #32, `9d87568`)**: `DndContext` hoisted to `Builder.tsx`, draggable library entries, explicit `gap:N` droppables, the insertion rule pure in `dnd.ts`. Click-to-insert remains the accessible path.
 
 ## Phase 7 — Quality pass
 - [x] Responsive QA at 1024 / 768 / 414 / 360 + dark (subagent-driven audit → fixes) — swept every page type (home, 5 categories, about, membership, all article hero/body variants, shop, PDP, bag, checkout) + all overlays (search, drawer, bag). Fixed 5 majors (search overlay content clipped off-screen; bag line-totals clipped ≤468; spec-comparison table crushed ≤400; newsletter + CTA-band forms overflowing ≤360; About/Membership CTA headings overflowing) + ~11 minors (sub-44px touch targets, `min-[1025px]`→`min-[1024px]` grid gaps, article dek/drop-cap clamps, checkout confirmation stack). All changes are **mobile-only** (custom `min-[681px]:` breakpoints / `sm:` overrides) — the verified 909px desktop look is byte-for-byte unchanged; build stays clean.
 - [ ] Accessibility: focus traps, `aria-expanded`, visible focus rings, reduced-motion, alt text
-- [ ] SEO: per-route metadata, Product JSON-LD on PDPs, sitemap + robots
+- [x] ~~SEO: per-route metadata, Product JSON-LD on PDPs, sitemap + robots~~ — **done (PR #22, `0555031`) and verified on the live deploy.** See the Track A Phase 7 row in the progress snapshot for what shipped and the two follow-ups left open.
 - [ ] Dark-mode sweep on every page (footer stays dark)
 - [ ] Lighthouse / Core Web Vitals; image sizing; font loading
 - [ ] Production imagery/video rights confirmed OR flagged (current media are placeholders)
@@ -616,7 +617,13 @@ _Record anything you could not reproduce exactly, ambiguities, or choices made (
 - [x] Signed-in E2E (`tests/e2e/builder.spec.ts`) **has now run in CI** — never in this container (no Docker daemon, so no local stack). It took four rounds of fixes to get there and found five real bugs on the way; see the decisions log
 - [x] **The public visual baselines hold cross-host — settled, not assumed.** They were captured in this dev container and this file flagged the risk that `ubuntu-latest` antialiasing would blow through `maxDiffPixelRatio: 0.01` on full-page shots of text-heavy editorial pages. On the first run that got far enough to find out, **all 14 passed**. The tolerance is right and the baselines are portable; no re-baselining needed
 - [ ] **The four admin visual baselines have never been captured, and cannot be captured from a checkout.** Unlike the public shots they need a *signed-in* session, so a host must have both a database and an admin account before it can take the first picture: CI has both but cannot commit what it captures, and this container has neither. `tests/visual/admin.spec.ts` now **skips** each shot whose baseline is absent instead of writing an actual and failing — a permanently red gate that no push can fix is worse than a visible skip. The guard exempts `--update-snapshots`, so the run that creates the baselines is not blocked by their absence. **To close this:** start a local stack, provision an admin, `npm run test:visual -- --update-snapshots`, commit the PNGs. The gate arms itself the moment they land
-- [ ] Builder covers `page` only. `article`/`pattern` fit as-is; `template` needs an area switcher
+- [ ] ⚠️ **"`template` needs an area switcher" understates it by a phase, and the switcher is the least of it.** `article` and `pattern` are done. `template` is not one slice, and the reason is not the builder:
+  - **Nothing consumes a template.** Verified by search: no route, component or service imports `lib/services/templates`, and no render path reads `templates.published_data` or resolves a `template_assignments` row. `createPage` accepts an optional `templateId` and stores it on the row; nothing ever reads it back. **So a template editor built today would edit a document that changes no rendered page** — the same trap as synced patterns, and the same failure shape: it looks right in the admin and does nothing on the site.
+  - **Areas are arbitrary**, `Record<string, BlockTree>`, with no vocabulary anywhere in the schema or the domain. So the UI is not a tab strip over known names — it has to create, rename and delete areas, which is a design decision nobody has made.
+  - **`is_global` and `locked` describe builder behaviour that does not exist.** `0003`'s own comment says locking "makes the builder require an explicit unlock before editing".
+  - **`template_assignments` has no UI**, and its resolution order (entry > taxonomy > content_type) is implemented in the repository and called by nothing.
+
+  **The order that would make this real**: a render path that resolves and applies a template first, then the editor. Building the editor first produces exactly the inert screen this file keeps warning about. **Better next candidate: category pages** — `/[category]` already renders `categories.published_data` live and has no admin screen at all, so the editor there has an immediate visible effect.
 
 **Phase 5a — Media library** ✅ (code)
 - [x] ~~`supabase/migrations/0013_media_storage.sql` is written but NOT applied~~ — **applied** to the live project after PR #8 merged, and verified: the `media` bucket exists, is public, carries the 50 MB limit, and all four `storage.objects` policies are present
