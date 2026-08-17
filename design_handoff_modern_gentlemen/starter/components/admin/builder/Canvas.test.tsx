@@ -28,6 +28,7 @@ import userEvent from "@testing-library/user-event";
 import { DndContext } from "@dnd-kit/core";
 
 import { blockTypes, manifestFor } from "@/lib/blocks/manifests";
+import { flattenBlocks } from "@/lib/blocks/traverse";
 import type { BlockTree } from "@/lib/blocks/types";
 
 import { Canvas } from "./Canvas";
@@ -71,8 +72,10 @@ describe("every registered block renders on the canvas", () => {
 
     expect(() => renderCanvas(tree)).not.toThrow();
 
-    // Each block's frame carries its key, so the count is the proof.
-    expect(document.querySelectorAll("[data-block-key]")).toHaveLength(blockTypes.length);
+    // Each block's frame carries its key, so the count is the proof — counted
+    // over the flattened tree rather than `blockTypes`, because `columns`
+    // arrives holding two seeded columns and those are frames too.
+    expect(document.querySelectorAll("[data-block-key]")).toHaveLength(flattenBlocks(tree).length);
   });
 
   it("includes productRow, which calls useCart and would throw without CartProvider", () => {
@@ -205,9 +208,12 @@ describe("BlockErrorBoundary", () => {
 });
 
 describe("containers on the canvas", () => {
-  const container = (children: BlockTree): BlockTree => [
-    { _key: "C1", _type: "columns", children },
-  ];
+  /**
+   * A **column**, which is the unrestricted container: any child type, no seeded
+   * children. The `columns` row is the specialised one and has its own cases
+   * below, because what it refuses is the whole point of it.
+   */
+  const container = (children: BlockTree): BlockTree => [{ _key: "C1", _type: "column", children }];
 
   it("renders a container's children inside it", () => {
     renderCanvas(container([newBlockNode("pullQuote"), newBlockNode("masthead")]));
@@ -326,5 +332,78 @@ describe("nested chrome", () => {
       );
 
     expect(zOf(inner)).toBeGreaterThan(zOf(outer));
+  });
+});
+
+/**
+ * The columns row, and the defect that produced it.
+ *
+ * Reported from the builder: after dropping the first section into a column,
+ * dragging another into a *different* column did nothing. The cause was that a
+ * column was not a thing — the row held one flat list and the grid decided
+ * which cell each child landed in by index — so there was no per-column drop
+ * target to hit, and the canvas's insertion strips were themselves grid items.
+ *
+ * These are the assertions that fail against that design.
+ */
+describe("a columns row on the canvas", () => {
+  const row = (children: BlockTree): BlockTree => [{ _key: "R1", _type: "columns", children }];
+  const column = (key: string, children: BlockTree = []): BlockTree[number] => ({
+    _key: key,
+    _type: "column",
+    children,
+  });
+
+  it("puts only its columns in the grid, never an insertion strip", () => {
+    // THE defect, asserted directly. The strips are siblings of the children,
+    // so inside a container they are children of whatever it renders — and a
+    // row renders a CSS grid. Every strip used to take a cell: two columns
+    // holding one block each laid out as five cells mid-drag.
+    renderCanvas(row([column("A", [newBlockNode("pullQuote")]), column("B")]), {
+      libraryDragType: "newsletter",
+    });
+
+    const grid = document.querySelector("div.grid")!;
+    const cells = [...grid.children].map((cell) =>
+      cell.hasAttribute("data-gap-index") ? "GAP" : (cell.getAttribute("data-block-key") ?? "?")
+    );
+
+    expect(cells).toEqual(["A", "B"]);
+  });
+
+  it("offers each empty column its own drop target", () => {
+    // The other half: a section can now be aimed at the second column
+    // specifically, rather than at an index in one shared list.
+    renderCanvas(row([column("A"), column("B")]), { libraryDragType: "newsletter" });
+
+    const targets = [...document.querySelectorAll("[data-gap-parent]")].map((node) =>
+      node.getAttribute("data-gap-parent")
+    );
+
+    expect(targets).toContain("A");
+    expect(targets).toContain("B");
+  });
+
+  it("lets a column that already holds something take another", () => {
+    // Stacking two blocks in one cell was impossible under the flat list: a
+    // second block simply moved to the next column.
+    renderCanvas(row([column("A", [newBlockNode("pullQuote")]), column("B")]), {
+      libraryDragType: "newsletter",
+    });
+
+    const inA = [...document.querySelectorAll("[data-gap-parent='A']")].map((node) =>
+      node.getAttribute("data-gap-index")
+    );
+
+    expect(inA).toEqual(["0", "1"]);
+  });
+
+  it("offers the row itself no insertion point for a section", () => {
+    // `allow: ["column"]`. Refusing here is what keeps the grid intact — and a
+    // drop the row would only reject at publish is worse than no drop at all.
+    renderCanvas(row([column("A")]), { libraryDragType: "newsletter" });
+
+    const onRow = [...document.querySelectorAll("[data-gap-parent='R1']")];
+    expect(onRow).toHaveLength(0);
   });
 });

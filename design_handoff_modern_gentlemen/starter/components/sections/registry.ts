@@ -23,6 +23,7 @@ import { Manifesto } from "./Manifesto";
 import { CoverCards } from "./CoverCards";
 import { PullQuote } from "./PullQuote";
 import { Masthead } from "./Masthead";
+import { Column } from "./Column";
 import { Columns } from "./Columns";
 
 /**
@@ -63,6 +64,7 @@ export const registry = {
   pullQuote: PullQuote,
   masthead: Masthead,
   columns: Columns,
+  column: Column,
   // Each block owns its own prop contract, so the map is heterogeneous by
   // nature: a lookup by string cannot narrow to one component's props. The
   // manifests restore the guarantee where it counts — content is validated
@@ -87,12 +89,23 @@ export interface BlockCatalogEntry {
  * hand-kept copy of these labels could — and would eventually — disagree with
  * the block it named.
  */
-export const blockCatalog: BlockCatalogEntry[] = blockTypes.map((type) => {
-  const manifest = blockManifests[type];
-  return {
-    type,
-    label: manifest.label,
-    category: manifest.category,
-    description: manifest.description,
-  };
-});
+/**
+ * The insert menu's list.
+ *
+ * `hidden` manifests are filtered out — `column` alone today. It is a real,
+ * registered, validated block; it just means nothing outside a `columns` row,
+ * which seeds its own. Filtering here rather than in the menu keeps "what an
+ * editor may choose" in one place, and leaves `blockTypes` the honest list of
+ * everything that exists (which is what the conformance suite walks).
+ */
+export const blockCatalog: BlockCatalogEntry[] = blockTypes
+  .filter((type) => !blockManifests[type].hidden)
+  .map((type) => {
+    const manifest = blockManifests[type];
+    return {
+      type,
+      label: manifest.label,
+      category: manifest.category,
+      description: manifest.description,
+    };
+  });

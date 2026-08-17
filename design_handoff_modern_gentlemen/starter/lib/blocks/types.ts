@@ -105,4 +105,8 @@ export interface BlockManifest {
    * block is a leaf, and `validateBlock` enforces it.
    */
   readonly slot?: BlockSlot;
+  /** Registered and renderable, but never offered in the insert menu. */
+  readonly hidden: boolean;
+  /** Child types a freshly inserted node is seeded with. Empty for everything but `columns`. */
+  readonly insertChildren: readonly string[];
 }

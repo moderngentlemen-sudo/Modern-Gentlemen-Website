@@ -12,7 +12,7 @@ import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
-import type { BlockNode } from "@/lib/blocks/types";
+import type { BlockNode, BlockSlot } from "@/lib/blocks/types";
 import { clsx } from "@/components/ui/clsx";
 import { IconButton } from "@/components/admin/ui/Button";
 import { Badge } from "@/components/admin/ui/Badge";
@@ -76,7 +76,7 @@ export function Canvas({
             {tree.length === 0 ? (
               <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
             ) : (
-              <BlockList nodes={tree} parentKey={null} dragging={dragging} drop={drop} />
+              <BlockList nodes={tree} parentKey={null} dragType={libraryDragType} drop={drop} />
             )}
           </div>
         </div>
@@ -133,16 +133,37 @@ function GapDropZone({
 function BlockList({
   nodes,
   parentKey,
-  dragging,
+  dragType,
   drop,
+  slot,
   depth = 0,
 }: {
   nodes: BlockNode[];
   parentKey: string | null;
-  dragging: boolean;
+  dragType: string | null;
   drop: DropLocation | null;
+  /** The slot these nodes live in, or undefined for the root list. */
+  slot?: BlockSlot;
   depth?: number;
 }) {
+  /**
+   * ⚠️ **A list refuses insertion points for a type its slot would not accept,
+   * and on a `columns` row that is what stops the grid falling apart.**
+   *
+   * The gaps are rendered as siblings of the children, so inside a container
+   * they are children of whatever that container renders — and `Columns` renders
+   * a CSS grid. Every gap therefore used to take a **grid cell**: a two-column
+   * row holding two blocks laid out as five cells mid-drag, the blocks jumping
+   * into the right-hand column on separate rows and snapping back on drop.
+   *
+   * A row's slot accepts `column` and nothing else, so during an ordinary
+   * section drag it now offers no gaps at all — the grid stays exactly as it
+   * renders. The section goes into a *column*, which is a list of its own and
+   * lays its gaps out vertically like every other list.
+   */
+  const accepts = dragType === null || !slot?.allow || slot.allow.includes(dragType);
+  const dragging = dragType !== null && accepts;
+
   return (
     <SortableContext items={nodes.map((node) => node._key)} strategy={verticalListSortingStrategy}>
       {nodes.map((node, index) => (
@@ -154,7 +175,7 @@ function BlockList({
               over={isOver(drop, parentKey, index)}
             />
           )}
-          <SortableBlock node={node} dragging={dragging} drop={drop} depth={depth} />
+          <SortableBlock node={node} dragType={dragType} drop={drop} depth={depth} />
         </Fragment>
       ))}
       {dragging && (
@@ -224,12 +245,12 @@ function EmptyDropZone({ dragging, over }: { dragging: boolean; over: boolean })
 
 function SortableBlock({
   node,
-  dragging,
+  dragType,
   drop,
   depth,
 }: {
   node: BlockNode;
-  dragging: boolean;
+  dragType: string | null;
   drop: DropLocation | null;
   depth: number;
 }) {
@@ -328,8 +349,9 @@ function SortableBlock({
                   <BlockList
                     nodes={children}
                     parentKey={node._key}
-                    dragging={dragging}
+                    dragType={dragType}
                     drop={drop}
+                    slot={slot}
                     depth={depth + 1}
                   />
                 )}

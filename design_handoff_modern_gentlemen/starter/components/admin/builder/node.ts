@@ -61,11 +61,35 @@ function uniqueKey(existing: ReadonlySet<string>): string {
  */
 export function newBlockNode(type: string, existing: ReadonlySet<string> = new Set()): BlockNode {
   const manifest = manifestFor(type);
-  return {
-    _key: uniqueKey(existing),
+  const taken = new Set(existing);
+
+  const key = uniqueKey(taken);
+  taken.add(key);
+
+  const node: BlockNode = {
+    _key: key,
     _type: type,
     settings: manifest ? cloneJson(manifest.insertDefaults as Record<string, unknown>) : {},
   };
+
+  /**
+   * Seeded children, for `columns` and nothing else today.
+   *
+   * Built here rather than in the store so every path that mints a block gets
+   * them — the insert menu, drag-from-library and a test fixture alike. Keys
+   * are taken from the same growing set as the parent's, because two children
+   * minted from one `existing` snapshot could otherwise collide and fail the
+   * tree's own duplicate-key validation.
+   */
+  if (manifest && manifest.insertChildren.length > 0) {
+    node.children = manifest.insertChildren.map((childType) => {
+      const child = newBlockNode(childType, taken);
+      taken.add(child._key);
+      return child;
+    });
+  }
+
+  return node;
 }
 
 /**
