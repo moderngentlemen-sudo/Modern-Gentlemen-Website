@@ -15,6 +15,7 @@
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/articles";
 import { RepositoryError } from "@/lib/db/repositories/errors";
+import { normalizeRelatedIds } from "@/lib/domain/articles";
 import { requirePermission } from "./auth";
 
 export type ArticleMeta = repo.ArticleMetaRow;
@@ -84,4 +85,25 @@ export async function setArticleTags(id: string, tagIds: string[]): Promise<void
   await requirePermission("article.write");
   const db = await createClient();
   await repo.setArticleTags(db, id, tagIds);
+}
+
+export async function getArticleRelatedIds(id: string): Promise<string[]> {
+  await requirePermission("article.read");
+  const db = await createClient();
+  return repo.relatedIdsForArticle(db, id);
+}
+
+/**
+ * Curate an article's KEEP READING list.
+ *
+ * `normalizeRelatedIds` runs here rather than in the repository so that every
+ * caller gets the rule — the action, a script, a future import — and the
+ * repository stays a plain writer. It is also what keeps the constraint
+ * violations the table can raise (`23514` for a self-reference, `23505` for a
+ * duplicate) out of the editor's way.
+ */
+export async function setArticleRelations(id: string, relatedIds: string[]): Promise<void> {
+  await requirePermission("article.write");
+  const db = await createClient();
+  await repo.setArticleRelations(db, id, normalizeRelatedIds(id, relatedIds));
 }

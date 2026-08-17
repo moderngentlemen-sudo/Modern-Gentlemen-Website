@@ -10,6 +10,10 @@ import { Select } from "@/components/admin/ui/Select";
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
 import { useToast } from "@/components/admin/ui/Toast";
 import { MediaPickerDialog } from "@/components/admin/media/MediaPickerDialog";
+import {
+  RelatedArticles,
+  type RelatedCandidate,
+} from "@/components/admin/articles/RelatedArticles";
 import { ARTICLE_TEMPLATE_NAMES } from "@/lib/domain/articles";
 import type { AssetView } from "@/lib/services/media";
 
@@ -34,6 +38,7 @@ export interface ArticleMetaForm {
   readingMinutes: number | null;
   issueNo: string | null;
   tagIds: string[];
+  relatedIds: string[];
 }
 
 const TEMPLATE_OPTIONS = ARTICLE_TEMPLATE_NAMES.map((name) => ({ value: name, label: name }));
@@ -53,12 +58,14 @@ export function ArticleDetails({
   categories,
   authors,
   tags,
+  relatedCandidates,
   canWrite,
 }: {
   initial: ArticleMetaForm;
   categories: TaxonomyOption[];
   authors: TaxonomyOption[];
   tags: TaxonomyOption[];
+  relatedCandidates: RelatedCandidate[];
   canWrite: boolean;
 }) {
   const router = useRouter();
@@ -92,6 +99,7 @@ export function ArticleDetails({
         readingMinutes: form.readingMinutes ?? null,
         issueNo: form.issueNo?.trim() || null,
         tagIds: form.tagIds,
+        relatedIds: form.relatedIds,
       });
 
       if (!result.ok) {
@@ -271,6 +279,22 @@ export function ArticleDetails({
               )}
             </div>
           )}
+        </PanelSection>
+      </Panel>
+
+      <Panel className="h-fit lg:col-start-2">
+        <PanelSection
+          title="Keep reading"
+          // The rail at the foot of the article page. Curated here, derived when
+          // it is left empty — which is what every article created in the admin
+          // has done since Phase 7c, because there was no way to curate one.
+        >
+          <RelatedArticles
+            chosen={form.relatedIds}
+            candidates={relatedCandidates}
+            onChange={(ids) => set("relatedIds", ids)}
+            disabled={!canWrite}
+          />
         </PanelSection>
       </Panel>
 

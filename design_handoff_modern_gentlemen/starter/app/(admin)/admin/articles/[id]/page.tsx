@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
-import { getDocument } from "@/lib/services/documents";
-import { getArticleMeta, getArticleTagIds } from "@/lib/services/articles";
+import { getDocument, listDocuments } from "@/lib/services/documents";
+import { getArticleMeta, getArticleRelatedIds, getArticleTagIds } from "@/lib/services/articles";
 import { getAsset } from "@/lib/services/media";
 import { listTaxonomy } from "@/lib/services/taxonomy";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
@@ -31,7 +31,16 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
   const [document, meta] = await Promise.all([getDocument("article", id), getArticleMeta(id)]);
   if (!document || !meta) notFound();
 
-  const [tagIds, taxonomy] = await Promise.all([getArticleTagIds(id), listTaxonomy()]);
+  const [tagIds, relatedIds, taxonomy, allArticles] = await Promise.all([
+    getArticleTagIds(id),
+    getArticleRelatedIds(id),
+    listTaxonomy(),
+    // The KEEP READING picker's candidates. `limit` is generous rather than
+    // paginated: the list is a `<select>`, and 53 articles is the size this
+    // site is. If the archive outgrows a dropdown, the control needs a search
+    // box, which is a different change from raising a number.
+    listDocuments("article", { limit: 200 }),
+  ]);
 
   // Resolved here rather than joined in the repository: it is one row, only
   // when a featured image is set, and keeping `getArticleMeta` a plain column
@@ -78,10 +87,20 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
           readingMinutes: meta.reading_minutes,
           issueNo: meta.issue_no,
           tagIds,
+          relatedIds,
         }}
         categories={taxonomy.categories.map((c) => ({ id: c.id, label: c.name }))}
         authors={taxonomy.authors.map((a) => ({ id: a.id, label: a.name }))}
         tags={taxonomy.tags.map((t) => ({ id: t.id, label: t.label }))}
+        // Itself excluded: `article_relation_not_self` forbids the row, so
+        // offering it would be offering a save that cannot succeed.
+        relatedCandidates={allArticles
+          .filter((article) => article.id !== id)
+          .map((article) => ({
+            id: article.id,
+            title: article.title,
+            status: article.status,
+          }))}
         canWrite={canWrite}
       />
     </>

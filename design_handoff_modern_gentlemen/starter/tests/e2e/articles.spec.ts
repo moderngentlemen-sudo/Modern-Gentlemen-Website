@@ -120,6 +120,45 @@ test.describe("articles", () => {
     await expect(page.getByText(/Published v\d+/)).toBeVisible();
   });
 
+  test("curates KEEP READING, and it reaches the live page without a republish", async ({
+    page,
+  }) => {
+    await signIn(page);
+    await page.goto("/admin/articles");
+    await page.getByRole("link", { name: articleTitle, exact: true }).click();
+
+    // Two of the seeded articles, chosen by title so the assertions can read
+    // the same strings back off the public page.
+    const first = "Speed, Considered";
+    const second = "Building a Wardrobe of Ten Things";
+
+    const picker = page.getByLabel("Add an article");
+    await picker.selectOption({ label: first });
+    await picker.selectOption({ label: second });
+
+    // Ordered, not a set: `article_relations.position` is the column under this
+    // control, and swapping is the behaviour a set could not express.
+    await page.getByLabel(`Move ${second} up`).click();
+
+    await page.getByRole("button", { name: "Save details" }).click();
+    await expect(page.getByText("Saved")).toBeVisible();
+
+    // Persisted, not just held in React state — and in the order just set.
+    await page.reload();
+    const chosen = page.getByRole("listitem").filter({ hasText: first });
+    await expect(chosen).toBeVisible();
+    await expect(page.getByLabel(`Move ${second} up`)).toBeDisabled(); // it is first now
+
+    // The payoff, and the property worth asserting: `article_relations` is a
+    // live table rather than part of `draft_data`, so curating one does NOT
+    // need a publish. The article was published by the previous test and this
+    // save alone is what changes the page.
+    await page.goto(`/article/${articleSlug}`);
+    const keepReading = page.getByRole("link", { name: new RegExp(second) });
+    await expect(keepReading.first()).toBeVisible();
+    await expect(page.getByRole("link", { name: new RegExp(first) }).first()).toBeVisible();
+  });
+
   test("records the publish in the shared history view", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/articles");

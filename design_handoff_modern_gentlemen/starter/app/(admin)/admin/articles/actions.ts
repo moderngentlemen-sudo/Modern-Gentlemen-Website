@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createArticle, setArticleTags, updateArticleMeta } from "@/lib/services/articles";
+import {
+  createArticle,
+  setArticleRelations,
+  setArticleTags,
+  updateArticleMeta,
+} from "@/lib/services/articles";
 import { deleteDocument } from "@/lib/services/documents";
 import { ARTICLE_TEMPLATE_NAMES } from "@/lib/domain/articles";
 import { ok, type ActionResult } from "../_lib/action-result";
@@ -82,6 +87,10 @@ const MetaInput = z.object({
   readingMinutes: z.number().int().min(1).max(180).nullable().optional(),
   issueNo: z.string().trim().max(20).nullable().optional(),
   tagIds: z.array(z.string().uuid()).max(50).optional(),
+  // Not capped at KEEP_READING_COUNT here on purpose: `setArticleRelations`
+  // normalizes, so a list that is too long is trimmed rather than refused, and
+  // the cap lives in one place. This bound only stops an absurd payload.
+  relatedIds: z.array(z.string().uuid()).max(50).optional(),
 });
 
 export async function updateArticleMetaAction(input: unknown): Promise<ActionResult> {
@@ -90,7 +99,7 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { id, tagIds, ...patch } = parsed.data;
+  const { id, tagIds, relatedIds, ...patch } = parsed.data;
 
   try {
     // Both sides of the write. Re-filing an article from Watches to Culture
@@ -100,6 +109,10 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
 
     await updateArticleMeta(id, patch);
     if (tagIds) await setArticleTags(id, tagIds);
+    // KEEP READING is rendered on this article's own page and nowhere else, so
+    // unlike a re-filing it moves no other page's content. The shared
+    // revalidation below covers it.
+    if (relatedIds) await setArticleRelations(id, relatedIds);
 
     revalidatePath("/admin/articles");
     revalidatePath(`/admin/articles/${id}`);

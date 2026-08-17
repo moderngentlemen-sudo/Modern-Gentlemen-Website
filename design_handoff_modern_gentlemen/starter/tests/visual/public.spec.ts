@@ -18,11 +18,14 @@ const ROUTES = [
   { path: "/membership", name: "membership" },
   { path: "/style", name: "category-style" },
   { path: "/article/speed-considered", name: "article" },
-  // `the-driving-glove` is not a catalog slug, so this baseline is the PDP's
-  // "we couldn't find that product" screen — worth keeping, but it exercises
-  // none of the page. `travel-watch-roll` is the populated one: gallery,
-  // thumbnails, price, member price, story, spec table, related row.
-  { path: "/product/the-driving-glove", name: "product-missing" },
+  // `the-driving-glove` is not a catalog slug. This baseline used to be the
+  // PDP's own "we couldn't find that product" screen, served with a 200; the
+  // route now calls `notFound()`, so what renders is `app/not-found.tsx` with a
+  // real 404 status. **Renamed and recaptured rather than deleted** — the
+  // designed 404 carries the site chrome and had no baseline of its own, so this
+  // shot covers more than the screen it replaces. The 404 *status* is asserted
+  // in `tests/e2e/smoke.spec.ts`; this proves what it looks like.
+  { path: "/product/the-driving-glove", name: "not-found" },
   { path: "/product/travel-watch-roll", name: "product" },
 ];
 

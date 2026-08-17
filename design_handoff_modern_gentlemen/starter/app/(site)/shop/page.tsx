@@ -8,28 +8,65 @@ import { formatGBP } from "@/lib/domain/money";
 import { useCart } from "@/lib/cart/CartProvider";
 import { ProductCard } from "@/components/store/ProductCard";
 
+/**
+ * The store.
+ *
+ * ⚠️ **The fallback is the point of this shape, not a placeholder.**
+ * `useSearchParams` opts its subtree out of prerendering, so whatever sits in
+ * the Suspense fallback is what ends up in the static HTML — and this fallback
+ * used to be `<ShopHero />` alone. The consequence was invisible to users and to
+ * the visual suite, which drives a real browser and waits for hydration: the
+ * store's sixteen products **were not in the served HTML at all**, only in the
+ * flight payload. `/shop` shipped a headline and a chip row to anything that
+ * does not run JavaScript, the PDP meanwhile rendering in full.
+ *
+ * So the fallback renders the whole store, unfiltered — which is what `/shop`
+ * with no query string means anyway, and the canonical every filtered view
+ * already points at (see `layout.tsx`). Filtering stays a client enhancement.
+ *
+ * **The page stays `○` static, which is the constraint that shaped this.** The
+ * obvious alternative — read `searchParams` on the server and filter there —
+ * renders the correct grid for every URL and turns the store into a per-request
+ * render. Prerendering the unfiltered store and letting the browser narrow it
+ * keeps both properties.
+ */
 export default function ShopPage() {
   // useSearchParams must sit under a Suspense boundary (Next 15).
   return (
-    <Suspense fallback={<ShopHero active="All" />}>
+    <Suspense fallback={<Store active="All" />}>
       <Shop />
     </Suspense>
   );
 }
 
+/** The filtered store: everything below, plus the query string that narrows it. */
 function Shop() {
   const router = useRouter();
   const params = useSearchParams();
+
+  const raw = params.get("cat") || "";
+  const active = groups.find((g) => g.toLowerCase() === raw.toLowerCase()) ?? "All";
+
+  const setActive = (g: string) =>
+    router.replace(g === "All" ? "/shop" : `/shop?cat=${g}`, { scroll: false });
+
+  return <Store active={active} setActive={setActive} />;
+}
+
+/**
+ * The store's markup, identical for both renderings.
+ *
+ * `setActive` is optional because the prerendered pass has no router: the chips
+ * draw and are inert until hydration, exactly as they were when the fallback was
+ * the hero alone.
+ */
+function Store({ active, setActive }: { active: string; setActive?: (g: string) => void }) {
   const cart = useCart();
   const { allProducts, byGroup } = useCatalog();
   const [added, setAdded] = useState<string | null>(null);
 
-  const raw = params.get("cat") || "";
-  const active = groups.find((g) => g.toLowerCase() === raw.toLowerCase()) ?? "All";
   const products = active === "All" ? allProducts() : byGroup(active);
 
-  const setActive = (g: string) =>
-    router.replace(g === "All" ? "/shop" : `/shop?cat=${g}`, { scroll: false });
   const onAdd = (slug: string) => {
     cart.add(slug, 1);
     setAdded(slug);

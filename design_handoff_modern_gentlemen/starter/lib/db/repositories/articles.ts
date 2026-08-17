@@ -184,3 +184,75 @@ export async function setArticleTags(db: Db, articleId: string, tagIds: string[]
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Related articles — KEEP READING
+// ---------------------------------------------------------------------------
+
+/**
+ * The curated related list, in the editor's order.
+ *
+ * Ordered by `position`, which is the column's only job: the join carries no
+ * meaning beyond "these three, in this sequence".
+ */
+export async function relatedIdsForArticle(db: Db, articleId: string): Promise<string[]> {
+  const rows = (unwrap(
+    "relatedIdsForArticle",
+    await db
+      .from("article_relations")
+      .select("related_id, position")
+      .eq("article_id", articleId)
+      .order("position", { ascending: true })
+  ) ?? []) as { related_id: string }[];
+
+  return rows.map((row) => row.related_id);
+}
+
+/**
+ * Set an article's related list to exactly `relatedIds`, in that order.
+ *
+ * Insert-then-prune, like `setArticleTags` — deliberately the same shape, since
+ * two reconciliation routines that behave differently under partial failure is
+ * how a codebase grows a subtle class of bug.
+ *
+ * ⚠️ **One difference, and it is not cosmetic: this upsert must not ignore
+ * duplicates.** `setArticleTags` passes `ignoreDuplicates: true` because a tag
+ * row carries nothing beyond its own existence. Here the conflicting row holds
+ * `position`, and reordering an already-curated list writes the *same* pairs
+ * with different positions — the whole update. `ignoreDuplicates` would make
+ * every reorder a silent no-op: the save succeeds, the toast says "Saved", and
+ * the order is unchanged.
+ */
+export async function setArticleRelations(
+  db: Db,
+  articleId: string,
+  relatedIds: string[]
+): Promise<void> {
+  if (relatedIds.length > 0) {
+    unwrap(
+      "setArticleRelations/upsert",
+      await db.from("article_relations").upsert(
+        relatedIds.map((relatedId, position) => ({
+          article_id: articleId,
+          related_id: relatedId,
+          position,
+        })),
+        { onConflict: "article_id,related_id" }
+      )
+    );
+  }
+
+  const existing = await relatedIdsForArticle(db, articleId);
+  const stale = existing.filter((relatedId) => !relatedIds.includes(relatedId));
+
+  if (stale.length > 0) {
+    unwrap(
+      "setArticleRelations/prune",
+      await db
+        .from("article_relations")
+        .delete()
+        .eq("article_id", articleId)
+        .in("related_id", stale)
+    );
+  }
+}
