@@ -229,3 +229,48 @@ export function readingTimes(
  * the cover rather than rendering an empty frame.
  */
 export const FALLBACK_RELATED_IMAGE = "/images/hero-cover.jpg";
+
+/**
+ * How many KEEP READING cards the article page shows.
+ *
+ * Three, because the grid is three across. Exported so the reader
+ * (`publicEditorial.ts`), the writer (`normalizeRelatedIds`) and the admin's
+ * picker all cap at the same number — a curated fourth would be stored, never
+ * rendered, and impossible to explain to whoever chose it.
+ */
+export const KEEP_READING_COUNT = 3;
+
+/**
+ * The curated KEEP READING list, cleaned up before it is stored.
+ *
+ * Order is the editor's and is preserved — that is the entire point of
+ * `article_relations.position`, and what the demo's module-insertion ordering
+ * needed a column to express.
+ *
+ * Three corrections, each of which the database would otherwise make by
+ * rejecting the write:
+ *
+ *   * **the article itself is dropped.** `article_relation_not_self` is a CHECK
+ *     constraint, so storing it raises `23514` — a five-digit code in a toast
+ *     where "an article cannot be related to itself" belongs.
+ *   * **duplicates collapse to their first appearance.** `(article_id,
+ *     related_id)` is the primary key; a repeat is `23505`. Keeping the first
+ *     is what preserves the editor's intended order.
+ *   * **the list is capped at `KEEP_READING_COUNT`.**
+ *
+ * Correcting rather than refusing, because every one of these is already
+ * prevented by the picker: reaching this function with a bad list means
+ * something other than the UI called it, and a stored list that renders is a
+ * better outcome there than a failed save.
+ */
+export function normalizeRelatedIds(articleId: string, relatedIds: readonly string[]): string[] {
+  const seen = new Set<string>([articleId]);
+
+  return relatedIds
+    .filter((id) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .slice(0, KEEP_READING_COUNT);
+}

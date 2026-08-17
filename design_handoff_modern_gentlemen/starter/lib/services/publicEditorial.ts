@@ -33,6 +33,7 @@ import {
   composeKicker,
   layoutFor,
   FALLBACK_RELATED_IMAGE,
+  KEEP_READING_COUNT,
   type ArticleDoc,
   type RelatedItem,
   type ResolvedArticle,
@@ -231,10 +232,18 @@ const cardOf = (row: CardRow): RelatedItem => ({
  *
  * `article_relations` is ordered and explicit, and every seeded article has
  * three rows in it — which is what reproduces the demo's own ordering, module
- * insertion order, that no column could express. An article created in the admin
- * has none, so rather than showing an empty rail it falls back to the newest
- * stories filed alongside it. Both paths are capped at three, which is what the
- * grid renders.
+ * insertion order, that no column could express. An article with no curated list
+ * falls back to the newest stories filed alongside it rather than showing an
+ * empty rail. Both paths are capped at `KEEP_READING_COUNT`, shared with the
+ * admin's picker so the two cannot drift.
+ *
+ * ⚠️ **A relation to a *draft* article disappears on its own, and that is RLS
+ * doing it rather than this query.** The select below does not filter the joined
+ * article's status — `0019` scoped `article_relations` so a row is readable only
+ * when **both** ends are published or the caller is staff. So an editor may
+ * curate an unpublished piece, see it in the admin, and have the public page
+ * simply not show it until it goes live. Adding a status filter here would be
+ * redundant with the policy and would hide where the rule actually lives.
  */
 async function relatedFor(row: ArticleRow): Promise<RelatedItem[]> {
   const db = createPublicClient();
@@ -248,7 +257,7 @@ async function relatedFor(row: ArticleRow): Promise<RelatedItem[]> {
     .select(`position, articles!article_relations_related_id_fkey(${CARD_SELECT})`)
     .eq("article_id", row.id)
     .order("position", { ascending: true })
-    .limit(3);
+    .limit(KEEP_READING_COUNT);
 
   if (curatedError) {
     throw new Error(`Could not read related articles for "${row.slug}": ${curatedError.message}`);
@@ -268,7 +277,7 @@ async function relatedFor(row: ArticleRow): Promise<RelatedItem[]> {
     .eq("status", "published")
     .neq("slug", row.slug)
     .order("issue_no", { ascending: false })
-    .limit(3);
+    .limit(KEEP_READING_COUNT);
 
   if (row.category_id) query = query.eq("category_id", row.category_id);
 

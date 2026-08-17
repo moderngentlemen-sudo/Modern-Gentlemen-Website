@@ -10,7 +10,9 @@ import {
   composeCardTag,
   composeKicker,
   isArticleTemplate,
+  KEEP_READING_COUNT,
   layoutFor,
+  normalizeRelatedIds,
   readingTimes,
   readingUnitFor,
 } from "./articles";
@@ -126,5 +128,42 @@ describe("the strings an article page prints", () => {
     // The label is the *subcategory* on a category card — "TAILORING · 040",
     // not "STYLE · 040" — which is why it is an argument rather than derived.
     expect(composeCardTag("Tailoring", "040")).toBe("TAILORING · 040");
+  });
+});
+
+/**
+ * The curated KEEP READING list.
+ *
+ * Every case here is one the database would otherwise answer with an error code
+ * — `23514` for the self-reference, `23505` for the duplicate — so these are
+ * assertions about which layer gets to be the one that explains the rule.
+ */
+describe("normalizeRelatedIds", () => {
+  const self = "00000000-0000-0000-0000-00000000000a";
+  const a = "00000000-0000-0000-0000-00000000000b";
+  const b = "00000000-0000-0000-0000-00000000000c";
+  const c = "00000000-0000-0000-0000-00000000000d";
+  const d = "00000000-0000-0000-0000-00000000000e";
+
+  it("keeps the editor's order, which is the whole reason `position` exists", () => {
+    expect(normalizeRelatedIds(self, [c, a, b])).toEqual([c, a, b]);
+  });
+
+  it("drops the article itself rather than letting the CHECK refuse the write", () => {
+    expect(normalizeRelatedIds(self, [a, self, b])).toEqual([a, b]);
+  });
+
+  it("collapses a duplicate to its first appearance, preserving the intended order", () => {
+    expect(normalizeRelatedIds(self, [b, a, b])).toEqual([b, a]);
+  });
+
+  it("caps at what the grid renders", () => {
+    expect(normalizeRelatedIds(self, [a, b, c, d])).toEqual([a, b, c]);
+    expect(KEEP_READING_COUNT).toBe(3);
+  });
+
+  it("passes an empty list through — no curation is a real state, not a miss", () => {
+    // It is what makes the public reader fall back to category siblings.
+    expect(normalizeRelatedIds(self, [])).toEqual([]);
   });
 });
