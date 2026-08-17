@@ -407,3 +407,28 @@ describe("a columns row on the canvas", () => {
     expect(onRow).toHaveLength(0);
   });
 });
+
+describe("frame chrome cannot swallow a neighbour's click", () => {
+  /**
+   * ⚠️ Found by CI on the first run after columns became containers.
+   *
+   * A frame's toolbar is absolutely positioned, so it is not bounded by the
+   * column it belongs to. With blocks stacked vertically that never mattered;
+   * side by side, the Newsletter's label chip in the second column sat over the
+   * Timeline's Duplicate button in the first and swallowed every click on it —
+   * Playwright reporting "subtree intercepts pointer events" and timing out on
+   * a button it could see perfectly well.
+   *
+   * The label and the issue badge are decorative and must never take a click.
+   */
+  it("takes no pointer events on the bar, and gives them back to each control", () => {
+    renderCanvas([newBlockNode("pullQuote")]);
+
+    const bar = screen.getByRole("button", { name: /^Duplicate/ }).parentElement!;
+    expect(bar.className).toContain("pointer-events-none");
+
+    for (const button of bar.querySelectorAll("button")) {
+      expect(button.className).toContain("pointer-events-auto");
+    }
+  });
+});

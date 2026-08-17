@@ -386,10 +386,25 @@ function SortableBlock({
         `z-10` the container's toolbar wins by document order and swallows
         clicks meant for the block inside it. CI caught it as a flake before a
         person could report it as a mystery.
+
+        ⚠️ **The bar itself takes no pointer events; only its buttons do.** Once
+        columns put two blocks SIDE BY SIDE, one frame's chrome could sit over a
+        neighbour's — an absolutely positioned overlay is not bounded by the
+        column it belongs to. CI found it the first run after columns became
+        containers: the Newsletter's label chip in the second column swallowed
+        every click on the Timeline's Duplicate button in the first, with
+        Playwright reporting "subtree intercepts pointer events" and the test
+        timing out on a button it could see perfectly well.
+
+        The label and the issue badge are decorative — they should never have
+        been able to eat a click — so the bar is `pointer-events-none` and each
+        control opts back in. This is not the leaf-only navigation killer on the
+        content wrapper below; that is a different element, and these buttons
+        are its siblings rather than its descendants.
       */}
       <div
         style={{ zIndex: 10 + depth }}
-        className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+        className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
       >
         <span className="mr-1 bg-black/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white">
           {label}
@@ -399,7 +414,7 @@ function SortableBlock({
         <IconButton
           label={`Drag ${label}`}
           disabled={locked}
-          className="cursor-grab bg-mg-surface"
+          className="pointer-events-auto cursor-grab bg-mg-surface"
           {...attributes}
           {...listeners}
         >
@@ -407,7 +422,7 @@ function SortableBlock({
         </IconButton>
         <IconButton
           label={hidden ? `Show ${label}` : `Hide ${label}`}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => setVisibility(node._key, { hidden: !hidden })}
         >
           {hidden ? "◌" : "◉"}
@@ -415,7 +430,7 @@ function SortableBlock({
         <IconButton
           label={locked ? `Unlock ${label}` : `Lock ${label}`}
           active={locked}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => setLocked(node._key, !locked)}
         >
           {locked ? "🔒" : "🔓"}
@@ -423,7 +438,7 @@ function SortableBlock({
         <IconButton
           label={`Duplicate ${label}`}
           disabled={locked}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => duplicate(node._key)}
         >
           ⧉
@@ -431,7 +446,7 @@ function SortableBlock({
         <IconButton
           label={`Delete ${label}`}
           disabled={locked}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => remove(node._key)}
         >
           ✕
