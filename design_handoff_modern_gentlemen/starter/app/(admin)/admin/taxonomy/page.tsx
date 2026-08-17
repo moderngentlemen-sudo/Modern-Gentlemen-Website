@@ -45,7 +45,8 @@ export default async function TaxonomyIndex() {
       <AdminPageHeader eyebrow="Content" title="Taxonomy">
         <p className="mt-2 text-[13px] text-mg-fg/50">
           The lists articles are filed against. Deleting one never deletes the articles that used it
-          — they simply become unfiled.
+          — they simply become unfiled. A category also has a page layout of its own, composed in
+          the builder.
         </p>
       </AdminPageHeader>
 
@@ -54,6 +55,9 @@ export default async function TaxonomyIndex() {
         tags={tagRows}
         authors={authorRows}
         canWrite={user.permissions.has("taxonomy.write")}
+        // A category is a document since `0021`, so composing its page is a
+        // separate grant from managing the taxonomy row.
+        canEditLayout={user.permissions.has("category.write")}
       />
     </>
   );

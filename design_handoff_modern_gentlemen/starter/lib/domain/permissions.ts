@@ -24,6 +24,15 @@ export const PERMISSIONS = [
   "article.publish",
   "article.delete",
   "taxonomy.write",
+  // `0021`. Categories became the sixth document type when `/[category]` gained
+  // an editor. Four rather than a reuse of `taxonomy.write` because
+  // `publish_document` asserts `has_permission(<type> || '.publish')` — the
+  // string is built from the type, so nothing else can satisfy it.
+  // `taxonomy.write` still grants category writes; the RLS policy accepts both.
+  "category.read",
+  "category.write",
+  "category.publish",
+  "category.delete",
   "media.read",
   "media.write",
   "media.delete",

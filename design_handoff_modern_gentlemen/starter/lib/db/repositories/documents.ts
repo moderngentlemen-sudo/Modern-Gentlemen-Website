@@ -30,6 +30,7 @@ export const DOCUMENT_TABLES = {
   pattern: { table: "patterns", titleColumn: "name", slugColumn: "key" },
   article: { table: "articles", titleColumn: "title", slugColumn: "slug" },
   product: { table: "products", titleColumn: "name", slugColumn: "slug" },
+  category: { table: "categories", titleColumn: "name", slugColumn: "slug" },
 } as const satisfies Record<
   DocumentType,
   { table: keyof Database["public"]["Tables"]; titleColumn: string; slugColumn: string }
