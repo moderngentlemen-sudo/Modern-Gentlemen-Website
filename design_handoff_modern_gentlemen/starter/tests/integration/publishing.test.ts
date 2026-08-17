@@ -10,7 +10,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { Fixtures, adminClient, anonClient, type Db } from "../support/fixtures";
+import { Fixtures, adminClient, anonClient, prefixed, type Db } from "../support/fixtures";
 
 const db = adminClient();
 const fixtures = new Fixtures(db);
@@ -118,12 +118,66 @@ describe("publish_document", () => {
   it("refuses an entity type that is not on the allowlist", async () => {
     const page = await fixtures.createPage();
 
+    // ⚠️ **This said `"category"` until `0021` put categories ON the allowlist**,
+    // at which point it stopped testing the allowlist at all: the call got past
+    // `document_table()` and failed with P0002 instead, which is the *next*
+    // test's assertion. Loudly, in CI, which is how it was caught.
+    //
+    // `tags` is the replacement because it is a real table that genuinely
+    // cannot be published — it has no draft_data, published_data, version or
+    // status columns — so making it publishable would need a migration that
+    // forces someone past this line anyway.
     const { error } = await editorDb.rpc("publish_document", {
-      p_entity_type: "category",
+      p_entity_type: "tag",
       p_entity_id: page.id,
     });
 
     expect(error?.code).toBe("22023");
+  });
+
+  /**
+   * The other half of the same change: `0021` made `category` publishable, and
+   * nothing else in this suite would notice if that regressed.
+   *
+   * `/[category]` renders `categories.published_data`, so this is the machinery
+   * behind a live page rather than an abstract capability — see
+   * `app/(admin)/admin/categories/[id]/actions.ts`.
+   */
+  it("publishes a category, the sixth document type", async () => {
+    const slug = prefixed("integration-category");
+    const { data: created, error: insertError } = await db
+      .from("categories")
+      .insert({
+        slug,
+        name: "Integration category",
+        status: "draft",
+        draft_data: { sections: [], seo: { title: "draft" } } as never,
+      })
+      .select("id")
+      .single();
+
+    expect(insertError, "the fixture itself must insert").toBeNull();
+    if (!created) return;
+    fixtures.track("categories", created.id);
+
+    const { error } = await editorDb.rpc("publish_document", {
+      p_entity_type: "category",
+      p_entity_id: created.id,
+    });
+
+    // `editor` holds category.publish because `0021` re-ran 0001's role grants.
+    // If that replay were missing this is the assertion that would catch it.
+    expect(error, "an editor must be able to publish a category").toBeNull();
+
+    const { data: row } = await db
+      .from("categories")
+      .select("status, version, published_data")
+      .eq("id", created.id)
+      .single();
+
+    expect(row?.status).toBe("published");
+    expect(row?.version).toBe(1);
+    expect((row?.published_data as { seo?: { title?: string } })?.seo?.title).toBe("draft");
   });
 
   it("reports a missing row rather than silently succeeding", async () => {
