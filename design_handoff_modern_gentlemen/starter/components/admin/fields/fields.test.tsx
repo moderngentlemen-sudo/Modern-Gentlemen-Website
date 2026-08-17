@@ -6,13 +6,16 @@
  * issue lands on the control that caused it and no other.
  */
 
-import { describe, expect, it } from "vitest";
+import { useState } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { field, options, type Field } from "@/lib/blocks/fields";
+import type { BindingQuery } from "@/lib/blocks/binding";
 import type { BlockIssue } from "@/lib/blocks/validate";
 
+import { BindingEditor } from "./BindingEditor";
 import { FieldControl, type ControlContext } from "./FieldControl";
 import {
   countIssuesAtOrBelow,
@@ -80,7 +83,7 @@ describe("every runtime field kind renders a control", () => {
     renderField(f, { kind: "image", src: "/a.jpg" });
 
     expect(screen.getByLabelText("Kind")).toHaveValue("image");
-    expect(screen.getByLabelText("Source")).toHaveValue("/a.jpg");
+    expect(screen.getByLabelText(/^Source/)).toHaveValue("/a.jpg");
   });
 
   it("list renders one row per item", () => {
@@ -311,5 +314,112 @@ describe("locked blocks", () => {
       />
     );
     expect(screen.getByLabelText("Headline")).toBeDisabled();
+  });
+});
+
+/**
+ * The binding filter editor.
+ *
+ * `filter` is equality-only and both sources match with `===`, so the contract
+ * this protects is entirely about **types**: `lead: "true"` and `issue: 40`
+ * match nothing at all, and the block renders empty with no error anywhere.
+ * Every assertion below is a way that outcome is made unreachable.
+ */
+describe("binding filters", () => {
+  /**
+   * Stateful on purpose. `BindingEditor` is a controlled component, so a
+   * harness that renders a fixed prop makes every keystroke land on the same
+   * starting value — typing "040" into a box holding "039" produced "0390" and
+   * the test failed for a reason that had nothing to do with the component.
+   */
+  function renderEditor(initial: Partial<BindingQuery>) {
+    const onChange = vi.fn();
+
+    function Harness() {
+      const [query, setQuery] = useState(initial);
+      return (
+        <BindingEditor
+          query={query}
+          onChange={(next) => {
+            onChange(next);
+            setQuery(next);
+          }}
+        />
+      );
+    }
+
+    render(<Harness />);
+    return { onChange };
+  }
+
+  it("offers only the fields the chosen source actually has", async () => {
+    renderEditor({ source: "products" });
+
+    await userEvent.selectOptions(screen.getByLabelText("Add a filter"), "group");
+
+    // `category` is an article fact; on products it would match nothing.
+    const options = [...screen.getByLabelText("Add a filter").querySelectorAll("option")].map((o) =>
+      o.getAttribute("value")
+    );
+    expect(options).not.toContain("category");
+  });
+
+  it("stores a boolean as a boolean, not as the string a select hands back", async () => {
+    const { onChange } = renderEditor({ source: "articles" });
+
+    await userEvent.selectOptions(screen.getByLabelText("Add a filter"), "lead");
+
+    expect(onChange).toHaveBeenCalledWith({ source: "articles", filter: { lead: true } });
+  });
+
+  it("keeps a zero-padded issue a string", async () => {
+    const { onChange } = renderEditor({ source: "articles", filter: { issue: "039" } });
+
+    await userEvent.clear(screen.getByLabelText("Issue"));
+    await userEvent.type(screen.getByLabelText("Issue"), "040");
+
+    const last = onChange.mock.calls.at(-1)?.[0];
+    expect(last.filter.issue).toBe("040");
+    expect(typeof last.filter.issue).toBe("string");
+  });
+
+  it("does not store a filter that is still empty", async () => {
+    const { onChange } = renderEditor({ source: "articles" });
+
+    // Choosing a text field opens a row; until it holds a value there is
+    // nothing to store, because `{ category: "" }` matches no row.
+    await userEvent.selectOptions(screen.getByLabelText("Add a filter"), "category");
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Category")).toBeTruthy();
+  });
+
+  it("drops the key when a value is cleared, rather than storing an empty one", async () => {
+    const { onChange } = renderEditor({ source: "articles", filter: { category: "style" } });
+
+    await userEvent.clear(screen.getByLabelText("Category"));
+
+    expect(onChange).toHaveBeenCalledWith({ source: "articles", filter: undefined });
+  });
+
+  it("clears the filter when the source changes, because the keys belong to the source", async () => {
+    const { onChange } = renderEditor({ source: "articles", filter: { category: "style" } });
+
+    await userEvent.selectOptions(screen.getByLabelText(/^Source/), "products");
+
+    expect(onChange).toHaveBeenCalledWith({ source: "products", filter: undefined });
+  });
+
+  it("shows a stored key the vocabulary no longer knows, instead of dropping it", () => {
+    renderEditor({ source: "articles", filter: { retired: "x" } });
+
+    // Silently discarding part of a saved query on open is how an editor loses
+    // work without being told.
+    expect(screen.getByText(/retired: x — not a field of this source/)).toBeTruthy();
+  });
+
+  it("says what no filter means", () => {
+    renderEditor({ source: "articles" });
+    expect(screen.getByText(/Everything in the source, newest first/)).toBeTruthy();
   });
 });
