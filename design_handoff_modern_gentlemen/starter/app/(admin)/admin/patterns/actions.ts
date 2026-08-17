@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createPattern } from "@/lib/services/patterns";
-import { deleteDocument, setDocumentStatus } from "@/lib/services/documents";
+import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
@@ -83,6 +83,48 @@ export async function setPatternStatusAction(input: unknown): Promise<ActionResu
     await setDocumentStatus("pattern", parsed.data.id, parsed.data.status);
     revalidatePath("/admin/patterns");
     revalidatePath(`/admin/patterns/${parsed.data.id}`);
+    return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Rename a pattern — its name, its key, or both.
+ *
+ * Until `renameDocument` existed there was no rename here at all: the only one
+ * in the repository was page-specific, so getting a pattern's name wrong meant
+ * deleting it and starting again, losing its revision history with it.
+ *
+ * ⚠️ **A pattern's key is not a URL**, which is what makes this safe to offer
+ * freely. Nothing links to `/editorial-trio`; the key identifies the pattern to
+ * editors and to `listInsertablePatterns`. Renaming a *page's* slug is a
+ * different decision with links on the other end of it, and renaming a
+ * product's is one an import is explicitly forbidden from making.
+ *
+ * Insertion already copies blocks rather than linking, so a page built from
+ * this pattern is unaffected by the rename — the same property the delete
+ * dialog explains.
+ */
+const RenameInput = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1, "Enter a name").max(200).optional(),
+  key: Key.optional(),
+});
+
+export async function renamePatternAction(input: unknown): Promise<ActionResult> {
+  const parsed = RenameInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  try {
+    const { id, name, key } = parsed.data;
+    // `name` and `key` are the pattern's columns; the service speaks the
+    // repository's vocabulary, where they are the title and the slug.
+    await renameDocument("pattern", id, { title: name, slug: key });
+    revalidatePath("/admin/patterns");
+    revalidatePath(`/admin/patterns/${id}`);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);

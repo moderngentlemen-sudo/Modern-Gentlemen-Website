@@ -14,7 +14,7 @@ import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { useToast } from "@/components/admin/ui/Toast";
 import type { DocumentStatus } from "@/lib/domain/documents";
 
-import { createPatternAction, deletePatternAction } from "./actions";
+import { createPatternAction, deletePatternAction, renamePatternAction } from "./actions";
 
 /**
  * `title` and `slug` are the *aliases* the document repository returns for a
@@ -57,6 +57,40 @@ export function PatternsList({
   const [keyTouched, setKeyTouched] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<PatternRow | null>(null);
+
+  // Renaming edits the row in place, so the dialog opens holding what is there
+  // rather than empty — the create dialog's `slugify`-as-you-type would be
+  // wrong here, since changing a name must not silently move the key an editor
+  // has already told other people about.
+  const [renaming, setRenaming] = useState<PatternRow | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renameKey, setRenameKey] = useState("");
+
+  function openRename(pattern: PatternRow) {
+    setError(undefined);
+    setRenameName(pattern.title);
+    setRenameKey(pattern.slug);
+    setRenaming(pattern);
+  }
+
+  function rename() {
+    if (!renaming) return;
+    setError(undefined);
+    startTransition(async () => {
+      const result = await renamePatternAction({
+        id: renaming.id,
+        name: renameName,
+        key: renameKey,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setRenaming(null);
+      toast.push("Pattern renamed", "success");
+      router.refresh();
+    });
+  }
 
   function create() {
     setError(undefined);
@@ -142,6 +176,16 @@ export function PatternsList({
                     </Td>
                     <Td className="font-mono text-[12px] text-mg-fg/50">v{pattern.version}</Td>
                     <Td className="text-right">
+                      {canWrite && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openRename(pattern)}
+                          disabled={pending}
+                        >
+                          Rename
+                        </Button>
+                      )}
                       {canDelete && (
                         <Button
                           size="sm"
@@ -195,6 +239,40 @@ export function PatternsList({
               setKeyTouched(true);
               setKey(next);
             }}
+            help="Lower-case words separated by hyphens."
+            error={error}
+            required
+          />
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={renaming !== null}
+        onClose={() => setRenaming(null)}
+        title={`Rename “${renaming?.title ?? ""}”`}
+        description="The key is an internal handle, not a URL — no public page links to it, and pages built from this pattern keep the blocks they copied."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRenaming(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              onClick={rename}
+              loading={pending}
+              disabled={!renameName.trim() || !renameKey.trim()}
+            >
+              Save
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <TextInput label="Name" value={renameName} onChange={setRenameName} required />
+          <TextInput
+            label="Key"
+            value={renameKey}
+            onChange={setRenameKey}
             help="Lower-case words separated by hyphens."
             error={error}
             required

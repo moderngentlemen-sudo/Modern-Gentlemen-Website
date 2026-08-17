@@ -71,14 +71,7 @@ export async function getPublishedPage(db: Db, slug: string): Promise<PageRow | 
   );
 }
 
-export async function renamePage(
-  db: Db,
-  id: string,
-  input: { slug?: string; title?: string; updatedBy: string }
-): Promise<void> {
-  const patch: Database["public"]["Tables"]["pages"]["Update"] = { updated_by: input.updatedBy };
-  if (input.slug !== undefined) patch.slug = input.slug;
-  if (input.title !== undefined) patch.title = input.title;
-
-  unwrap("renamePage", await db.from("pages").update(patch).eq("id", id));
-}
+// `renamePage` lived here and is gone: `documents.ts#renameDocument` does the
+// same work for all six types off `DOCUMENT_TABLES`, which is what let a pattern
+// be renamed at all. Nothing page-specific was lost — the only difference was
+// that the column names were written out rather than looked up.
