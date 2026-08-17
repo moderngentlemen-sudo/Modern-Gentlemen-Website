@@ -5,14 +5,28 @@ import { field } from "../fields";
  * Transcribed from `components/sections/Columns.tsx` — the first container
  * block, and the only manifest that declares a `slot`.
  *
- * The slot is deliberately unrestricted (`allow` omitted), including of
- * `columns` itself: arbitrary nesting is the decision this slice records, and a
- * whitelist here would be a second place to keep in step with the registry
- * every time a block is added.
+ * ⚠️ **The slot accepts `column` and nothing else, and that is a change from
+ * how this block started.** It used to be unrestricted and hold a flat list of
+ * sections, with the grid deciding which cell each one landed in by its index.
+ * That made "a column" a position rather than a thing, and three defects
+ * followed — no per-column drop target, insertion strips that became grid
+ * cells, and no way to stack two blocks in one cell. `Column.tsx` records them
+ * in full.
  *
- * `max` is 4 because the widest ratio is four columns. More children than
- * columns is legal and wraps onto another row — the cap is about keeping a row
- * legible, not about the grid breaking.
+ * Nesting is unaffected: `column`'s own slot is unrestricted, so a column may
+ * hold another row. The pair gives exactly one shape — row → column → anything
+ * — with no way to build a row of loose sections.
+ *
+ * **This is the first manifest to use `allow`**, which `validate.ts` has
+ * enforced since Phase 2 with no consumer among the shipped blocks.
+ *
+ * `max` is 4 because the widest ratio is four columns. More columns than the
+ * ratio names is legal and wraps onto another row — the cap is about keeping a
+ * row legible, not about the grid breaking.
+ *
+ * `insertChildren` seeds two, matching the `1-1` default: a row that arrives
+ * with no columns has nowhere to drop anything, which is the state this whole
+ * change exists to remove.
  */
 export const columns = defineBlock({
   type: "columns",
@@ -69,8 +83,10 @@ export const columns = defineBlock({
       ],
     }),
   },
+  insertChildren: ["column", "column"],
   slot: {
     label: "Columns",
+    allow: ["column"],
     min: 1,
     max: 4,
   },

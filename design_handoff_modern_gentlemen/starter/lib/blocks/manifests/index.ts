@@ -14,6 +14,7 @@ import type { BlockManifest } from "../types";
 
 import { articleGrid } from "./articleGrid";
 import { categoryHero } from "./categoryHero";
+import { column } from "./column";
 import { columns } from "./columns";
 import { coverCards } from "./coverCards";
 import { ctaBand } from "./ctaBand";
@@ -60,6 +61,7 @@ export const blockManifests = {
   pullQuote,
   masthead,
   columns,
+  column,
 } as const satisfies Record<string, BlockManifest>;
 
 export type ManifestBlockType = keyof typeof blockManifests;

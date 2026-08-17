@@ -12,7 +12,7 @@ import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
-import type { BlockNode } from "@/lib/blocks/types";
+import type { BlockNode, BlockSlot } from "@/lib/blocks/types";
 import { clsx } from "@/components/ui/clsx";
 import { IconButton } from "@/components/admin/ui/Button";
 import { Badge } from "@/components/admin/ui/Badge";
@@ -76,7 +76,7 @@ export function Canvas({
             {tree.length === 0 ? (
               <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
             ) : (
-              <BlockList nodes={tree} parentKey={null} dragging={dragging} drop={drop} />
+              <BlockList nodes={tree} parentKey={null} dragType={libraryDragType} drop={drop} />
             )}
           </div>
         </div>
@@ -133,16 +133,37 @@ function GapDropZone({
 function BlockList({
   nodes,
   parentKey,
-  dragging,
+  dragType,
   drop,
+  slot,
   depth = 0,
 }: {
   nodes: BlockNode[];
   parentKey: string | null;
-  dragging: boolean;
+  dragType: string | null;
   drop: DropLocation | null;
+  /** The slot these nodes live in, or undefined for the root list. */
+  slot?: BlockSlot;
   depth?: number;
 }) {
+  /**
+   * ⚠️ **A list refuses insertion points for a type its slot would not accept,
+   * and on a `columns` row that is what stops the grid falling apart.**
+   *
+   * The gaps are rendered as siblings of the children, so inside a container
+   * they are children of whatever that container renders — and `Columns` renders
+   * a CSS grid. Every gap therefore used to take a **grid cell**: a two-column
+   * row holding two blocks laid out as five cells mid-drag, the blocks jumping
+   * into the right-hand column on separate rows and snapping back on drop.
+   *
+   * A row's slot accepts `column` and nothing else, so during an ordinary
+   * section drag it now offers no gaps at all — the grid stays exactly as it
+   * renders. The section goes into a *column*, which is a list of its own and
+   * lays its gaps out vertically like every other list.
+   */
+  const accepts = dragType === null || !slot?.allow || slot.allow.includes(dragType);
+  const dragging = dragType !== null && accepts;
+
   return (
     <SortableContext items={nodes.map((node) => node._key)} strategy={verticalListSortingStrategy}>
       {nodes.map((node, index) => (
@@ -154,7 +175,7 @@ function BlockList({
               over={isOver(drop, parentKey, index)}
             />
           )}
-          <SortableBlock node={node} dragging={dragging} drop={drop} depth={depth} />
+          <SortableBlock node={node} dragType={dragType} drop={drop} depth={depth} />
         </Fragment>
       ))}
       {dragging && (
@@ -224,12 +245,12 @@ function EmptyDropZone({ dragging, over }: { dragging: boolean; over: boolean })
 
 function SortableBlock({
   node,
-  dragging,
+  dragType,
   drop,
   depth,
 }: {
   node: BlockNode;
-  dragging: boolean;
+  dragType: string | null;
   drop: DropLocation | null;
   depth: number;
 }) {
@@ -328,8 +349,9 @@ function SortableBlock({
                   <BlockList
                     nodes={children}
                     parentKey={node._key}
-                    dragging={dragging}
+                    dragType={dragType}
                     drop={drop}
+                    slot={slot}
                     depth={depth + 1}
                   />
                 )}
@@ -364,10 +386,25 @@ function SortableBlock({
         `z-10` the container's toolbar wins by document order and swallows
         clicks meant for the block inside it. CI caught it as a flake before a
         person could report it as a mystery.
+
+        ⚠️ **The bar itself takes no pointer events; only its buttons do.** Once
+        columns put two blocks SIDE BY SIDE, one frame's chrome could sit over a
+        neighbour's — an absolutely positioned overlay is not bounded by the
+        column it belongs to. CI found it the first run after columns became
+        containers: the Newsletter's label chip in the second column swallowed
+        every click on the Timeline's Duplicate button in the first, with
+        Playwright reporting "subtree intercepts pointer events" and the test
+        timing out on a button it could see perfectly well.
+
+        The label and the issue badge are decorative — they should never have
+        been able to eat a click — so the bar is `pointer-events-none` and each
+        control opts back in. This is not the leaf-only navigation killer on the
+        content wrapper below; that is a different element, and these buttons
+        are its siblings rather than its descendants.
       */}
       <div
         style={{ zIndex: 10 + depth }}
-        className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+        className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
       >
         <span className="mr-1 bg-black/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white">
           {label}
@@ -377,7 +414,7 @@ function SortableBlock({
         <IconButton
           label={`Drag ${label}`}
           disabled={locked}
-          className="cursor-grab bg-mg-surface"
+          className="pointer-events-auto cursor-grab bg-mg-surface"
           {...attributes}
           {...listeners}
         >
@@ -385,7 +422,7 @@ function SortableBlock({
         </IconButton>
         <IconButton
           label={hidden ? `Show ${label}` : `Hide ${label}`}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => setVisibility(node._key, { hidden: !hidden })}
         >
           {hidden ? "◌" : "◉"}
@@ -393,7 +430,7 @@ function SortableBlock({
         <IconButton
           label={locked ? `Unlock ${label}` : `Lock ${label}`}
           active={locked}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => setLocked(node._key, !locked)}
         >
           {locked ? "🔒" : "🔓"}
@@ -401,7 +438,7 @@ function SortableBlock({
         <IconButton
           label={`Duplicate ${label}`}
           disabled={locked}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => duplicate(node._key)}
         >
           ⧉
@@ -409,7 +446,7 @@ function SortableBlock({
         <IconButton
           label={`Delete ${label}`}
           disabled={locked}
-          className="bg-mg-surface"
+          className="pointer-events-auto bg-mg-surface"
           onClick={() => remove(node._key)}
         >
           ✕

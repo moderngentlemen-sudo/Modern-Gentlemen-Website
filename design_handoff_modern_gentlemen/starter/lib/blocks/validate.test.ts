@@ -77,12 +77,30 @@ describe("validateBlock", () => {
   });
 });
 
-/** A container holding whatever it is given. `columns` is the only one today. */
+/**
+ * The unrestricted container: a `column`, which takes any block.
+ *
+ * It was `columns` until that row's slot narrowed to `allow: ["column"]`. The
+ * row is now the *restricted* container and gets its own cases below.
+ */
 const columns = (children: BlockNode[], props: Partial<BlockNode> = {}): BlockNode => ({
   _key: "c1",
-  _type: "columns",
+  _type: "column",
   children,
   ...props,
+});
+
+/** The row: `allow: ["column"]`, `min: 1`, `max: 4`. */
+const row = (children: BlockNode[]): BlockNode => ({
+  _key: "r1",
+  _type: "columns",
+  children,
+});
+
+const column = (key = "col1", children: BlockNode[] = []): BlockNode => ({
+  _key: key,
+  _type: "column",
+  children,
 });
 
 describe("child slots", () => {
@@ -98,23 +116,42 @@ describe("child slots", () => {
     expect(result.issues.map((i) => i.path)).toContain("children");
   });
 
-  it("refuses an empty container, so one cannot be published blank", () => {
-    const result = validateBlock(columns([]));
+  it("accepts an empty column, because an empty cell is a layout choice", () => {
+    // A column declares no `min`, unlike the row: leaving one blank is how a
+    // row offsets its content, not a half-finished edit.
+    expect(validateBlock(columns([])).ok).toBe(true);
+  });
+
+  it("refuses an empty row, so one cannot be published blank", () => {
+    const result = validateBlock(row([]));
     expect(result.ok).toBe(false);
     expect(result.issues[0].message).toMatch(/at least 1 block/);
   });
 
-  it("refuses more children than the slot holds", () => {
-    const five = Array.from({ length: 5 }, (_, i) => quote({ _key: `q${i}` }));
-    const result = validateBlock(columns(five));
+  it("refuses more columns than the row holds", () => {
+    const five = Array.from({ length: 5 }, (_, i) => column(`col${i}`));
+    const result = validateBlock(row(five));
     expect(result.ok).toBe(false);
     expect(result.issues[0].message).toMatch(/at most 4 blocks/);
   });
 
+  it("refuses a section as a direct child of a row, naming the block", () => {
+    // `columns` is the first shipped manifest to use `allow`, which this file
+    // could previously only exercise by constructing a slot by hand. A section
+    // in a row is exactly the data the old flat model produced, so this is also
+    // what a document written before the change reports as.
+    const result = validateBlock(row([column(), quote()]));
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((i) => i.message)).toContainEqual(
+      expect.stringContaining('"pullQuote" is not allowed')
+    );
+  });
+
   it("reports a disallowed child against its own index", () => {
-    // Driven through `slotIssues` directly: `columns` accepts anything, so no
-    // shipped manifest can reach this branch, and asserting it through one
-    // would only prove that today's policy is today's policy.
+    // Driven through `slotIssues` directly, with a slot built by hand: it keeps
+    // the assertion about the *mechanism* rather than about whichever types
+    // today's manifests happen to permit.
     const node = columns([quote(), { _key: "n1", _type: "newsletter" }]);
     const issues = slotIssues(node, "c1", { label: "Columns", allow: ["pullQuote"] });
 
@@ -137,8 +174,10 @@ describe("validateTree", () => {
   });
 
   it("validates a container and its children in one pass", () => {
-    const result = validateTree([columns([])]);
-    expect(result.issues.map((i) => i.key)).toContain("c1");
+    // An empty *row*: a column may be blank, a row may not, so this is the one
+    // that still reports.
+    const result = validateTree([row([])]);
+    expect(result.issues.map((i) => i.key)).toContain("r1");
   });
 
   it("reports a duplicate key once", () => {

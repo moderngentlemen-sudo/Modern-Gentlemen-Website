@@ -282,10 +282,18 @@ describe("remove and move", () => {
 });
 
 describe("containers", () => {
-  /** A store holding one empty `columns` block, plus its key. */
+  /**
+   * A store holding one empty container, plus its key.
+   *
+   * A **`column`**, not a `columns` row. These cases are about nesting in
+   * general — insert, edit, lock, duplicate, remove, move, undo — and a column
+   * is the plain unrestricted container: any child type, no seeded children, no
+   * `min`. A row is the specialised one (`allow: ["column"]`, two columns
+   * seeded), and it gets its own cases below rather than distorting these.
+   */
   function withContainer() {
     const store = makeStore();
-    store.getState().insert("columns");
+    store.getState().insert("column");
     return { store, container: store.getState().tree[0]._key };
   }
 
@@ -416,10 +424,51 @@ describe("containers", () => {
     expect(store.getState().selectedKey).toBeNull();
   });
 
-  it("reports an empty container as a publish issue", () => {
+  it("does not report an empty column as a publish issue", () => {
     const { store } = withContainer();
-    // The slot declares `min: 1`, so a container is invalid until it is filled.
-    expect(store.getState().issues.some((i) => i.path === "children")).toBe(true);
+    // A column's slot declares no `min`, deliberately: an empty cell is how a
+    // row offsets its content, and refusing to publish one would forbid a thing
+    // the grid exists to express.
+    expect(store.getState().issues.some((i) => i.path === "children")).toBe(false);
+  });
+});
+
+describe("a columns row", () => {
+  function withRow() {
+    const store = makeStore();
+    store.getState().insert("columns");
+    return { store, row: store.getState().tree[0] };
+  }
+
+  it("arrives holding two columns", () => {
+    // `insertChildren` on the manifest. A row with no columns has nowhere to
+    // drop anything, which is the state this whole change exists to remove.
+    const { row } = withRow();
+    expect(row.children?.map((n) => n._type)).toEqual(["column", "column"]);
+  });
+
+  it("mints a distinct key for every seeded child", () => {
+    // Two children built from one `existing` snapshot could collide, and a
+    // duplicate key fails the tree's own validation.
+    const { row } = withRow();
+    const keys = [row._key, ...(row.children ?? []).map((n) => n._key)];
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("is publishable as it arrives, since it holds its minimum of one", () => {
+    const { store } = withRow();
+    expect(store.getState().issues.some((i) => i.path === "children")).toBe(false);
+  });
+
+  it("refuses a section as a direct child, and says which block", () => {
+    // `allow: ["column"]` — the first manifest to use it. Reachable only by a
+    // drop the canvas no longer offers, or by data from before this change.
+    const { store, row } = withRow();
+    store.getState().insert("pullQuote", 0, row._key);
+
+    expect(
+      store.getState().issues.some((i) => i.message.includes('"pullQuote" is not allowed'))
+    ).toBe(true);
   });
 });
 

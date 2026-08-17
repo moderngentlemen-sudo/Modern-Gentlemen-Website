@@ -36,6 +36,25 @@ export interface BlockSpec {
   /** Field names that may hold a `$bind` descriptor instead of a literal value. */
   bindable?: readonly string[];
   /**
+   * Keep this block out of the insert menu.
+   *
+   * For a block that is real, registered and validated but never chosen on its
+   * own — `column`, which means nothing outside a `columns` row and is seeded
+   * by it. Hidden from the library, not from the system: the canvas, the
+   * validator, the renderer and the diff all treat it like any other block.
+   */
+  hidden?: boolean;
+  /**
+   * Child block types a freshly inserted node is seeded with.
+   *
+   * `insertDefaults` is to fields what this is to the slot. A `columns` row
+   * dropped onto the canvas arrives holding two empty columns, because a row
+   * with no columns is not a thing anyone wants and making the editor assemble
+   * one by hand would be a worse first impression than the flat list this
+   * replaced.
+   */
+  insertChildren?: readonly string[];
+  /**
    * Declared only by containers. Children live in `BlockNode.children` — the
    * structural home every traversal in `lib/blocks` already recurses into — and
    * NOT in a field, which is why this sits beside `fields` rather than in it.
@@ -112,6 +131,8 @@ export function defineBlock(spec: BlockSpec): BlockManifest {
     strictSchema,
     insertDefaults,
     bindable,
+    hidden: spec.hidden ?? false,
+    insertChildren: Object.freeze([...(spec.insertChildren ?? [])]),
     slot: spec.slot ? Object.freeze({ ...spec.slot }) : undefined,
   });
 }

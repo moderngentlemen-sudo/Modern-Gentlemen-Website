@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
  * The builder, end to end: create a page, compose it, save, publish, roll back.
@@ -167,7 +167,7 @@ let dragSlug = "";
  * top of the canvas deliberately; a "drop at the very bottom of a long page"
  * test would need the drag to dwell at the edge instead.
  */
-async function dragFromLibrary(page: Page, entry: RegExp, target: string) {
+async function dragFromLibrary(page: Page, entry: RegExp, target: string | Locator) {
   const source = page.getByRole("button", { name: entry }).first();
   await source.scrollIntoViewIfNeeded();
 
@@ -181,7 +181,9 @@ async function dragFromLibrary(page: Page, entry: RegExp, target: string) {
   await page.mouse.down();
   await page.mouse.move(startX + 40, startY, { steps: 8 });
 
-  const gap = page.locator(target).first();
+  // A Locator rather than a selector when the target is "the second column" —
+  // which cannot be written as a string without knowing its minted key.
+  const gap = typeof target === "string" ? page.locator(target).first() : target;
   await expect(gap).toHaveCount(1);
 
   const to = await gap.boundingBox();
@@ -302,44 +304,67 @@ test.describe("page builder — drag from the library", () => {
     const before = await blocks.count();
     await expect(nested).toHaveCount(0);
 
-    // A container arrives empty and advertises its own drop target, which is
-    // registered whatever is being dragged — the only way into an empty one.
+    /*
+      A row arrives holding two columns — `insertChildren` on the manifest — so
+      it is three frames, not one, and it advertises a drop target per column.
+
+      ⚠️ Two columns is the whole point of this test. It was written when the
+      row held one flat list and a section's *index* decided which cell it
+      landed in; the reported symptom was that after filling the first column,
+      dragging into a different one did nothing at all, because the empty space
+      was not a droppable. Aiming at each column in turn is what proves that
+      gone.
+    */
     await dragFromLibrary(page, /^Columns/i, rootGap(0));
-    await expect(blocks).toHaveCount(before + 1);
-
-    const slot = page.locator("[data-gap-parent]");
-    await expect(slot).toHaveCount(1);
-    await expect(page.getByText(/drop a section here/i)).toBeVisible();
-
-    // Into the container, not beside it: the assertion is the descendant
-    // relationship, since a count alone cannot tell the two apart.
-    await dragFromLibrary(page, /^Timeline/i, "[data-gap-parent]");
-    await expect(blocks).toHaveCount(before + 2);
-    await expect(nested).toHaveCount(1);
-
-    // ⚠️ The nested block's own toolbar must work. The canvas kills pointer
-    // events on links and buttons inside a section, and that selector is a
-    // descendant one — applied to a container it would reach every nested
-    // block's controls and disable them with nothing failing anywhere.
-    // Scoped to the nested frame, not `getByRole(...).first()` across the page:
-    // an unsaved Timeline from the previous test may or may not still be at the
-    // root, and a page-wide match could pick that one's button instead.
-    await nested
-      .first()
-      .getByRole("button", { name: /^Duplicate/ })
-      .click();
+    await expect(blocks).toHaveCount(before + 3);
     await expect(nested).toHaveCount(2);
+
+    const emptyColumns = page.locator("[data-gap-parent]");
+    await expect(emptyColumns).toHaveCount(2);
+    await expect(page.getByText(/drop a section here/i).first()).toBeVisible();
+
+    // Into the first column, not beside it: the assertion is the descendant
+    // relationship, since a count alone cannot tell the two apart.
+    await dragFromLibrary(page, /^Timeline/i, emptyColumns.first());
+    await expect(blocks).toHaveCount(before + 4);
+    await expect(nested).toHaveCount(3);
+
+    // ⚠️ **The reported bug.** The second column is still empty, so it still
+    // advertises its own target — and a section aimed at it lands there rather
+    // than nowhere.
+    const secondColumn = page.locator("[data-gap-parent]").last();
+    await dragFromLibrary(page, /^Newsletter/i, secondColumn);
+    await expect(blocks).toHaveCount(before + 5);
+    await expect(nested).toHaveCount(4);
+
+    /*
+      ⚠️ The nested block's own toolbar must work. The canvas kills pointer
+      events on links and buttons inside a section, and that selector is a
+      descendant one — applied to a container it would reach every nested
+      block's controls and disable them with nothing failing anywhere. It now
+      has two levels of container to get through, row and column, so this
+      matters more than it did.
+
+      Scoped to the Timeline's own frame rather than `nested.first()`, which is
+      a column now: duplicating a column would prove something else entirely,
+      and an unsaved Timeline from the previous test may still be at the root,
+      so a page-wide match could pick that one's button instead.
+    */
+    const timeline = page.locator("[data-block-key] [data-block-key] [data-block-key]").first();
+    await timeline.getByRole("button", { name: /^Duplicate/ }).click();
+    await expect(nested).toHaveCount(5);
 
     // A nested block is selectable and editable — `PropertiesPanel` used a root
     // `tree.find`, so before this it would have shown its empty state instead.
-    await nested.first().click();
+    // Two levels deep now, which is the same code path and a longer walk.
+    await timeline.click();
     await expect(page.getByRole("textbox", { name: "Heading" }).first()).toBeVisible();
 
     await page.keyboard.press("ControlOrMeta+s");
     await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
 
     await page.reload();
-    await expect(nested).toHaveCount(2);
+    await expect(nested).toHaveCount(5);
   });
 
   test("cleans up the page it created", async ({ page }) => {
