@@ -9,21 +9,17 @@ import { publicPathForProduct } from "@/lib/domain/routes";
 /**
  * The PDP's `<head>`, and its Product structured data.
  *
- * **A layout, not the page.** `page.tsx` here is `"use client"` — it holds the
- * gallery's selected image, the quantity stepper and the add-to-bag state, and
- * it reads the catalogue from React context. A client component cannot export
- * `metadata` or `generateMetadata`; Next only reads those from server modules.
- * The choices were to split the page into a server shell wrapping a client body,
- * or to put the head in the segment's layout. The layout wins for one reason
- * that outranks taste: **the page is pixel-verified**, and a layout adds
- * metadata and a `<script>` without touching a line of it. Zero risk to the
- * baselines, because a script tag has no box.
+ * **Still a layout, though the reason it was one has gone.** This file exists
+ * because `page.tsx` used to be `"use client"` in its entirety, and a client
+ * module cannot export `metadata` or `generateMetadata`. The page is now a
+ * server shell over `ProductView.tsx`, so the head *could* move into it — and is
+ * deliberately left here anyway. Moving it would relocate the `<script>` in the
+ * prerendered HTML of a **pixel-verified** page to buy nothing: the reads do not
+ * collapse either way, because Next invokes `generateMetadata` and the component
+ * separately regardless of which file they live in.
  *
- * The cost is one extra read per product page at build time — `generateMetadata`
- * and the JSON-LD below share a single call, but the client page separately
- * resolves the same product out of `CatalogProvider`. That context is already
- * loaded by the site layout for the bag drawer, so it is not an extra query;
- * the read here is the only one this segment adds, and it fetches one row.
+ * The cost is one read per render here plus one in `page.tsx`'s existence check.
+ * Both fetch a single row on a route that prerenders and revalidates hourly.
  */
 export async function generateMetadata({
   params,
@@ -33,10 +29,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getPublishedProductSeo(slug);
 
-  // The page renders its own in-page "we couldn't find that product" rather than
-  // calling `notFound()`, so this is a real rendered page and needs a title.
-  // `noindex` on it: a soft 404 that search engines index is worse than a hard
-  // one, because it accumulates.
+  // `page.tsx` calls `notFound()` for this slug, so what renders is the site's
+  // 404 with a real 404 status. The title is still worth setting — Next resolves
+  // metadata from this segment either way, and "Product not found" beats
+  // inheriting the site default on a page that is about a specific miss.
+  // `noindex` stays as belt and braces behind the status code.
   if (!product) {
     return { title: pageTitle("Product not found"), robots: { index: false, follow: true } };
   }

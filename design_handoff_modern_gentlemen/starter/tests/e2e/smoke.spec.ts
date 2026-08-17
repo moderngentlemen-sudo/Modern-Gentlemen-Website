@@ -45,4 +45,49 @@ test.describe("public site smoke", () => {
     const response = await page.goto("/not-a-real-category");
     expect(response?.status()).toBe(404);
   });
+
+  test("serves a 404 for an unknown product", async ({ page }) => {
+    // The PDP used to answer 200 with an in-page "we couldn't find that
+    // product" screen: a soft 404, and the kind search engines index and keep.
+    // It could not do otherwise while the whole page was a client component —
+    // `notFound()` needs a server module to sit in front of it.
+    const response = await page.goto("/product/the-driving-glove");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: /This page doesn’t exist/ })).toBeVisible();
+  });
+
+  test("the store's products are in the served HTML, not only after hydration", async ({
+    page,
+    request,
+  }) => {
+    // `/shop` filters on `useSearchParams`, which opts its subtree out of
+    // prerendering — so the grid ships in whatever the Suspense fallback
+    // renders. When that fallback was the hero alone, the store's products
+    // reached a crawler only through the flight payload, and **nothing in this
+    // suite could tell**: every other test drives a real browser and waits for
+    // hydration, which paints the grid either way.
+    //
+    // Hence a plain fetch, with no browser and no JavaScript, compared against
+    // what the hydrated page shows. Comparing the two sets rather than counting
+    // to a number keeps this honest as the catalogue changes — the claim is
+    // "the server sends what the browser ends up with", not "sixteen".
+    const html = await (await request.get("/shop")).text();
+    const served = new Set(
+      (html.match(/href="(\/product\/[a-z0-9-]+)"/g) ?? []).map((m) => m.slice(6, -1))
+    );
+
+    await page.goto("/shop");
+    await expect(page.locator('main a[href^="/product/"]').first()).toBeVisible();
+    // Scoped to `main`: the header's drawer and search overlay can hold product
+    // links of their own depending on what is in the bag, and those are not
+    // what this test is about.
+    const hydrated = new Set(
+      await page
+        .locator('main a[href^="/product/"]')
+        .evaluateAll((links) => links.map((a) => new URL((a as HTMLAnchorElement).href).pathname))
+    );
+
+    expect(hydrated.size).toBeGreaterThan(0);
+    expect([...hydrated].filter((path) => !served.has(path))).toEqual([]);
+  });
 });
