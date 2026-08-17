@@ -169,6 +169,42 @@ export async function setStatus(
   );
 }
 
+/**
+ * Rename a document: its title, its slug, or both.
+ *
+ * The generic sibling of `pages.ts#renamePage`, which is the only rename this
+ * repository had and could only ever serve pages. Everything it needs is
+ * already in `DOCUMENT_TABLES` — the *title* is `title` on a page and `name` on
+ * a pattern, the *slug* is `slug` on a page and `key` on a pattern — so the
+ * column names come from there rather than being written out per type.
+ *
+ * `updated_by` is written unconditionally, as `saveDraft` and `setStatus`
+ * already do generically, which is what establishes that every document table
+ * carries the column.
+ *
+ * ⚠️ **Callers own the question of whether a slug *should* move.** This writes
+ * what it is given. For a page or an article the slug is a public URL and
+ * renaming it breaks links; for a product it is the PDP's address and an
+ * **import must never write it** (see `columnsForApply` in
+ * `lib/services/ingestion.ts`); for a pattern the key is an internal handle and
+ * moving it costs nothing. Those are policies, and they live with the callers
+ * that know which case they are in.
+ */
+export async function renameDocument(
+  db: Db,
+  type: DocumentType,
+  id: string,
+  input: { title?: string; slug?: string; updatedBy: string }
+): Promise<void> {
+  const { titleColumn, slugColumn } = DOCUMENT_TABLES[type];
+
+  const patch: Record<string, string> = { updated_by: input.updatedBy };
+  if (input.title !== undefined) patch[titleColumn] = input.title;
+  if (input.slug !== undefined) patch[slugColumn] = input.slug;
+
+  unwrap(`renameDocument(${type})`, await from(db, type).update(patch).eq("id", id));
+}
+
 export async function deleteDocument(db: Db, type: DocumentType, id: string): Promise<void> {
   unwrap(`deleteDocument(${type})`, await from(db, type).delete().eq("id", id));
 }

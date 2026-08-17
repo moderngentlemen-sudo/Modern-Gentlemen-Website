@@ -13,11 +13,7 @@
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/documents";
 import { autosaveDocument, latestRevision } from "@/lib/db/repositories/revisions";
-import {
-  createPage as createPageRow,
-  renamePage as renamePageRow,
-  EMPTY_PAGE_PAYLOAD,
-} from "@/lib/db/repositories/pages";
+import { createPage as createPageRow, EMPTY_PAGE_PAYLOAD } from "@/lib/db/repositories/pages";
 import { RepositoryError } from "@/lib/db/repositories/errors";
 import type { Json } from "@/lib/db/database.types";
 import { validateTree, type BlockIssue } from "@/lib/blocks/validate";
@@ -215,14 +211,51 @@ export async function renamePage(
   id: string,
   input: { slug?: string; title?: string }
 ): Promise<void> {
-  const user = await requirePermission("page.write");
+  await renameDocument("page", id, input);
+}
+
+/**
+ * Rename any document — title, slug, or both.
+ *
+ * The generic form `renamePage` should always have been. A pattern's name and
+ * key were fixed at creation because this did not exist and the page-specific
+ * version could not be pointed at another table; getting one wrong meant delete
+ * and recreate, losing the revision history with it.
+ *
+ * Two things it deliberately keeps from the page version:
+ *
+ *   * **the permission is `<type>.write`**, resolved through `permissionFor`
+ *     like every other generic operation here, so a rename is exactly as
+ *     privileged as an edit;
+ *   * **`23505` is translated.** Every document table has a unique slug column,
+ *     so a collision arrives as a raw Postgres constraint string. Named here, it
+ *     reads as the thing the editor actually did — and it names the *slug's own
+ *     word*, because a pattern has a key rather than a slug and being told "that
+ *     slug is taken" about a field labelled Key is its own small confusion.
+ */
+const SLUG_NOUN: Record<DocumentType, string> = {
+  page: "slug",
+  article: "slug",
+  product: "slug",
+  category: "slug",
+  template: "key",
+  pattern: "key",
+};
+
+export async function renameDocument(
+  type: DocumentType,
+  id: string,
+  input: { slug?: string; title?: string }
+): Promise<void> {
+  const user = await requirePermission(permissionFor(type, "write"));
   const db = await createClient();
 
   try {
-    await renamePageRow(db, id, { ...input, updatedBy: user.id });
+    await repo.renameDocument(db, type, id, { ...input, updatedBy: user.id });
   } catch (error) {
     if (error instanceof RepositoryError && error.code === "23505") {
-      throw new Error(`The slug "${input.slug}" is already in use by another page.`);
+      const noun = SLUG_NOUN[type];
+      throw new Error(`The ${noun} "${input.slug}" is already in use by another ${type}.`);
     }
     throw error;
   }
