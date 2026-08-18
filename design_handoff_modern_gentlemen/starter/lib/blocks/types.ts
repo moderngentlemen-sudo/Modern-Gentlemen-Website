@@ -75,6 +75,17 @@ export interface BlockSlot {
   readonly label: string;
   /** Types accepted as children. Omitted means any registered block. */
   readonly allow?: readonly string[];
+  /**
+   * How the children are laid out, which the canvas needs and the renderer does
+   * not.
+   *
+   * Insertion strips are rendered as siblings of the children, so in a
+   * `horizontal` slot they become **grid items** and the row reflows around
+   * them mid-drag — the defect `Column.tsx` records. A horizontal slot
+   * therefore offers no strips, and reordering inside it happens block-onto-
+   * block instead. Vertical is the default because every other list is one.
+   */
+  readonly direction?: "vertical" | "horizontal";
   /** Publish-time bounds. `min` is what stops an empty container shipping. */
   readonly min?: number;
   readonly max?: number;

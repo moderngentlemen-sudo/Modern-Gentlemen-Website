@@ -87,6 +87,9 @@ export const columns = defineBlock({
   slot: {
     label: "Columns",
     allow: ["column"],
+    // The children sit side by side, so the canvas must not put insertion
+    // strips between them: they would take grid cells. See `BlockSlot`.
+    direction: "horizontal",
     min: 1,
     max: 4,
   },

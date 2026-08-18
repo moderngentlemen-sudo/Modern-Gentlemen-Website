@@ -11,7 +11,15 @@ import { describe, expect, it } from "vitest";
 
 import type { BlockNode, BlockTree } from "@/lib/blocks/types";
 
-import { insertAfter, insertAt, locate, moveByKey, moveInto, removeByKey } from "./tree";
+import {
+  dropTargetFor,
+  insertAfter,
+  insertAt,
+  locate,
+  moveByKey,
+  moveInto,
+  removeByKey,
+} from "./tree";
 
 const leaf = (key: string): BlockNode => ({ _key: key, _type: "pullQuote" });
 const box = (key: string, children: BlockNode[]): BlockNode => ({
@@ -97,6 +105,13 @@ describe("insertAfter", () => {
 });
 
 describe("moveByKey", () => {
+  it("moves a block forward, which used to be a silent no-op", () => {
+    // Removing the active shifts the target back into the index the active just
+    // left, so inserting at that index put it straight back. Every backward
+    // drag worked, every forward one did nothing, and nothing failed.
+    expect(moveByKey(tree(), "a", "d").map((n) => n._key)).toEqual(["C1", "d", "a"]);
+  });
+
   it("reorders within the root", () => {
     expect(moveByKey(tree(), "d", "a").map((n) => n._key)).toEqual(["d", "a", "C1"]);
   });
@@ -165,5 +180,65 @@ describe("moveInto", () => {
     const before = tree();
     expect(moveInto(before, "C1", "C1", 0)).toBe(before);
     expect(moveInto(before, "C1", "C2", 0)).toBe(before);
+  });
+});
+
+/**
+ * Where a block-onto-block drop actually lands.
+ *
+ * The case that forced this: dropping one **column** onto another. dnd-kit
+ * resolves a block drag with `closestCenter`, and a column's centre sits close
+ * to the centres of the blocks inside it, so the drag routinely lands on a
+ * nested block rather than the neighbouring column. Passing that straight to
+ * `moveByKey` nests the dragged column inside its sibling.
+ */
+describe("dropTargetFor", () => {
+  const inner = (key: string): BlockNode => ({ _key: key, _type: "pullQuote" });
+  const column = (key: string, children: BlockNode[] = []): BlockNode => ({
+    _key: key,
+    _type: "column",
+    children,
+  });
+  const row = (columns: BlockNode[]): BlockTree => [
+    { _key: "R1", _type: "columns", children: columns },
+  ];
+
+  it("lifts a nested target up to the dragged column's own list", () => {
+    const tree = row([column("A", [inner("a1")]), column("B", [inner("b1")])]);
+
+    // Dragging column A, the pointer resolved to a block inside column B.
+    expect(dropTargetFor(tree, "A", "b1")).toBe("B");
+  });
+
+  it("leaves a target that is already a sibling alone", () => {
+    const tree = row([column("A"), column("B")]);
+    expect(dropTargetFor(tree, "A", "B")).toBe("B");
+  });
+
+  it("reorders the row rather than nesting, which is what the lift buys", () => {
+    const tree = row([column("A", [inner("a1")]), column("B", [inner("b1")])]);
+
+    const naive = moveByKey(tree, "A", "b1");
+    const lifted = moveByKey(tree, "A", dropTargetFor(tree, "A", "b1"));
+
+    // Without the lift, column A ends up INSIDE column B — legal, since a
+    // column's slot is unrestricted, and never what the gesture meant.
+    expect(naive[0].children!.map((c) => c._key)).toEqual(["B"]);
+    expect(naive[0].children![0].children!.map((c) => c._key)).toEqual(["A", "b1"]);
+
+    // With it, the columns simply swap.
+    expect(lifted[0].children!.map((c) => c._key)).toEqual(["B", "A"]);
+  });
+
+  it("does not lift in a vertical list, where dropping into a container is the feature", () => {
+    // A root block dropped onto a block inside a column must still move INTO
+    // that column — the only route into a non-empty one.
+    const tree: BlockTree = [inner("root1"), ...row([column("A", [inner("a1")])])];
+
+    expect(dropTargetFor(tree, "root1", "a1")).toBe("a1");
+  });
+
+  it("passes an unknown key through rather than guessing", () => {
+    expect(dropTargetFor(row([column("A")]), "nope", "A")).toBe("A");
   });
 });
