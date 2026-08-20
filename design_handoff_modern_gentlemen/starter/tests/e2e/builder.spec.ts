@@ -411,7 +411,14 @@ test.describe("page builder — drag from the library", () => {
     const before = await contents();
     expect(before[0]).toMatch(/Timeline/);
 
-    const handles = page.getByRole("button", { name: "Drag Column" });
+    /*
+      ⚠️ `exact` is load-bearing. `getByRole`'s `name` matches a **substring**
+      by default, and the row's own handle is "Drag Columns — layout" — which
+      contains "Drag Column". Without it this resolved to three handles, the
+      row's included, and dragging the row onto a column would have been a very
+      different test. The same trap this file records for `getByLabel`.
+    */
+    const handles = page.getByRole("button", { name: "Drag Column", exact: true });
     await expect(handles).toHaveCount(2);
     await dragOnto(page, handles.first(), handles.last());
 
