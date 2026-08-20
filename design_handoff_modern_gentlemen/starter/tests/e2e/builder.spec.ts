@@ -167,12 +167,18 @@ let dragSlug = "";
  * top of the canvas deliberately; a "drop at the very bottom of a long page"
  * test would need the drag to dwell at the edge instead.
  */
-async function dragFromLibrary(page: Page, entry: RegExp, target: string | Locator) {
-  const source = page.getByRole("button", { name: entry }).first();
+/**
+ * Drag one element onto another with the mouse.
+ *
+ * Shared by the library drags and by block-onto-block reordering, which is the
+ * only route a column has: a row shows no insertion strips, because they would
+ * become grid cells (see `Column.tsx`).
+ */
+async function dragOnto(page: Page, source: Locator, target: Locator) {
   await source.scrollIntoViewIfNeeded();
 
   const from = await source.boundingBox();
-  expect(from, "the library entry has no box to drag from").not.toBeNull();
+  expect(from, "the drag source has no box to drag from").not.toBeNull();
 
   const startX = from!.x + from!.width / 2;
   const startY = from!.y + from!.height / 2;
@@ -181,13 +187,10 @@ async function dragFromLibrary(page: Page, entry: RegExp, target: string | Locat
   await page.mouse.down();
   await page.mouse.move(startX + 40, startY, { steps: 8 });
 
-  // A Locator rather than a selector when the target is "the second column" —
-  // which cannot be written as a string without knowing its minted key.
-  const gap = typeof target === "string" ? page.locator(target).first() : target;
-  await expect(gap).toHaveCount(1);
+  await expect(target).toHaveCount(1);
 
-  const to = await gap.boundingBox();
-  expect(to, "the insertion point has no box to drop onto").not.toBeNull();
+  const to = await target.boundingBox();
+  expect(to, "the drop target has no box to drop onto").not.toBeNull();
 
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
   await page.mouse.up();
@@ -207,6 +210,17 @@ async function dragFromLibrary(page: Page, entry: RegExp, target: string | Locat
     line. 150ms clears the window with room for a slow runner.
   */
   await page.waitForTimeout(150);
+}
+
+/** The library rail's entry for `entry`, dropped onto `target`. */
+async function dragFromLibrary(page: Page, entry: RegExp, target: string | Locator) {
+  await dragOnto(
+    page,
+    page.getByRole("button", { name: entry }).first(),
+    // A Locator rather than a selector when the target is "the second column" —
+    // which cannot be written as a string without knowing its minted key.
+    typeof target === "string" ? page.locator(target).first() : target
+  );
 }
 
 /** A gap in the page's own list, rather than one inside a container. */
@@ -365,6 +379,59 @@ test.describe("page builder — drag from the library", () => {
 
     await page.reload();
     await expect(nested).toHaveCount(5);
+  });
+
+  test("swaps two columns by dragging one onto the other", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/pages");
+    await page.getByRole("link", { name: dragTitle }).click();
+
+    /*
+      A row shows no insertion strips — they would become grid cells — so a
+      column is reordered block-onto-block, which is what `dropTargetFor`
+      exists to make land where it looks.
+
+      ⚠️ Two things this proves that unit tests cannot. First, that a column's
+      own drag handle is reachable at all. Second, that dragging FORWARD moves
+      anything: `moveByKey` used to insert the active at the target's index
+      after removing it, which for a forward drag is the index the active just
+      vacated — so the block sprang back and nothing failed anywhere.
+    */
+    const deepest = page.locator("[data-block-key] [data-block-key] [data-block-key]");
+    const contents = () =>
+      deepest.evaluateAll((frames) =>
+        frames.map(
+          (frame) =>
+            frame.querySelector('button[aria-label^="Duplicate "]')?.getAttribute("aria-label") ??
+            "?"
+        )
+      );
+
+    await deepest.first().waitFor();
+    const before = await contents();
+    expect(before[0]).toMatch(/Timeline/);
+
+    /*
+      ⚠️ `exact` is load-bearing. `getByRole`'s `name` matches a **substring**
+      by default, and the row's own handle is "Drag Columns — layout" — which
+      contains "Drag Column". Without it this resolved to three handles, the
+      row's included, and dragging the row onto a column would have been a very
+      different test. The same trap this file records for `getByLabel`.
+    */
+    const handles = page.getByRole("button", { name: "Drag Column", exact: true });
+    await expect(handles).toHaveCount(2);
+    await dragOnto(page, handles.first(), handles.last());
+
+    // The Timeline's column now comes second, so the Newsletter's is first.
+    await expect.poll(async () => (await contents())[0], { timeout: 10_000 }).toMatch(/Newsletter/);
+
+    await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
+
+    // Persisted, not just moved on screen.
+    await page.reload();
+    await deepest.first().waitFor();
+    expect((await contents())[0]).toMatch(/Newsletter/);
   });
 
   test("cleans up the page it created", async ({ page }) => {

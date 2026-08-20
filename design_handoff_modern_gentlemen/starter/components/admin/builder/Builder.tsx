@@ -30,7 +30,7 @@ import { PublishBar } from "./PublishBar";
 import { ValidationTray } from "./ValidationTray";
 import { useAutosave } from "./useAutosave";
 import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
-import { locate } from "./tree";
+import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
 
@@ -212,10 +212,12 @@ function BuilderLayout({
       return;
     }
 
-    // Block onto block, unchanged — and cross-container for free, since
-    // `moveByKey` works on locations rather than root indexes.
+    // Block onto block — and cross-container for free, since `moveByKey` works
+    // on locations rather than root indexes.
     const over = parseDragId(overId);
-    if (over.kind === "block" && over.key !== active.key) move(active.key, over.key);
+    if (over.kind !== "block" || over.key === active.key) return;
+
+    move(active.key, dropTargetFor(tree, active.key, over.key));
   }
 
   return (

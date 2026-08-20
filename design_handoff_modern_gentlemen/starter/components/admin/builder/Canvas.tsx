@@ -162,7 +162,19 @@ function BlockList({
    * lays its gaps out vertically like every other list.
    */
   const accepts = dragType === null || !slot?.allow || slot.allow.includes(dragType);
-  const dragging = dragType !== null && accepts;
+
+  /**
+   * A horizontal slot never shows strips, and this is now **declared** rather
+   * than falling out of `allow`.
+   *
+   * A row refuses a section already, so during an ordinary section drag the
+   * `accepts` check above was doing the work. It would stop doing it the moment
+   * something the row *does* accept were dragged — a column — and the grid would
+   * take five cells again. Saying "these children sit side by side, do not put
+   * anything between them" is the honest rule; reordering inside such a slot
+   * goes block-onto-block, which `dropTargetFor` makes land where it looks.
+   */
+  const dragging = dragType !== null && accepts && slot?.direction !== "horizontal";
 
   return (
     <SortableContext items={nodes.map((node) => node._key)} strategy={verticalListSortingStrategy}>

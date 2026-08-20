@@ -15,6 +15,7 @@
  * mutated arrays.
  */
 
+import { manifestFor } from "@/lib/blocks/manifests";
 import type { BlockNode, BlockTree } from "@/lib/blocks/types";
 
 /** Where a block sits: which container holds it (`null` = the root), and at what index. */
@@ -50,6 +51,26 @@ function find(tree: BlockTree, key: string): BlockNode | null {
     }
   }
   return null;
+}
+
+/**
+ * The member of `parentKey`'s list that contains `key` — `key` itself when it is
+ * already a direct child, or the ancestor that holds it.
+ *
+ * What it is for: dropping one **column** onto another. `closestCenter` resolves
+ * to whichever droppable centre is nearest, and a column's centre sits close to
+ * the centres of the blocks inside it, so a column drag routinely lands on a
+ * *nested* block. Passing that key straight to `moveByKey` puts the dragged
+ * column inside its neighbour — legal, since a column's slot is unrestricted,
+ * and never what anyone meant.
+ *
+ * Lifting the target to the dragged block's own list turns that into the
+ * reorder it looked like. `null` when `key` is outside the list entirely, which
+ * is the genuinely-different drop the caller should treat as a move.
+ */
+export function siblingIn(tree: BlockTree, parentKey: string | null, key: string): string | null {
+  const list = parentKey === null ? tree : (find(tree, parentKey)?.children ?? []);
+  return list.find((node) => subtreeContains(node, key))?._key ?? null;
 }
 
 /** True when `key` is `node` itself or anywhere beneath it. */
@@ -158,7 +179,21 @@ export function moveByKey(tree: BlockTree, activeKey: string, overKey: string): 
   const target = locate(detached, overKey);
   if (!target) return tree;
 
-  return insertAt(detached, active, target.parentKey, target.index);
+  /**
+   * ⚠️ **Dragging forward within one list lands AFTER the target, and without
+   * this the drop is a silent no-op.**
+   *
+   * Removing the active block shifts the target back into the index the active
+   * just left, so inserting at that index puts it straight back where it was:
+   * `[X, Y]`, drop X onto Y, and the answer is `[X, Y]` again. Every backward
+   * drag worked, every forward one did nothing, and nothing failed — the block
+   * simply sprang back under the cursor. Found when columns made it obvious:
+   * dragging the left column onto the right is the ordinary way anyone swaps
+   * two of them.
+   */
+  const forward = from.parentKey === to.parentKey && from.index < to.index;
+
+  return insertAt(detached, active, target.parentKey, target.index + (forward ? 1 : 0));
 }
 
 /**
@@ -187,4 +222,35 @@ export function moveInto(
   // Removing from earlier in the same list shifts the gap down by one.
   const shifted = from.parentKey === parentKey && index > from.index ? index - 1 : index;
   return insertAt(detached, active, parentKey, shifted);
+}
+
+/**
+ * Which block a drop should land against, given what was dragged and what the
+ * pointer resolved to.
+ *
+ * Usually the answer is "the block under the pointer", and that is what makes
+ * dropping onto a nested block move the dragged block *into* its container — a
+ * feature, and the only route into a non-empty one.
+ *
+ * ⚠️ **A block whose siblings sit side by side is the exception, and columns
+ * are why this exists.** `closestCenter` picks the nearest droppable centre, and
+ * a column's centre sits close to the centres of the blocks inside it, so
+ * dragging one column across another routinely resolves to a block *within* the
+ * neighbour rather than the neighbour itself. Left alone that nests the dragged
+ * column inside its sibling — legal, since a column's slot is unrestricted, and
+ * never what the gesture meant. Lifting the target back to the dragged block's
+ * own list turns it into the reorder it looked like.
+ *
+ * Scoped by the slot's `direction` rather than applied to every drag, because
+ * for a vertical list "drop onto the block inside the container" is the
+ * behaviour, not the bug.
+ */
+export function dropTargetFor(tree: BlockTree, activeKey: string, overKey: string): string {
+  const home = locate(tree, activeKey);
+  if (!home) return overKey;
+
+  const parent = home.parentKey === null ? null : find(tree, home.parentKey);
+  if (!parent || manifestFor(parent._type)?.slot?.direction !== "horizontal") return overKey;
+
+  return siblingIn(tree, home.parentKey, overKey) ?? overKey;
 }
