@@ -82,6 +82,23 @@ function libraryPattern(page: Page, name: string) {
   return page.getByRole("button", { name: new RegExp(`^${name}`) });
 }
 
+/**
+ * The synced-pattern card on the **canvas**.
+ *
+ * ⚠️ **Scoped to `main`, because "Synced pattern" is on screen twice and both
+ * are correct.** Inserting a reference selects it, so the properties panel
+ * shows the block's manifest label — which is also "Synced pattern" — while the
+ * canvas card carries it as an eyebrow. An unscoped match resolves to two
+ * elements and fails as a strict-mode violation, which reads like the card is
+ * missing when in fact it is there twice over.
+ *
+ * The canvas is the builder's only `<main>`; the rail and the panel are
+ * `<aside>`. Playwright's own error message suggested this disambiguation.
+ */
+function refCard(page: Page) {
+  return page.getByRole("main").getByText("Synced pattern", { exact: true });
+}
+
 /** The category builder is reached from the taxonomy screen, which owns the list. */
 async function openCategory(page: Page) {
   await page.goto("/admin/taxonomy");
@@ -141,7 +158,7 @@ test.describe("synced patterns", () => {
     // **One** block, not the pattern's blocks copied in. That single node is the
     // whole difference between synced and detachable at the tree level.
     await expect(page.locator("[data-block-key]")).toHaveCount(before + 1);
-    await expect(page.getByText("Synced pattern", { exact: true })).toBeVisible();
+    await expect(refCard(page)).toBeVisible();
     await expect(page.getByText(/substituted when the page renders/)).toBeVisible();
 
     // The canvas shows the reference, never the pattern's content — those blocks
@@ -196,7 +213,7 @@ test.describe("synced patterns", () => {
 
     // The card is gone and the blocks are real: a Quote field exists on the
     // canvas now, which is exactly what could not be edited a moment ago.
-    await expect(page.getByText("Synced pattern", { exact: true })).toHaveCount(0);
+    await expect(refCard(page)).toHaveCount(0);
     await page.getByRole("textbox", { name: "Quote" }).first().click();
     await expect(page.getByRole("textbox", { name: "Quote" }).first()).toHaveValue(quote);
 
