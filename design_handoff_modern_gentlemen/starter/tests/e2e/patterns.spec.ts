@@ -37,7 +37,12 @@ test.describe("patterns", () => {
   test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
   test.describe.configure({ mode: "serial" });
 
-  async function createPattern(page: Page, name: string, key: string) {
+  async function createPattern(
+    page: Page,
+    name: string,
+    key: string,
+    syncMode: "detachable" | "synced" = "detachable"
+  ) {
     await page.goto("/admin/patterns");
     await page.getByRole("button", { name: "New pattern" }).click();
 
@@ -46,6 +51,9 @@ test.describe("patterns", () => {
     // The key auto-fills from the name; overwritten so the fixture is
     // predictable rather than dependent on how `slugify` treats the stamp.
     await dialog.getByLabel("Key").fill(key);
+    // Offered as of the synced-patterns phase; it was hard-coded to
+    // `detachable` before, because nothing on the public path expanded a ref.
+    await dialog.getByLabel("Inserting it").selectOption(syncMode);
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
 
     // Creating opens the builder for the new pattern.

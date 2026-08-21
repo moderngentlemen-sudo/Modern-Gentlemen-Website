@@ -23,6 +23,7 @@ import { HAIRLINE } from "@/components/admin/ui/styles";
 import { manifestFor } from "@/lib/blocks/manifests";
 
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
+import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
 import { Canvas } from "./Canvas";
 import { InsertMenu } from "./InsertMenu";
@@ -89,6 +90,10 @@ export interface BuilderPattern {
   description: string | null;
   blockCount: number;
   blocks: BlockTree;
+  /** `synced` inserts a reference; `detachable` inserts a copy. See `onInsertPattern`. */
+  syncMode: "synced" | "detachable";
+  /** Whether it has a published payload — the live site expands nothing else. */
+  published: boolean;
 }
 
 export function Builder({
@@ -118,12 +123,20 @@ export function Builder({
 
   return (
     <BuilderStoreProvider init={init}>
-      <BuilderLayout
-        callbacks={callbacks}
-        canPublish={canPublish}
-        canPreview={canPreview}
-        patterns={patterns}
-      />
+      {/*
+        The canvas needs the patterns too, not just the rail: a synced pattern
+        is a `_ref` node carrying an id, and naming it on screen means looking
+        that id up. See PatternsContext for why it is a context rather than a
+        seventh prop threaded through a recursive component.
+      */}
+      <PatternsProvider patterns={patterns}>
+        <BuilderLayout
+          callbacks={callbacks}
+          canPublish={canPublish}
+          canPreview={canPreview}
+          patterns={patterns}
+        />
+      </PatternsProvider>
     </BuilderStoreProvider>
   );
 }
@@ -143,6 +156,7 @@ function BuilderLayout({
 
   const insert = useBuilder((s) => s.insert);
   const insertMany = useBuilder((s) => s.insertMany);
+  const insertPatternRef = useBuilder((s) => s.insertPatternRef);
   const move = useBuilder((s) => s.move);
   const moveTo = useBuilder((s) => s.moveTo);
   const selectedKey = useBuilder((s) => s.selectedKey);
@@ -257,7 +271,25 @@ function BuilderLayout({
                 // pattern lands where the editor is working rather than at the
                 // end of the page.
                 const at = selectedKey ? locate(tree, selectedKey) : null;
-                insertMany(pattern.blocks, at ? at.index + 1 : undefined, at?.parentKey ?? null);
+                const index = at ? at.index + 1 : undefined;
+                const parentKey = at?.parentKey ?? null;
+
+                /**
+                 * **The pattern's own `sync_mode` decides which of these two
+                 * very different things "insert" means**, and the editor is not
+                 * asked. A synced pattern stores a pointer, so editing it later
+                 * updates every page using it; a detachable one copies its
+                 * blocks in and forgets where they came from.
+                 *
+                 * Deciding per-insertion instead would make that promise true
+                 * of some usages of a pattern and false of others, which is
+                 * precisely the thing nobody could reason about afterwards.
+                 */
+                if (pattern.syncMode === "synced") {
+                  insertPatternRef(pattern.id, index, parentKey);
+                } else {
+                  insertMany(pattern.blocks, index, parentKey);
+                }
               }}
             />
           </aside>

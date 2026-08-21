@@ -1052,3 +1052,133 @@ describe("areas", () => {
     });
   });
 });
+
+/**
+ * Synced patterns — a reference in the tree rather than a copy of the blocks.
+ *
+ * The two operations are opposites and the tests are written to say so:
+ * `insertPatternRef` stores a pointer and no content, `detachPatternRef` trades
+ * the pointer for content and keeps no pointer. What both have to get right is
+ * key uniqueness, because a pattern's blocks arrive from somewhere else and
+ * know nothing about the keys already in this tree.
+ */
+describe("pattern references", () => {
+  /** Two blocks, as a saved pattern's published payload would hold them. */
+  function patternBlocks(): BlockTree {
+    const a = newBlockNode("pullQuote", new Set());
+    const b = newBlockNode("newsletter", new Set([a._key]));
+    return [a, b];
+  }
+
+  it("inserts a single patternRef node carrying the id in _ref", () => {
+    const store = makeStore();
+    store.getState().insertPatternRef("pattern-1");
+
+    const tree = store.getState().tree;
+    expect(tree).toHaveLength(1);
+    expect(tree[0]._type).toBe("patternRef");
+    // `_ref` sits beside `_key`/`_type`, not in settings — one home for the fact.
+    expect(tree[0]._ref).toBe("pattern-1");
+    expect(tree[0].settings).toEqual({});
+  });
+
+  // A ref node has to survive publish validation, or the feature fails at the
+  // last step: compose, save and preview all work, and publish refuses with
+  // "Unknown block type". That is what the manifest is for.
+  it("produces a tree that passes validation", () => {
+    const store = makeStore();
+    store.getState().insertPatternRef("pattern-1");
+
+    expect(validateTree(store.getState().tree).issues).toEqual([]);
+    expect(store.getState().issues).toEqual([]);
+  });
+
+  it("inserts at a position and selects the new node", () => {
+    const store = makeStore();
+    store.getState().insert("pullQuote");
+    const first = store.getState().tree[0]._key;
+
+    store.getState().insertPatternRef("pattern-1", 0);
+
+    expect(store.getState().tree.map((n) => n._type)).toEqual(["patternRef", "pullQuote"]);
+    expect(store.getState().tree[1]._key).toBe(first);
+    expect(store.getState().selectedKey).toBe(store.getState().tree[0]._key);
+  });
+
+  it("carries the ref through the payload that gets saved", () => {
+    const store = makeStore();
+    store.getState().insertPatternRef("pattern-1");
+
+    const payload = store.getState().payload() as { sections: BlockTree };
+    expect(payload.sections[0]._ref).toBe("pattern-1");
+  });
+
+  describe("detachPatternRef", () => {
+    it("replaces the reference with the blocks, in its place", () => {
+      const store = makeStore();
+      store.getState().insert("masthead");
+      store.getState().insertPatternRef("pattern-1", 0);
+      const refKey = store.getState().tree[0]._key;
+
+      store.getState().detachPatternRef(refKey, patternBlocks());
+
+      expect(store.getState().tree.map((n) => n._type)).toEqual([
+        "pullQuote",
+        "newsletter",
+        "masthead",
+      ]);
+      // The pointer is gone: a detached copy has no relationship to the pattern.
+      expect(store.getState().tree.some((n) => n._ref !== undefined)).toBe(false);
+    });
+
+    /**
+     * The bug this forecloses is the one `insertMany` already records: cloning
+     * each block against the original key set alone lets two blocks *from the
+     * same pattern* draw the same key, producing a tree that fails its own
+     * duplicate-key validation from an operation nobody would suspect.
+     */
+    it("mints keys that are unique across the whole tree", () => {
+      const store = makeStore();
+      store.getState().insert("pullQuote");
+      store.getState().insertPatternRef("pattern-1");
+      const refKey = store.getState().tree[1]._key;
+
+      store.getState().detachPatternRef(refKey, patternBlocks());
+
+      // `keysOf` de-duplicates (it returns a Set), so its size is compared
+      // against the node count rather than against itself — the collision this
+      // guards against would otherwise be invisible.
+      const tree = store.getState().tree;
+      expect(keysOf(tree).size).toBe(tree.length);
+      expect(tree).toHaveLength(3);
+      expect(validateTree(tree).issues).toEqual([]);
+    });
+
+    it("detaches inside a container, not at the root", () => {
+      const store = makeStore();
+      store.getState().insert("columns");
+      const row = store.getState().tree[0];
+      const column = row.children![0];
+
+      store.getState().insertPatternRef("pattern-1", 0, column._key);
+      const refKey = store.getState().tree[0].children![0].children![0]._key;
+
+      store.getState().detachPatternRef(refKey, patternBlocks());
+
+      const cell = store.getState().tree[0].children![0].children!;
+      expect(cell.map((n) => n._type)).toEqual(["pullQuote", "newsletter"]);
+    });
+
+    it("is a no-op for an unknown key or an empty pattern", () => {
+      const store = makeStore();
+      store.getState().insertPatternRef("pattern-1");
+      const before = store.getState().tree;
+
+      store.getState().detachPatternRef("no-such-key", patternBlocks());
+      store.getState().detachPatternRef(before[0]._key, []);
+
+      // Reference equality: a refused edit must not reach the undo stack either.
+      expect(store.getState().tree).toBe(before);
+    });
+  });
+});

@@ -44,7 +44,7 @@ import type { BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
 import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 
 import { moveIndex } from "./dnd";
-import { insertAfter, insertAt, moveByKey, moveInto, removeByKey } from "./tree";
+import { insertAfter, insertAt, locate, moveByKey, moveInto, removeByKey } from "./tree";
 import { cloneJson, cloneWithNewKeys, keysOf, newBlockNode } from "./node";
 
 enableMapSet();
@@ -157,6 +157,25 @@ export interface BuilderActions {
    * type name, while this one is handed real content to clone.
    */
   insertMany: (nodes: BlockTree, at?: number, parentKey?: string | null) => void;
+  /**
+   * Insert a *reference* to a pattern rather than a copy of it.
+   *
+   * This is the whole of what `sync_mode: 'synced'` means in the tree: one
+   * `patternRef` node carrying `_ref`, which the public path substitutes for the
+   * pattern's blocks at render time. Separate from `insertMany` because the two
+   * are opposite operations — that one clones content in and forgets where it
+   * came from, this one stores a pointer and keeps no content at all.
+   */
+  insertPatternRef: (patternId: string, at?: number, parentKey?: string | null) => void;
+  /**
+   * Replace a synced reference with a copy of the blocks it points at.
+   *
+   * The one-way door out of syncing, and the reason a synced pattern is not a
+   * trap: an editor who needs this page's copy to differ detaches it and edits
+   * freely. Keys are freshly minted, so the copy is ordinary content with no
+   * relationship to the pattern afterwards.
+   */
+  detachPatternRef: (key: string, blocks: BlockTree) => void;
   duplicate: (key: string) => void;
   remove: (key: string) => void;
   move: (activeKey: string, overKey: string) => void;
@@ -449,6 +468,39 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
 
         replaceWith(tree);
         set({ selectedKey: clones[0]._key });
+      },
+
+      insertPatternRef: (patternId, at, parentKey = null) => {
+        const node = newBlockNode("patternRef", keysOf(get().tree));
+        // `_ref` sits beside `_key` and `_type`, not in `settings` — see the
+        // `patternRef` manifest for why it has no fields at all.
+        replaceWith(insertAt(get().tree, { ...node, _ref: patternId }, parentKey, at));
+        set({ selectedKey: node._key });
+      },
+
+      detachPatternRef: (key, blocks) => {
+        const at = locate(get().tree, key);
+        if (at === null || blocks.length === 0) return;
+
+        // Cloned against the keys of the tree *without* the ref node, and
+        // threaded across the batch for the same reason `insertMany` does it:
+        // cloning each block against the original key set alone would let two
+        // blocks from one pattern draw the same key.
+        const withoutRef = removeByKey(get().tree, key);
+        const taken = new Set(keysOf(withoutRef));
+        const clones = blocks.map((block) => {
+          const clone = cloneWithNewKeys(block, taken);
+          for (const cloneKey of keysOf([clone])) taken.add(cloneKey);
+          return clone;
+        });
+
+        let tree = withoutRef;
+        clones.forEach((clone, offset) => {
+          tree = insertAt(tree, clone, at.parentKey, at.index + offset);
+        });
+
+        replaceWith(tree);
+        set({ selectedKey: clones[0]?._key ?? null });
       },
 
       duplicate: (key) => {

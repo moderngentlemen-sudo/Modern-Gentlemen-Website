@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/admin/ui/Button";
 import { Dialog } from "@/components/admin/ui/Dialog";
 import { TextInput } from "@/components/admin/ui/Input";
+import { Select } from "@/components/admin/ui/Select";
 import { Panel } from "@/components/admin/ui/Panel";
 import { StatusPill } from "@/components/admin/ui/Badge";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
@@ -28,6 +29,28 @@ export interface PatternRow {
   version: number;
   updated_at: string;
 }
+
+type SyncMode = "detachable" | "synced";
+
+/**
+ * The two things a pattern can be, in the words an editor needs.
+ *
+ * `sync_mode` is fixed at creation and there is no editor for it, which is why
+ * the explanation belongs beside the one control that sets it. Changing it
+ * afterwards is not a rename: every page already using the pattern holds either
+ * copies or references, and flipping the column would not convert them.
+ */
+const SYNC_OPTIONS = [
+  { value: "detachable", label: "Detachable — insert a copy" },
+  { value: "synced", label: "Synced — insert a link" },
+] as const;
+
+const SYNC_HELP: Record<SyncMode, string> = {
+  detachable:
+    "Inserting it copies its blocks into the page. Editing the pattern afterwards changes nothing that already uses it. This cannot be changed later.",
+  synced:
+    "Pages store a link, and its blocks are substituted when the page renders — so editing the pattern updates every page using it. Only the published version appears on the live site. This cannot be changed later.",
+};
 
 /** `Editorial Trio` → `editorial-trio`, matching the key rule the action enforces. */
 function slugify(value: string): string {
@@ -54,6 +77,7 @@ export function PatternsList({
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
+  const [syncMode, setSyncMode] = useState<SyncMode>("detachable");
   const [keyTouched, setKeyTouched] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<PatternRow | null>(null);
@@ -95,7 +119,7 @@ export function PatternsList({
   function create() {
     setError(undefined);
     startTransition(async () => {
-      const result = await createPatternAction({ name, key: key || slugify(name) });
+      const result = await createPatternAction({ name, key: key || slugify(name), syncMode });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -240,6 +264,21 @@ export function PatternsList({
               setKey(next);
             }}
             help="Lower-case words separated by hyphens."
+            required
+          />
+          {/*
+            ✅ **A real choice as of this phase.** It was hard-coded to
+            `detachable` for three phases and deliberately not offered, because
+            no public route expanded a `_ref` — a synced pattern rendered in
+            preview and vanished from the live site. The public paths expand
+            now, so the option means what it says.
+          */}
+          <Select
+            label="Inserting it"
+            value={syncMode}
+            onChange={(next) => setSyncMode(next as SyncMode)}
+            options={SYNC_OPTIONS}
+            help={SYNC_HELP[syncMode]}
             error={error}
             required
           />
@@ -250,7 +289,7 @@ export function PatternsList({
         open={renaming !== null}
         onClose={() => setRenaming(null)}
         title={`Rename “${renaming?.title ?? ""}”`}
-        description="The key is an internal handle, not a URL — no public page links to it, and pages built from this pattern keep the blocks they copied."
+        description="The key is an internal handle, not a URL — no public page links to it, and renaming changes nothing about the pages already using this pattern."
         footer={
           <>
             <Button variant="ghost" onClick={() => setRenaming(null)}>
@@ -300,9 +339,20 @@ export function PatternsList({
           </>
         }
       >
+        {/*
+          ⚠️ This said "pages keep their sections — inserting a pattern copies
+          its blocks rather than linking to it", which stopped being true the
+          moment `synced` became a real choice. It is now the opposite of a
+          reassurance: a page holding a *reference* to a deleted pattern renders
+          a gap on the live site, and the only place that shows up is the
+          builder's canvas. The copy has to cover both modes, because this
+          dialog does not know which one it is looking at.
+        */}
         <p className="text-[13px] text-mg-fg/60">
-          Pages that already use this pattern keep their sections — inserting a pattern copies its
-          blocks rather than linking to it.
+          Pages that inserted this pattern as a <strong className="font-semibold">copy</strong> keep
+          their sections. Pages that <strong className="font-semibold">link</strong> to it — a
+          synced pattern — will render nothing where it was, until the reference is removed or
+          detached.
         </p>
       </Dialog>
     </>

@@ -14,12 +14,13 @@ import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
 import type { BlockNode, BlockSlot } from "@/lib/blocks/types";
 import { clsx } from "@/components/ui/clsx";
-import { IconButton } from "@/components/admin/ui/Button";
+import { Button, IconButton } from "@/components/admin/ui/Button";
 import { Badge } from "@/components/admin/ui/Badge";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
 
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { useBuilder } from "./StoreContext";
+import { usePattern } from "./PatternsContext";
 import { gapDropId, type DropLocation } from "./dnd";
 
 /** Widths the device switcher previews at. */
@@ -82,6 +83,101 @@ export function Canvas({
         </div>
       </CartProvider>
     </CatalogProvider>
+  );
+}
+
+/**
+ * A synced pattern, as the canvas shows it.
+ *
+ * Editor chrome rather than a section, so it is styled from the admin's own
+ * vocabulary — this never reaches the public site, where the node has been
+ * substituted for the pattern's blocks long before rendering.
+ *
+ * The unresolved case is the one worth designing for: a pattern that was
+ * deleted, or unpublished, or that this editor cannot read. The public path
+ * renders a gap for it, deliberately, so the canvas is the only place anybody
+ * finds out — which makes saying so plainly the whole job of the accent state.
+ */
+function PatternRefCard({
+  name,
+  blockCount,
+  resolved,
+  published,
+  locked,
+  onDetach,
+}: {
+  name: string | undefined;
+  blockCount: number;
+  resolved: boolean;
+  published: boolean;
+  locked: boolean;
+  onDetach: () => void;
+}) {
+  /**
+   * ⚠️ A resolved-but-unpublished pattern is the quiet failure this card exists
+   * to make loud.
+   *
+   * `expandPublicPatterns` reads `published_data` and nothing else — it must,
+   * or one editor's half-finished draft would appear on every page using the
+   * pattern. So a synced pattern that has never been published composes here,
+   * previews correctly (preview prefers the draft, by design) and then renders
+   * a **gap** on the live page. Everything upstream looks right, which is
+   * exactly why it has to be said here.
+   */
+  const warn = !resolved || !published;
+
+  return (
+    <div
+      className={clsx(
+        "border border-dashed px-6 py-8",
+        warn ? "border-mg-accentSerif/50 bg-mg-accent/5" : "border-mg-bd/30 bg-mg-fg/[0.02]"
+      )}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/50">
+        {!resolved
+          ? "Synced pattern — unresolved"
+          : published
+            ? "Synced pattern"
+            : "Synced pattern — not published"}
+      </p>
+
+      <p className="mt-2 font-grotesk text-[15px] font-semibold tracking-[-0.02em]">
+        {name ?? "This pattern is no longer available"}
+      </p>
+
+      <p className="mt-1 text-[13px] text-mg-fg/55">
+        {!resolved ? (
+          <>
+            It may have been deleted, or you may not have permission to read it. The live page
+            renders nothing here until it comes back or this reference is removed.
+          </>
+        ) : published ? (
+          <>
+            {blockCount} {blockCount === 1 ? "block" : "blocks"}, substituted when the page renders.
+            Editing the pattern updates every page using it.
+          </>
+        ) : (
+          <>
+            This pattern has never been published, and the live site renders only published patterns
+            — so this will be a gap on the page until someone publishes it. Preview will show it
+            regardless, because a preview deliberately shows drafts.
+          </>
+        )}
+      </p>
+
+      {resolved && !locked && (
+        <div className="mt-4">
+          {/*
+            Detaching is a one-way door and needs no confirmation: it *adds*
+            content to the page — the pattern's blocks, as an editable copy —
+            and takes nothing away. Undo covers it like any other tree edit.
+          */}
+          <Button size="sm" variant="outline" onClick={onDetach}>
+            Detach a copy
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -290,7 +386,27 @@ function SortableBlock({
   const manifest = manifestFor(node._type);
   const Component = registry[node._type as keyof typeof registry] as
     ComponentType<Record<string, unknown>> | undefined;
-  const label = manifest?.label ?? node._type;
+
+  /**
+   * A synced pattern is a pointer, so the canvas shows the pointer.
+   *
+   * `PatternRef` renders nothing — correct on the public path, where the node
+   * has already been substituted for the pattern's blocks, and useless here. The
+   * card is what an editor sees instead.
+   *
+   * ⚠️ **It deliberately shows the reference rather than the pattern's content.**
+   * Rendering the referenced blocks inline would look like the live page and
+   * behave like nothing else on the canvas: they are not this document's blocks,
+   * so they could not be selected, edited, reordered or deleted, and every one
+   * of those would fail silently under the cursor. Preview is where the result
+   * is shown — it expands refs already — and that division is the honest one:
+   * the canvas edits this page, preview shows what publishing produces.
+   */
+  const isRef = typeof node._ref === "string" && node._ref.length > 0;
+  const pattern = usePattern(node._ref);
+  const detachPatternRef = useBuilder((s) => s.detachPatternRef);
+
+  const label = isRef ? (pattern?.name ?? "Synced pattern") : (manifest?.label ?? node._type);
 
   /** Only a block whose manifest declares a slot may hold children. */
   const slot = manifest?.slot;
@@ -342,12 +458,31 @@ function SortableBlock({
             A container's own markup carries no links or buttons (`Columns` is a
             section and a grid), and each nested leaf still applies the killer to
             its own content, so nothing about the guarantee is lost.
+
+            ⚠️ **And a synced reference is exempt, for the opposite reason.**
+            `patternRef` has no slot, so it is a leaf and the killer would apply
+            — but what it wraps is not a design component at all. It is
+            `PatternRefCard`, editor chrome, whose only button is "Detach a
+            copy". Killing that leaves a control the editor can see, hover and
+            focus and *cannot click*: no error, no disabled state, just a button
+            that does nothing. The rule the killer enforces is "a section's own
+            links must not navigate inside the canvas"; a card that renders no
+            section has no such links to kill.
           */
-          !slot && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
+          !slot && !isRef && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
           hidden && "opacity-40"
         )}
       >
-        {Component ? (
+        {isRef ? (
+          <PatternRefCard
+            name={pattern?.name}
+            blockCount={pattern?.blockCount ?? 0}
+            resolved={pattern !== undefined}
+            published={pattern?.published ?? false}
+            locked={locked}
+            onDetach={() => pattern && detachPatternRef(node._key, pattern.blocks)}
+          />
+        ) : Component ? (
           <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
             {slot ? (
               <Component {...normalizeBlock(node)}>

@@ -34,6 +34,24 @@ export interface InsertablePattern {
   description: string | null;
   blockCount: number;
   blocks: BlockTree;
+  /**
+   * Which of the two things inserting this pattern means — a copy of its blocks,
+   * or a `patternRef` pointing at it. The pattern decides, not the editor doing
+   * the inserting: `sync_mode` is a property of the pattern, and offering the
+   * choice per insertion would make "editing the pattern updates every page
+   * using it" true of some usages and not others.
+   */
+  syncMode: repo.PatternSyncMode;
+  /**
+   * Whether the pattern has a published payload.
+   *
+   * ⚠️ **Only meaningful for a synced one, and then it is load-bearing.** The
+   * public expansion reads `published_data` and nothing else, so a synced
+   * pattern that has never been published resolves to nothing on the live site
+   * — a page that composes, previews and publishes cleanly and then renders a
+   * gap. Surfaced so the rail and the canvas can say so before that happens.
+   */
+  published: boolean;
 }
 
 /**
@@ -64,6 +82,8 @@ export async function listInsertablePatterns(): Promise<InsertablePattern[]> {
         description: row.description,
         blockCount: blocks.length,
         blocks,
+        syncMode: row.sync_mode,
+        published: row.published_data !== null,
       };
     })
     .filter((pattern) => pattern.blockCount > 0);

@@ -4,6 +4,7 @@ import { SectionRenderer } from "@/components/SectionRenderer";
 import { resolveBindings } from "@/lib/blocks/binding";
 import { supabaseBindingSources } from "@/lib/services/bindingSources";
 import { getPublishedCategory, listPublishedCategorySlugs } from "@/lib/services/publicEditorial";
+import { expandPublicPatterns } from "@/lib/services/publicContent";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { canonicalUrl, metaDescription, pageTitle } from "@/lib/domain/seo";
 import { publicPathForCategory } from "@/lib/domain/routes";
@@ -76,7 +77,18 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const doc = await getPublishedCategory(category);
   if (!doc) notFound();
 
-  const sections = await resolveBindings(doc.sections, supabaseBindingSources);
+  /**
+   * ⚠️ **Expansion runs before binding resolution, and the order is not
+   * arbitrary.** A pattern's own blocks can carry `$bind` descriptors — a
+   * pattern holding an `articleGrid` is an obvious thing for an editor to
+   * build — and a block substituted in *after* `resolveBindings` had run would
+   * reach the renderer with its descriptor unresolved, rendering an empty grid
+   * on a page whose other grids were full.
+   */
+  const sections = await resolveBindings(
+    await expandPublicPatterns(doc.sections),
+    supabaseBindingSources
+  );
 
   return <SectionRenderer sections={sections} />;
 }

@@ -29,6 +29,7 @@ import { manifesto } from "./manifesto";
 import { masthead } from "./masthead";
 import { newsletter } from "./newsletter";
 import { numberedIndex } from "./numberedIndex";
+import { patternRef } from "./patternRef";
 import { productRow } from "./productRow";
 import { pullQuote } from "./pullQuote";
 import { statsBand } from "./statsBand";
@@ -62,6 +63,7 @@ export const blockManifests = {
   masthead,
   columns,
   column,
+  patternRef,
 } as const satisfies Record<string, BlockManifest>;
 
 export type ManifestBlockType = keyof typeof blockManifests;

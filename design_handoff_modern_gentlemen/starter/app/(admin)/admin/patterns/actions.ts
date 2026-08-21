@@ -25,6 +25,7 @@ const Key = z
 const CreateInput = z.object({
   name: z.string().trim().min(1, "Enter a name").max(200),
   key: Key,
+  syncMode: z.enum(["detachable", "synced"]),
 });
 
 export async function createPatternAction(input: unknown): Promise<ActionResult<{ id: string }>> {
@@ -34,20 +35,25 @@ export async function createPatternAction(input: unknown): Promise<ActionResult<
   }
 
   try {
-    // ⚠️ `syncMode` is deliberately NOT taken from the client, and every pattern
-    // created here is `detachable`.
+    // ✅ `syncMode` **is** taken from the client now, and the paragraph that
+    // stood here explaining why it could not be is worth keeping in outline
+    // because the hazard was real: a synced pattern stores a `_ref` in the page
+    // and is expanded at render time, and until this phase `expandPatternRefs`
+    // had exactly one caller — `/preview/[token]`. No public route expanded
+    // refs, so a synced pattern rendered correctly in preview and **vanished
+    // from the live site**: the worst failure shape available, because the
+    // person checking their work is shown it working.
     //
-    // A synced pattern stores a `_ref` in the page and is expanded at render
-    // time by `expandPatternRefs` — which today has exactly one caller,
-    // `/preview/[token]`. No public route expands refs, so a synced pattern
-    // would render correctly in preview and silently vanish from the live site:
-    // the worst failure shape there is, because the person checking their work
-    // sees it working. Offering the option before the public path expands refs
-    // would ship that trap to an editor. See PROGRESS.md.
+    // What changed is that the public paths expand now
+    // (`publicContent.expandPublicPatterns`, called by the homepage and
+    // `/[category]`), publishing a pattern revalidates them, and a `patternRef`
+    // is a registered block so a page holding one can actually be published.
+    // The option is offered because it is now true, not because the column
+    // existed.
     const pattern = await createPattern({
       name: parsed.data.name,
       key: parsed.data.key,
-      syncMode: "detachable",
+      syncMode: parsed.data.syncMode,
       blocks: [],
     });
     revalidatePath("/admin/patterns");
