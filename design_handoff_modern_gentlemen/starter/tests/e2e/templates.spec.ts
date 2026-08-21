@@ -113,8 +113,15 @@ test.describe("templates", () => {
     await expect(area(page, "header")).toHaveAttribute("aria-selected", "true");
     await expect(page.locator("[data-block-key]")).toHaveCount(0);
 
+    // ⚠️ A library entry is named by its manifest's `label`, which is **not** its
+    // type name. This read `/^Masthead/i` on the first CI run and timed out:
+    // the `masthead` block's label is "The Masthead — team", so the anchor never
+    // matched. Labels live in `lib/blocks/manifests/*.ts` — read one before
+    // writing a locator for it. "Newsletter" is the label verbatim, and the `^`
+    // anchor keeps it off the block's own toolbar buttons ("Drag Newsletter",
+    // "Hide Newsletter"), which are named after the block they belong to.
     await page
-      .getByRole("button", { name: /^Masthead/i })
+      .getByRole("button", { name: /^Newsletter/i })
       .first()
       .click();
     await expect(page.locator("[data-block-key]")).toHaveCount(1);
