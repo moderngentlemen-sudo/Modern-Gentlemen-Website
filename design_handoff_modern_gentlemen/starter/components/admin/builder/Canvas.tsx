@@ -458,8 +458,18 @@ function SortableBlock({
             A container's own markup carries no links or buttons (`Columns` is a
             section and a grid), and each nested leaf still applies the killer to
             its own content, so nothing about the guarantee is lost.
+
+            ⚠️ **And a synced reference is exempt, for the opposite reason.**
+            `patternRef` has no slot, so it is a leaf and the killer would apply
+            — but what it wraps is not a design component at all. It is
+            `PatternRefCard`, editor chrome, whose only button is "Detach a
+            copy". Killing that leaves a control the editor can see, hover and
+            focus and *cannot click*: no error, no disabled state, just a button
+            that does nothing. The rule the killer enforces is "a section's own
+            links must not navigate inside the canvas"; a card that renders no
+            section has no such links to kill.
           */
-          !slot && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
+          !slot && !isRef && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
           hidden && "opacity-40"
         )}
       >

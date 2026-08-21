@@ -83,20 +83,36 @@ function libraryPattern(page: Page, name: string) {
 }
 
 /**
- * The synced-pattern card on the **canvas**.
+ * **This attempt's** synced-pattern card on the canvas.
  *
- * ⚠️ **Scoped to `main`, because "Synced pattern" is on screen twice and both
- * are correct.** Inserting a reference selects it, so the properties panel
- * shows the block's manifest label — which is also "Synced pattern" — while the
- * canvas card carries it as an eyebrow. An unscoped match resolves to two
- * elements and fails as a strict-mode violation, which reads like the card is
- * missing when in fact it is there twice over.
+ * ⚠️ Scoped twice, and the two scopes are for different reasons.
  *
- * The canvas is the builder's only `<main>`; the rail and the panel are
- * `<aside>`. Playwright's own error message suggested this disambiguation.
+ * `main` disambiguates the card from the **properties panel**: inserting a
+ * reference selects it, so the panel shows the block's manifest label — which
+ * is also "Synced pattern" — while the canvas card carries the same words as an
+ * eyebrow. The canvas is the builder's only `<main>`; the rail and the panel
+ * are `<aside>`.
+ *
+ * The block frame carrying `name` disambiguates it from **a previous attempt's
+ * card**, and that one cost a CI run as a phantom flake. This group is serial,
+ * so a failure anywhere in it retries the whole group from the top — but the
+ * category it composes is shared fixture data, and attempt 1 published its
+ * reference before the later spec failed. Attempt 2 therefore opens a page that
+ * already has a card, inserts a second, and dies on a strict-mode violation
+ * reporting two identical eyebrows. The spec looks broken; what is actually
+ * broken is whatever failed three tests later.
+ *
+ * `patternName` is stamped per attempt, so filtering the frame by it picks this
+ * attempt's card and ignores any left behind — which is also what makes the
+ * `toHaveCount(0)` after detaching mean "*mine* is gone" rather than "none
+ * exist".
  */
-function refCard(page: Page) {
-  return page.getByRole("main").getByText("Synced pattern", { exact: true });
+function refFrame(page: Page, name: string) {
+  return page.getByRole("main").locator("[data-block-key]").filter({ hasText: name });
+}
+
+function refCard(page: Page, name: string) {
+  return refFrame(page, name).getByText("Synced pattern", { exact: true });
 }
 
 /** The category builder is reached from the taxonomy screen, which owns the list. */
@@ -158,7 +174,7 @@ test.describe("synced patterns", () => {
     // **One** block, not the pattern's blocks copied in. That single node is the
     // whole difference between synced and detachable at the tree level.
     await expect(page.locator("[data-block-key]")).toHaveCount(before + 1);
-    await expect(refCard(page)).toBeVisible();
+    await expect(refCard(page, patternName)).toBeVisible();
     await expect(page.getByText(/substituted when the page renders/)).toBeVisible();
 
     // The canvas shows the reference, never the pattern's content — those blocks
@@ -209,11 +225,24 @@ test.describe("synced patterns", () => {
     await signIn(page);
     await openCategory(page);
 
-    await page.getByRole("button", { name: "Detach a copy" }).click();
+    /*
+      ⚠️ **Scoped to this attempt's frame, and the button used to be dead.**
+
+      `PatternRefCard` rendered inside the canvas frame's leaf navigation
+      killer — `[&_button]:pointer-events-none`, which exists to stop a
+      *section's* own links navigating away inside the builder. A reference
+      card renders no section; its only button is this one. So the control was
+      visible, enabled, focusable and unclickable, and Playwright reported it
+      as `<div class="mt-4">…</div> intercepts pointer events` — the card's own
+      wrapper, swallowing the click. A person would have found no error at all,
+      just a button that does nothing. `Canvas.tsx` exempts a ref from the
+      killer now; this line is what proves it.
+    */
+    await refFrame(page, patternName).getByRole("button", { name: "Detach a copy" }).click();
 
     // The card is gone and the blocks are real: a Quote field exists on the
     // canvas now, which is exactly what could not be edited a moment ago.
-    await expect(refCard(page)).toHaveCount(0);
+    await expect(refCard(page, patternName)).toHaveCount(0);
     await page.getByRole("textbox", { name: "Quote" }).first().click();
     await expect(page.getByRole("textbox", { name: "Quote" }).first()).toHaveValue(quote);
 

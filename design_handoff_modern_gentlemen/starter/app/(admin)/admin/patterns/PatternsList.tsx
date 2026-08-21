@@ -289,7 +289,7 @@ export function PatternsList({
         open={renaming !== null}
         onClose={() => setRenaming(null)}
         title={`Rename “${renaming?.title ?? ""}”`}
-        description="The key is an internal handle, not a URL — no public page links to it, and pages built from this pattern keep the blocks they copied."
+        description="The key is an internal handle, not a URL — no public page links to it, and renaming changes nothing about the pages already using this pattern."
         footer={
           <>
             <Button variant="ghost" onClick={() => setRenaming(null)}>
@@ -339,9 +339,20 @@ export function PatternsList({
           </>
         }
       >
+        {/*
+          ⚠️ This said "pages keep their sections — inserting a pattern copies
+          its blocks rather than linking to it", which stopped being true the
+          moment `synced` became a real choice. It is now the opposite of a
+          reassurance: a page holding a *reference* to a deleted pattern renders
+          a gap on the live site, and the only place that shows up is the
+          builder's canvas. The copy has to cover both modes, because this
+          dialog does not know which one it is looking at.
+        */}
         <p className="text-[13px] text-mg-fg/60">
-          Pages that already use this pattern keep their sections — inserting a pattern copies its
-          blocks rather than linking to it.
+          Pages that inserted this pattern as a <strong className="font-semibold">copy</strong> keep
+          their sections. Pages that <strong className="font-semibold">link</strong> to it — a
+          synced pattern — will render nothing where it was, until the reference is removed or
+          detached.
         </p>
       </Dialog>
     </>
