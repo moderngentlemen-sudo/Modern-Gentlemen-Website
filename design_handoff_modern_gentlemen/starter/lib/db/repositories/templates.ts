@@ -8,13 +8,16 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TemplateKind } from "@/lib/domain/templates";
 import type { Database, Json } from "../database.types";
 import { unwrap } from "./errors";
 
 type Db = SupabaseClient<Database>;
 
-export type TemplateKind =
-  "page" | "article" | "product" | "archive" | "header" | "footer" | "section";
+// The `kind` vocabulary is a domain fact — it mirrors `0003`'s CHECK — so it
+// lives in `lib/domain/templates.ts` and is re-exported here for the callers
+// that already import it from the repository.
+export type { TemplateKind };
 
 export interface TemplateRow {
   id: string;

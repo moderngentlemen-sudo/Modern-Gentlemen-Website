@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/admin/ui/Badge";
 import { useToast } from "@/components/admin/ui/Toast";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 import { isSchedulable } from "@/lib/domain/documents";
+import { areaNameOf } from "@/lib/blocks/areas";
 import { adminPathForDocument } from "@/lib/domain/routes";
 
 import { useBuilder } from "./StoreContext";
@@ -56,6 +57,19 @@ export function PublishBar({
   const setServerIssues = useBuilder((s) => s.setServerIssues);
   const setDoc = useBuilder((s) => s.setDoc);
   const select = useBuilder((s) => s.select);
+  const setArea = useBuilder((s) => s.setArea);
+  /**
+   * Every area's issues, not just the open one's.
+   *
+   * Publish validates the whole document, so a bar that counted only the tree
+   * on screen would offer an enabled Publish button and then be refused —
+   * telling the editor "no issues" in the same dialog that fails. `areaIssues`
+   * is `{}` for a one-tree document, so this is exactly `issues` there.
+   */
+  const areaIssues = useBuilder((s) => s.areaIssues);
+
+  const areaTotals = Object.values(areaIssues);
+  const totalIssues = areaTotals.length === 0 ? issues : areaTotals.reduce((a, b) => a + b, 0);
 
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [preview, setPreview] = useState<{ path: string; expiresAt: string } | null>(null);
@@ -78,12 +92,29 @@ export function PublishBar({
       // The issues come back attached to the blocks that caused them, so put
       // the editor on the first offender rather than on a wall of text.
       if (result.issues?.length) {
-        setServerIssues(result.issues);
+        const first = result.issues[0];
         setConfirmPublish(false);
-        select(result.issues[0].key);
-        document
-          .querySelector(`[data-block-key="${result.issues[0].key}"]`)
-          ?.scrollIntoView({ block: "center" });
+
+        // Publish validates *every* area, so the block it names may not be in
+        // the one that is open — and selecting a key the canvas is not showing
+        // puts the editor nowhere at all. The issue's own path says which area
+        // it came from (`blockTreesOf` prefixes it), so open that first.
+        //
+        // ⚠️ Before `setServerIssues`, not after: `setArea` clears the server
+        // issues, on the reasoning that they described a different tree. Seeding
+        // them first would have them wiped by the switch.
+        const area = areaNameOf(first.path ?? "");
+        if (area !== null && area !== areaNameOf(doc.treeKey)) setArea(area);
+
+        setServerIssues(result.issues);
+        select(first.key);
+        // Deferred a frame: after an area switch the canvas has not rendered
+        // the new tree yet, so the element to scroll to does not exist.
+        requestAnimationFrame(() => {
+          document
+            .querySelector(`[data-block-key="${first.key}"]`)
+            ?.scrollIntoView({ block: "center" });
+        });
       }
       toast.push(result.error, "error");
     });
@@ -216,16 +247,17 @@ export function PublishBar({
         <DetailRow label="Slug">/{doc.slug}</DetailRow>
         <DetailRow label="Current version">v{doc.version}</DetailRow>
         <DetailRow label="Validation">
-          {issues === 0 ? (
+          {totalIssues === 0 ? (
             "No issues"
           ) : (
             <span className="text-mg-accentSerif">
-              {issues} {issues === 1 ? "issue" : "issues"}
+              {totalIssues} {totalIssues === 1 ? "issue" : "issues"}
+              {areaTotals.length > 0 && issues !== totalIssues && " across all areas"}
             </span>
           )}
         </DetailRow>
 
-        {issues > 0 && (
+        {totalIssues > 0 && (
           <p className="mt-3 text-[12px] text-mg-fg/60">
             Publishing validates every block against its manifest and will be refused while these
             stand. They are listed under the canvas.

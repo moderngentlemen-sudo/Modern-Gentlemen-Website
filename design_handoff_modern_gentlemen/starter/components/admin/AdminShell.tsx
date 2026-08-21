@@ -37,16 +37,21 @@ const NAV: NavItem[] = [
   { href: "/admin/navigation", label: "Navigation", needs: "navigation.read" },
   { href: "/admin/theme", label: "Theme", needs: "theme.read" },
   { href: "/admin/patterns", label: "Patterns", needs: "pattern.read" },
+  { href: "/admin/templates", label: "Templates", needs: "template.read" },
 ];
 
-// ⚠️ **Templates is deliberately absent, and this comment is why it should stay
-// absent until the route exists.** Both `Templates` and `Patterns` sat in this
-// array from Phase 4 with neither route built, so anyone holding
-// `template.read`/`pattern.read` — which every seeded admin does — got a 404
-// straight from the sidebar. Patterns earned its link back by acquiring a route;
-// templates has not, because `BLOCK_TREE_KEY.template` is `null` and the builder
-// would need an area switcher to edit one. A nav entry is a promise that a
-// screen exists, and a permission check is not a substitute for the screen.
+// **Templates is back, and it took a route to earn the link.** Both `Templates`
+// and `Patterns` sat in this array from Phase 4 with neither route built, so
+// anyone holding `template.read`/`pattern.read` — which every seeded admin does
+// — got a 404 straight from the sidebar. Both were removed; each has returned
+// only on the commit that built its screen. Patterns first, then templates once
+// the builder learned to open a document whose payload holds named areas rather
+// than one ordered list.
+//
+// The rule that produced two removals and two returns is the part worth
+// keeping: **a nav entry is a promise that a screen exists**, and a permission
+// check is not a substitute for the screen. Anything added here needs a route
+// in the same commit.
 
 export function AdminShell({
   email,
