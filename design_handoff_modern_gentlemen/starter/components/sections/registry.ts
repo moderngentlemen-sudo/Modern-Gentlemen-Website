@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { blockManifests, blockTypes } from "@/lib/blocks/manifests";
+import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks/manifests";
 import type { BlockCategory } from "@/lib/blocks/types";
 import { HeroCoverStar } from "./HeroCoverStar";
 import { LatestGrid } from "./LatestGrid";
@@ -25,6 +25,7 @@ import { PullQuote } from "./PullQuote";
 import { Masthead } from "./Masthead";
 import { Column } from "./Column";
 import { PatternRef } from "./PatternRef";
+import { DocumentContent } from "./DocumentContent";
 import { Columns } from "./Columns";
 
 /**
@@ -67,6 +68,7 @@ export const registry = {
   columns: Columns,
   column: Column,
   patternRef: PatternRef,
+  documentContent: DocumentContent,
   // Each block owns its own prop contract, so the map is heterogeneous by
   // nature: a lookup by string cannot narrow to one component's props. The
   // manifests restore the guarantee where it counts — content is validated
@@ -100,14 +102,41 @@ export interface BlockCatalogEntry {
  * editor may choose" in one place, and leaves `blockTypes` the honest list of
  * everything that exists (which is what the conformance suite walks).
  */
+function catalogEntry(type: ManifestBlockType): BlockCatalogEntry {
+  const manifest = blockManifests[type];
+  return {
+    type,
+    label: manifest.label,
+    category: manifest.category,
+    description: manifest.description,
+  };
+}
+
 export const blockCatalog: BlockCatalogEntry[] = blockTypes
-  .filter((type) => !blockManifests[type].hidden)
-  .map((type) => {
-    const manifest = blockManifests[type];
-    return {
-      type,
-      label: manifest.label,
-      category: manifest.category,
-      description: manifest.description,
-    };
-  });
+  .filter((type) => !blockManifests[type].hidden && !blockManifests[type].onlyIn)
+  .map(catalogEntry);
+
+/**
+ * The insert menu's list for one document type.
+ *
+ * `blockCatalog` above is the unscoped list and stays the default, so nothing
+ * that does not care about document types has to learn about them. This adds
+ * back the blocks a manifest restricted with `onlyIn` — `documentContent` in a
+ * template, and nothing else today.
+ *
+ * ⚠️ The scoped entries are **appended**, not merged in manifest order, and the
+ * grouping in `InsertMenu` re-sorts by category anyway. What matters is that an
+ * editor building a template can reach the marker at all: a template whose
+ * marker has been deleted is unpublishable, and without a library entry it
+ * would also be unrepairable.
+ */
+export function blockCatalogFor(documentType: string): BlockCatalogEntry[] {
+  const scoped = blockTypes
+    .filter((type) => {
+      const manifest = blockManifests[type];
+      return !manifest.hidden && manifest.onlyIn?.includes(documentType);
+    })
+    .map(catalogEntry);
+
+  return scoped.length ? [...blockCatalog, ...scoped] : blockCatalog;
+}

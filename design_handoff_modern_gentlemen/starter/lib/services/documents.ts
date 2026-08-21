@@ -17,6 +17,12 @@ import { createPage as createPageRow, EMPTY_PAGE_PAYLOAD } from "@/lib/db/reposi
 import { RepositoryError } from "@/lib/db/repositories/errors";
 import type { Json } from "@/lib/db/database.types";
 import { validateTree, type BlockIssue } from "@/lib/blocks/validate";
+import { readAreas } from "@/lib/blocks/areas";
+import {
+  collectContentMarkers,
+  DOCUMENT_CONTENT_TYPE,
+  TEMPLATE_MAIN_AREA,
+} from "@/lib/blocks/templateContent";
 import type { BlockNode } from "@/lib/blocks/types";
 import {
   BLOCK_TREE_KEY,
@@ -92,7 +98,75 @@ export function validateDocumentPayload(type: DocumentType, payload: Json): Docu
     }
   }
 
+  if (type === "template") issues.push(...validateTemplateAreas(payload));
+
   return { ok: issues.length === 0, issues };
+}
+
+/**
+ * A template needs exactly one `documentContent` marker, and it must be in the
+ * area the page renderer actually renders.
+ *
+ * Every one of these is silent at authoring time and destructive at render time,
+ * which is precisely the class of thing publish validation exists to catch:
+ *
+ *   * **No marker** — the template frames nothing. Every page assigned to it
+ *     loses its own sections entirely. `applyTemplate` refuses to do that (it
+ *     returns the document's sections when there is no marker), so what an
+ *     editor would actually see is a template that appears to do nothing at all,
+ *     which is harder to diagnose than a failure.
+ *   * **Two markers** — the page's sections render twice.
+ *   * **A marker outside `main`** — the page renderer reads `main` and nothing
+ *     else, so the marker is never reached and the assigned pages render
+ *     unframed. This is the one an editor cannot possibly infer, because the
+ *     builder shows every area as equally real.
+ *
+ * ⚠️ It reads the payload directly rather than going through `blockTreesOf`,
+ * because the *area a marker sits in* is the fact under test and `blockTreesOf`
+ * has already flattened that into a path string by the time its caller sees it.
+ */
+function validateTemplateAreas(payload: Json): (BlockIssue & { path: string })[] {
+  const areas = readAreas(payload);
+  const issues: (BlockIssue & { path: string })[] = [];
+
+  const misplaced = Object.entries(areas)
+    .filter(([name]) => name !== TEMPLATE_MAIN_AREA)
+    .flatMap(([name, tree]) => collectContentMarkers(tree).map((key) => ({ area: name, key })));
+
+  for (const { area, key } of misplaced) {
+    issues.push({
+      key,
+      type: DOCUMENT_CONTENT_TYPE,
+      path: `areas.${area}`,
+      message:
+        `Page content must sit in the "${TEMPLATE_MAIN_AREA}" area — a marker in ` +
+        `"${area}" is never rendered.`,
+    });
+  }
+
+  const inMain = collectContentMarkers(areas[TEMPLATE_MAIN_AREA]);
+
+  if (inMain.length === 0 && misplaced.length === 0) {
+    issues.push({
+      key: "",
+      type: DOCUMENT_CONTENT_TYPE,
+      path: `areas.${TEMPLATE_MAIN_AREA}`,
+      message:
+        "A template needs a Page content block — without one, every page using " +
+        "it would lose its own sections.",
+    });
+  }
+
+  if (inMain.length > 1) {
+    issues.push({
+      key: inMain[1],
+      type: DOCUMENT_CONTENT_TYPE,
+      path: `areas.${TEMPLATE_MAIN_AREA}`,
+      message: `A template needs exactly one Page content block; this one has ${inMain.length}.`,
+    });
+  }
+
+  return issues;
 }
 
 /** Raised when a caller tries to publish a payload that fails its own manifests. */

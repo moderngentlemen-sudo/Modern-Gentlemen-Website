@@ -45,6 +45,19 @@ export interface BlockSpec {
    */
   hidden?: boolean;
   /**
+   * Restrict this block to the insert library of certain document types.
+   *
+   * `hidden` says "never offer this"; `onlyIn` says "offer this, but only
+   * where it means something". `documentContent` is meaningless in a page —
+   * a page *is* the content — and essential in a template.
+   *
+   * Deliberately `readonly string[]` and not `DocumentType[]`: `lib/blocks` is
+   * a leaf and does not import `lib/domain`. The same split `lib/domain/
+   * templates.ts` makes when it keeps the `kind` vocabulary as bare strings.
+   * `blockCatalogFor` in the registry is where these strings meet the union.
+   */
+  onlyIn?: readonly string[];
+  /**
    * Child block types a freshly inserted node is seeded with.
    *
    * `insertDefaults` is to fields what this is to the slot. A `columns` row
@@ -132,6 +145,7 @@ export function defineBlock(spec: BlockSpec): BlockManifest {
     insertDefaults,
     bindable,
     hidden: spec.hidden ?? false,
+    onlyIn: spec.onlyIn ? Object.freeze([...spec.onlyIn]) : undefined,
     insertChildren: Object.freeze([...(spec.insertChildren ?? [])]),
     slot: spec.slot ? Object.freeze({ ...spec.slot }) : undefined,
   });

@@ -118,6 +118,8 @@ export interface BlockManifest {
   readonly slot?: BlockSlot;
   /** Registered and renderable, but never offered in the insert menu. */
   readonly hidden: boolean;
+  /** Document types whose insert library offers this block. Undefined = all. */
+  readonly onlyIn?: readonly string[];
   /** Child types a freshly inserted node is seeded with. Empty for everything but `columns`. */
   readonly insertChildren: readonly string[];
 }

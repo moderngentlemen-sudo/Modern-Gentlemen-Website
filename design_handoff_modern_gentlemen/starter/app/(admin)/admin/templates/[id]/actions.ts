@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { saveDraft } from "@/lib/services/documents";
+import { publicPathsForTemplate } from "@/lib/services/templates";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
 import { AREA_NAME_PATTERN, AREAS_KEY } from "@/lib/blocks/areas";
 import type { Json } from "@/lib/db/database.types";
@@ -20,12 +21,12 @@ import { toActionResult } from "../../_lib/errors";
  *      already understood areas: `blockTreesOf` has walked them since Phase 3,
  *      so publish validation, revisions and version diffing cover every area
  *      without a line of change here.
- *   2. **Nothing revalidates a public path**, because nothing public renders a
- *      template yet. `template_assignments` resolves one to a record, and
- *      `resolveTemplateFor` has no caller on the render path. When that
- *      changes, this file needs the equivalent of `revalidatePublicPage` and it
- *      will not be a one-liner: a template applies to *every* record assigned
- *      to it, so publishing one invalidates a set rather than a path.
+ *   2. **Publishing revalidates a set of paths, not one.** This was predicted
+ *      here while it was still untrue, and it landed exactly as predicted: a
+ *      template applies to every record assigned to it, so
+ *      `revalidatePublicPage`'s one-slug shape does not carry over.
+ *      `publicPathsForTemplate` resolves the set; `revalidatePublicTemplate`
+ *      below walks it.
  */
 const Id = z.string().uuid();
 
@@ -68,6 +69,27 @@ function revalidateTemplate(id: string): void {
   revalidatePath(`/admin/templates/${id}`);
 }
 
+/**
+ * Every public path this template frames, invalidated on publish.
+ *
+ * The set-valued sibling of `revalidatePublicPage`, and it takes the same stance
+ * on failure for the same reason: a publish that succeeded has succeeded, and
+ * failing the action because a cache hint could not be sent would report a false
+ * failure for something the hourly `revalidate` backstop corrects by itself.
+ *
+ * ⚠️ **Unpublishing revalidates too.** A template that stops being published
+ * stops framing its pages — `publishedTemplateArea` reads `status = 'published'`
+ * — so the pages have to be rebuilt without it. Getting this wrong leaves the
+ * old frame on the live site with nothing in the admin to explain it.
+ */
+async function revalidatePublicTemplate(id: string): Promise<void> {
+  try {
+    for (const path of await publicPathsForTemplate(id)) revalidatePath(path);
+  } catch (error) {
+    console.error(`Published template ${id} but could not revalidate its pages:`, error);
+  }
+}
+
 export async function publishAction(input: unknown): Promise<ActionResult<{ version: number }>> {
   const parsed = z.object({ id: Id, note: z.string().trim().max(500).optional() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
@@ -75,6 +97,7 @@ export async function publishAction(input: unknown): Promise<ActionResult<{ vers
   try {
     const version = await publish("template", parsed.data.id, parsed.data.note);
     revalidateTemplate(parsed.data.id);
+    await revalidatePublicTemplate(parsed.data.id);
     return ok({ version });
   } catch (error) {
     // InvalidDocumentError carries its issues through, each prefixed with the
@@ -91,6 +114,7 @@ export async function unpublishAction(input: unknown): Promise<ActionResult<{ ve
   try {
     const version = await unpublish("template", parsed.data.id, parsed.data.note);
     revalidateTemplate(parsed.data.id);
+    await revalidatePublicTemplate(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -130,6 +154,9 @@ export async function rollbackAction(input: unknown): Promise<ActionResult<{ ver
       parsed.data.note
     );
     revalidateTemplate(parsed.data.id);
+    // Rollback republishes an older payload, so the framed pages change — the
+    // same reason the pages action revalidates here and not on `snapshot`.
+    await revalidatePublicTemplate(parsed.data.id);
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
