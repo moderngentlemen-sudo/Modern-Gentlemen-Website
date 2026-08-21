@@ -73,20 +73,22 @@ describe("template publish validation — the content marker", () => {
     expect(issues[0].key).toBe("two");
   });
 
-  it("refuses a marker that sits outside main, where nothing renders it", () => {
-    // The case an editor cannot infer: the builder shows every area as equally
-    // real, and only the page renderer knows it reads `main` alone.
-    const issues = markerIssues(areas({ footer: [marker("stray")] }));
-
-    expect(issues).toHaveLength(1);
-    expect(issues[0].message).toMatch(/must sit in the "main" area/);
-    expect(issues[0].path).toBe("areas.footer");
+  it("accepts a marker in an area that is not called main", () => {
+    // ⚠️ The rule that used to live here required `main`, and the templates E2E
+    // found the flaw in one run: it renames the only area to `body`, which is
+    // an ordinary edit, and a name-based rule turned it into an unpublishable
+    // document. `findContentArea` keys the renderer on the marker instead, so
+    // this must publish cleanly.
+    expect(markerIssues(areas({ body: [masthead("a"), marker()] }))).toEqual([]);
   });
 
-  it("reports the misplaced marker once, not also as a missing one", () => {
-    // Both complaints are true and reporting both would be noise: the fix is
-    // one move, so there is one issue.
-    expect(markerIssues(areas({ main: [masthead("a")], footer: [marker()] }))).toHaveLength(1);
+  it("counts markers across every area, not just one", () => {
+    // Two areas each holding one is still two: which area renders would be
+    // arbitrary, so it is refused rather than resolved.
+    const issues = markerIssues(areas({ main: [marker("one")], footer: [marker("two")] }));
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toMatch(/exactly one/);
   });
 
   it("leaves every other document type alone", () => {

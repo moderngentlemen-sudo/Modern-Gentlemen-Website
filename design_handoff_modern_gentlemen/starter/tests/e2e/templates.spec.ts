@@ -53,6 +53,17 @@ async function save(page: Page) {
   await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
 }
 
+/**
+ * The pull-quote block on the canvas, found by the text it renders.
+ *
+ * Position is no longer a safe way to pick a block out of `main`: the Page
+ * content marker is seeded first and renders nothing, so `.first()` selects a
+ * frame with no fields and the assertion that follows reads an empty panel.
+ */
+function quoteBlock(page: Page) {
+  return page.locator("[data-block-key]").filter({ hasText: "Composed in main." });
+}
+
 test.describe("templates", () => {
   test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
   test.describe.configure({ mode: "serial" });
@@ -83,7 +94,25 @@ test.describe("templates", () => {
     // the builder opened with no tree to show and no obvious way forward. The
     // service seeds exactly one area instead.
     await expect(area(page, "main")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByText("Add your first section")).toBeVisible();
+
+    // ⚠️ And it arrives holding the **Page content** marker, not an empty
+    // canvas. This assertion used to be `getByText("Add your first section")`,
+    // and the template renderer slice is what changed it: a template with no
+    // marker frames nothing and is refused at publish, so creating one in that
+    // state would mean the tool refuses the thing it just made. Same reasoning
+    // as the area itself arriving as `main` rather than `{}`, and as a
+    // `columns` row arriving holding two columns.
+    await expect(page.getByText("Add your first section")).toBeHidden();
+
+    // Located by its **drag handle**, not by its label. The label appears in a
+    // `<span>` on the canvas *and* as a rail button — `blockCatalogFor` offers
+    // "Page content" in a template — so `getByRole("button", {name: "Page
+    // content"})` would match the library entry and pass without a block on the
+    // canvas at all. `exact: true` for the reason this repo has now recorded
+    // twice: `getByRole`'s name match is a substring by default.
+    await expect(page.getByRole("button", { name: "Drag Page content", exact: true })).toHaveCount(
+      1
+    );
   });
 
   test("keeps each area's blocks in that area, across a switch and a reload", async ({ page }) => {
@@ -96,7 +125,10 @@ test.describe("templates", () => {
       .getByRole("button", { name: /^Pull quote/i })
       .first()
       .click();
-    await expect(page.locator("[data-block-key]")).toHaveCount(1);
+    // Two, not one: `main` arrives holding the Page content marker, and the
+    // pull quote joins it. See the create test above for why a template is
+    // seeded with the marker rather than starting empty.
+    await expect(page.locator("[data-block-key]")).toHaveCount(2);
 
     // By role, not by label: every block toolbar button is named after its
     // block, so getByLabel("Quote") matches the handles too.
@@ -138,8 +170,10 @@ test.describe("templates", () => {
     await expect(area(page, "header")).toBeVisible();
 
     await area(page, "main").click();
-    await expect(page.locator("[data-block-key]")).toHaveCount(1);
-    await page.locator("[data-block-key]").first().click();
+    await expect(page.locator("[data-block-key]")).toHaveCount(2);
+    // Selected by its own text rather than by position: `.first()` is the
+    // Page content marker now, and it has no fields at all.
+    await quoteBlock(page).click();
     await expect(page.getByRole("textbox", { name: "Quote" })).toHaveValue("Composed in main.");
 
     await area(page, "header").click();
@@ -187,7 +221,7 @@ test.describe("templates", () => {
 
     // The rename banks the open tree before moving it, so the blocks that
     // arrive under the new name are the ones that were on screen.
-    await page.locator("[data-block-key]").first().click();
+    await quoteBlock(page).click();
     await expect(page.getByRole("textbox", { name: "Quote" })).toHaveValue("Composed in main.");
   });
 

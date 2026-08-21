@@ -29,23 +29,19 @@ import type { BlockNode, BlockTree } from "./types";
 export const DOCUMENT_CONTENT_TYPE = "documentContent";
 
 /**
- * The area a page template composes from.
+ * The area a new template is seeded with. Mirrors `DEFAULT_AREA_NAME`.
  *
- * **Only `main` is rendered by the page renderer**, and that is a deliberate
- * narrowing rather than an oversight. Areas have no stored order — `areas.ts`
- * records that jsonb does not preserve key insertion order — so rendering "all
- * the areas" would mean rendering them alphabetically, which is an arrangement
- * no editor asked for and none could control. The templates phase refused
- * exactly that for preview, on the grounds that it "would render an arrangement
- * no renderer will ever produce"; inventing it here would be the same mistake
- * one layer down.
+ * ⚠️ **This is a starting point, not the rendered area.** An earlier version of
+ * this module hard-coded `main` as the area the page renderer reads, and the
+ * templates E2E found the flaw in one run: it renames the only area to `body`,
+ * which is a perfectly ordinary thing for an editor to do, and under a
+ * name-based rule that silently unhooked the template from every page using it.
+ * A magic name that must never be renamed is a trap, not a contract.
  *
- * Other areas remain legal, editable and versioned — they are what the `header`
- * and `footer` kinds will use. They simply do not appear on a page yet, and
- * `validateTemplateAreas` says so at publish rather than leaving an editor to
- * discover it from a blank page.
+ * `findContentArea` replaces it: **the marker identifies its own area**, so
+ * names are cosmetic and a rename cannot break rendering.
  */
-export const TEMPLATE_MAIN_AREA = "main";
+export const TEMPLATE_SEED_AREA = "main";
 
 /** Every `documentContent` node in a tree, by `_key`, including nested ones. */
 export function collectContentMarkers(tree: BlockTree | undefined): string[] {
@@ -115,4 +111,22 @@ export function applyTemplate(area: BlockTree | undefined, sections: BlockTree):
   };
 
   return splice(area);
+}
+
+/**
+ * The area holding the content marker, or `null` when no area does.
+ *
+ * This is what the page renderer reads, and it is deliberately keyed on the
+ * marker rather than on a name. Areas have no stored order — `areas.ts` records
+ * that jsonb sorts keys by length then bytewise — so when more than one area
+ * holds a marker the choice between them would be arbitrary. Publish validation
+ * refuses that state; here it resolves alphabetically so the behaviour is at
+ * least deterministic rather than dependent on how Postgres happened to store
+ * the object.
+ */
+export function findContentArea(areas: Record<string, BlockTree>): BlockTree | null {
+  for (const name of Object.keys(areas).sort()) {
+    if (collectContentMarkers(areas[name]).length > 0) return areas[name];
+  }
+  return null;
 }

@@ -20,8 +20,8 @@
 
 import { createPublicClient } from "@/lib/db/public";
 import { collectPatternRefs, expandPatterns } from "@/lib/blocks/expand";
-import { applyTemplate, TEMPLATE_MAIN_AREA } from "@/lib/blocks/templateContent";
-import { readArea } from "@/lib/blocks/areas";
+import { applyTemplate, findContentArea } from "@/lib/blocks/templateContent";
+import { readAreas } from "@/lib/blocks/areas";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { Json } from "@/lib/db/database.types";
 
@@ -207,7 +207,10 @@ async function publishedTemplateArea(
   // assigned a template to it. The loud half of this belongs in the admin.
   if (!template) return null;
 
-  return readArea(template.published_data, TEMPLATE_MAIN_AREA);
+  // The area holding the marker, whatever it is called. Keyed on the marker
+  // rather than on a name so that renaming an area cannot unhook the template
+  // — see `findContentArea`.
+  return findContentArea(readAreas(template.published_data));
 }
 
 /**

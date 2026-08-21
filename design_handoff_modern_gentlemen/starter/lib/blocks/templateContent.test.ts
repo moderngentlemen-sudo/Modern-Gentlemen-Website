@@ -4,7 +4,8 @@ import {
   applyTemplate,
   collectContentMarkers,
   DOCUMENT_CONTENT_TYPE,
-  TEMPLATE_MAIN_AREA,
+  findContentArea,
+  TEMPLATE_SEED_AREA,
 } from "./templateContent";
 import type { BlockNode, BlockTree } from "./types";
 
@@ -114,12 +115,49 @@ describe("applyTemplate", () => {
   });
 });
 
-describe("TEMPLATE_MAIN_AREA", () => {
-  it("is the area name a new template is created with", () => {
+describe("findContentArea", () => {
+  it("finds the area holding the marker, whatever it is called", () => {
+    // The point of the whole indirection: an editor renaming their only area
+    // must not unhook the template. A name-based rule made that ordinary edit
+    // silently fatal, which is what the templates E2E caught.
+    const areas = { body: [block("a"), marker()], header: [block("b")] };
+
+    expect(findContentArea(areas)).toBe(areas.body);
+  });
+
+  it("ignores areas without a marker", () => {
+    const areas = { footer: [block("a")], zzz: [marker()] };
+
+    expect(findContentArea(areas)).toBe(areas.zzz);
+  });
+
+  it("finds one nested inside a container", () => {
+    const areas = {
+      main: [block("row", "columns", [block("col", "column", [marker()])])],
+    };
+
+    expect(findContentArea(areas)).toBe(areas.main);
+  });
+
+  it("returns null when nothing holds a marker", () => {
+    expect(findContentArea({ main: [block("a")] })).toBeNull();
+    expect(findContentArea({})).toBeNull();
+  });
+
+  it("resolves alphabetically when two areas hold one, so it is deterministic", () => {
+    // Publish validation refuses this state. If it exists anyway, jsonb key
+    // order is not something to depend on — see the header on ordering.
+    const areas = { zeta: [marker("z")], alpha: [marker("a")] };
+
+    expect(findContentArea(areas)).toBe(areas.alpha);
+  });
+});
+
+describe("TEMPLATE_SEED_AREA", () => {
+  it("matches the area name a new template is created with", () => {
     // Guards the pairing rather than the string: `createTemplate` seeds
-    // `DEFAULT_AREA_NAME` and the renderer reads `TEMPLATE_MAIN_AREA`. If those
-    // two ever drift, every template renders as an unframed page and nothing
-    // else fails.
-    expect(TEMPLATE_MAIN_AREA).toBe("main");
+    // `DEFAULT_AREA_NAME`, and this is the name validation points its
+    // "needs a Page content block" issue at.
+    expect(TEMPLATE_SEED_AREA).toBe("main");
   });
 });
