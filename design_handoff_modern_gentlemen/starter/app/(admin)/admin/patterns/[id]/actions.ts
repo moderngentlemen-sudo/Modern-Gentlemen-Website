@@ -18,13 +18,12 @@ import { toActionResult } from "../../_lib/errors";
  *   1. The tree lives under `blocks`, not `sections` — `BLOCK_TREE_KEY.pattern`.
  *      A payload validated against the wrong key would be rejected on every
  *      save.
- *   2. **Nothing revalidates a public path.** A pattern has no public route of
- *      its own, and because every pattern created here is `detachable` its
- *      blocks were *copied* into whatever pages use it — so publishing one
- *      changes no rendered page. The moment synced patterns ship this stops
- *      being true and this file needs the equivalent of
- *      `revalidatePublicPage`: a synced pattern is expanded at render time, so
- *      publishing it would change every page that references it.
+ *   2. **Publishing a pattern now changes rendered pages**, which it did not
+ *      before synced patterns worked. This file's previous header predicted
+ *      exactly this — "the moment synced patterns ship this stops being true
+ *      and this file needs the equivalent of `revalidatePublicPage`" — and
+ *      `revalidatePublic` below is that equivalent. See its own comment for why
+ *      it is the whole site rather than a path.
  */
 const Id = z.string().uuid();
 
@@ -52,6 +51,33 @@ function revalidatePattern(id: string): void {
   revalidatePath(`/admin/patterns/${id}`);
 }
 
+/**
+ * Refresh every public page, because a synced pattern can be on any of them.
+ *
+ * ⚠️ **Deliberately the whole site, and deliberately not a lookup.** The precise
+ * version — find the documents whose `published_data` contains a `_ref` to this
+ * pattern and revalidate only those — needs a jsonb containment query that has
+ * to match a ref at *any* depth of a nested tree, and it would be wrong in the
+ * direction that fails silently: a page it missed keeps serving the old blocks
+ * with nothing anywhere reporting a problem. Revalidating everything is
+ * over-broad in the direction that is merely wasteful.
+ *
+ * The precedent is `/admin/navigation`, which does the same for the same reason
+ * — the chrome is in the site layout, so every menu write touches every page.
+ *
+ * Called for publish, unpublish and rollback, and **not** for snapshot: a
+ * snapshot writes history and touches no published payload, so nothing a
+ * visitor sees can have moved. Same list the page actions use.
+ *
+ * A detachable pattern's blocks were copied into their pages at insert time, so
+ * publishing one changes nothing rendered — this is a no-op for it beyond the
+ * cost of the call. Branching on `sync_mode` to avoid that would mean reading
+ * the row to find out, which costs more than it saves.
+ */
+function revalidatePublic(): void {
+  revalidatePath("/", "layout");
+}
+
 export async function publishAction(input: unknown): Promise<ActionResult<{ version: number }>> {
   const parsed = z.object({ id: Id, note: z.string().trim().max(500).optional() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
@@ -59,6 +85,7 @@ export async function publishAction(input: unknown): Promise<ActionResult<{ vers
   try {
     const version = await publish("pattern", parsed.data.id, parsed.data.note);
     revalidatePattern(parsed.data.id);
+    revalidatePublic();
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -72,6 +99,7 @@ export async function unpublishAction(input: unknown): Promise<ActionResult<{ ve
   try {
     const version = await unpublish("pattern", parsed.data.id, parsed.data.note);
     revalidatePattern(parsed.data.id);
+    revalidatePublic();
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
@@ -111,6 +139,7 @@ export async function rollbackAction(input: unknown): Promise<ActionResult<{ ver
       parsed.data.note
     );
     revalidatePattern(parsed.data.id);
+    revalidatePublic();
     return ok({ version });
   } catch (error) {
     return toActionResult(error);
