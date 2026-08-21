@@ -11,7 +11,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
   useScrollLock(open);
 
   return (
-    <OverlayScrim open={open} onClose={onClose} align="right" label="Bag">
+    <OverlayScrim open={open} onClose={onClose} align="right" label="Bag" id="mg-bag-drawer">
       <aside className="h-full w-full max-w-[440px] ml-auto bg-mg-surface text-mg-fg flex flex-col animate-[slideInRight_.26s_ease]">
         <div className="flex items-center justify-between p-6 border-b border-mg-bd/10">
           <div className="flex items-baseline gap-3">

@@ -7,11 +7,16 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
  * Browsers are preinstalled in this environment at /opt/pw-browsers and
  * PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD is set — never run `playwright install`.
  *
- * Two projects:
+ * Three projects:
  *   e2e    — critical user journeys across UI, API and persistence.
  *   visual — screenshot diffing. Public pages guard the pixel-verified design
  *            in handoff/screenshots/; admin surfaces are captured in BOTH
  *            themes so the on-brand admin styling cannot drift.
+ *   a11y   — axe-core against every public route in both themes, plus the
+ *            keyboard behaviour of the three overlays. Separate from `visual`
+ *            because it asserts the DOM rather than the pixels, and separate
+ *            from `e2e` because it needs no credentials and must therefore
+ *            run everywhere — including a container that has none.
  */
 export default defineConfig({
   testDir: "./tests",
@@ -54,6 +59,11 @@ export default defineConfig({
     {
       name: "visual",
       testDir: "./tests/visual",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "a11y",
+      testDir: "./tests/a11y",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
     },
   ],

@@ -188,6 +188,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
   return (
     <div
+      id="mg-search-overlay"
       data-screen-label="Search"
       role="dialog"
       aria-modal="true"
