@@ -50,6 +50,24 @@ let outsider: { id: string; email: string; password: string };
 /** Staff: can edit a page, and that is all. Used for the escalation tests. */
 let pageWriterDb: Db;
 
+/**
+ * Staff: `page.write` **and** `page.delete`.
+ *
+ * The positive half of `0022`. Without an actor that holds the delete
+ * permission, every assertion about the new restrictive policies would be
+ * satisfied just as well by a policy that refuses everybody — which is the
+ * failure mode a blanket `using (false)` would sail through.
+ */
+let pageDeleterDb: Db;
+
+/**
+ * Staff: may write four document types and delete none of them.
+ *
+ * One actor rather than four, because the shape under test is identical on
+ * every table and the interesting variable is the table, not the role.
+ */
+let writerNoDeleteDb: Db;
+
 /** Staff: read-only over media. The negative half of the media.write gate. */
 let mediaReaderDb: Db;
 
@@ -66,6 +84,23 @@ beforeAll(async () => {
   const pageWriterRole = await fixtures.createRole(["page.read", "page.write"]);
   const pageWriter = await fixtures.createUser([pageWriterRole]);
   pageWriterDb = await fixtures.signIn(pageWriter.email, pageWriter.password);
+
+  const pageDeleterRole = await fixtures.createRole(["page.read", "page.write", "page.delete"]);
+  const pageDeleter = await fixtures.createUser([pageDeleterRole]);
+  pageDeleterDb = await fixtures.signIn(pageDeleter.email, pageDeleter.password);
+
+  const writerNoDeleteRole = await fixtures.createRole([
+    "article.read",
+    "article.write",
+    "product.read",
+    "product.write",
+    "template.read",
+    "template.write",
+    "pattern.read",
+    "pattern.write",
+  ]);
+  const writerNoDelete = await fixtures.createUser([writerNoDeleteRole]);
+  writerNoDeleteDb = await fixtures.signIn(writerNoDelete.email, writerNoDelete.password);
 
   const mediaReaderRole = await fixtures.createRole(["media.read"]);
   const mediaReader = await fixtures.createUser([mediaReaderRole]);
@@ -145,6 +180,61 @@ async function makeProduct(status: "draft" | "published"): Promise<{ id: string;
 
   if (error || !data) throw new Error(`makeProduct: ${error?.message}`);
   fixtures.track("products", data.id);
+  return data;
+}
+
+/** A bare media asset, with no product behind it. `0022`'s media fixture. */
+async function makeAsset(): Promise<{ id: string }> {
+  const { data, error } = await db
+    .from("media_assets")
+    .insert({
+      storage_path: prefixed("rls/asset.jpg"),
+      kind: "image",
+      mime_type: "image/jpeg",
+      file_name: "asset.jpg",
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(`makeAsset: ${error?.message}`);
+  fixtures.track("media_assets", data.id);
+  return data;
+}
+
+/** `kind` is CHECK-constrained; `page` is the least surprising member. */
+async function makeTemplate(): Promise<{ id: string }> {
+  const { data, error } = await db
+    .from("templates")
+    .insert({ key: prefixed("rls-template"), kind: "page", name: "RLS fixture template" })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(`makeTemplate: ${error?.message}`);
+  fixtures.track("templates", data.id);
+  return data;
+}
+
+async function makePattern(): Promise<{ id: string }> {
+  const { data, error } = await db
+    .from("patterns")
+    .insert({ key: prefixed("rls-pattern"), name: "RLS fixture pattern" })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(`makePattern: ${error?.message}`);
+  fixtures.track("patterns", data.id);
+  return data;
+}
+
+async function makeCategory(): Promise<{ id: string }> {
+  const { data, error } = await db
+    .from("categories")
+    .insert({ slug: prefixed("rls-category"), name: "RLS fixture category" })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(`makeCategory: ${error?.message}`);
+  fixtures.track("categories", data.id);
   return data;
 }
 
@@ -721,20 +811,181 @@ describe("system pages", () => {
   it("still allows deleting an ordinary page, so the guard is not a blanket refusal", async () => {
     const ordinary = await makePage("published");
 
-    // The same actor as above, holding page.write and NOT page.delete — and it
-    // deletes this one, because `pages: write` is a cmd=ALL permissive policy
-    // that covers DELETE. That is finding #2 in PROGRESS.md: `page.delete`
-    // grants rather than restricts. `0018` deliberately did not touch it, so
-    // this assertion is the proof that the restrictive policy is narrow —
-    // scoped to `is_system` and nothing else.
-    await pageWriterDb.from("pages").delete().eq("id", ordinary.id);
+    // `pageDeleterDb`, not `pageWriterDb`. Until `0022` this assertion used the
+    // write-only actor and passed — which was the point: it was the
+    // characterisation test for finding #2, proving `page.delete` granted
+    // rather than restricted. `0022` makes the delete permission real, so the
+    // narrowness of `0018`'s guard now has to be shown by an actor that holds
+    // it. Both restrictive policies are AND-ed, and this actor passes both.
+    await pageDeleterDb.from("pages").delete().eq("id", ordinary.id);
 
     const { count } = await db
       .from("pages")
       .select("*", { count: "exact", head: true })
       .eq("id", ordinary.id);
 
-    expect(count, "a non-system page is still deletable").toBe(0);
+    expect(count, "a non-system page is still deletable by a page.delete holder").toBe(0);
+  });
+
+  it("refuses even a page.delete holder a system page, so the two guards stack", async () => {
+    const system = await makePage("published", { isSystem: true });
+
+    await pageDeleterDb.from("pages").delete().eq("id", system.id);
+
+    const { count } = await db
+      .from("pages")
+      .select("*", { count: "exact", head: true })
+      .eq("id", system.id);
+
+    // `0018` and `0022` are both RESTRICTIVE on the same command, so they are
+    // AND-ed with each other as well as with the permissive set. Holding the
+    // delete permission satisfies one and not the other.
+    expect(count, "`0018` must still bind an actor that clears `0022`").toBe(1);
+  });
+});
+
+/**
+ * `0022`. The third characterisation test in this file to complete the full
+ * cycle — asserted as the wrong-but-current behaviour, cited to justify a
+ * migration, then inverted in the same commit as the fix. The one that moved is
+ * directly above: "still allows deleting an ordinary page" used to run as the
+ * write-only actor.
+ *
+ * The defect: a `for all` permissive write policy covers DELETE, and permissive
+ * policies are OR-ed, so `x.write OR x.delete` made every delete permission
+ * additive. It could grant and never refuse.
+ *
+ * Every one of these actors could delete the row before `0022`. The service
+ * layer refused them all — `deleteDocument`, `lib/services/media.ts` and
+ * `lib/services/products.ts` each call `requirePermission` with the right
+ * `x.delete` — but PostgREST is a public endpoint and a signed-in author holds
+ * a real JWT, so the service layer is not in that path. RLS is.
+ */
+describe("delete permissions are real gates", () => {
+  it("refuses an article.write holder without article.delete", async () => {
+    const article = await makeArticle("published");
+
+    // Editing it is allowed, which is what makes the refusal specific: this
+    // actor reaches the row perfectly well and is stopped only at DELETE.
+    const { error: editError } = await writerNoDeleteDb
+      .from("articles")
+      .update({ title: "Edited, which is allowed" })
+      .eq("id", article.id);
+    expect(editError, "editing is ordinary article.write work").toBeNull();
+
+    await writerNoDeleteDb.from("articles").delete().eq("id", article.id);
+
+    const { count } = await db
+      .from("articles")
+      .select("*", { count: "exact", head: true })
+      .eq("id", article.id);
+
+    expect(count, "article.write alone must no longer delete").toBe(1);
+  });
+
+  it("refuses a product.write holder without product.delete", async () => {
+    const product = await makeProduct("published");
+
+    await writerNoDeleteDb.from("products").delete().eq("id", product.id);
+
+    const { count } = await db
+      .from("products")
+      .select("*", { count: "exact", head: true })
+      .eq("id", product.id);
+
+    expect(count, "product.write alone must no longer delete").toBe(1);
+  });
+
+  it("refuses a media.write holder without media.delete", async () => {
+    const asset = await makeAsset();
+
+    await mediaWriterDb.from("media_assets").delete().eq("id", asset.id);
+
+    const { count } = await db
+      .from("media_assets")
+      .select("*", { count: "exact", head: true })
+      .eq("id", asset.id);
+
+    // The asymmetry this closes is worth naming: `0013` already gated the
+    // storage object on `media.delete` with a per-command policy, so this actor
+    // could delete the catalogue row and not the file it points at, leaving an
+    // orphan in the bucket.
+    expect(count, "media.write alone must no longer delete").toBe(1);
+  });
+
+  it("refuses template.write and pattern.write holders their own tables", async () => {
+    const template = await makeTemplate();
+    const pattern = await makePattern();
+
+    await writerNoDeleteDb.from("templates").delete().eq("id", template.id);
+    await writerNoDeleteDb.from("patterns").delete().eq("id", pattern.id);
+
+    const { count: templateCount } = await db
+      .from("templates")
+      .select("*", { count: "exact", head: true })
+      .eq("id", template.id);
+    const { count: patternCount } = await db
+      .from("patterns")
+      .select("*", { count: "exact", head: true })
+      .eq("id", pattern.id);
+
+    expect(templateCount, "template.write alone must no longer delete").toBe(1);
+    expect(patternCount, "pattern.write alone must no longer delete").toBe(1);
+  });
+
+  it("still lets the editor role delete all four, so none of this is a blanket refusal", async () => {
+    const article = await makeArticle("published");
+    const product = await makeProduct("published");
+    const asset = await makeAsset();
+    const pattern = await makePattern();
+
+    await editorDb.from("articles").delete().eq("id", article.id);
+    await editorDb.from("products").delete().eq("id", product.id);
+    await editorDb.from("media_assets").delete().eq("id", asset.id);
+    await editorDb.from("patterns").delete().eq("id", pattern.id);
+
+    for (const [table, id] of [
+      ["articles", article.id],
+      ["products", product.id],
+      ["media_assets", asset.id],
+      ["patterns", pattern.id],
+    ] as const) {
+      const { count } = await db
+        .from(table)
+        .select("*", { count: "exact", head: true })
+        .eq("id", id);
+      expect(count, `the editor role holds the delete permission for ${table}`).toBe(0);
+    }
+  });
+
+  /**
+   * `categories` is deliberately absent from `0022`, and this says so in a way
+   * that goes red if somebody adds it without doing the rest of the work.
+   *
+   * A category has two delete routes checking different permissions —
+   * `/admin/taxonomy` requires `taxonomy.write`, `/admin/categories` requires
+   * `category.delete` — and `0021` widened the write policy to
+   * `taxonomy.write OR category.write` expressly so `author` would keep
+   * behaving as it did. A restrictive `category.delete` gate breaks the
+   * taxonomy screen for that role. See `0022`'s header and Known issues.
+   */
+  it("KNOWN GAP: taxonomy.write still deletes a category, because 0022 excluded it", async () => {
+    const taxonomyWriterRole = await fixtures.createRole(["taxonomy.write"]);
+    const taxonomyWriter = await fixtures.createUser([taxonomyWriterRole]);
+    const taxonomyWriterDb = await fixtures.signIn(taxonomyWriter.email, taxonomyWriter.password);
+
+    const category = await makeCategory();
+
+    await taxonomyWriterDb.from("categories").delete().eq("id", category.id);
+
+    const { count } = await db
+      .from("categories")
+      .select("*", { count: "exact", head: true })
+      .eq("id", category.id);
+
+    // INVERT THIS when the two service paths are reconciled and a restrictive
+    // `category.delete` policy lands: the row survives, and `count` becomes 1.
+    expect(count, "recorded as it behaves today, not as it should").toBe(0);
   });
 });
 
