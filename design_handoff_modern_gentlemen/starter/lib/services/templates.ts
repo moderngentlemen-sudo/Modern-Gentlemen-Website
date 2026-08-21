@@ -4,11 +4,13 @@
 
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/templates";
+import { DEFAULT_AREA_NAME } from "@/lib/blocks/areas";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { Json } from "@/lib/db/database.types";
 import { requirePermission } from "./auth";
 
-export type { TemplateRow, TemplateKind } from "@/lib/db/repositories/templates";
+export type { TemplateRow } from "@/lib/db/repositories/templates";
+export type { TemplateKind } from "@/lib/domain/templates";
 
 export async function listTemplates(options: { kind?: repo.TemplateKind } = {}) {
   await requirePermission("template.read");
@@ -47,7 +49,16 @@ export async function createTemplate(input: {
     isGlobal: input.isGlobal,
     // Templates hold named areas rather than one ordered list — see
     // BLOCK_TREE_KEY in lib/domain/documents.ts.
-    draftData: { areas: input.areas ?? {} } as unknown as Json,
+    //
+    // ⚠️ **One area, not none.** `0003` defaults the column to `{"areas":{}}`
+    // and this used to pass that through, which produced a template the builder
+    // could open and then had no tree to show — the area switcher's own "add an
+    // area" being the only way out of a state nothing announced. A template
+    // arrives with `main`, exactly as a `columns` row arrives holding two
+    // columns rather than empty.
+    draftData: {
+      areas: input.areas ?? { [DEFAULT_AREA_NAME]: [] },
+    } as unknown as Json,
     createdBy: user.id,
   });
 }

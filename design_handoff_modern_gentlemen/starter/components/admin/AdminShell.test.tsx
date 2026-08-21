@@ -17,14 +17,15 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/admin" }));
 vi.mock("@/lib/theme", () => ({ useTheme: () => ({ theme: "light", toggle: vi.fn() }) }));
 
 import { AdminShell } from "./AdminShell";
+import type { Permission } from "@/lib/domain/permissions";
 
-function renderShell() {
+function renderShell(permissions: Permission[] = ["page.read", "integration.read"]) {
   render(
     <AdminShell
       email="welcome@moderngentlemen.co"
       fullName="Modern Gentlemen"
       roles={["admin"]}
-      permissions={["page.read", "integration.read"]}
+      permissions={permissions}
     >
       <div />
     </AdminShell>
@@ -62,5 +63,36 @@ describe("the account footer", () => {
     expect(within(nav).getByRole("link", { name: "Pages" })).toBeInTheDocument();
     // `media.read` was not granted above.
     expect(within(nav).queryByRole("link", { name: "Media" })).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ **A nav entry is a promise that a screen exists.**
+ *
+ * Both Templates and Patterns sat in `NAV` from Phase 4 with neither route
+ * built, so every seeded admin — who holds `template.read` and `pattern.read` —
+ * got a 404 straight from the sidebar. Both were removed, and each came back
+ * only on the commit that built its screen: patterns first, then templates once
+ * the builder learned to open a document whose payload holds named areas.
+ *
+ * This pins the second half of that rule. It is not a strong test on its own —
+ * it cannot see whether `/admin/templates` resolves — but it fails loudly if
+ * anyone removes the entry again, and it is the place the reasoning is written
+ * down next to an assertion rather than only in a comment.
+ */
+describe("the Templates entry", () => {
+  it("appears for a reader, now that the route it points at exists", () => {
+    renderShell(["template.read"]);
+
+    const nav = screen.getByRole("navigation");
+    const link = within(nav).getByRole("link", { name: "Templates" });
+    expect(link).toHaveAttribute("href", "/admin/templates");
+  });
+
+  it("is hidden without template.read, like every other section", () => {
+    renderShell(["page.read"]);
+
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByRole("link", { name: "Templates" })).toBeNull();
   });
 });

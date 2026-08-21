@@ -23,6 +23,7 @@ import { HAIRLINE } from "@/components/admin/ui/styles";
 import { manifestFor } from "@/lib/blocks/manifests";
 
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
+import { AreaSwitcher } from "./AreaSwitcher";
 import { Canvas } from "./Canvas";
 import { InsertMenu } from "./InsertMenu";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -262,6 +263,11 @@ function BuilderLayout({
           </aside>
 
           <main className="min-w-0 flex-1 overflow-y-auto bg-mg-bg">
+            {/*
+              Renders nothing unless the document has areas, so the layout does
+              not need to know which types do. A template is the only one today.
+            */}
+            <AreaSwitcher />
             <Canvas libraryDragType={libraryType} drop={drop} />
           </main>
 

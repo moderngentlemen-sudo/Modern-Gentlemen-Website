@@ -54,6 +54,10 @@ export function useAutosave(saveDraft: SaveDraft): void {
       // against this, so an edit made mid-flight leaves the document dirty
       // rather than being silently dropped from the next save.
       const sent: BlockTree = state.tree;
+      // And the exact `rest`, which for a template carries every area the store
+      // is not currently showing. Both halves are needed: an area switched or
+      // edited mid-flight changes `rest` without changing `tree`.
+      const sentRest = state.doc.rest;
       const payload = state.payload();
 
       inFlight.current = true;
@@ -61,7 +65,7 @@ export function useAutosave(saveDraft: SaveDraft): void {
 
       try {
         const result = await saveDraft(payload);
-        if (result.ok) store.getState().markSaved(sent);
+        if (result.ok) store.getState().markSaved(sent, sentRest);
         else store.getState().markSaveError(result.error);
       } catch {
         store.getState().markSaveError("Could not reach the server. Your changes are unsaved.");
@@ -77,7 +81,11 @@ export function useAutosave(saveDraft: SaveDraft): void {
     }
 
     const unsubscribe = store.subscribe((state, previous) => {
-      if (state.tree === previous.tree) return;
+      // `rest` is watched as well as `tree` because a template's area
+      // operations — add, rename, remove — change the payload without touching
+      // the open tree. Watching the tree alone meant a renamed area sat unsaved
+      // until the editor happened to type into a block.
+      if (state.tree === previous.tree && state.doc.rest === previous.doc.rest) return;
       if (!state.dirty) return;
 
       const now = Date.now();

@@ -660,8 +660,9 @@ describe("save lifecycle", () => {
     store.getState().insert("pullQuote");
 
     const sent = store.getState().tree;
+    const sentRest = store.getState().doc.rest;
     store.getState().markSaving();
-    store.getState().markSaved(sent);
+    store.getState().markSaved(sent, sentRest);
 
     expect(store.getState().dirty).toBe(false);
     expect(store.getState().save.kind).toBe("saved");
@@ -672,9 +673,10 @@ describe("save lifecycle", () => {
     store.getState().insert("pullQuote");
 
     const sent = store.getState().tree;
+    const sentRest = store.getState().doc.rest;
     store.getState().markSaving();
     store.getState().insert("masthead"); // the editor keeps typing
-    store.getState().markSaved(sent);
+    store.getState().markSaved(sent, sentRest);
 
     expect(store.getState().dirty).toBe(true);
     expect(store.getState().save.kind).toBe("dirty");
@@ -747,5 +749,306 @@ describe("newBlockNode", () => {
   it("gives an unknown type empty settings rather than throwing", () => {
     const node = newBlockNode("noSuchBlock");
     expect(node.settings).toEqual({});
+  });
+});
+
+/**
+ * Areas — a template's several block trees, one open at a time.
+ *
+ * The store holds exactly one tree, and `doc.rest` holds the rest of the
+ * payload. For a template that means `rest` carries every area, including a
+ * possibly stale copy of the open one. Nearly every assertion below is really
+ * one question: after operation X, is any area's work only in a place nothing
+ * will send?
+ */
+describe("areas", () => {
+  function makeTemplate(
+    areas: Record<string, BlockTree> = { header: [], main: [] },
+    open = "main"
+  ): BuilderStore {
+    return createBuilderStore({
+      doc: {
+        type: "template",
+        id: "template-1",
+        title: "Editorial layout",
+        slug: "editorial",
+        status: "draft",
+        version: 1,
+        treeKey: `areas.${open}`,
+        rest: { areas },
+        areaNames: Object.keys(areas).sort(),
+      },
+      tree: areas[open] ?? [],
+    });
+  }
+
+  it("writes the open area back into the payload at its nested path", () => {
+    const store = makeTemplate();
+    store.getState().insert("pullQuote");
+
+    const payload = store.getState().payload() as { areas: Record<string, BlockTree> };
+
+    // The bug this forecloses: `{ ...rest, ["areas.main"]: tree }` produces a
+    // literal dotted key, which reads back as no area at all.
+    expect(Object.keys(payload)).toEqual(["areas"]);
+    expect(payload.areas.main).toEqual(store.getState().tree);
+    expect(payload.areas.header).toEqual([]);
+  });
+
+  it("keeps a one-tree document's payload exactly as it was", () => {
+    const store = makeStore();
+    store.getState().insert("pullQuote");
+
+    expect(store.getState().payload()).toEqual({
+      seo: { title: "Home" },
+      sections: store.getState().tree,
+    });
+  });
+
+  it("banks the open area before opening another, so a switch cannot lose an edit", () => {
+    const store = makeTemplate();
+    store.getState().insert("pullQuote");
+    const edited = store.getState().tree;
+
+    store.getState().setArea("header");
+
+    expect(store.getState().doc.treeKey).toBe("areas.header");
+    expect(store.getState().tree).toEqual([]);
+    // The edit is still in the payload that would be sent.
+    expect((store.getState().payload() as { areas: Record<string, BlockTree> }).areas.main).toEqual(
+      edited
+    );
+  });
+
+  it("carries dirtiness across a switch", () => {
+    const store = makeTemplate();
+    store.getState().insert("pullQuote");
+    store.getState().setArea("header");
+
+    expect(store.getState().dirty).toBe(true);
+    expect(store.getState().dirtyElsewhere).toBe(true);
+  });
+
+  /**
+   * The hole `dirtyElsewhere` exists to close. Edit area A, switch to B, then
+   * make and undo an edit in B: B is back at its loaded tree, so the reference
+   * comparison says clean — while A's edit is still only in `rest`.
+   */
+  it("stays dirty when an undo returns the open area to its loaded state", () => {
+    const store = makeTemplate();
+    store.getState().insert("pullQuote");
+    store.getState().setArea("header");
+
+    store.getState().insert("masthead");
+    store.getState().undo();
+
+    expect(store.getState().tree).toEqual([]);
+    expect(store.getState().dirty).toBe(true);
+  });
+
+  it("does not carry dirtiness across a switch that followed no edit", () => {
+    const store = makeTemplate();
+    store.getState().setArea("header");
+
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().dirtyElsewhere).toBe(false);
+  });
+
+  it("clears the undo stack on a switch, so undo cannot restore another area's blocks", () => {
+    const store = makeTemplate();
+    store.getState().insert("pullQuote");
+    expect(store.getState().past.length).toBeGreaterThan(0);
+
+    store.getState().setArea("header");
+    expect(store.getState().past).toEqual([]);
+    expect(store.getState().future).toEqual([]);
+  });
+
+  it("drops the selection on a switch, so the panel cannot edit an unshown block", () => {
+    const store = makeTemplate();
+    store.getState().insert("pullQuote");
+    expect(store.getState().selectedKey).not.toBeNull();
+
+    store.getState().setArea("header");
+    expect(store.getState().selectedKey).toBeNull();
+  });
+
+  it("ignores a switch to the open area or to one that does not exist", () => {
+    const store = makeTemplate();
+    const before = store.getState();
+
+    store.getState().setArea("main");
+    store.getState().setArea("nope");
+
+    expect(store.getState().doc).toBe(before.doc);
+    expect(store.getState().tree).toBe(before.tree);
+  });
+
+  describe("addArea", () => {
+    it("adds an empty area, opens it, and leaves the document dirty", () => {
+      const store = makeTemplate();
+      expect(store.getState().addArea("footer")).toBeNull();
+
+      expect(store.getState().doc.areaNames).toEqual(["footer", "header", "main"]);
+      expect(store.getState().doc.treeKey).toBe("areas.footer");
+      expect(store.getState().tree).toEqual([]);
+      expect(store.getState().dirty).toBe(true);
+    });
+
+    it("banks the open area's edits first", () => {
+      const store = makeTemplate();
+      store.getState().insert("pullQuote");
+      const edited = store.getState().tree;
+
+      store.getState().addArea("footer");
+
+      expect(
+        (store.getState().payload() as { areas: Record<string, BlockTree> }).areas.main
+      ).toEqual(edited);
+    });
+
+    it("refuses a duplicate name and a name that is not slug-shaped", () => {
+      const store = makeTemplate();
+      expect(store.getState().addArea("main")).toMatch(/already an area/);
+      expect(store.getState().addArea("Not A Slug")).toMatch(/lower-case/);
+      expect(store.getState().doc.areaNames).toEqual(["header", "main"]);
+    });
+  });
+
+  describe("renameArea", () => {
+    it("moves the blocks and follows the open area", () => {
+      const store = makeTemplate();
+      store.getState().insert("pullQuote");
+      const edited = store.getState().tree;
+
+      expect(store.getState().renameArea("main", "body")).toBeNull();
+
+      expect(store.getState().doc.areaNames).toEqual(["body", "header"]);
+      expect(store.getState().doc.treeKey).toBe("areas.body");
+      // The renamed area keeps the *current* tree, not the one on disk — the
+      // rename banks the open tree before moving it.
+      expect(
+        (store.getState().payload() as { areas: Record<string, BlockTree> }).areas.body
+      ).toEqual(edited);
+    });
+
+    it("renames an area that is not open without disturbing the open one", () => {
+      const store = makeTemplate();
+      store.getState().insert("pullQuote");
+      const edited = store.getState().tree;
+
+      expect(store.getState().renameArea("header", "top")).toBeNull();
+
+      expect(store.getState().doc.treeKey).toBe("areas.main");
+      expect(store.getState().tree).toBe(edited);
+      expect(store.getState().doc.areaNames).toEqual(["main", "top"]);
+    });
+
+    it("refuses a rename onto an occupied name, which would destroy one of them", () => {
+      const store = makeTemplate();
+      expect(store.getState().renameArea("main", "header")).toMatch(/already an area/);
+      expect(store.getState().doc.areaNames).toEqual(["header", "main"]);
+    });
+  });
+
+  describe("removeArea", () => {
+    it("removes an area and opens another when it was the open one", () => {
+      const store = makeTemplate();
+      expect(store.getState().removeArea("main")).toBeNull();
+
+      expect(store.getState().doc.areaNames).toEqual(["header"]);
+      expect(store.getState().doc.treeKey).toBe("areas.header");
+      expect((store.getState().payload() as { areas: Record<string, BlockTree> }).areas).toEqual({
+        header: [],
+      });
+    });
+
+    it("leaves the open area alone when removing a different one", () => {
+      const store = makeTemplate();
+      store.getState().insert("pullQuote");
+      const edited = store.getState().tree;
+
+      store.getState().removeArea("header");
+
+      expect(store.getState().doc.treeKey).toBe("areas.main");
+      expect(store.getState().tree).toBe(edited);
+    });
+
+    // A template with no areas has no tree the builder can open, so emptying it
+    // would make it uneditable by the very screen that emptied it.
+    it("refuses to remove the last area", () => {
+      const store = makeTemplate({ main: [] }, "main");
+      expect(store.getState().removeArea("main")).toMatch(/at least one area/);
+      expect(store.getState().doc.areaNames).toEqual(["main"]);
+    });
+  });
+
+  describe("areaIssues", () => {
+    /**
+     * Publish validates every area; the tray only ever sees the open one. Without
+     * a per-area count the tray could say "no issues" while publish refused the
+     * document over a block nobody was looking at.
+     */
+    it("counts every area at init, not only the open one", () => {
+      const broken = [newBlockNode("pullQuote", new Set())];
+      broken[0].settings = {}; // a pullQuote with no quote fails its manifest
+      expect(validateTree(broken).issues.length).toBeGreaterThan(0);
+
+      const store = makeTemplate({ header: broken, main: [] }, "main");
+
+      expect(store.getState().issues).toEqual([]);
+      expect(store.getState().areaIssues.header).toBe(validateTree(broken).issues.length);
+      expect(store.getState().areaIssues.main).toBe(0);
+    });
+
+    it("updates the open area's count as it is edited", () => {
+      const store = makeTemplate();
+      store.getState().insert("pullQuote");
+
+      expect(store.getState().areaIssues.main).toBe(store.getState().issues.length);
+      expect(store.getState().areaIssues.header).toBe(0);
+    });
+
+    it("is empty for a document without areas", () => {
+      expect(makeStore().getState().areaIssues).toEqual({});
+    });
+  });
+
+  describe("markSaved", () => {
+    it("clears dirtyElsewhere when the save carried the areas it was given", () => {
+      const store = makeTemplate();
+      store.getState().insert("pullQuote");
+      store.getState().setArea("header");
+
+      const sent = store.getState().tree;
+      const sentRest = store.getState().doc.rest;
+      store.getState().markSaving();
+      store.getState().markSaved(sent, sentRest);
+
+      expect(store.getState().dirty).toBe(false);
+      expect(store.getState().dirtyElsewhere).toBe(false);
+    });
+
+    /**
+     * The reference comparison on `rest` earns its keep here. Switching away and
+     * back mid-flight leaves `tree` identical to what was sent, so the tree
+     * check alone would report the document saved — while the edit made in the
+     * other area in between was never in that payload.
+     */
+    it("stays dirty when another area was edited while the save was in flight", () => {
+      const store = makeTemplate();
+      const sent = store.getState().tree;
+      const sentRest = store.getState().doc.rest;
+      store.getState().markSaving();
+
+      store.getState().setArea("header");
+      store.getState().insert("pullQuote");
+      store.getState().setArea("main");
+
+      store.getState().markSaved(sent, sentRest);
+
+      expect(store.getState().tree).toEqual(sent);
+      expect(store.getState().dirty).toBe(true);
+    });
   });
 });
