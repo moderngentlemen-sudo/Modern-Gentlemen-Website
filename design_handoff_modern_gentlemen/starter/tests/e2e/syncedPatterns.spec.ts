@@ -61,6 +61,27 @@ async function publish(page: Page) {
   await expect(page.getByText(/Published v\d+/)).toBeVisible({ timeout: 15_000 });
 }
 
+/**
+ * A pattern's entry in the builder's library rail.
+ *
+ * ⚠️ **Anchored regex, not an exact name, and this cost a CI run.** The rail's
+ * button holds *two* spans — the pattern's name and a subtitle beneath it (its
+ * description, or "1 section" when it has none) — so the button's accessible
+ * name is `"<name> 1 section"`, and `{ name, exact: true }` could never match
+ * it. The anchor is what keeps the loose match honest: it pins the start of the
+ * name rather than matching a substring anywhere.
+ *
+ * Third time this family has bitten the suite: `getByLabel("Quote")` matched
+ * six elements, `"Drag Column"` matched `"Drag Columns — layout"`, and the
+ * templates spec's `/^Masthead/i` matched nothing because the label is "The
+ * Masthead — team". **The lesson that keeps not transferring: read the markup
+ * of the thing you are locating, not just its visible text.** A stamped name
+ * contains no regex metacharacters, so interpolating it is safe.
+ */
+function libraryPattern(page: Page, name: string) {
+  return page.getByRole("button", { name: new RegExp(`^${name}`) });
+}
+
 /** The category builder is reached from the taxonomy screen, which owns the list. */
 async function openCategory(page: Page) {
   await page.goto("/admin/taxonomy");
@@ -115,7 +136,7 @@ test.describe("synced patterns", () => {
 
     const before = await page.locator("[data-block-key]").count();
 
-    await page.getByRole("button", { name: patternName, exact: true }).click();
+    await libraryPattern(page, patternName).click();
 
     // **One** block, not the pattern's blocks copied in. That single node is the
     // whole difference between synced and detachable at the tree level.
