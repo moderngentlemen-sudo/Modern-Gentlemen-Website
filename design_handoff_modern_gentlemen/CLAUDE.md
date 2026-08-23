@@ -64,7 +64,13 @@ Member discount **15%**; free shipping **≥ £50** else **£4.95**; qty `0` rem
 > **⚠️ SUPERSEDED (location only, since Phase 7b):** the 16-product catalog is no longer read from `starter/lib/catalog.ts` at runtime. The store renders from Supabase (`products` + `product_media`, via `lib/services/publicCatalog.ts`); the ported array now lives at `starter/lib/demo/catalog.ts` and is the **seed source and test fixture**. The commerce *rules* above are unchanged and still authoritative — and note they are now enforced in integer pence by `lib/domain/pricing.ts`, not in pounds.
 
 ## Accessibility (WCAG 2.2 AA — without altering visuals)
-Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc closes; visible focus rings; alt text on all images; reduced-motion gating. Meet AA contrast — the tokens above already do; verify any new combinations.
+Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc closes; visible focus rings; alt text on all images; reduced-motion gating. **All of that is now enforced** by `starter/tests/a11y/` (`npm run test:a11y`) rather than asserted here — 28 tests, axe-core over every public route in both themes plus the overlays' keyboard behaviour.
+
+> ⚠️ **SUPERSEDED: "Meet AA contrast — the tokens above already do" was measured and is false.** That sentence stood unchecked from Track A until the a11y pass ran axe against rendered pixels, and it found **204 contrast violations** — every one a token or the brand accent at a size this document specifies, not a scattered mistake. The worst: `#696969` on `#0d0d0d` at **3.54**, the brand red `#c8102e`/`#ff4d5e` at **2.94–3.3**, and `--mg-muted`/`--mg-faint` as low as **1.97**, against a 4.5 requirement.
+>
+> **This is an open decision, not a defect to quietly fix.** Two rules in this file cannot both survive the measurement: *"Do not deviate — match the handoff bundle exactly"* and the AA commitment above. Changing the tokens or the sizes they are used at **invalidates the sixteen baselines in `handoff/screenshots/` by construction**, so it is the brand's call.
+>
+> It is held as a `KNOWN GAP` characterisation test that asserts today's behaviour and carries the instruction to invert it — the technique that closed `0018` and `0020`. The per-route audits exclude `color-contrast` and enforce every other WCAG A/AA rule, so the suite is informative today rather than failing everywhere for one undecided reason. See the decisions log in `/PROGRESS.md`.
 
 ## Rules for changes
 - No resizing, merging, simplifying, or cleaning up elements/spacing/components — implement as designed even if non-standard.

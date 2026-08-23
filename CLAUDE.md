@@ -55,7 +55,7 @@ design_handoff_modern_gentlemen/starter/
 │                 SessionStart hook prints the true count — this line has been
 │                 stale twice, so it deliberately no longer names one)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
-└─ tests/         e2e/, integration/, visual/, support/, setup/
+└─ tests/         e2e/, integration/, visual/, a11y/, support/, setup/
 ```
 
 ## Standing rules
@@ -178,6 +178,15 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   original request, which is exactly why this hid for so long. Nothing in the
   test suite can catch it: everything runs single-host with no proxy. `curl -o
   /dev/null -w '%{redirect_url}'` against the live URL finds it in one request.
+- **A template frames the page it is assigned to, and the marker decides where.**
+  A `documentContent` block in a template marks where the assigned document's own
+  sections are spliced in (`lib/blocks/templateContent.ts`), and **the area holding
+  that marker is the area that renders** — not one called `main`. That indirection
+  is load-bearing: an earlier version keyed the renderer on the name, and renaming
+  an area silently unhooked the template from every page using it. Publish
+  validation refuses zero markers (the page's sections would vanish) and two (they
+  would render twice). Only `page` templates render today — `/article/[slug]` and
+  the PDP are fixed components, not block trees.
 - **Never commit secrets.** Real values live only in
   `starter/.env.local` (gitignored). `.env.example` carries placeholder names.
 
@@ -188,6 +197,13 @@ Run all four from `design_handoff_modern_gentlemen/starter/`:
 ```bash
 npm run format:check && npm run lint && npm run typecheck && npm test
 ```
+
+**`npm run test:a11y` is the fifth gate worth running by hand**, and the only
+Playwright suite a session container can actually execute — it needs a built,
+seeded site but **no credentials**, where `test:e2e` silently `test.skip`s
+itself without `E2E_ADMIN_EMAIL` and reports green having run nothing. It is
+axe-core over every public route in both themes plus the overlays' keyboard
+behaviour, and it has its own CI step.
 
 ⚠️ **`format:check` walks `starter/` only, so it does not check this file, or
 `PROGRESS.md`, or `design_handoff_modern_gentlemen/CLAUDE.md`** — CI runs it with
