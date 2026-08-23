@@ -1,0 +1,78 @@
+name: Scheduled imports
+
+# The clock behind `product_sources.sync_schedule`.
+#
+# The publish runner's twin, and the reasoning in `scheduled-publish.yml` about
+# *why Actions* holds unchanged. Two things differ, and both are deliberate.
+#
+# **Hourly, not every five minutes.** A publish run is one SQL statement; an
+# import run is a network fetch of a whole merchant catalogue, per source. The
+# finest schedule an operator can choose is `hourly` (see `SYNC_SCHEDULES`),
+# so a tick more often than that would find nothing due and spend a request
+# proving it. The app decides what is due — this workflow only knocks.
+#
+# **The drift is the point, not a defect.** The scheduled-publish phase measured
+# GitHub delaying cron by over ninety minutes on a quiet repository. That is
+# survivable here in a way it would not be for a timed publish, because
+# `isSyncDue` allows a grace window and nothing marks a source as run until it
+# actually runs: a late tick syncs late, it does not skip a period.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+# A slow run must not overlap the next tick. Unlike the publish job there is no
+# `FOR UPDATE SKIP LOCKED` protecting an overlap here — two ticks running the
+# same due source would open two `import_jobs` rows and stage the same proposals
+# twice — so this concurrency group is load-bearing rather than a courtesy.
+concurrency:
+  group: scheduled-imports
+  cancel-in-progress: false
+
+jobs:
+  fire:
+    name: Run the feeds that are due
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST the jobs route
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          JOBS_SECRET: ${{ secrets.JOBS_SECRET }}
+        run: |
+          # Identical to the publish job's handling, and identical on purpose:
+          # NEITHER set means the feature is not switched on, and failing every
+          # hour until someone configures it trains people to ignore the
+          # workflow before it has done its job. ONE set is a mistake, not a
+          # state, and fails loudly.
+          if [ -z "$SITE_URL" ] && [ -z "$JOBS_SECRET" ]; then
+            echo "::notice::Neither SITE_URL nor JOBS_SECRET is set — scheduled imports are not enabled yet. Skipping."
+            exit 0
+          fi
+
+          if [ -z "$SITE_URL" ] || [ -z "$JOBS_SECRET" ]; then
+            echo "::error::Half-configured: set BOTH the SITE_URL repository variable and the JOBS_SECRET repository secret."
+            exit 1
+          fi
+
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            -X POST "$SITE_URL/api/jobs/run-imports" \
+            -H "Authorization: Bearer $JOBS_SECRET" \
+            -H 'Content-Length: 0')
+
+          echo "HTTP $code"
+          cat "$body"
+          echo
+
+          if [ "$code" != "200" ]; then
+            echo "::error::Scheduled imports returned HTTP $code"
+            exit 1
+          fi
+
+          # ⚠️ A 200 does not mean every feed succeeded — the route's own header
+          # says so. A source whose CDN is down is reported *inside* a successful
+          # run, because one merchant being unreachable is not a failure of the
+          # runner. Surfaced as a notice so a red X stays meaningful.
+          if grep -q '"status":"failed"' "$body"; then
+            echo "::warning::At least one feed failed this run — check last_status on the source in /admin/integrations."
+          fi

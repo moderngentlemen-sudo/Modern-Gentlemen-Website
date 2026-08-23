@@ -5,7 +5,9 @@ import {
   columnsForApply,
   imageFileNameFrom,
   imageImportPlan,
+  APPLY_BATCH_SIZE,
   imageTypeProblem,
+  MAX_IMAGE_DOWNLOADS_PER_RUN,
   MAX_IMAGES_PER_PRODUCT,
   normalisedProductSchema,
 } from "./ingestion";
@@ -196,5 +198,20 @@ describe("imageTypeProblem", () => {
     for (const mime of ["application/json", "text/plain", "application/pdf", "video/mp4"]) {
       expect(imageTypeProblem(mime, 1024).ok, mime).toBe(false);
     }
+  });
+});
+
+describe("APPLY_BATCH_SIZE", () => {
+  it("is smaller than the run's image budget, so a batch cannot be image-bound", () => {
+    // The two caps bound different things and must not fight. If a batch could
+    // hold more items than the run has image downloads, the last items in every
+    // batch would silently import no photographs while reporting success — the
+    // budget message ("run apply again") would fire on every single batch.
+    expect(APPLY_BATCH_SIZE).toBeLessThan(MAX_IMAGE_DOWNLOADS_PER_RUN);
+  });
+
+  it("is a positive whole number, because it slices an array", () => {
+    expect(Number.isInteger(APPLY_BATCH_SIZE)).toBe(true);
+    expect(APPLY_BATCH_SIZE).toBeGreaterThan(0);
   });
 });

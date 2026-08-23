@@ -17,7 +17,10 @@ import {
   FEED_TARGET_FIELD_NAMES,
   FEED_TRANSFORMS,
   missingRequiredTargets,
+  SYNC_SCHEDULES,
+  SYNC_SCHEDULE_LABEL,
   type FeedTransform,
+  type SyncSchedule,
 } from "@/lib/domain/ingestion";
 import { PRODUCT_FULFILMENTS } from "@/lib/domain/products";
 
@@ -29,6 +32,8 @@ export interface SourceView {
   kind: string;
   enabled: boolean;
   credentialsRef: string | null;
+  /** `null` is "off" — the absence of a schedule. See `SYNC_SCHEDULES`. */
+  syncSchedule: SyncSchedule | null;
   configValid: boolean;
   fulfilment: "direct" | "affiliate";
   currency: string;
@@ -121,6 +126,10 @@ export function SourceEditor({
   const [fulfilment, setFulfilment] = useState<string>(source.fulfilment);
   const [currency, setCurrency] = useState(source.currency);
   const [credentialsRef, setCredentialsRef] = useState(source.credentialsRef ?? "");
+  // `""` is the select's representation of "off"; `null` is the column's. The
+  // translation happens once, at the boundary, rather than a magic string
+  // travelling through the form.
+  const [syncSchedule, setSyncSchedule] = useState<string>(source.syncSchedule ?? "");
 
   const [mappings, setMappings] = useState<MappingView[]>(initialMappings);
   const [lastRun, setLastRun] = useState<RunSummary | null>(null);
@@ -139,6 +148,7 @@ export function SourceEditor({
         fulfilment,
         currency,
         credentialsRef: credentialsRef.trim() || null,
+        syncSchedule: syncSchedule === "" ? null : syncSchedule,
       };
       const result = await saveSourceAction(
         isShopify
@@ -334,7 +344,28 @@ export function SourceEditor({
               checked={enabled}
               onChange={setEnabled}
               disabled={!canWrite}
-              help="A disabled source refuses to run."
+              help="A disabled source refuses to run, and keeps its schedule."
+            />
+            {/*
+              ⚠️ The column has existed since `0005` and was read by nothing for
+              three phases. It is a coarse vocabulary rather than a cron field on
+              purpose — the runner is GitHub Actions, which this repo has
+              measured drifting over ninety minutes, and a cron field would let
+              an operator write a precision the platform cannot deliver.
+            */}
+            <Select
+              label="Sync schedule"
+              value={syncSchedule}
+              onChange={setSyncSchedule}
+              disabled={!canWrite}
+              help="A scheduled run stages proposals for review — it never writes to the catalogue on its own."
+              options={[
+                { value: "", label: "Off — run by hand only" },
+                ...SYNC_SCHEDULES.map((value) => ({
+                  value,
+                  label: SYNC_SCHEDULE_LABEL[value],
+                })),
+              ]}
             />
             {canWrite && (
               <div className="flex justify-end">

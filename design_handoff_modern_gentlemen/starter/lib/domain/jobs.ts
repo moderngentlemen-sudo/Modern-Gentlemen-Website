@@ -21,6 +21,15 @@ import { publicPathForArticle, publicPathForCategory, publicPathForPage } from "
  */
 export const PUBLISH_SCHEDULED_JOB = "publish-scheduled";
 
+/**
+ * The same, for the feed runner.
+ *
+ * A separate key rather than a shared "scheduled" one: `job_runs` is how an
+ * operator answers "did the thing run", and two jobs on different cadences
+ * writing the same key makes that unanswerable.
+ */
+export const IMPORT_SCHEDULED_JOB = "import-scheduled";
+
 /** `job_runs.status` — the CHECK in `0006_ingestion.sql`. */
 export const JOB_RUN_STATUSES = ["running", "ok", "failed"] as const;
 export type JobRunStatus = (typeof JOB_RUN_STATUSES)[number];
