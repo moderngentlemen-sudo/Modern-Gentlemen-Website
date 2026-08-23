@@ -61,7 +61,7 @@ export async function listTemplates(
   return (unwrap("listTemplates", await query) as TemplateRow[]) ?? [];
 }
 
-interface AssignmentRow {
+export interface AssignmentRow {
   template_id: string;
   scope: "content_type" | "taxonomy" | "entry";
   content_type: string | null;
@@ -114,6 +114,92 @@ export async function resolveTemplateId(
   }
 
   return rows.find((row) => row.scope === "content_type")?.template_id ?? null;
+}
+
+/**
+ * Every assignment in the project, with the template each belongs to.
+ *
+ * Read whole rather than per-template because the assignment UI needs both
+ * halves at once: what *this* template is assigned to, and which targets are
+ * already taken by another one. `template_assignments` holds one row per
+ * content type and one per entry — single digits — so a second query filtered
+ * by template id would cost a round trip to save nothing.
+ */
+export async function listAssignments(db: Db): Promise<AssignmentRow[]> {
+  return (
+    (unwrap(
+      "listAssignments",
+      await db
+        .from("template_assignments")
+        .select("template_id, scope, content_type, taxonomy_slug, entry_id, priority")
+    ) as AssignmentRow[] | null) ?? []
+  );
+}
+
+/**
+ * Points a template at a content type or a single entry, replacing whatever
+ * that target pointed at before.
+ *
+ * **Delete-then-insert, and the delete is the point.** `0003` puts a unique
+ * index on `content_type where scope = 'content_type'` and another on
+ * `entry_id where scope = 'entry'`, so a target can only ever be claimed by one
+ * template. A bare insert therefore fails with `23505` the moment an editor
+ * reassigns "all pages" from one template to another — which is the ordinary
+ * thing to want, not an error. Clearing the target first turns that into the
+ * reassignment it is.
+ *
+ * ⚠️ **Not transactional, and the failure mode is stated rather than hidden.**
+ * PostgREST has no multi-statement transaction, so a delete that succeeds
+ * followed by an insert that fails leaves the target assigned to *nothing*
+ * rather than to its previous holder. That is a visible, recoverable state — the
+ * next screen shows "—" and the editor assigns again — and it is strictly
+ * better than the alternative shape, an insert-first that would have to leave
+ * two rows racing for one unique index. `replaceMappings` in the ingestion
+ * service carries the same caveat for the same reason.
+ */
+export async function assignTemplate(
+  db: Db,
+  input: { templateId: string; contentType: string; entryId?: string | null }
+): Promise<void> {
+  await clearAssignmentTarget(db, input);
+
+  unwrap(
+    "assignTemplate",
+    await db.from("template_assignments").insert({
+      template_id: input.templateId,
+      scope: input.entryId ? "entry" : "content_type",
+      // Written for both scopes even though `0003`'s CHECK only demands it for
+      // `content_type`. An entry row that names its type lets a reader know
+      // which table the id is in without probing both — see `soleFramedDocument`,
+      // which has to probe precisely because older rows may not carry it.
+      content_type: input.contentType,
+      entry_id: input.entryId ?? null,
+    })
+  );
+}
+
+/** Removes whatever claims this target, whichever template holds it. */
+async function clearAssignmentTarget(
+  db: Db,
+  target: { contentType: string; entryId?: string | null }
+): Promise<void> {
+  const query = target.entryId
+    ? db.from("template_assignments").delete().eq("scope", "entry").eq("entry_id", target.entryId)
+    : db
+        .from("template_assignments")
+        .delete()
+        .eq("scope", "content_type")
+        .eq("content_type", target.contentType);
+
+  unwrap("clearAssignmentTarget", await query);
+}
+
+/** Drops every assignment a template holds — "applies to nothing". */
+export async function unassignTemplate(db: Db, templateId: string): Promise<void> {
+  unwrap(
+    "unassignTemplate",
+    await db.from("template_assignments").delete().eq("template_id", templateId)
+  );
 }
 
 export async function createTemplate(

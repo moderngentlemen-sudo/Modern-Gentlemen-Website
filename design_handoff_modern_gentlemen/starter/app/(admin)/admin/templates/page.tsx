@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/services/auth";
-import { listTemplates } from "@/lib/services/templates";
+import { assignmentBoard, listTemplates } from "@/lib/services/templates";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { TemplatesList, type TemplateRow } from "./TemplatesList";
 
@@ -14,6 +14,13 @@ export default async function TemplatesIndex() {
   // would be a column short for the sake of sharing a function.
   const templates = await listTemplates();
 
+  // Assignment data is loaded here rather than in the list, because a client
+  // component cannot read it and a per-row fetch would be one round trip per
+  // template. `template_assignments` holds single digits, so one read serves
+  // every row — including which targets another template already claims, which
+  // is what lets the picker say who it would displace *before* the write.
+  const assignable = await assignmentBoard(templates);
+
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Templates">
@@ -25,6 +32,7 @@ export default async function TemplatesIndex() {
 
       <TemplatesList
         templates={templates as TemplateRow[]}
+        assignable={assignable}
         canWrite={user.permissions.has("template.write")}
         canDelete={user.permissions.has("template.delete")}
       />
