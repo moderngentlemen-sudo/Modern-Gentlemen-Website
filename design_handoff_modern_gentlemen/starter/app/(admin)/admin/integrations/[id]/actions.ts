@@ -6,6 +6,7 @@ import { z } from "zod";
 import { runImport, saveMappings, updateSource } from "@/lib/services/ingestion";
 import { FEED_TRANSFORMS } from "@/lib/domain/ingestion";
 import { PRODUCT_FULFILMENTS } from "@/lib/domain/products";
+import { SYNC_SCHEDULES } from "@/lib/domain/ingestion";
 import { ok, type ActionResult } from "../../_lib/action-result";
 import { toActionResult } from "../../_lib/errors";
 
@@ -30,6 +31,12 @@ const Common = {
   fulfilment: z.enum(PRODUCT_FULFILMENTS),
   currency: z.string().trim().length(3),
   credentialsRef: z.string().trim().nullable(),
+  /**
+   * `null` is "off" — the absence of a schedule, and the value the column has
+   * held on every row since `0005`. A second falsy value ("off", "") would mean
+   * every reader had to know about both.
+   */
+  syncSchedule: z.enum(SYNC_SCHEDULES).nullable(),
 };
 
 /**
@@ -106,6 +113,12 @@ export async function saveSourceAction(input: unknown): Promise<ActionResult> {
               status: input.status,
             },
       credentialsRef: input.credentialsRef || null,
+      // Storing this is what `integration.write` gates, and it is the only
+      // permission check the scheduled runner ever gets: `runImportCore` has no
+      // session to check against, so the right to run on a schedule is asserted
+      // here, when the schedule is set. Same reasoning `runScheduledPublishes`
+      // records for `schedule_document`.
+      syncSchedule: input.syncSchedule,
     });
     revalidatePath(`/admin/integrations/${input.id}`);
     revalidatePath("/admin/integrations");

@@ -894,3 +894,102 @@ export function imageTypeProblem(contentType: string | null, byteLength: number)
 
   return { ok: true, mimeType: contentType };
 }
+
+// ---------------------------------------------------------------------------
+// Scheduling — `product_sources.sync_schedule`
+//
+// ⚠️ **This vocabulary lives here and not in `lib/domain/jobs.ts`**, which is
+// where the other job constants are. `jobs.ts` imports `node:crypto`, and
+// `SourceEditor.tsx` is a client component: an `import` from a client component
+// into a module touching a Node built-in is `UnhandledSchemeError` at build
+// time, with `tsc`, ESLint and the whole unit suite green beforehand. The rule
+// is in the repo's CLAUDE.md and this is the second module it applies to. The
+// *job key* stays in `jobs.ts`, because only the route and the service use it.
+// ---------------------------------------------------------------------------
+
+/**
+ * How often a source re-fetches, as a small closed vocabulary.
+ *
+ * ⚠️ **Deliberately not cron.** The column is free text and would hold a
+ * quarter-hourly cron expression happily — and the thing firing it is GitHub
+ * Actions, which
+ * this repo has already measured drifting **over ninety minutes** on a quiet
+ * repository (see the scheduled-publish phase). A cron field would let an
+ * operator write a precision the platform cannot deliver, and the first person
+ * to notice would be the merchant whose 15-minute sync ran twice that morning.
+ * Four coarse options promise only what is true.
+ *
+ * `off` is the absence of a schedule and is stored as SQL `null`, not the
+ * string "off": the column existed for four phases holding null on every row,
+ * and a second falsy value would mean every reader had to know about both.
+ */
+export const SYNC_SCHEDULES = ["hourly", "daily", "weekly"] as const;
+export type SyncSchedule = (typeof SYNC_SCHEDULES)[number];
+
+export function isSyncSchedule(value: unknown): value is SyncSchedule {
+  return typeof value === "string" && (SYNC_SCHEDULES as readonly string[]).includes(value);
+}
+
+/** Shown beside the selector. Says the tolerance out loud, because it is real. */
+export const SYNC_SCHEDULE_LABEL: Record<SyncSchedule, string> = {
+  hourly: "Hourly — roughly, whenever the runner next fires",
+  daily: "Daily",
+  weekly: "Weekly",
+};
+
+const HOUR = 60 * 60 * 1000;
+
+export const SYNC_INTERVAL_MS: Record<SyncSchedule, number> = {
+  hourly: HOUR,
+  daily: 24 * HOUR,
+  weekly: 7 * 24 * HOUR,
+};
+
+/**
+ * The grace the due check allows, and it is not a rounding convenience.
+ *
+ * A poller that fires every N minutes and asks "has a full hour elapsed?" turns
+ * an hourly schedule into a *two*-hourly one whenever a tick lands a few seconds
+ * early — the classic cron-catchup mistake, and it looks like the feature simply
+ * running at half the configured rate. Allowing a source to be due slightly
+ * before its interval closes means a schedule keeps its intended cadence instead
+ * of drifting a whole period every time the poller jitters.
+ *
+ * Five minutes is well under the shortest interval, so no schedule can run twice
+ * within a period because of it.
+ */
+export const SYNC_DUE_GRACE_MS = 5 * 60 * 1000;
+
+/**
+ * Whether a source with this schedule is due to run.
+ *
+ * `null` schedule means no schedule: never due. A source that has never synced
+ * is due immediately — the first run is the one an operator is waiting for after
+ * setting a schedule, and making them wait a full period for it reads as the
+ * setting not having worked.
+ *
+ * ⚠️ **`lastSyncedAt` is `product_sources.last_synced_at`, which records the
+ * last *attempt*, not the last success.** That is deliberate: a source whose
+ * feed is down would otherwise be retried by every single tick, hammering a
+ * server that is already struggling. A failed run waits its interval like any
+ * other, and `last_status` is what tells an operator it failed.
+ */
+export function isSyncDue(
+  schedule: string | null | undefined,
+  lastSyncedAt: string | Date | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!isSyncSchedule(schedule)) return false;
+  if (!lastSyncedAt) return true;
+
+  const last = lastSyncedAt instanceof Date ? lastSyncedAt : new Date(lastSyncedAt);
+  if (Number.isNaN(last.getTime())) return true;
+
+  // A clock that has gone backwards, or a row written by a machine ahead of
+  // this one. Treated as "not due" rather than "due": running early is a
+  // choice, and one made by a wrong clock is not a choice anybody made.
+  const elapsed = now.getTime() - last.getTime();
+  if (elapsed < 0) return false;
+
+  return elapsed >= SYNC_INTERVAL_MS[schedule] - SYNC_DUE_GRACE_MS;
+}

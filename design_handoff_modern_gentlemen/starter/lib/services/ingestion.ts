@@ -49,6 +49,8 @@ import {
   xmlFeedConfigSchema,
   type FeedTargetField,
   type ImportCounts,
+  type ImportTrigger,
+  type SyncSchedule,
   type NormalisedProduct,
   type ProductSourceKind,
 } from "@/lib/domain/ingestion";
@@ -118,7 +120,14 @@ export async function createSource(input: {
 
 export async function updateSource(
   id: string,
-  patch: { name?: string; enabled?: boolean; config?: unknown; credentialsRef?: string | null }
+  patch: {
+    name?: string;
+    enabled?: boolean;
+    config?: unknown;
+    credentialsRef?: string | null;
+    /** `null` switches the schedule off — see `SYNC_SCHEDULES`. */
+    syncSchedule?: SyncSchedule | null;
+  }
 ): Promise<void> {
   await requirePermission("integration.write");
   const db = await createClient();
@@ -131,6 +140,7 @@ export async function updateSource(
     enabled: patch.enabled,
     config: patch.config === undefined ? undefined : parseSourceConfig(source.kind, patch.config),
     credentialsRef: patch.credentialsRef,
+    syncSchedule: patch.syncSchedule,
   });
 }
 
@@ -240,7 +250,36 @@ export interface RunResult {
 export async function runImport(sourceId: string): Promise<RunResult> {
   const user = await requirePermission("integration.run");
   const db = await createClient();
+  return runImportCore(db, sourceId, { trigger: "manual", requestedBy: user.id });
+}
 
+/**
+ * A run, with the client and the actor handed in.
+ *
+ * Extracted from `runImport` when scheduled runs landed, and the split is
+ * exactly where the two callers differ and nowhere else. A scheduled run has
+ * **no session** — that is what a schedule is — so it cannot go through
+ * `requirePermission` or `lib/db/server.ts`. It uses the service-role client,
+ * which `lib/db/admin.ts` names this case for in its own header: "scheduled
+ * ingestion jobs (no user session exists)".
+ *
+ * **No permission check here, and it is not an oversight** — the same reasoning
+ * `runScheduledPublishes` records. The permission was checked when the
+ * *schedule was set*: `saveSourceAction` asserts `integration.write` before it
+ * will store one. By the time a row is due, a person entitled to run it has
+ * already said so. Checking again here would mean checking against nobody.
+ *
+ * ⚠️ **A scheduled run stages and never applies.** It ends at `review` exactly
+ * as a manual run does, and `applyJob` — the only thing that writes `products`
+ * — still needs a human. A schedule that could reach the live catalogue
+ * unattended is the thing `FEED_TARGET_FIELDS` refuses `status` for, arrived at
+ * from the other direction.
+ */
+export async function runImportCore(
+  db: Awaited<ReturnType<typeof createClient>>,
+  sourceId: string,
+  actor: { trigger: ImportTrigger; requestedBy: string | null }
+): Promise<RunResult> {
   const source = await repo.getSource(db, sourceId);
   if (!source) throw new Error("That source no longer exists.");
   if (!source.enabled) throw new Error(`"${source.name}" is disabled. Enable it before running.`);
@@ -261,8 +300,8 @@ export async function runImport(sourceId: string): Promise<RunResult> {
 
   const job = await repo.createJob(db, {
     sourceId,
-    trigger: "manual",
-    requestedBy: user.id,
+    trigger: actor.trigger,
+    requestedBy: actor.requestedBy,
   });
 
   const counts: ImportCounts = { total: 0, created: 0, updated: 0, unchanged: 0, failed: 0 };

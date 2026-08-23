@@ -3,7 +3,7 @@ import type { z } from "zod";
 
 import { requirePermission } from "@/lib/services/auth";
 import { getSource, listJobs, listMappings } from "@/lib/services/ingestion";
-import { shopifyConfigSchema, xmlFeedConfigSchema } from "@/lib/domain/ingestion";
+import { isSyncSchedule, shopifyConfigSchema, xmlFeedConfigSchema } from "@/lib/domain/ingestion";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Button } from "@/components/admin/ui/Button";
 import { SourceEditor } from "./SourceEditor";
@@ -72,6 +72,10 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
             kind: source.kind,
             enabled: source.enabled,
             credentialsRef: source.credentials_ref,
+            // Narrowed rather than cast: the column is free text and predates the
+            // vocabulary, so a row holding anything else reads as "off" instead of
+            // reaching a select that has no such option.
+            syncSchedule: isSyncSchedule(source.sync_schedule) ? source.sync_schedule : null,
             configValid: parsedConfig.success,
             url: xml?.url ?? "",
             itemPath: xml?.item_path ?? "",
