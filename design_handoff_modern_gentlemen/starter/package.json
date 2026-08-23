@@ -20,6 +20,7 @@
     "test:e2e": "playwright test --project=e2e --pass-with-no-tests",
     "test:visual": "playwright test --project=visual --pass-with-no-tests",
     "test:a11y": "playwright test --project=a11y --pass-with-no-tests",
+    "test:perf": "playwright test --project=perf --pass-with-no-tests",
     "db:types": "npx --yes supabase gen types typescript --project-id qnfoztnyxhubnnulpfwt --schema public > lib/db/database.types.ts"
   },
   "dependencies": {

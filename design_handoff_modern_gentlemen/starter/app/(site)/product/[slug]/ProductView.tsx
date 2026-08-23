@@ -8,6 +8,7 @@ import { formatGBP } from "@/lib/domain/money";
 import { useCart } from "@/lib/cart/CartProvider";
 import { QtyStepper } from "@/components/store/QtyStepper";
 import { ProductCard } from "@/components/store/ProductCard";
+import { MediaImage } from "@/components/ui/MediaImage";
 
 const ASSURANCES = [
   "Free shipping on UK orders over £50",
@@ -71,11 +72,12 @@ export function ProductView({ slug }: { slug: string }) {
         {/* Gallery */}
         <div className="self-start md:sticky md:top-24">
           <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <MediaImage
               src={product.images[img]}
               alt={product.name}
-              className="h-full w-full object-cover"
+              slot="gallery"
+              priority
+              className="object-cover"
             />
             {product.tag && (
               <span className="absolute left-4 top-4 bg-mg-accent px-2 py-1 font-mono uppercase text-[10px] tracking-[0.18em] text-white">
@@ -89,10 +91,9 @@ export function ProductView({ slug }: { slug: string }) {
                 key={i}
                 onClick={() => setImg(i)}
                 aria-label={`View image ${i + 1}`}
-                className={`h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-mg-bd/15 hover:border-mg-bd/40"}`}
+                className={`relative h-20 w-20 overflow-hidden border ${i === img ? "border-mg-accent" : "border-mg-bd/15 hover:border-mg-bd/40"}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={im} alt="" className="h-full w-full object-cover" />
+                <MediaImage src={im} alt="" slot="thumb" className="object-cover" />
               </button>
             ))}
           </div>

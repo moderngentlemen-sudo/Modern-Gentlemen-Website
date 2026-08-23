@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { navColumns, type NavLink } from "@/lib/domain/navigation";
+import { backgroundImageUrl } from "../ui/imageUrl";
 
 /** Full-width frosted mega-menu. Rendered when a nav item with a menu is
  *  hovered/focused (desktop) or tapped (touch). Parent owns the open key.
@@ -62,7 +63,7 @@ export function MegaMenu({ entry, onClose }: { entry: NavLink | null; onClose: (
           >
             <div
               className="relative h-[172px] bg-[#0d0d0d] bg-cover bg-center"
-              style={{ backgroundImage: `url(${feature.image})` }}
+              style={{ backgroundImage: backgroundImageUrl(feature.image, 640) }}
             >
               <span className="absolute top-3 left-[14px] bg-[rgba(200,16,46,0.9)] px-2.5 py-1 font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white">
                 FEATURED

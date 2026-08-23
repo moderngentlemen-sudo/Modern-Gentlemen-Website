@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Product } from "@/lib/cart/types";
 import { formatGBP } from "@/lib/domain/money";
+import { MediaImage } from "../ui/MediaImage";
 
 /**
  * Store product card — bordered surface tile. Used by the Shop grid and the PDP
@@ -26,11 +27,11 @@ export function ProductCard({
         {/* `images` hold ready-to-use URLs. They used to be root-relative paths
             with the slash added here, which cannot work once an image is a real
             uploaded asset on an absolute Supabase URL. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <MediaImage
           src={product.images[0]}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+          slot="quarter"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
         />
         {product.tag && (
           <span className="absolute top-3 left-3 bg-mg-accent text-white font-mono uppercase text-[10px] tracking-[0.18em] px-2 py-1">

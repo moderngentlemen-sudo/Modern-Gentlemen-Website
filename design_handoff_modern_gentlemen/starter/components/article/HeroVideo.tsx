@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { ArticleKicker, Byline } from "./primitives";
+import { MediaImage } from "../ui/MediaImage";
+import { optimizedImageUrl } from "../ui/imageUrl";
 
 interface Props {
   kicker: string;
@@ -33,7 +35,7 @@ export function HeroVideo({ kicker, title, byline, videoUrl, poster }: Props) {
           <video
             ref={videoRef}
             src={videoUrl}
-            poster={poster}
+            poster={poster ? optimizedImageUrl(poster, 1920) : undefined}
             loop
             muted
             playsInline
@@ -41,8 +43,7 @@ export function HeroVideo({ kicker, title, byline, videoUrl, poster }: Props) {
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : poster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <MediaImage src={poster} alt="" slot="fullBleed" priority className="object-cover" />
         ) : null}
         <div data-scrim className="pointer-events-none absolute inset-0" />
       </div>

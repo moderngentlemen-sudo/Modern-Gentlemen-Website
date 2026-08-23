@@ -1,3 +1,5 @@
+import { backgroundImageUrl } from "../ui/imageUrl";
+
 interface Props {
   eyebrow: string;
   title: string;
@@ -20,7 +22,7 @@ export function CategoryHero({ eyebrow, title, blurb, image, chips }: Props) {
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center [filter:grayscale(0.15)]"
-        style={{ backgroundImage: `url(${image})` }}
+        style={{ backgroundImage: backgroundImageUrl(image, 1920) }}
       />
       <div
         aria-hidden

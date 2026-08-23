@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { MediaImage } from "../ui/MediaImage";
+import { optimizedImageUrl } from "../ui/imageUrl";
 
 interface Props {
   badge?: string; // red mono pill, e.g. "COVER STORY — ISSUE 042"
@@ -73,7 +75,7 @@ export function HeroCoverStar({
             <video
               ref={videoRef}
               src={media!.videoUrl}
-              poster={media!.image}
+              poster={media!.image ? optimizedImageUrl(media!.image, 1920) : undefined}
               autoPlay
               loop
               muted
@@ -82,8 +84,13 @@ export function HeroCoverStar({
               className="absolute inset-0 h-full w-full object-cover bg-[#0d0d0d]"
             />
           ) : media?.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={media.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <MediaImage
+              src={media.image}
+              alt=""
+              slot="fullBleed"
+              priority
+              className="object-cover"
+            />
           ) : (
             <div className="absolute inset-0 bg-white/5" />
           )}

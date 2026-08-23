@@ -320,6 +320,17 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:a11y
 
+      # Same `if: always()` reasoning again. This one guards page weight, which
+      # no other step can see at all: every gate in this workflow was green
+      # while the homepage shipped 3,936 KB of images to a phone.
+      - name: Performance budget
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:perf
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

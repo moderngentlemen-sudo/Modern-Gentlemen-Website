@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCart, formatGBP } from "@/lib/cart/CartProvider";
 import { useCatalog } from "@/lib/catalog/CatalogProvider";
+import { MediaImage } from "../ui/MediaImage";
 
 /** The Store — commerce row (library #05, #28 The Drop). Pulls from the catalog.
  *  Pass `group` to filter, or explicit `slugs` to curate. */
@@ -42,12 +43,12 @@ export function ProductRow({
             p && (
               <div key={p.slug} className="group">
                 <Link href={`/product/${p.slug}`}>
-                  <div className="aspect-[4/5] overflow-hidden bg-mg-surface">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                  <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
+                    <MediaImage
                       src={p.images[0]}
                       alt={p.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      slot="quarter"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                 </Link>

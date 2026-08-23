@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eyebrow } from "../ui/Eyebrow";
+import { MediaImage } from "../ui/MediaImage";
 
 interface Item {
   kicker?: string;
@@ -17,21 +18,24 @@ export function TwoUpCategory({ items }: { items: Item[] }) {
       <div className="grid grid-cols-1 min-[821px]:grid-cols-2 gap-[22px]">
         {items?.slice(0, 2).map((it, i) => {
           const img = it.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <MediaImage
               src={it.image}
               alt={it.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              slot="half"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : null;
           return (
             <article key={i} className="overflow-hidden bg-mg-surface border border-mg-bd/[0.09]">
               {it.href ? (
-                <Link href={it.href} className="group block h-[300px] overflow-hidden bg-[#0d0d0d]">
+                <Link
+                  href={it.href}
+                  className="group relative block h-[300px] overflow-hidden bg-[#0d0d0d]"
+                >
                   {img}
                 </Link>
               ) : (
-                <div className="h-[300px] overflow-hidden bg-[#0d0d0d]">{img}</div>
+                <div className="relative h-[300px] overflow-hidden bg-[#0d0d0d]">{img}</div>
               )}
               <div className="flex flex-col gap-2.5 px-[34px] py-[30px]">
                 {it.kicker && (

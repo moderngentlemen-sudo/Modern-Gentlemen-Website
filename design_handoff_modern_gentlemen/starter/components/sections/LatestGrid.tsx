@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eyebrow, MonoLabel } from "../ui/Eyebrow";
+import { MediaImage } from "../ui/MediaImage";
 
 interface Item {
   kind?: "feature" | "image" | "membership";
@@ -186,12 +187,7 @@ function Tile({ item }: { item: Item }) {
   const inner = (
     <article className="group relative w-full overflow-hidden bg-mg-surface transition-transform duration-200 hover:-translate-y-[3px]">
       {item.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.image}
-          alt={item.title}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <MediaImage src={item.image} alt={item.title} slot="strip" className="object-cover" />
       )}
       <div
         aria-hidden
@@ -231,13 +227,13 @@ function Tile({ item }: { item: Item }) {
 function SimpleCard({ item }: { item: Item }) {
   const inner = (
     <article className="group">
-      <div className="aspect-[4/5] overflow-hidden bg-mg-surface">
+      <div className="relative aspect-[4/5] overflow-hidden bg-mg-surface">
         {item.image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <MediaImage
             src={item.image}
             alt={item.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            slot="strip"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         )}
       </div>

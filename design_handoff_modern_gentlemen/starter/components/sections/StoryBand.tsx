@@ -1,5 +1,6 @@
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
+import { backgroundImageUrl } from "../ui/imageUrl";
 
 interface Props {
   eyebrow?: string;
@@ -24,7 +25,7 @@ export function StoryBand({ eyebrow, quote, body, attribution, backgroundImage, 
           style={
             backgroundImage
               ? {
-                  backgroundImage: `linear-gradient(rgba(8,8,9,0.7),rgba(8,8,9,0.7)),url(${backgroundImage})`,
+                  backgroundImage: `linear-gradient(rgba(8,8,9,0.7),rgba(8,8,9,0.7)),${backgroundImageUrl(backgroundImage, 1920)}`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }

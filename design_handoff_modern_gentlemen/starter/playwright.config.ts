@@ -17,6 +17,9 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
  *            because it asserts the DOM rather than the pixels, and separate
  *            from `e2e` because it needs no credentials and must therefore
  *            run everywhere — including a container that has none.
+ *   perf    — the image-weight budget. Needs no credentials either, for the
+ *            same reason a11y does not, and guards the one property no other
+ *            suite can see: how many bytes a route actually ships.
  */
 export default defineConfig({
   testDir: "./tests",
@@ -65,6 +68,14 @@ export default defineConfig({
       name: "a11y",
       testDir: "./tests/a11y",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "perf",
+      testDir: "./tests/perf",
+      // Viewport and deviceScaleFactor are set per-describe: the byte budget is
+      // measured on mobile (the constrained case) and the oversize check at
+      // desktop DPR 1 (where a correctly-sized source has a ratio near 1).
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
 
