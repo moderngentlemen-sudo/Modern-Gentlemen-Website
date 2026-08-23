@@ -26,6 +26,7 @@ import { Masthead } from "./Masthead";
 import { Column } from "./Column";
 import { PatternRef } from "./PatternRef";
 import { DocumentContent } from "./DocumentContent";
+import { DocumentContentGap } from "./DocumentContentGap";
 import { Columns } from "./Columns";
 
 /**
@@ -69,6 +70,7 @@ export const registry = {
   column: Column,
   patternRef: PatternRef,
   documentContent: DocumentContent,
+  documentContentGap: DocumentContentGap,
   // Each block owns its own prop contract, so the map is heterogeneous by
   // nature: a lookup by string cannot narrow to one component's props. The
   // manifests restore the guarantee where it counts — content is validated

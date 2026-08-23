@@ -5,6 +5,8 @@ import {
   collectContentMarkers,
   DOCUMENT_CONTENT_TYPE,
   findContentArea,
+  findContentAreaName,
+  resolvePreviewArea,
   TEMPLATE_SEED_AREA,
 } from "./templateContent";
 import type { BlockNode, BlockTree } from "./types";
@@ -150,6 +152,70 @@ describe("findContentArea", () => {
     const areas = { zeta: [marker("z")], alpha: [marker("a")] };
 
     expect(findContentArea(areas)).toBe(areas.alpha);
+  });
+});
+
+describe("findContentAreaName", () => {
+  it("names the area findContentArea returns, on the same input", () => {
+    // The pairing is what matters, not either answer alone: the renderer reads
+    // the tree and the preview link carries the name, and the day those two
+    // disagree an editor previews one area and publishes the effect of another.
+    const areas: Record<string, BlockTree> = {
+      body: [block("a"), marker()],
+      header: [block("b")],
+    };
+
+    expect(findContentAreaName(areas)).toBe("body");
+    expect(findContentArea(areas)).toBe(areas[findContentAreaName(areas)!]);
+  });
+
+  it("returns null when nothing holds a marker", () => {
+    expect(findContentAreaName({ main: [block("a")] })).toBeNull();
+    expect(findContentAreaName({})).toBeNull();
+  });
+});
+
+describe("resolvePreviewArea", () => {
+  const areas = { footer: [block("f")], main: [block("a"), marker()] };
+
+  it("honours a request for an area that exists", () => {
+    expect(resolvePreviewArea(areas, "footer")).toBe("footer");
+  });
+
+  it("falls back to the marker's area when nothing is requested", () => {
+    // The marker's area is the one `/` renders, so it is the one an editor is
+    // deciding about — not whichever name sorts first.
+    expect(resolvePreviewArea(areas, null)).toBe("main");
+    expect(resolvePreviewArea(areas, undefined)).toBe("main");
+    expect(resolvePreviewArea(areas, "")).toBe("main");
+  });
+
+  it("ignores a requested area the template does not have", () => {
+    expect(resolvePreviewArea(areas, "sidebar")).toBe("main");
+  });
+
+  it("refuses a name that is not area-shaped, including inherited keys", () => {
+    // `requested` is a query parameter. `isAreaName` runs before the lookup so
+    // that a key off Object.prototype cannot select anything — `hasOwn` alone
+    // already refuses it, and the pattern check is the belt to that braces.
+    expect(resolvePreviewArea(areas, "constructor")).toBe("main");
+    expect(resolvePreviewArea(areas, "__proto__")).toBe("main");
+    expect(resolvePreviewArea(areas, "Main")).toBe("main");
+    expect(resolvePreviewArea(areas, "areas.main")).toBe("main");
+  });
+
+  it("falls back alphabetically when no area holds a marker", () => {
+    // A template mid-build, or the header/footer areas that are legal,
+    // editable, versioned and unrendered. Something has to be shown, and
+    // alphabetical is the only deterministic order jsonb leaves available.
+    expect(resolvePreviewArea({ zeta: [block("z")], alpha: [block("a")] }, null)).toBe("alpha");
+  });
+
+  it("returns null for a template with no areas at all", () => {
+    // `0003` defaults the column to `{"areas":{}}`, so this is a real row
+    // shape and not a hypothetical one.
+    expect(resolvePreviewArea({}, null)).toBeNull();
+    expect(resolvePreviewArea({}, "main")).toBeNull();
   });
 });
 

@@ -31,6 +31,7 @@ import { newsletter } from "./newsletter";
 import { numberedIndex } from "./numberedIndex";
 import { patternRef } from "./patternRef";
 import { documentContent } from "./documentContent";
+import { documentContentGap } from "./documentContentGap";
 import { productRow } from "./productRow";
 import { pullQuote } from "./pullQuote";
 import { statsBand } from "./statsBand";
@@ -66,6 +67,7 @@ export const blockManifests = {
   column,
   patternRef,
   documentContent,
+  documentContentGap,
 } as const satisfies Record<string, BlockManifest>;
 
 export type ManifestBlockType = keyof typeof blockManifests;
