@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
 import { expandPatternRefs } from "@/lib/services/patterns";
-import { expandPublicPatterns, soleFramedPage } from "@/lib/services/publicContent";
+import { expandPublicPatterns, soleFramedDocument } from "@/lib/services/publicContent";
 import { resolvePreview } from "@/lib/services/preview";
 import { readAreas } from "@/lib/blocks/areas";
 import {
@@ -142,16 +142,16 @@ async function templateView(
   const tree = await expandPatternRefs(areas[area], { preferDraft: true });
   if (collectContentMarkers(tree).length === 0) return { sections: tree, area, areaNames };
 
-  const page = await soleFramedPage(templateId);
-  const substitute: BlockTree = page
-    ? await expandPublicPatterns(page.sections)
+  const framed = await soleFramedDocument(templateId);
+  const substitute: BlockTree = framed
+    ? await expandPublicPatterns(framed.sections)
     : [{ _key: "documentcontentgap", _type: DOCUMENT_CONTENT_GAP_TYPE, settings: {} }];
 
   return {
     sections: applyTemplate(tree, substitute),
     area,
     areaNames,
-    framing: page?.title,
+    framing: framed?.title,
   };
 }
 

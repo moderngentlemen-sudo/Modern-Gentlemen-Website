@@ -14,6 +14,7 @@ import { xmlFeedAdapter } from "./xmlFeed";
 export { AdapterError } from "./types";
 export type { AdapterContext, SourceAdapter } from "./types";
 export { applyTransform, TRANSFORMS } from "./transforms";
+export { fetchBinaryCapped, MAX_IMAGE_BYTES } from "./http";
 export { shopifyAdapter } from "./shopify";
 export { xmlFeedAdapter } from "./xmlFeed";
 

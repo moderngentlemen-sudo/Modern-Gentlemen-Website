@@ -91,6 +91,15 @@ const optionalString = (value: unknown): string | undefined =>
 
 /** A category's published layout, as the renderer wants it. */
 export interface PublishedCategory {
+  /**
+   * Needed by `composePublishedCategory`: an entry-scoped assignment keys on it.
+   *
+   * Added when `archive` templates landed, for exactly the reason `PublishedPage`
+   * carries one. It is deliberately not in the fixture comparisons — those assert
+   * `sections` and `intro` field by field rather than deep-equalling the whole
+   * object, which is what makes adding a field here safe.
+   */
+  id: string;
   slug: string;
   name: string;
   /** The standfirst, and the only prose the row carries — so it is also what
@@ -123,7 +132,7 @@ export async function getPublishedCategory(slug: string): Promise<PublishedCateg
 
   const { data, error } = await db
     .from("categories")
-    .select("slug, name, intro, published_data, status")
+    .select("id, slug, name, intro, published_data, status")
     .eq("slug", slug.toLowerCase())
     .eq("status", "published")
     .maybeSingle();
@@ -134,6 +143,7 @@ export async function getPublishedCategory(slug: string): Promise<PublishedCateg
   if (!data) return null;
 
   return {
+    id: data.id,
     slug: data.slug,
     name: data.name,
     intro: data.intro,

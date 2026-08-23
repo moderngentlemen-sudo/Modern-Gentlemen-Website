@@ -8,7 +8,8 @@ import { DEFAULT_AREA_NAME } from "@/lib/blocks/areas";
 import type { BlockNode, BlockTree } from "@/lib/blocks/types";
 import { DOCUMENT_CONTENT_TYPE } from "@/lib/blocks/templateContent";
 import type { Json } from "@/lib/db/database.types";
-import { publicPathForPage } from "@/lib/domain/routes";
+import { publicPathForCategory, publicPathForPage } from "@/lib/domain/routes";
+import { framedContentTypeFor } from "@/lib/domain/templates";
 import { requirePermission } from "./auth";
 
 export type { TemplateRow } from "@/lib/db/repositories/templates";
@@ -117,15 +118,39 @@ export async function resolveTemplateFor(target: {
  * against a category. When a renderer for those lands this function grows a
  * branch; until then, inventing one would be dead code that looks tested.
  *
- * ⚠️ **Only `page` templates return anything today**, because `/` is the only
- * public route that renders a document through a template. A published
- * `article` or `product` template genuinely changes no path, and returning an
+ * ⚠️ **Only `page` and `archive` templates return anything**, because `/` and
+ * `/[category]` are the only public routes that render a document through a
+ * template. A published `article` or `product` template genuinely changes no
+ * path — those routes are fixed components, not block trees — and returning an
  * empty list is the honest answer rather than a missing case.
+ *
+ * ⚠️ **The `taxonomy` scope is still skipped, and `archive` landing does not
+ * change that.** It exists for a template scoped to *one* category by slug, and
+ * `resolveTemplateId` implements it on the admin side; the public reader
+ * (`publishedTemplateArea`) does not, so honouring it here would invalidate
+ * paths that nothing renders differently. When the reader grows that rung this
+ * function grows the matching one — together, or the two disagree about which
+ * pages a template touches.
  */
 export async function publicPathsForTemplate(id: string): Promise<string[]> {
   const db = await createClient();
   const template = await repo.getTemplate(db, id);
-  if (!template || template.kind !== "page") return [];
+  if (!template) return [];
+
+  // `kind` decides the table and the path shape together, so the two cannot be
+  // paired wrongly the way two separate switches eventually would be. Which
+  // kinds frame anything is `lib/domain`'s call — `FRAMED_CONTENT_TYPE` is a
+  // Record over the kind vocabulary, so a new kind is a type error here rather
+  // than a silent "frames nothing".
+  const contentType = framedContentTypeFor(template.kind);
+  const framed =
+    contentType === "page"
+      ? ({ table: "pages", path: publicPathForPage } as const)
+      : contentType === "category"
+        ? ({ table: "categories", path: publicPathForCategory } as const)
+        : null;
+
+  if (!framed) return [];
 
   const { data: assignments, error } = await db
     .from("template_assignments")
@@ -140,15 +165,236 @@ export async function publicPathsForTemplate(id: string): Promise<string[]> {
     .filter((row) => row.scope === "entry" && row.entry_id)
     .map((row) => row.entry_id as string);
 
-  let query = db.from("pages").select("slug").eq("status", "published");
-  if (!wholeType) {
-    if (entryIds.length === 0) return [];
-    query = query.in("id", entryIds);
+  if (!wholeType && entryIds.length === 0) return [];
+
+  // Branched rather than parameterised, for the reason `readFramed` records in
+  // `publicContent.ts`: a `db.from(table)` over a union cross-products the
+  // tables with the columns, and `tsc` then objects to a call that never
+  // happens. Four duplicated lines beat a generic over `PostgrestFilterBuilder`.
+  let slugs: string[];
+
+  if (framed.table === "pages") {
+    let query = db.from("pages").select("slug").eq("status", "published");
+    if (!wholeType) query = query.in("id", entryIds);
+    const { data, error: readError } = await query;
+    if (readError) {
+      throw new Error(`Could not read the pages this template frames: ${readError.message}`);
+    }
+    slugs = (data ?? []).map((row) => row.slug);
+  } else {
+    let query = db.from("categories").select("slug").eq("status", "published");
+    if (!wholeType) query = query.in("id", entryIds);
+    const { data, error: readError } = await query;
+    if (readError) {
+      throw new Error(`Could not read the categories this template frames: ${readError.message}`);
+    }
+    slugs = (data ?? []).map((row) => row.slug);
   }
 
-  const { data: pages, error: pageError } = await query;
-  if (pageError)
-    throw new Error(`Could not read the pages this template frames: ${pageError.message}`);
+  return slugs.map(framed.path);
+}
 
-  return (pages ?? []).map((page) => publicPathForPage(page.slug));
+// ---------------------------------------------------------------------------
+// Assignments — what a template is a layout *for*.
+//
+// Until this landed, `template_assignments` had a reader and no writer anywhere
+// in the app: an editor could build a template, publish it, and never point it
+// at anything without opening SQL. Three slices were built on top of that gap
+// because every end-to-end check inserted the row by hand.
+// ---------------------------------------------------------------------------
+
+/** One assignable target, and the template holding it if any. */
+export interface AssignmentTarget {
+  /** `content_type:page`, or `entry:<uuid>` — stable, and safe in a form value. */
+  value: string;
+  label: string;
+  /** The template currently claiming it, so a picker can say who it would displace. */
+  heldBy: { id: string; name: string } | null;
+}
+
+/**
+ * Targets and current assignments for a whole list of templates, in one pass.
+ *
+ * ⚠️ **This exists because the obvious shape is an N+1.** Calling
+ * `listAssignmentTargets` and `currentAssignments` per row — which is exactly
+ * how the templates screen first did it — costs four round trips *per template*
+ * to read the same three tables over and over. Templates are few, so it was
+ * never going to be slow enough to notice, which is precisely why it would have
+ * stayed. There are only two frameable content types, so the entry lists are
+ * fetched once each and shared.
+ */
+export async function assignmentBoard(
+  templates: { id: string; kind: repo.TemplateKind }[]
+): Promise<{ id: string; targets: AssignmentTarget[]; current: string[] }[]> {
+  await requirePermission("template.read");
+  const db = await createClient();
+
+  const [assignments, allTemplates] = await Promise.all([
+    repo.listAssignments(db),
+    repo.listTemplates(db),
+  ]);
+
+  const nameOf = new Map(allTemplates.map((row) => [row.id, row.name] as const));
+  const holder = (predicate: (row: repo.AssignmentRow) => boolean) => {
+    const row = assignments.find(predicate);
+    if (!row) return null;
+    return { id: row.template_id, name: nameOf.get(row.template_id) ?? "another template" };
+  };
+
+  // Only the content types this list actually needs — a project with no archive
+  // templates never reads `categories`.
+  const needed = new Set(
+    templates.map((template) => framedContentTypeFor(template.kind)).filter((type) => type !== null)
+  );
+
+  const entriesByType = new Map<string, { id: string; label: string }[]>();
+  for (const contentType of needed) {
+    entriesByType.set(contentType, await readAssignableEntries(db, contentType));
+  }
+
+  const targetsFor = (contentType: "page" | "category"): AssignmentTarget[] => [
+    {
+      value: `content_type:${contentType}`,
+      label: contentType === "page" ? "Every page" : "Every category",
+      heldBy: holder((row) => row.scope === "content_type" && row.content_type === contentType),
+    },
+    ...(entriesByType.get(contentType) ?? []).map((entry) => ({
+      value: `entry:${entry.id}`,
+      label: `${contentType === "page" ? "Page" : "Category"}: ${entry.label}`,
+      heldBy: holder((row) => row.scope === "entry" && row.entry_id === entry.id),
+    })),
+  ];
+
+  return templates.map((template) => {
+    const contentType = framedContentTypeFor(template.kind);
+    return {
+      id: template.id,
+      targets: contentType ? targetsFor(contentType) : [],
+      current: assignments
+        .filter((row) => row.template_id === template.id)
+        .map((row) =>
+          row.scope === "entry" ? `entry:${row.entry_id}` : `content_type:${row.content_type}`
+        ),
+    };
+  });
+}
+
+/**
+ * The records of one content type a template may be pointed at.
+ *
+ * Published only. Assigning a template to an unpublished record would be a
+ * choice with no visible effect until somebody else published it — the same
+ * "stored and unrendered" shape the taxonomy note refuses.
+ */
+async function readAssignableEntries(
+  db: Awaited<ReturnType<typeof createClient>>,
+  contentType: "page" | "category"
+): Promise<{ id: string; label: string }[]> {
+  if (contentType === "page") {
+    const { data, error } = await db
+      .from("pages")
+      .select("id, title")
+      .eq("status", "published")
+      .order("title");
+    if (error) throw new Error(`Could not read the pages a template can frame: ${error.message}`);
+    return (data ?? []).map((row) => ({ id: row.id, label: row.title }));
+  }
+
+  const { data, error } = await db
+    .from("categories")
+    .select("id, name")
+    .eq("status", "published")
+    .order("name");
+  if (error)
+    throw new Error(`Could not read the categories a template can frame: ${error.message}`);
+  return (data ?? []).map((row) => ({ id: row.id, label: row.name }));
+}
+
+/**
+ * Points a template at one target, or at nothing.
+ *
+ * **The revalidation is the half that is easy to forget and impossible to
+ * notice.** An assignment changes what a *published* page renders without
+ * touching that page's row, so nothing else in the system would invalidate it —
+ * the page would keep serving its prerendered HTML until the hourly backstop
+ * expired. Both the old and the new path sets are collected, because reassigning
+ * "every page" from template A to template B changes what A's pages render just
+ * as much as B's.
+ */
+export async function assignTemplateTo(
+  templateId: string,
+  target: string | null
+): Promise<{ paths: string[] }> {
+  await requirePermission("template.write");
+  const db = await createClient();
+
+  const before = await publicPathsForTemplate(templateId);
+
+  if (target === null) {
+    await repo.unassignTemplate(db, templateId);
+    return { paths: before };
+  }
+
+  const template = await repo.getTemplate(db, templateId);
+  if (!template) throw new Error("That template no longer exists.");
+
+  const contentType = framedContentTypeFor(template.kind);
+  if (!contentType) {
+    throw new Error(`Nothing renders a ${template.kind} template yet, so it cannot be assigned.`);
+  }
+
+  const parsed = parseAssignmentTarget(target, contentType);
+  if (!parsed) throw new Error("That is not a target this template can be assigned to.");
+
+  // Whoever held the target loses it, so their paths change too — collected
+  // before the write, while the old rows still exist to be read.
+  const displaced = await pathsHoldingTarget(db, parsed);
+
+  await repo.assignTemplate(db, {
+    templateId,
+    contentType: parsed.contentType,
+    entryId: parsed.entryId,
+  });
+
+  const after = await publicPathsForTemplate(templateId);
+  return { paths: [...new Set([...before, ...displaced, ...after])] };
+}
+
+interface ParsedTarget {
+  contentType: string;
+  entryId: string | null;
+}
+
+/**
+ * `content_type:page` / `entry:<uuid>` → the columns to write.
+ *
+ * The value crosses a form boundary, so it is parsed rather than trusted: the
+ * content type must be the one this template's kind frames (an editor cannot
+ * post `content_type:category` at a `page` template), and an entry id must be a
+ * uuid before it reaches a query.
+ */
+export function parseAssignmentTarget(value: string, contentType: string): ParsedTarget | null {
+  if (value === `content_type:${contentType}`) return { contentType, entryId: null };
+
+  const entry = value.startsWith("entry:") ? value.slice("entry:".length) : null;
+  if (entry && UUID.test(entry)) return { contentType, entryId: entry };
+
+  return null;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The public paths of whichever template currently claims a target. */
+async function pathsHoldingTarget(
+  db: Awaited<ReturnType<typeof createClient>>,
+  target: ParsedTarget
+): Promise<string[]> {
+  const rows = await repo.listAssignments(db);
+  const held = rows.find((row) =>
+    target.entryId
+      ? row.scope === "entry" && row.entry_id === target.entryId
+      : row.scope === "content_type" && row.content_type === target.contentType
+  );
+
+  return held ? publicPathsForTemplate(held.template_id) : [];
 }

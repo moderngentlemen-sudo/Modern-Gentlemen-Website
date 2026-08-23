@@ -36,6 +36,10 @@ import {
   isApplicable,
   isStageable,
   columnsForApply,
+  imageFileNameFrom,
+  imageImportPlan,
+  imageTypeProblem,
+  MAX_IMAGE_DOWNLOADS_PER_RUN,
   missingRequiredTargets,
   normalisedProductSchema,
   feedFieldMappingSchema,
@@ -52,8 +56,11 @@ import {
   AdapterError,
   adapterFor,
   applyTransform,
+  fetchBinaryCapped,
   resolveCredential,
 } from "@/lib/integrations/commerce";
+import { uploadAsset } from "./media";
+import { attachProductMedia } from "@/lib/db/repositories/products";
 import type { Json } from "@/lib/db/database.types";
 import { requirePermission } from "./auth";
 
@@ -522,6 +529,15 @@ export interface ApplyResult {
   errors: string[];
   /** The products written, so the caller can revalidate their public pages. */
   productIds: string[];
+  /** Photographs fetched, catalogued and attached during this apply. */
+  imagesImported: number;
+  /**
+   * Photographs this run did not reach — over a cap, or refused by the source.
+   *
+   * Reported rather than merely counted: the import is idempotent, so the fix is
+   * always "run apply again", and a bare number reads as data loss.
+   */
+  imagesSkipped: number;
 }
 
 /**
@@ -557,7 +573,25 @@ export async function applyJob(jobId: string): Promise<ApplyResult> {
     isApplicable(item.action)
   );
 
-  const result: ApplyResult = { applied: 0, failed: 0, errors: [], productIds: [] };
+  const result: ApplyResult = {
+    applied: 0,
+    failed: 0,
+    errors: [],
+    productIds: [],
+    imagesImported: 0,
+    imagesSkipped: 0,
+  };
+
+  // One budget for the whole run — see `imageImportPlan` on why a cap rather
+  // than a queue is the right answer while the import stays idempotent.
+  const imageBudget = { remaining: MAX_IMAGE_DOWNLOADS_PER_RUN };
+
+  // ⚠️ Checked once, up front, rather than discovered per image. `uploadAsset`
+  // requires `media.write`, which `applyJob` does not otherwise need — a
+  // merchandiser who may run imports and write products need not hold it. Left
+  // to fail per image it would produce one "the database refused the write" per
+  // photograph, naming neither the permission nor the reason.
+  const mayWriteMedia = user.permissions.has("media.write");
 
   for (const item of approved) {
     const parsed = normalisedProductSchema.safeParse(item.normalised_payload);
@@ -580,6 +614,20 @@ export async function applyJob(jobId: string): Promise<ApplyResult> {
       await repo.markItemApplied(db, item.id, productId);
       result.applied += 1;
       result.productIds.push(productId);
+
+      // ⚠️ **After the item is marked applied, and outside its try/catch on
+      // purpose.** The product row is written and correct; a photograph that
+      // 404s is not a reason to mark the item failed and re-stage a product the
+      // catalogue already has. Image trouble is reported and the item stays
+      // applied.
+      await importImages(db, {
+        productId,
+        product: parsed.data,
+        label: item.external_id ?? item.id,
+        budget: imageBudget,
+        mayWriteMedia,
+        result,
+      });
     } catch (error) {
       result.failed += 1;
       const message = `${item.external_id ?? item.id}: ${describe(error)}`;
@@ -596,6 +644,118 @@ export async function applyJob(jobId: string): Promise<ApplyResult> {
 
   return result;
 }
+
+/**
+ * Fetches a product's staged image URLs, catalogues them, and attaches them.
+ *
+ * ⚠️ **Attaches, never detaches, and that is the same stance as the rest of
+ * ingestion.** An import does not publish, does not rename and does not rewrite
+ * the block tree; it does not curate a gallery either. A merchant dropping a
+ * photograph from their feed must not silently remove one an editor chose to
+ * feature, so a URL that disappears from a feed leaves `product_media` alone.
+ * The cost is stated: a gallery can accumulate images the source no longer
+ * lists, and pruning it is an editor's job on `/admin/products`.
+ *
+ * **Idempotent end to end.** `uploadAsset` deduplicates on a SHA-256 of the
+ * bytes, so re-running costs one query and no storage for an image already in
+ * the library; `attachProductMedia` upserts on `(product_id, asset_id)`. That is
+ * what makes the per-run budget safe — see `imageImportPlan`.
+ *
+ * Each image is fetched independently and a failure is recorded rather than
+ * thrown: five photographs where the third 404s should yield four photographs
+ * and one message, not a failed product.
+ */
+async function importImages(
+  db: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    productId: string;
+    product: NormalisedProduct;
+    label: string;
+    budget: { remaining: number };
+    mayWriteMedia: boolean;
+    result: ApplyResult;
+  }
+): Promise<void> {
+  const urls = input.product.images ?? [];
+  if (urls.length === 0) return;
+
+  if (!input.mayWriteMedia) {
+    input.result.imagesSkipped += urls.length;
+    // One message for the run, not one per product: the permission does not
+    // change between items, and repeating it would bury the real errors.
+    const notice = "Images were not imported: this account does not hold media.write.";
+    if (!input.result.errors.includes(notice)) input.result.errors.push(notice);
+    return;
+  }
+
+  const plan = imageImportPlan(urls, input.budget);
+  if (plan.skipped > 0) {
+    input.result.imagesSkipped += plan.skipped;
+    input.result.errors.push(
+      `${input.label}: ${plan.skipped} image${plan.skipped === 1 ? "" : "s"} not imported ` +
+        `(this run's image budget is spent). Run apply again to continue — nothing already ` +
+        `imported is fetched twice.`
+    );
+  }
+
+  // Sequential rather than `Promise.all`, deliberately. These are downloads
+  // followed by uploads against one Storage bucket; firing eight at once at a
+  // merchant's CDN is the shape that gets a feed rate-limited, and the run is
+  // already bounded by the budget above.
+  for (const [index, url] of plan.take.entries()) {
+    input.budget.remaining -= 1;
+
+    try {
+      const asset = await imageAssetFor(url, input.product);
+      await attachProductMedia(db, input.productId, {
+        assetId: asset.id,
+        // The first photograph a feed lists is the one it leads with. Position
+        // carries the feed's own order, which is the only ordering information
+        // a feed gives us.
+        role: index === 0 ? "primary" : "gallery",
+        position: index,
+      });
+      input.result.imagesImported += 1;
+    } catch (error) {
+      input.result.imagesSkipped += 1;
+      input.result.errors.push(`${input.label}: image ${index + 1} — ${describe(error)}`);
+    }
+  }
+}
+
+/**
+ * One URL to a catalogued asset.
+ *
+ * ⚠️ **The content type is checked before the bytes reach `uploadAsset`.** That
+ * function refuses a non-media MIME type, but its message is written for someone
+ * at an upload dialog; a feed that answers a photograph URL with an HTML error
+ * page deserves to be told that is what happened.
+ *
+ * `altText` is the product's own name. It is a guess, and a defensible one for a
+ * product photograph — the alternative is an image with no alternative text at
+ * all, which the a11y suite exists to catch and which an editor is far less
+ * likely to notice than a slightly generic sentence.
+ */
+async function imageAssetFor(url: string, product: NormalisedProduct) {
+  const { bytes, contentType } = await fetchBinaryCapped(globalThis.fetch, url, {
+    subject: `The image at ${url}`,
+    timeoutMs: IMAGE_TIMEOUT_MS,
+  });
+
+  const check = imageTypeProblem(contentType, bytes.byteLength);
+  if (!check.ok) throw new Error(check.problem);
+
+  return uploadAsset({
+    fileName: imageFileNameFrom(url),
+    mimeType: check.mimeType,
+    bytes,
+    title: product.name,
+    altText: product.name,
+  });
+}
+
+/** Shorter than a feed fetch: one photograph should not hold a run for a minute. */
+const IMAGE_TIMEOUT_MS = 15_000;
 
 async function applyOne(
   db: Awaited<ReturnType<typeof createClient>>,

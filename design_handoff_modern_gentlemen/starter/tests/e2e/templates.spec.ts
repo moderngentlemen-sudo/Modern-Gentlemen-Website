@@ -338,6 +338,58 @@ test.describe("templates", () => {
     await expect(row).toContainText("published");
   });
 
+  test("assigns the template to a target, and takes the assignment back off", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/templates");
+
+    const row = page.getByRole("row", { name: new RegExp(templateName) });
+
+    // Nothing is assigned yet, and the column says so. `—` rather than an
+    // empty cell, so "not assigned" is legible instead of looking like a
+    // rendering fault.
+    await expect(row).toContainText("—");
+
+    await row.getByRole("button", { name: "Assign", exact: true }).click();
+
+    const dialog = page.getByRole("dialog", { name: new RegExp(`Assign.*${templateName}`) });
+    await expect(dialog).toBeVisible();
+
+    // ⚠️ **Assigned and then unassigned inside one test, deliberately.** The
+    // visual suite runs after E2E in the same CI job and against the same
+    // stack, so a template left framing every page would move the homepage
+    // baseline — a failure in an unrelated suite, which is the hardest kind to
+    // read. The `cleans up` test would cascade the row away, but a cascade
+    // revalidates nothing, so the framed HTML would outlive the template.
+    await dialog.getByLabel("Applies to").selectOption({ label: "Every page" });
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+    await expect(row).toContainText("Every page");
+
+    // The round trip: it is a row in the database, not component state.
+    await page.reload();
+    await expect(page.getByRole("row", { name: new RegExp(templateName) })).toContainText(
+      "Every page"
+    );
+
+    // --- and back off again ----------------------------------------------
+    await page
+      .getByRole("row", { name: new RegExp(templateName) })
+      .getByRole("button", { name: "Assign", exact: true })
+      .click();
+
+    const reopened = page.getByRole("dialog", { name: new RegExp(`Assign.*${templateName}`) });
+    // It opens holding what is stored, not the default — an editor changing one
+    // thing must not silently reset the rest.
+    await expect(reopened.getByLabel("Applies to")).toHaveValue(/^content_type:page$/);
+
+    await reopened.getByLabel("Applies to").selectOption({ label: "Nothing" });
+    await reopened.getByRole("button", { name: "Save", exact: true }).click();
+
+    await expect(reopened).toBeHidden({ timeout: 15_000 });
+    await expect(page.getByRole("row", { name: new RegExp(templateName) })).toContainText("—");
+  });
+
   test("cleans up", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/templates");

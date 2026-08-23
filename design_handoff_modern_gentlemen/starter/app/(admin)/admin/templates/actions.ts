@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createTemplate } from "@/lib/services/templates";
+import { assignTemplateTo, createTemplate, publicPathsForTemplate } from "@/lib/services/templates";
 import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
 import { TEMPLATE_KINDS } from "@/lib/domain/templates";
@@ -57,7 +57,19 @@ export async function deleteTemplateAction(input: unknown): Promise<ActionResult
   if (!parsed.success) return { ok: false, error: "Invalid input" };
 
   try {
+    // ⚠️ **Collected before the delete, and this is a real fix rather than
+    // tidiness.** `template_assignments` cascades on the template id, so
+    // deleting an assigned template silently unframes every page it framed —
+    // but nothing invalidated those paths, so each kept serving its *framed*
+    // prerendered HTML until the hourly backstop expired. An hour of pages
+    // rendering a layout that no longer exists, with nothing in the admin
+    // hinting at it. After the row is gone the paths are unknowable, which is
+    // why this runs first.
+    const framed = await publicPathsForTemplate(parsed.data.id);
+
     await deleteDocument("template", parsed.data.id);
+
+    for (const path of framed) revalidatePath(path);
     revalidatePath("/admin/templates");
     return ok(undefined);
   } catch (error) {
@@ -116,6 +128,37 @@ export async function renameTemplateAction(input: unknown): Promise<ActionResult
     revalidatePath("/admin/templates");
     revalidatePath(`/admin/templates/${id}`);
     return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Points a template at a target, or at nothing.
+ *
+ * `target: null` means "applies to nothing" — expressed as an explicit null
+ * rather than an absent field, so a client that forgot to send the value cannot
+ * accidentally unassign a live template.
+ *
+ * The revalidation walks the set the service returns rather than one path: an
+ * assignment changes what a published page renders without touching that page's
+ * row, and reassigning a target away from another template changes *its* pages
+ * too. `revalidatePath("/", "layout")` would be the blunt version and would drop
+ * every cached route on the site for one row.
+ */
+export async function assignTemplateAction(
+  input: unknown
+): Promise<ActionResult<{ paths: number }>> {
+  const parsed = z
+    .object({ id: z.string().uuid(), target: z.string().min(1).max(200).nullable() })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+
+  try {
+    const { paths } = await assignTemplateTo(parsed.data.id, parsed.data.target);
+    for (const path of paths) revalidatePath(path);
+    revalidatePath("/admin/templates");
+    return ok({ paths: paths.length });
   } catch (error) {
     return toActionResult(error);
   }
