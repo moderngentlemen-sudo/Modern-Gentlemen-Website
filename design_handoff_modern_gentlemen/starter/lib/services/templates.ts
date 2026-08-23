@@ -8,7 +8,8 @@ import { DEFAULT_AREA_NAME } from "@/lib/blocks/areas";
 import type { BlockNode, BlockTree } from "@/lib/blocks/types";
 import { DOCUMENT_CONTENT_TYPE } from "@/lib/blocks/templateContent";
 import type { Json } from "@/lib/db/database.types";
-import { publicPathForPage } from "@/lib/domain/routes";
+import { publicPathForCategory, publicPathForPage } from "@/lib/domain/routes";
+import { framedContentTypeFor } from "@/lib/domain/templates";
 import { requirePermission } from "./auth";
 
 export type { TemplateRow } from "@/lib/db/repositories/templates";
@@ -117,15 +118,39 @@ export async function resolveTemplateFor(target: {
  * against a category. When a renderer for those lands this function grows a
  * branch; until then, inventing one would be dead code that looks tested.
  *
- * ⚠️ **Only `page` templates return anything today**, because `/` is the only
- * public route that renders a document through a template. A published
- * `article` or `product` template genuinely changes no path, and returning an
+ * ⚠️ **Only `page` and `archive` templates return anything**, because `/` and
+ * `/[category]` are the only public routes that render a document through a
+ * template. A published `article` or `product` template genuinely changes no
+ * path — those routes are fixed components, not block trees — and returning an
  * empty list is the honest answer rather than a missing case.
+ *
+ * ⚠️ **The `taxonomy` scope is still skipped, and `archive` landing does not
+ * change that.** It exists for a template scoped to *one* category by slug, and
+ * `resolveTemplateId` implements it on the admin side; the public reader
+ * (`publishedTemplateArea`) does not, so honouring it here would invalidate
+ * paths that nothing renders differently. When the reader grows that rung this
+ * function grows the matching one — together, or the two disagree about which
+ * pages a template touches.
  */
 export async function publicPathsForTemplate(id: string): Promise<string[]> {
   const db = await createClient();
   const template = await repo.getTemplate(db, id);
-  if (!template || template.kind !== "page") return [];
+  if (!template) return [];
+
+  // `kind` decides the table and the path shape together, so the two cannot be
+  // paired wrongly the way two separate switches eventually would be. Which
+  // kinds frame anything is `lib/domain`'s call — `FRAMED_CONTENT_TYPE` is a
+  // Record over the kind vocabulary, so a new kind is a type error here rather
+  // than a silent "frames nothing".
+  const contentType = framedContentTypeFor(template.kind);
+  const framed =
+    contentType === "page"
+      ? ({ table: "pages", path: publicPathForPage } as const)
+      : contentType === "category"
+        ? ({ table: "categories", path: publicPathForCategory } as const)
+        : null;
+
+  if (!framed) return [];
 
   const { data: assignments, error } = await db
     .from("template_assignments")
@@ -140,15 +165,31 @@ export async function publicPathsForTemplate(id: string): Promise<string[]> {
     .filter((row) => row.scope === "entry" && row.entry_id)
     .map((row) => row.entry_id as string);
 
-  let query = db.from("pages").select("slug").eq("status", "published");
-  if (!wholeType) {
-    if (entryIds.length === 0) return [];
-    query = query.in("id", entryIds);
+  if (!wholeType && entryIds.length === 0) return [];
+
+  // Branched rather than parameterised, for the reason `readFramed` records in
+  // `publicContent.ts`: a `db.from(table)` over a union cross-products the
+  // tables with the columns, and `tsc` then objects to a call that never
+  // happens. Four duplicated lines beat a generic over `PostgrestFilterBuilder`.
+  let slugs: string[];
+
+  if (framed.table === "pages") {
+    let query = db.from("pages").select("slug").eq("status", "published");
+    if (!wholeType) query = query.in("id", entryIds);
+    const { data, error: readError } = await query;
+    if (readError) {
+      throw new Error(`Could not read the pages this template frames: ${readError.message}`);
+    }
+    slugs = (data ?? []).map((row) => row.slug);
+  } else {
+    let query = db.from("categories").select("slug").eq("status", "published");
+    if (!wholeType) query = query.in("id", entryIds);
+    const { data, error: readError } = await query;
+    if (readError) {
+      throw new Error(`Could not read the categories this template frames: ${readError.message}`);
+    }
+    slugs = (data ?? []).map((row) => row.slug);
   }
 
-  const { data: pages, error: pageError } = await query;
-  if (pageError)
-    throw new Error(`Could not read the pages this template frames: ${pageError.message}`);
-
-  return (pages ?? []).map((page) => publicPathForPage(page.slug));
+  return slugs.map(framed.path);
 }

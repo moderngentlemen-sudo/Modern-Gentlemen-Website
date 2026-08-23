@@ -4,7 +4,7 @@ import { SectionRenderer } from "@/components/SectionRenderer";
 import { resolveBindings } from "@/lib/blocks/binding";
 import { supabaseBindingSources } from "@/lib/services/bindingSources";
 import { getPublishedCategory, listPublishedCategorySlugs } from "@/lib/services/publicEditorial";
-import { expandPublicPatterns } from "@/lib/services/publicContent";
+import { composePublishedCategory } from "@/lib/services/publicContent";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { canonicalUrl, metaDescription, pageTitle } from "@/lib/domain/seo";
 import { publicPathForCategory } from "@/lib/domain/routes";
@@ -84,10 +84,16 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
    * build — and a block substituted in *after* `resolveBindings` had run would
    * reach the renderer with its descriptor unresolved, rendering an empty grid
    * on a page whose other grids were full.
+   *
+   * That ordering is now `composePublishedCategory`'s to keep, along with the
+   * `archive` template that frames the result. The resolver is passed in rather
+   * than imported there: `lib/services/publicContent.ts` is what every public
+   * route reads through, and making it depend on the binding engine for one
+   * caller's benefit would be the wrong trade. This route already holds both
+   * halves.
    */
-  const sections = await resolveBindings(
-    await expandPublicPatterns(doc.sections),
-    supabaseBindingSources
+  const sections = await composePublishedCategory(doc, (tree) =>
+    resolveBindings(tree, supabaseBindingSources)
   );
 
   return <SectionRenderer sections={sections} />;

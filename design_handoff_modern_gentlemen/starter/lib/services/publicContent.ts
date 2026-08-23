@@ -214,8 +214,18 @@ async function publishedTemplateArea(
 }
 
 /**
- * The single published page a template frames, or `null` when that is not one
- * page.
+ * The one document type a content type reads from. An allowlist, not a lookup:
+ * the value reaches this module from a `template_assignments` row, and building
+ * a table name out of stored text is how an injection starts.
+ */
+const FRAMEABLE: Record<string, "pages" | "categories"> = {
+  page: "pages",
+  category: "categories",
+};
+
+/**
+ * The single published document a template frames, or `null` when that is not
+ * one document.
  *
  * This is `publishedTemplateArea` run backwards, and it exists for the preview
  * route: a template previewed on its own is a header band sitting on a footer
@@ -223,57 +233,120 @@ async function publishedTemplateArea(
  * page*. So the preview frames a real one where the answer is unambiguous.
  *
  * ⚠️ **"Exactly one, or none" is the whole rule, and the refusal is the point.**
- * A `content_type` assignment frames every published page there is; picking one
- * of several to stand for the rest would put a page an editor did not choose in
- * front of them and call it a preview. That is the same arbitrariness
+ * A `content_type` assignment frames every published document there is; picking
+ * one of several to stand for the rest would put a document an editor did not
+ * choose in front of them and call it a preview. That is the same arbitrariness
  * `findContentArea` refuses when two areas hold a marker, and the same one
- * `validateTemplateAreas` refuses when a template holds two markers. When the
- * answer is not one page, the marker draws itself instead — see
- * `DocumentContentGap`.
+ * `validateTemplateAreas` refuses when a template holds two markers.
  *
- * Reads through the public client, and `published_data` only: a preview shows
- * an unpublished *template*, framing the site as it actually stands. Pulling a
- * page's draft in here would put two different unpublished things on one screen
- * with nothing to tell them apart.
+ * ⚠️ **An entry-scoped row does not say which table its `entry_id` is in.**
+ * `0003`'s `template_assignment_scope_shape` CHECK requires `content_type` for
+ * the `content_type` and `taxonomy` scopes and **not** for `entry` — so an entry
+ * assignment can carry a null `content_type`, and the id has to be looked for in
+ * both tables. That is two queries rather than one, on tables holding
+ * single-digit rows, and it is the honest reading of the constraint rather than
+ * an assumption that the column is always populated.
+ *
+ * Reads through the public client, and `published_data` only: a preview shows an
+ * unpublished *template*, framing the site as it actually stands. Pulling a
+ * document's draft in here would put two different unpublished things on one
+ * screen with nothing to tell them apart.
  */
-export interface FramedPage {
-  slug: string;
+export interface FramedDocument {
   title: string;
   sections: BlockTree;
 }
 
-export async function soleFramedPage(templateId: string): Promise<FramedPage | null> {
+export async function soleFramedDocument(templateId: string): Promise<FramedDocument | null> {
   const db = createPublicClient();
 
   const { data: assignments, error } = await db
     .from("template_assignments")
-    .select("scope, entry_id")
+    .select("scope, content_type, entry_id")
     .eq("template_id", templateId);
 
   if (error) throw new Error(`Could not read this template's assignments: ${error.message}`);
   if (!assignments?.length) return null;
 
-  const wholeType = assignments.some((row) => row.scope === "content_type");
+  const found: FramedDocument[] = [];
+
+  // A whole content type. `template_assignment_content_type_uniq` makes this at
+  // most one row per type, so the loop is over types and not over duplicates.
+  for (const row of assignments) {
+    if (row.scope !== "content_type") continue;
+    const table = FRAMEABLE[row.content_type ?? ""];
+    if (!table) continue;
+    found.push(...(await readFramed(table, null)));
+    if (found.length > 1) return null;
+  }
+
   const entryIds = assignments
     .filter((row) => row.scope === "entry" && row.entry_id)
     .map((row) => row.entry_id as string);
 
-  let query = db.from("pages").select("slug, title, published_data").eq("status", "published");
-  if (!wholeType) {
-    if (entryIds.length === 0) return null;
-    query = query.in("id", entryIds);
+  if (entryIds.length) {
+    for (const table of ["pages", "categories"] as const) {
+      found.push(...(await readFramed(table, entryIds)));
+      if (found.length > 1) return null;
+    }
   }
 
-  // Two rows are fetched where one is wanted, so that "exactly one" is measured
-  // rather than assumed from a `.limit(1)` that would have made three pages
-  // look like one.
-  const { data: pages, error: pageError } = await query.limit(2);
-  if (pageError)
-    throw new Error(`Could not read the pages this template frames: ${pageError.message}`);
-  if (pages?.length !== 1) return null;
+  return found.length === 1 ? found[0] : null;
+}
 
-  const page = pages[0];
-  return { slug: page.slug, title: page.title, sections: sectionsOf(page.published_data) };
+/**
+ * Published rows of one table, capped at two.
+ *
+ * Two where one is wanted, so that "exactly one" is **measured** rather than
+ * assumed from a `.limit(1)` that would have made three documents look like one.
+ *
+ * ⚠️ **The two reads are written out rather than parameterised**, and that is
+ * the generated types insisting rather than a preference. `pages.title` and
+ * `categories.name` are the same idea under different column names, and a
+ * `db.from(table).select(`${col}, published_data`)` cross-products the table
+ * union with the column string — `tsc` then reports that `name` does not exist
+ * on `pages`, correctly, for a call that never happens. Two literal selects type
+ * themselves and read better; the dispatcher below is the only shared part.
+ */
+async function readFramed(
+  table: "pages" | "categories",
+  entryIds: string[] | null
+): Promise<FramedDocument[]> {
+  return table === "pages" ? readFramedPages(entryIds) : readFramedCategories(entryIds);
+}
+
+async function readFramedPages(entryIds: string[] | null): Promise<FramedDocument[]> {
+  const db = createPublicClient();
+  let query = db.from("pages").select("title, published_data").eq("status", "published").limit(2);
+  if (entryIds) query = query.in("id", entryIds);
+
+  const { data, error } = await query;
+  if (error) throw new Error(`Could not read the pages this template frames: ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    title: row.title,
+    sections: sectionsOf(row.published_data),
+  }));
+}
+
+async function readFramedCategories(entryIds: string[] | null): Promise<FramedDocument[]> {
+  const db = createPublicClient();
+  let query = db
+    .from("categories")
+    .select("name, published_data")
+    .eq("status", "published")
+    .limit(2);
+  if (entryIds) query = query.in("id", entryIds);
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Could not read the categories this template frames: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    title: row.name,
+    sections: sectionsOf(row.published_data),
+  }));
 }
 
 /**
@@ -297,4 +370,41 @@ export async function composePublishedPage(page: PublishedPage): Promise<BlockTr
   if (!area) return expanded;
 
   return expandPublicPatterns(applyTemplate(area, expanded));
+}
+
+/**
+ * A category's sections, framed by its `archive` template when one applies.
+ *
+ * The same composition as `composePublishedPage`, plus the one thing a category
+ * page has and a page does not: **bindings**. `/[category]`'s lead and grid hold
+ * `$bind` descriptors resolved against the `articles` table, so a template
+ * framing a category has to resolve them on the composed tree — a template is
+ * every bit as able to hold an `articleGrid` as the category is, and one that
+ * reached the renderer with its descriptor unresolved would render an empty grid
+ * beside a full one.
+ *
+ * ⚠️ **The resolver is injected rather than imported**, and that is a layering
+ * decision, not a style one. `supabaseBindingSources` lives in
+ * `lib/services/bindingSources.ts`; importing it here would make this module —
+ * which every public route reads through — depend on the binding engine for the
+ * benefit of one caller. The route already holds both halves, so it passes the
+ * resolver in and this module stays the shape it was.
+ *
+ * Returns the category's own sections untouched when nothing is assigned, so a
+ * site with no archive template renders byte-identically to one that has never
+ * heard of them. That is what makes this change provable against the baselines.
+ */
+export async function composePublishedCategory(
+  category: { id: string; sections: BlockTree },
+  resolve: (tree: BlockTree) => Promise<BlockTree>
+): Promise<BlockTree> {
+  const own = await resolve(await expandPublicPatterns(category.sections));
+  const area = await publishedTemplateArea("category", category.id);
+  if (!area) return own;
+
+  // Resolved twice by construction, and the second pass is free: `resolveBindings`
+  // returns its input unchanged when the tree holds no `$bind` requests, and the
+  // category's own descriptors were consumed by the first pass. What the second
+  // pass is actually for is the *template's* own blocks.
+  return resolve(await expandPublicPatterns(applyTemplate(area, own)));
 }

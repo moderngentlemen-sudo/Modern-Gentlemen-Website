@@ -44,3 +44,36 @@ export const TEMPLATE_KIND_DESCRIPTION: Record<TemplateKind, string> = {
   footer: "A global part, shared site-wide.",
   section: "A reusable fragment, assigned rather than inserted.",
 };
+
+/**
+ * The content type a kind's templates frame, or `null` when nothing renders it.
+ *
+ * Two public routes are section-driven and therefore frameable: `/` renders a
+ * `page`, and `/[category]` renders a `category`. The other five kinds resolve
+ * and publish and change no path — `/article/[slug]` and the PDP render fixed
+ * components rather than block trees, and `header`/`footer`/`section` have no
+ * route of their own at all. `null` is the honest answer for those rather than a
+ * missing case.
+ *
+ * ⚠️ **A `Record` over `TemplateKind`, not a `switch`.** Adding a kind to
+ * `TEMPLATE_KINDS` without deciding what it frames is then a *type* error rather
+ * than a silent `undefined` that reads as "frames nothing" — which is exactly
+ * how `archive` sat unrendered for two phases while looking deliberate.
+ *
+ * It lives in `lib/domain` because it is a statement about two string
+ * vocabularies and nothing else. `lib/services/publicContent.ts` holds the other
+ * half — content type to *table* — because that one names database objects.
+ */
+export const FRAMED_CONTENT_TYPE: Record<TemplateKind, "page" | "category" | null> = {
+  page: "page",
+  archive: "category",
+  article: null,
+  product: null,
+  header: null,
+  footer: null,
+  section: null,
+};
+
+export function framedContentTypeFor(kind: TemplateKind): "page" | "category" | null {
+  return FRAMED_CONTENT_TYPE[kind];
+}
