@@ -32,7 +32,7 @@ design_handoff_modern_gentlemen/starter/
 │                 (admin)/ pages, articles, taxonomy, products, media, navigation,
 │                 theme, integrations, password
 │                 auth/ callback · sign-out · _lib/publicUrl.ts (see the rule below)
-│                 sitemap.ts · robots.ts · api/jobs/publish-scheduled/
+│                 sitemap.ts · robots.ts · api/jobs/{publish-scheduled,run-imports}/
 ├─ components/    sections/ (blocks + registry; the hook prints the true count),
 │                 article/, chrome/, store/, ui/,
 │                 seo/ (JsonLd), admin/ (ui/, builder/, fields/, media/, history/)
@@ -41,7 +41,9 @@ design_handoff_modern_gentlemen/starter/
 │  ├─ domain/     PURE: types, Zod schemas, business rules. No I/O, no React.
 │  ├─ db/         client.ts · server.ts · admin.ts · public.ts + repositories,
 │  │              and the generated database.types.ts
-│  ├─ services/   orchestration + permission checks
+│  ├─ services/   orchestration + permission checks. TWO cron-fired runners
+│  │              live here (scheduledPublishing, scheduledImports); both use
+│  │              the service-role client because a schedule has no session.
 │  ├─ catalog/    CatalogProvider — the published catalogue, in React context
 │  ├─ integrations/  commerce/ — the SourceAdapter interface, TWO adapters
 │  │              (xmlFeed.ts, shopify.ts), the shared http.ts (timeout + 20 MB
@@ -126,8 +128,19 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   function away from `ingestion.ts`, which the mapping editor imports;
   `lib/domain/jobs.ts` keeps its `node:crypto` because nothing on a client
   imports it. **The difference is the importer, not the module** — so check both
-  ends before adding a Node import to a leaf.
-- **An import never publishes, never renames, never rewrites the tree.** A feed
+  ends before adding a Node import to a leaf. This bit a second time and was
+  caught in advance: the feed **schedule vocabulary** belonged beside the other
+  job constants in `jobs.ts`, and went into `lib/domain/ingestion.ts` instead
+  because `SourceEditor.tsx` is a client component. The obvious placement would
+  have been `UnhandledSchemeError` with every other gate green.
+- **An import never publishes, never renames, never rewrites the tree — and a
+  schedule is not a way round that.** A scheduled run (`sync_schedule`, hourly at
+  most) **stages** proposals and ends at `review`, exactly as the manual button
+  does; `applyJob` still needs a person. Apply writes in **bounded batches** and
+  is resumable — it marks each item as it writes it — so it runs *as the editor*
+  rather than as a background worker, which is what keeps `product.write` and
+  `media.write` checked against a real session. `import_jobs.status` still has an
+  unused `'queued'`; that is now a decision, not an oversight. A feed
   run stages proposals into `import_items`; `applyJob` is the only thing in
   `lib/services/ingestion.ts` that writes `products`. It creates **drafts**
   (`columnsForApply` never writes `status`), it never writes `slug` on an update

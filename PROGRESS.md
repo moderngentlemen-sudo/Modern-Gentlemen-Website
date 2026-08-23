@@ -21,6 +21,18 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 >
 > ✅ **`rls.test.ts` no longer carries a `KNOWN GAP` test, and this note records what the pattern was for rather than warning about a live one.** Both characterisation tests it once held have now completed the full cycle: asserted as the wrong-but-current behaviour, cited to justify a migration, then **inverted in the same commit as the fix** — `is_system` for `0018`, `draft_data` for `0020`. The technique is the reusable part. A gap recorded only in prose is a gap nobody notices closing; asserted, the day someone fixes it the suite goes red and says so. **If you add another, name it `KNOWN GAP` and write the instruction to invert it inside the test**, because that is what made both of them survive the months between discovery and fix.
 >
+> ⚠️ **IN FLIGHT: PR #62 — scheduled feed runs and bounded apply** (`claude/session-setup-review-e3yh51`). **This bullet supersedes the "Nothing is in flight" sentence directly below it**, which is written for the steady state and is false right now.
+>
+> **It carries three commits, and one of them is a docs cleanup that should have merged on its own.** `d46f72b` retires PR #61's bullet; `b2ee2e4` adds scheduled feed runs; `f7e0369` bounds the apply batch. The branch rule allows one branch and each commit was pushed rather than held on an ephemeral container, so the PR grew twice. **That is now the second session in a row it has happened** — if it matters, the fix is procedural (merge the small PR before starting the next slice), not technical.
+>
+> What is on that branch and not yet on `main`: `SYNC_SCHEDULES`/`isSyncDue` in `lib/domain/ingestion.ts`, `runImportCore`, `lib/services/scheduledImports.ts`, `POST /api/jobs/run-imports`, the `scheduled-imports` workflow, the **schedule selector** on the source editor, and `APPLY_BATCH_SIZE` + `ApplyResult.remaining` with the batch loop behind the Apply button. **No migration.**
+>
+> **Why this one is worth branching around:** it adds a **third** `.github/workflows` cron and a second jobs route, so anything touching the runner pattern will conflict; and `runImport` was split into `runImport` + `runImportCore`, which moves the line every future caller attaches to.
+>
+> ⚠️ **If it merges and this session is gone, the retirement still has to happen**: delete this bullet, restart the branch from the new `main`, and open a PR for the removal — which by this file's own exception gets no bullet of its own.
+>
+> **Delete this bullet when PR #62 merges**, in the session that owns it and while that session is still running.
+
 > ✅ **Nothing is in flight.** The last seven in-flight bullets — Shopify (PR #28), drag-from-library (PR #32, merged as `9d87568`), the drag-reordering fixes (PR #50, merged as `e9b8225`), templates' named areas (PR #52, merged as `cbe7937`), synced patterns (PR #54, merged as `3d5511a`), previewing a template area (PR #59, merged as `20beee4`) and the three-slice branch (PR #61, merged as `8b86fa1`) — were each **deleted in the session that opened them, minutes after the merge**. Seven in a row is a habit rather than an accident, and the mechanism is worth recording as the fix: each bullet was written with its own deletion condition inside it, and each deletion happened while the session that owned it was still running. The five failures before that shared one shape — the correction was left until "afterwards", and afterwards the only place to write it was a branch nobody should commit to.
 >
 > ⚠️ **One exception, or the rule never terminates: a PR whose only content is deleting an in-flight bullet does not get a bullet of its own.** Found by walking into it — PR #35 was docs-only, its bullet had to be removed after it merged, and removing it needs another PR, which by the letter of the rule would need another bullet. The purpose of a bullet is to stop a new session branching into a change it does not know about; a PR that deletes one sentence about a merged PR cannot surprise anybody.
@@ -208,6 +220,37 @@ The repository *also* needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 
 **The candidates, in the order they are worth doing:**
 
+**Every Track B slice is done.** What is left divides into three, and only the first is mine to start without asking.
+
+### Build work
+
+1. **Track A's Lighthouse / performance budget** — the last third of Phase 7, and the only substantial build item left. SEO shipped (PR #22), the a11y audit shipped (PR #57); image sizing, font loading and a Core Web Vitals budget never did.
+
+   ⚠️ **Read the a11y slice's decisions-log entry before starting, and consider taking the contrast decision first.** That pass found the design baseline's AA-contrast claim to be *measurably false*, and a performance pass changes image formats and font loading — so both collide with the same rule, *"match the handoff bundle exactly"*, and both invalidate the sixteen baselines by construction. Doing them in one pass means moving pixels once and re-recording the baselines once. Doing them separately means doing that twice, and arguing about it twice.
+
+2. **The smaller recorded gaps**, none urgent, each written up in Known issues: `product_variants` and `product_collections` have an admin UI and **no public surface** (the PDP shows one price and no variant picker — the largest of these by far); half of `patterns` is unreachable from the admin (`description` and `category` are never collected); the builder's publish dialog is **worded for pages** and prints `/{slug}` for things that have no such URL; there is no Theme history screen; `media_assets` dimensions are never populated; and `mg.accentSerif`'s eight alpha utilities **compile to no CSS at all** and have since Track A.
+
+### Decisions the brand owns, not a session
+
+Each is held as a `KNOWN GAP` characterisation test that asserts today's behaviour and carries the instruction to invert it — so the suite goes red the day one is settled, which is the technique this file records working four times now.
+
+3. **The 204 contrast failures.** Measured, not estimated, and collapsing into four token-level causes rather than scattered mistakes. `design_handoff_modern_gentlemen/CLAUDE.md` asserts both "do not deviate" and "the tokens already meet AA"; the second is false. Three routes are written up in Known issues, and only one reaches AA without changing the type scale.
+
+4. **`categories` delete permissions** — the one table `0022` could not close. Two delete routes check different permissions (`/admin/taxonomy` → `taxonomy.write`, `/admin/categories` → `category.delete`), so a restrictive gate on either breaks the other's screen for `author`. Decide what deleting a category from the taxonomy list *means* now that a category is also a document with a layout; the policy then follows in one line.
+
+5. **The canonical domain.** Canonicals point at the Railway subdomain **by decision**. Switching is one environment variable plus redirects for whatever was indexed meanwhile — cheap now, less cheap after more of the site is indexed.
+
+### Not code at all, and the real gate on launch
+
+Recorded here because "the platform is nearly done" and "the product is nearly done" are different sentences, and this file has only ever tracked the first. **Stripe/checkout is out of scope by decision** and checkout is demo-only; membership is a flag rather than a subscription; the newsletter captures to Supabase and reaches no ESP; **every image and video is a placeholder with no rights cleared**. No amount of building finishes these.
+
+**Deliberately not next, and why** — so nobody re-derives these: **row support** (the builder has it, as `columns`; see the decisions log), **`template` sync modes**, and **`visibility.devices` at render** (honouring it needs a session in the site layout, which costs the whole public site its static rendering).
+
+<details>
+<summary>The history: slices that are done, kept for what each cost against what it was predicted to cost</summary>
+
+**Moved here from the live list when they landed.** Each kept for what it cost against what it was predicted to cost — the only reason any of it is still worth reading.
+
 0. ~~**Templates' named areas**~~ — **done, and it was the last structurally missing builder feature.** Kept here for one paragraph because the prediction was accurate and cheap to check against: this entry said the work was "an area switcher above the canvas and a `treeKey` that can name one", and that is exactly what it was. `blockTreesOf` really had handled areas since Phase 3, so publish validation, revisions and version diffing needed **no change at all**. What the entry did not predict is the same thing the Shopify adapter and the patterns slice both recorded: **the screens, not the abstraction.** `/admin/templates` did not exist in any form — no list, no create, no history — so six of the twenty changed files are a list, a create dialog, a rename, a delete and a history screen, and the store's genuinely new work was not the switch but the *dirtiness* it broke. See the decisions log.
 0b. ~~**Synced patterns**~~ — **done, and the public paths expand `_ref`s rather than the column being removed.** The entry framed it as either/or and building it turned out to be the smaller half of the two: the expansion engine (`lib/blocks/expand.ts`) had been written, tested and unused since Phase 4, and no migration was needed. What the entry did not see is that a `_ref` node needs a **registered block type** — `validateBlock` refuses an unknown `_type`, so a page holding a synced pattern would have composed, saved and previewed and then been refused at publish. See the decisions log.
 0c. ~~**The `*.delete` permissions gate nothing**~~ — **done as `0022`, and the entry was right about the shape and wrong about the count.** It named three tables; there were **six** with the identical pairing (`pages`, `templates` and `patterns` too), and `page.delete` was still additive after `0018` fixed only the `is_system` half of the same policy. Fixing three of six would have left the entry's own headline true.
@@ -231,13 +274,6 @@ The repository *also* needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 
    **What it did not predict is the same shape as the last three slices: the screens, not the abstraction.** The composition was `applyTemplate` with its two arguments swapped and one guard added. What the work actually was: deciding *which* page a template frames (see the decisions log — "exactly one, or none"), and discovering that the marker renders **nothing**, so "the visible gap it already is" was not true and a block had to exist for it.
 1. ~~**Ingestion's three known holes**~~ — **all three are done.** ~~Images are not imported~~ and ~~runs are manual only~~ are both **done** — see the snapshot rows and the decisions log. ⚠️ The old text of this item is kept below because it named the trap that mattered and the scheduling slice honoured it. What is left: **runs are manual only** (`sync_schedule` is stored and read by nothing — and read the scheduled-publish warning about `*/5` before wiring a trigger), and **a run holds a server action open for its whole duration** rather than queueing, which `import_jobs.status` already has a `'queued'` value for.
-2. **Track A's Lighthouse / performance budget** — the last third of Phase 7. SEO shipped (PR #22) and the a11y audit shipped (PR #57); image sizing, font loading and a Core Web Vitals budget never did. ⚠️ Read the a11y slice's decisions-log entry first: it found the design baseline's AA-contrast claim to be false, and a performance pass that changes image formats or font loading will meet the same tension between "match the handoff exactly" and a measured budget.
-3. **`categories` is the one table `0022` could not close**, and it needs a product decision before a migration. Two delete routes check different permissions — `/admin/taxonomy` requires `taxonomy.write`, `/admin/categories` requires `category.delete` — so a restrictive gate on either one breaks the other's screen for `author`. Decide what deleting a category from the taxonomy list *means* now that a category is also a document with a layout, then the policy follows in one line. See the decisions log.
-
-**Deliberately not next, and why** — so nobody re-derives these: **row support** (the builder has it, as `columns`; see the decisions log), **`template` sync modes**, and **`visibility.devices` at render** (honouring it needs a session in the site layout, which costs the whole public site its static rendering).
-
-<details>
-<summary>The history: slices that are done, kept for what each cost against what it was predicted to cost</summary>
 
 
 0. ~~Apply `0013`~~ — **done.** ~~Phase 6 — products~~ — **done as Phase 6a**, `0014` applied.
@@ -306,9 +342,15 @@ All commands from `design_handoff_modern_gentlemen/starter/`.
 3. Check live state: `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`.
 4. For front-end work: the relevant `03_PAGES_AND_COMPONENTS.md` section + its `design_files/MG *.dc.html` prototype + matching screenshot.
 5. Cut a fresh branch from `main`, run the four gates, and **update this file** before finishing. It no longer carries a branch name to update — the hook prints that — so what needs writing is the decisions log and the honest account of what was and was not verified.
-6. If you need `npm run build` or `npm run test:visual`, write a gitignored `starter/.env.local` first — **with real values, not placeholders.** Three variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (both readable from the Supabase MCP), and `NEXT_PUBLIC_SITE_URL` (any absolute origin; `http://localhost:3000` is fine). ⚠️ **This step said "placeholder Supabase values" until 2026-08-09 and that was a trap** — placeholders have failed since Phase 7a, because the site layout reads the database on every public route. Missing the third variable fails the build with `Failed to collect page data for /_not-found`, which names neither the variable nor the cause.
+6. If you need to exercise a **jobs route** (`/api/jobs/publish-scheduled`, `/api/jobs/run-imports`), add `JOBS_SECRET` to `.env.local` too — any string. Without it both routes answer `503` and refuse every request, which is the designed fail-closed behaviour and reads as a broken route. ⚠️ A *run* additionally needs `SUPABASE_SERVICE_ROLE_KEY`, which no container has: with the secret right and the key absent, the route answers `503` naming the variable, and that is the furthest a container can get.
+7. If you need `npm run build` or `npm run test:visual`, write a gitignored `starter/.env.local` first — **with real values, not placeholders.** Three variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (both readable from the Supabase MCP), and `NEXT_PUBLIC_SITE_URL` (any absolute origin; `http://localhost:3000` is fine). ⚠️ **This step said "placeholder Supabase values" until 2026-08-09 and that was a trap** — placeholders have failed since Phase 7a, because the site layout reads the database on every public route. Missing the third variable fails the build with `Failed to collect page data for /_not-found`, which names neither the variable nor the cause.
+
+> ⚠️ **The Supabase project is shared with a live human, and a probe must not assume otherwise.** Mid-session this time, `templates` held a row this session did not create — a `page`-kind draft named "Testing", made in the live admin while work was in progress. It was found before anything was touched and left alone. **Read the table before writing to it**; "I left it empty" is a fact about the past. Probe rows get a `zz-` prefixed key so the two can never be confused, and every probe this session was deleted with its counts confirmed back at baseline.
 
 ### Proving a structural refactor is render-safe (updated)
+
+> ⚠️ **This recipe is written for a *code* change, and it silently lies about a *data* one.** `npm run build` reuses prerendered output from `.next/cache` when the code has not changed — it has no way to know a row moved. The archive-templates slice spent an hour chasing a bug that was not there: a published template, a rebuild, and the frame missing from **four of five** category pages while the fifth had it. `rm -rf .next` between the two builds whenever the thing you changed is a row. CI and Railway both build from a cold checkout, so this is a local-verification trap only — which is exactly the kind that survives.
+
 
 `design_handoff_modern_gentlemen/starter` has no `node_modules` in a fresh container — `npm install` first. Then, **before** touching anything: `npm run build`, archive `.next/server/app/`, and run `npm run test:visual` to write the public screenshot baselines. Afterwards, rebuild and compare.
 
