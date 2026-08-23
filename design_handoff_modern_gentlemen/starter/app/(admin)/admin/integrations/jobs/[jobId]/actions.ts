@@ -75,6 +75,10 @@ export interface ApplySummary {
   applied: number;
   failed: number;
   errors: string[];
+  /** Photographs fetched and attached — reported because they cost the run its time. */
+  imagesImported: number;
+  /** Photographs left for a later apply. The import is idempotent; re-running picks them up. */
+  imagesSkipped: number;
 }
 
 export async function applyJobAction(input: unknown): Promise<ActionResult<ApplySummary>> {
@@ -91,7 +95,13 @@ export async function applyJobAction(input: unknown): Promise<ActionResult<Apply
     revalidatePath(`/admin/integrations/jobs/${parsed.data.jobId}`);
     revalidatePath("/admin/products");
 
-    return ok({ applied: result.applied, failed: result.failed, errors: result.errors });
+    return ok({
+      applied: result.applied,
+      failed: result.failed,
+      errors: result.errors,
+      imagesImported: result.imagesImported,
+      imagesSkipped: result.imagesSkipped,
+    });
   } catch (error) {
     return toActionResult(error);
   }

@@ -90,7 +90,7 @@ export type ImportItemStatus = (typeof IMPORT_ITEM_STATUSES)[number];
  * coercion is where a feed's stringly-typed payload stops being strings.
  */
 export type TargetFieldKind =
-  "text" | "slug" | "url" | "integer" | "pence" | "availability" | "list";
+  "text" | "slug" | "url" | "integer" | "pence" | "availability" | "list" | "urlList";
 
 export interface TargetFieldSpec {
   kind: TargetFieldKind;
@@ -112,11 +112,12 @@ export interface TargetFieldSpec {
  *   without a human is a feed that can take the store down without one.
  * - **`draft_data` / `published_data`.** The block tree is editorial work. A
  *   sync that rewrote it would discard whatever the builder had been used for.
- * - **images.** Ingesting media means downloading binaries into Storage,
- *   cataloguing them in `media_assets` and reconciling `product_media` — a slice
- *   of its own, and one that fails in ways a text mapping never does. A feed's
- *   image URLs are visible in the raw payload on the review screen, so nothing
- *   is lost, only deferred.
+ * `images` is the one target here that is **not a column**, and it is called out
+ * rather than left to be discovered: it stages a list of URLs, and `applyJob`
+ * turns those into `media_assets` rows and `product_media` links *after* the
+ * product row is written. `columnsForApply` excludes it by name — copied blindly
+ * it would reach `products` as a column that does not exist, and the failure
+ * would land on the apply of a run that had already validated cleanly.
  *
  * `fulfilment` is also absent: it is a property of the *source* (an affiliate
  * feed is affiliate for every row) rather than of a record, so it is configured
@@ -137,6 +138,7 @@ export const FEED_TARGET_FIELDS: Readonly<Record<string, TargetFieldSpec>> = {
   stock: { kind: "integer", label: "Stock" },
   availability: { kind: "availability", label: "Availability" },
   badges: { kind: "list", label: "Badges" },
+  images: { kind: "urlList", label: "Image URLs" },
   "affiliate.merchant_name": { kind: "text", label: "Merchant name" },
   "affiliate.merchant_url": { kind: "url", label: "Merchant URL" },
   "affiliate.disclosure": { kind: "text", label: "Disclosure" },
@@ -362,19 +364,58 @@ const PENCE_LOOKS_LIKE_POUNDS = /^-?\d+[.,]\d{1,2}$/;
  * fails the whole item so a reviewer sees it rather than importing half a
  * product.
  */
+/**
+ * Every entry an http(s) URL, or the whole list fails.
+ *
+ * All-or-nothing on purpose, and it matches how the rest of coercion behaves: a
+ * bad value fails the *item*, so a reviewer sees it rather than importing a
+ * product with three of its five photographs and no indication which two went
+ * missing. A feed that emits one broken URL among good ones is a feed worth
+ * looking at.
+ *
+ * ⚠️ **`data:` and `file:` are refused along with everything else non-http.**
+ * These URLs are fetched by the server during apply, so the protocol check is
+ * the boundary that stops a feed pointing the importer at the local filesystem.
+ */
+function coerceUrlList(label: string, entries: string[]): CoercionResult {
+  const urls: string[] = [];
+
+  for (const entry of entries) {
+    try {
+      const url = new URL(entry);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return { ok: false, error: `${label} must be http(s) URLs; got ${truncate(entry)}` };
+      }
+      urls.push(url.toString());
+    } catch {
+      return {
+        ok: false,
+        error: `${label} contains a value that is not a URL: ${truncate(entry)}`,
+      };
+    }
+  }
+
+  // Deduplicated here rather than at apply: a feed repeating the same image is
+  // common, and the alternative is a gallery with the same photograph twice.
+  return { ok: true, value: [...new Set(urls)] };
+}
+
 export function coerceValue(field: FeedTargetField, raw: unknown): CoercionResult {
   const spec = FEED_TARGET_FIELDS[field];
 
   if (raw === null || raw === undefined) return { ok: true, value: null };
 
   if (Array.isArray(raw)) {
-    if (spec.kind !== "list") {
+    if (spec.kind !== "list" && spec.kind !== "urlList") {
       return {
         ok: false,
         error: `${spec.label} got a list of ${raw.length} values; that path matches more than one element.`,
       };
     }
-    return { ok: true, value: raw.map((entry) => String(entry).trim()).filter(Boolean) };
+    const entries = raw.map((entry) => String(entry).trim()).filter(Boolean);
+    return spec.kind === "urlList"
+      ? coerceUrlList(spec.label, entries)
+      : { ok: true, value: entries };
   }
 
   const text = String(raw).trim();
@@ -383,6 +424,13 @@ export function coerceValue(field: FeedTargetField, raw: unknown): CoercionResul
   switch (spec.kind) {
     case "text":
       return { ok: true, value: text };
+
+    // A feed with exactly one image matches one node, so the adapter hands back
+    // a string rather than an array. Treated as a one-entry list rather than
+    // refused: "this product has a single photograph" is the common case, not a
+    // malformed mapping.
+    case "urlList":
+      return coerceUrlList(spec.label, [text]);
 
     case "slug":
       return { ok: true, value: slugify(text) };
@@ -473,6 +521,8 @@ export const normalisedProductSchema = z
     stock: z.number().int().nonnegative().optional(),
     availability: z.enum(PRODUCT_AVAILABILITIES).optional(),
     badges: z.array(z.enum(PRODUCT_BADGES)).optional(),
+    /** URLs, not asset ids. `applyJob` fetches them and catalogues the result. */
+    images: z.array(z.string().url()).optional(),
     affiliate: z
       .object({
         merchant_name: z.string().optional(),
@@ -698,6 +748,11 @@ export function columnsForApply(
     if (value === undefined) continue;
     if (field === "external_id") continue;
     if (field === "affiliate") continue;
+    // ⚠️ Not a column. `images` stages URLs that `applyJob` turns into
+    // `media_assets` rows and `product_media` links after this row is written;
+    // copied through here it would reach `products` as a column that does not
+    // exist, failing the apply of a run that validated cleanly.
+    if (field === "images") continue;
     if (action === "update" && !writtenOnUpdate(field)) continue;
     columns[field] = value;
   }
@@ -726,4 +781,116 @@ export function availabilityForStock(product: NormalisedProduct): ProductAvailab
   if (product.availability !== undefined) return undefined;
   if (product.stock === undefined) return undefined;
   return product.stock > 0 ? "in_stock" : "out_of_stock";
+}
+
+/**
+ * How many of a product's images this run will actually fetch.
+ *
+ * ⚠️ **Two caps, and the per-run one is the load-bearing half.** `applyJob`
+ * holds a server action open for its whole duration — a known cost, recorded
+ * since the ingestion phase — and images multiply it: fifty products with five
+ * photographs each is 250 downloads inside one request. The per-product cap
+ * bounds a single pathological record; the per-run budget bounds the request.
+ *
+ * **Truncating is safe here in a way it usually is not**, and that is what makes
+ * a budget the right answer rather than a queue: the image import is idempotent
+ * end to end. `uploadAsset` deduplicates on a SHA-256 of the bytes, and
+ * `attachProductMedia` upserts on `(product_id, asset_id)` — so re-running apply
+ * costs nothing for what already landed and picks up exactly what was skipped.
+ * The message says so, because "47 images not imported" without "run apply
+ * again" reads as data loss.
+ */
+export const MAX_IMAGES_PER_PRODUCT = 8;
+export const MAX_IMAGE_DOWNLOADS_PER_RUN = 60;
+
+export interface ImageImportPlan {
+  take: string[];
+  /** Left for a later apply — never discarded, never silently dropped. */
+  skipped: number;
+}
+
+export function imageImportPlan(
+  urls: readonly string[],
+  budget: { remaining: number; perProduct?: number }
+): ImageImportPlan {
+  const perProduct = budget.perProduct ?? MAX_IMAGES_PER_PRODUCT;
+  const allowed = Math.max(0, Math.min(perProduct, budget.remaining));
+  return { take: urls.slice(0, allowed), skipped: Math.max(0, urls.length - allowed) };
+}
+
+/**
+ * A file name for an image the feed named only by URL.
+ *
+ * The path's last segment, percent-decoded and stripped of anything that is not
+ * a plain file-name character. **Not used to address storage** — `uploadAsset`
+ * generates the storage path — so this is a label in the media library rather
+ * than a security boundary; it is sanitised anyway because it reaches a
+ * `Content-Disposition` eventually and because `../..` in a library listing is
+ * alarming whether or not it is exploitable.
+ */
+export function imageFileNameFrom(url: string, fallback = "image"): string {
+  let last = "";
+  try {
+    last = decodeURIComponent(new URL(url).pathname.split("/").pop() ?? "");
+  } catch {
+    last = "";
+  }
+
+  const cleaned = last.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^[-.]+/, "");
+  if (!cleaned) return fallback;
+  return cleaned.slice(0, 120);
+}
+
+/**
+ * Whether these bytes may be imported as an image, and the MIME type if so.
+ *
+ * A discriminated result rather than `string | null`, so the caller narrows to a
+ * non-null `mimeType` by checking the thing it was going to check anyway. The
+ * `null`-means-fine shape needed a non-null assertion at the one call site,
+ * which is the sort of small lie that outlives the reason for it.
+ *
+ * Pure, and separated from the fetch for the reason the ingestion E2E gives for
+ * never running an import — "a fixture served from the test process would be
+ * testing Playwright's ability to serve a file". The only honest coverage of the
+ * image path is the part decidable without a network, so as much as possible of
+ * it lives here.
+ */
+export type ImageTypeCheck = { ok: true; mimeType: string } | { ok: false; problem: string };
+
+export function imageTypeProblem(contentType: string | null, byteLength: number): ImageTypeCheck {
+  if (byteLength === 0) return { ok: false, problem: "the source returned an empty response." };
+
+  if (!contentType) {
+    return {
+      ok: false,
+      problem: `the source sent no content-type (${byteLength} bytes), so this may not be an image.`,
+    };
+  }
+
+  // ⚠️ **The case this exists for is a feed answering a photograph URL with an
+  // HTML error page.** `uploadAsset` would refuse it too, but its message is
+  // written for someone standing at an upload dialog; a merchant reading a
+  // failed run needs to be told their CDN served a 200 with the wrong thing.
+  if (!contentType.startsWith("image/")) {
+    return {
+      ok: false,
+      problem:
+        `expected an image, got ${contentType} (${byteLength} bytes)` +
+        (contentType === "text/html" ? " — usually an error page served as 200." : "."),
+    };
+  }
+
+  // ⚠️ **SVG is an image and also a script host.** `media_assets` serves from a
+  // public bucket, so an SVG a merchant controls would be stored XSS on our own
+  // origin. Refused for *imported* media specifically: a person uploading one
+  // through the library has made a decision, and a feed has not.
+  if (contentType === "image/svg+xml") {
+    return {
+      ok: false,
+      problem:
+        "SVG is not imported from a feed: it can carry script, and it would be served from our own origin.",
+    };
+  }
+
+  return { ok: true, mimeType: contentType };
 }

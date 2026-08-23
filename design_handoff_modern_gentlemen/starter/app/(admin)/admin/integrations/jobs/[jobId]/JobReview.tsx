@@ -120,11 +120,23 @@ export function JobReview({
         toast.push(result.error, "error");
         return;
       }
-      const { applied, failed } = result.data;
+      const { applied, failed, imagesImported, imagesSkipped } = result.data;
+
+      // Images are named in the toast rather than left to the error list. They
+      // are the slowest part of an apply and the part a merchant is watching
+      // for, so "12 written" with no mention of photographs reads as though
+      // none arrived.
+      const images =
+        imagesImported === 0 && imagesSkipped === 0
+          ? ""
+          : imagesSkipped === 0
+            ? ` · ${imagesImported} image${imagesImported === 1 ? "" : "s"}`
+            : ` · ${imagesImported} image${imagesImported === 1 ? "" : "s"}, ${imagesSkipped} left — run apply again`;
+
       toast.push(
         failed === 0
-          ? `${applied} written to the catalogue`
-          : `${applied} written, ${failed} failed`,
+          ? `${applied} written to the catalogue${images}`
+          : `${applied} written, ${failed} failed${images}`,
         failed === 0 ? "success" : "error"
       );
       router.refresh();

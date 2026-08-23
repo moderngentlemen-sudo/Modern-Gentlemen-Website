@@ -136,3 +136,106 @@ async function readCapped(response: Response, subject: string): Promise<string> 
 
   return new TextDecoder("utf-8").decode(merged);
 }
+
+/**
+ * The same request discipline, for bytes rather than text.
+ *
+ * `fetchCapped` decodes as UTF-8, which is right for a feed and destroys an
+ * image. This shares the timeout, the declared-length pre-check and the
+ * streamed cap — the parts that matter — and stops before the decode.
+ *
+ * ⚠️ **Its own, smaller cap.** 20 MB is a sane ceiling for a whole product feed
+ * and an absurd one for a single photograph: a run importing 60 images at that
+ * limit could pull 1.2 GB through a server action. `maxBytes` defaults to
+ * `MAX_IMAGE_BYTES`, and the caller may lower it but the streamed check is what
+ * enforces it — a lying `content-length` buys nothing.
+ *
+ * ⚠️ **`redirect: "follow"` is right here and would be wrong for an
+ * authenticated call.** Image URLs are routinely CDN redirects, and this request
+ * carries no credential — see `CappedRequest.redirect` for why the Shopify
+ * adapter passes `"manual"` instead.
+ */
+export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+export interface BinaryResponse {
+  bytes: ArrayBuffer;
+  /** From `content-type`, parameters stripped. `null` when the server sent none. */
+  contentType: string | null;
+}
+
+export async function fetchBinaryCapped(
+  fetchImpl: typeof globalThis.fetch,
+  url: string,
+  request: { subject: string; timeoutMs: number; maxBytes?: number }
+): Promise<BinaryResponse> {
+  const maxBytes = request.maxBytes ?? MAX_IMAGE_BYTES;
+
+  let response: Response;
+  try {
+    response = await fetchImpl(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(request.timeoutMs),
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new AdapterError(`${request.subject} did not respond within ${request.timeoutMs}ms.`);
+    }
+    throw new AdapterError(
+      `${request.subject} could not be reached: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  if (!response.ok) {
+    throw new AdapterError(
+      `${request.subject} answered ${response.status} ${response.statusText}.`
+    );
+  }
+
+  const declared = Number(response.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new AdapterError(
+      `${request.subject} declares ${declared} bytes, over the ${maxBytes}-byte limit.`
+    );
+  }
+
+  const contentType = response.headers.get("content-type")?.split(";")[0]?.trim() || null;
+
+  if (!response.body) {
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength > maxBytes) {
+      throw new AdapterError(`${request.subject} exceeded the ${maxBytes}-byte limit.`);
+    }
+    return { bytes, contentType };
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        // Cancelling matters: without it the connection stays open pulling
+        // bytes we have already decided not to keep.
+        await reader.cancel();
+        throw new AdapterError(`${request.subject} exceeded the ${maxBytes}-byte limit.`);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return { bytes: merged.buffer as ArrayBuffer, contentType };
+}
