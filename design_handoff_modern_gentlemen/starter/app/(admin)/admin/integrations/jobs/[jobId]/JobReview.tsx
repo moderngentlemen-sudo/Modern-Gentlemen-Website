@@ -49,6 +49,16 @@ function show(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/**
+ * A ceiling on the batch loop.
+ *
+ * Twenty-five items a batch, so this allows a run of 2,500 approved items —
+ * far past anything these feeds produce, and still a finite number. It exists
+ * so a bug that stopped `remaining` falling would end in a message rather than
+ * an unbounded loop against the database.
+ */
+const MAX_APPLY_BATCHES = 100;
+
 export function JobReview({
   jobId,
   status,
@@ -113,14 +123,66 @@ export function JobReview({
     });
   }
 
+  // Shown on the button while a multi-batch apply is running, so a large run
+  // looks like work happening rather than a page that has stopped responding.
+  const [applyProgress, setApplyProgress] = useState<number | null>(null);
+
   function apply() {
     startTransition(async () => {
-      const result = await applyJobAction({ jobId });
-      if (!result.ok) {
-        toast.push(result.error, "error");
-        return;
+      // ⚠️ **A loop, because one call writes a bounded batch.** `applyJob`
+      // selects only approved items and marks each as it writes it, so calling
+      // it again continues exactly where the last call stopped — that is what
+      // makes this safe rather than a way to apply something twice. The bound
+      // is what stops one request outliving a platform timeout on a large run;
+      // the loop is what stops the editor having to click Apply five times.
+      //
+      // `applied` and the rest are totalled across the batches, so the toast
+      // reports the whole apply rather than its last slice.
+      let applied = 0;
+      let failed = 0;
+      let imagesImported = 0;
+      let imagesSkipped = 0;
+      let batches = 0;
+
+      for (;;) {
+        const result = await applyJobAction({ jobId });
+        if (!result.ok) {
+          // Whatever landed before the failure stays landed — the items are
+          // marked individually. Reporting the partial total matters: "0
+          // written" after nineteen products went in would send an editor
+          // looking for a problem that is not there.
+          toast.push(
+            applied > 0 ? `${result.error} (${applied} written before this)` : result.error,
+            "error"
+          );
+          router.refresh();
+          return;
+        }
+
+        applied += result.data.applied;
+        failed += result.data.failed;
+        imagesImported += result.data.imagesImported;
+        imagesSkipped += result.data.imagesSkipped;
+        batches += 1;
+
+        if (result.data.remaining === 0) break;
+
+        // A guard, not an expectation. Each batch marks its items, so
+        // `remaining` must fall; if it ever did not, this would spin forever
+        // against the database rather than fail.
+        if (batches > MAX_APPLY_BATCHES) {
+          toast.push(
+            `${applied} written — stopping after ${batches} batches. Apply again to continue.`,
+            "error"
+          );
+          router.refresh();
+          return;
+        }
+
+        setApplyProgress(applied);
       }
-      const { applied, failed, imagesImported, imagesSkipped } = result.data;
+
+      setApplyProgress(null);
 
       // Images are named in the toast rather than left to the error list. They
       // are the slowest part of an apply and the part a merchant is watching
@@ -207,7 +269,9 @@ export function JobReview({
             loading={pending}
             disabled={!canRun || !canWriteProducts || approvedCount === 0}
           >
-            Apply {approvedCount > 0 ? `${approvedCount} approved` : "approved"}
+            {applyProgress === null
+              ? `Apply ${approvedCount > 0 ? `${approvedCount} approved` : "approved"}`
+              : `Applying — ${applyProgress} of ${approvedCount} written`}
           </Button>
         </div>
       </div>

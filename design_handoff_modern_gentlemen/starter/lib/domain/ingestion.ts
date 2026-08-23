@@ -803,6 +803,36 @@ export function availabilityForStock(product: NormalisedProduct): ProductAvailab
 export const MAX_IMAGES_PER_PRODUCT = 8;
 export const MAX_IMAGE_DOWNLOADS_PER_RUN = 60;
 
+/**
+ * How many items one apply call writes.
+ *
+ * ⚠️ **This is the fix for "a run holds a server action open for its whole
+ * duration", and it is deliberately *not* the queue `PROGRESS.md` predicted.**
+ * That note proposed a background worker on the strength of
+ * `import_jobs.status` already carrying a `'queued'` value. Reading the apply
+ * path first showed most of a queue was already here: `applyJob` selects only
+ * `approved` items and marks each the moment it is written, so it has always
+ * been **idempotent and resumable** — calling it twice applies each item once.
+ * What it lacked was a bound and a way to say "there is more".
+ *
+ * Bounding instead of queueing keeps three things a worker would have cost: the
+ * editor sees progress as it happens; the apply still runs **as the editor**, so
+ * `product.write` and `media.write` are checked against a real session rather
+ * than a service-role client that outranks both; and there is no new route,
+ * workflow or latency floor. A queue would have had to answer "may this job
+ * import images?" with no session to ask — and the honest answers were a new
+ * column or a quiet privilege escalation.
+ *
+ * `'queued'` therefore stays unused, and that is now a recorded decision rather
+ * than an oversight. It remains the right value for a webhook-driven run, which
+ * genuinely has no session.
+ *
+ * Twenty-five is well inside every platform request timeout even when each item
+ * carries images, and `MAX_IMAGE_DOWNLOADS_PER_RUN` bounds the slow part
+ * independently.
+ */
+export const APPLY_BATCH_SIZE = 25;
+
 export interface ImageImportPlan {
   take: string[];
   /** Left for a later apply — never discarded, never silently dropped. */

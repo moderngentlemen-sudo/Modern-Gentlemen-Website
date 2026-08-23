@@ -79,6 +79,8 @@ export interface ApplySummary {
   imagesImported: number;
   /** Photographs left for a later apply. The import is idempotent; re-running picks them up. */
   imagesSkipped: number;
+  /** Approved items this call did not reach. The client calls again while this is above zero. */
+  remaining: number;
 }
 
 export async function applyJobAction(input: unknown): Promise<ActionResult<ApplySummary>> {
@@ -101,6 +103,7 @@ export async function applyJobAction(input: unknown): Promise<ActionResult<Apply
       errors: result.errors,
       imagesImported: result.imagesImported,
       imagesSkipped: result.imagesSkipped,
+      remaining: result.remaining,
     });
   } catch (error) {
     return toActionResult(error);

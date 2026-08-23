@@ -39,6 +39,7 @@ import {
   imageFileNameFrom,
   imageImportPlan,
   imageTypeProblem,
+  APPLY_BATCH_SIZE,
   MAX_IMAGE_DOWNLOADS_PER_RUN,
   missingRequiredTargets,
   normalisedProductSchema,
@@ -577,6 +578,14 @@ export interface ApplyResult {
    * always "run apply again", and a bare number reads as data loss.
    */
   imagesSkipped: number;
+  /**
+   * Approved items this call did not reach, because the batch was full.
+   *
+   * The caller applies again to continue. Nothing is lost and nothing repeated:
+   * each item is marked `applied` or `failed` the moment it is written, so a
+   * second call selects exactly what the first did not reach.
+   */
+  remaining: number;
 }
 
 /**
@@ -591,7 +600,7 @@ export interface ApplyResult {
  * Products are created as drafts. Nothing here publishes, and nothing here
  * touches `draft_data`: the block tree belongs to the builder.
  */
-export async function applyJob(jobId: string): Promise<ApplyResult> {
+export async function applyJob(jobId: string, limit = APPLY_BATCH_SIZE): Promise<ApplyResult> {
   const user = await requirePermission("integration.run");
   await requirePermission("product.write");
   const db = await createClient();
@@ -608,9 +617,10 @@ export async function applyJob(jobId: string): Promise<ApplyResult> {
     currency: config.currency ?? "GBP",
   };
 
-  const approved = (await repo.listItems(db, jobId, { status: "approved" })).filter((item) =>
+  const approvedAll = (await repo.listItems(db, jobId, { status: "approved" })).filter((item) =>
     isApplicable(item.action)
   );
+  const approved = approvedAll.slice(0, limit);
 
   const result: ApplyResult = {
     applied: 0,
@@ -619,6 +629,7 @@ export async function applyJob(jobId: string): Promise<ApplyResult> {
     productIds: [],
     imagesImported: 0,
     imagesSkipped: 0,
+    remaining: approvedAll.length - approved.length,
   };
 
   // One budget for the whole run — see `imageImportPlan` on why a cap rather
