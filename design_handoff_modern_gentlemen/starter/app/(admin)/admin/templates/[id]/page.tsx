@@ -78,14 +78,12 @@ export default async function TemplateBuilderPage({ params }: { params: Promise<
       }}
       patterns={patterns}
       canPublish={user.permissions.has("template.publish")}
-      // ⚠️ **Preview is off for templates, deliberately.** `/preview/[token]`
-      // renders `BLOCK_TREE_KEY[type]`, which is `null` here, so it would resolve
-      // to no sections and show the "nothing to show" page for a template full
-      // of blocks. Concatenating the areas instead would render an arrangement
-      // no renderer will ever produce — the same "plausible page from a broken
-      // read" the homepage route refuses to fall back to. Previewing an area
-      // needs the token to name one, and that is a slice of its own.
-      canPreview={false}
+      // Preview is on for templates now. `/preview/[token]` reads areas rather
+      // than `BLOCK_TREE_KEY[type]` (which is still `null` here), and the link
+      // carries `?area=` for whichever one is open — so what an editor previews
+      // is the tree in front of them, not a concatenation of every area that no
+      // renderer would ever produce.
+      canPreview={user.permissions.has("preview.create")}
     />
   );
 }

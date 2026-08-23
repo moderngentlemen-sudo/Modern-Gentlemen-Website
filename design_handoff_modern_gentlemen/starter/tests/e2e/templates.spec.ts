@@ -225,6 +225,72 @@ test.describe("templates", () => {
     await expect(page.getByRole("textbox", { name: "Quote" })).toHaveValue("Composed in main.");
   });
 
+  test("previews the open area, and the marker draws itself when no page is framed", async ({
+    page,
+  }) => {
+    await signIn(page);
+    await page.goto("/admin/templates");
+    await page.getByRole("link", { name: templateName, exact: true }).click();
+
+    // The area that is open is the area the link points at, which is the whole
+    // reason the token carries `?area=`. `body` is open because the rename test
+    // above left it that way.
+    await area(page, "body").click();
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Preview link" });
+    const link = dialog.getByRole("link");
+    await expect(link).toBeVisible({ timeout: 15_000 });
+
+    const href = await link.getAttribute("href");
+    expect(href).toMatch(/^\/preview\/[A-Za-z0-9_-]+\?area=body$/);
+
+    // Followed by navigating rather than by clicking: the anchor is
+    // `target="_blank"`, and driving a second tab buys nothing here.
+    await page.goto(href!);
+
+    // The template's own block renders...
+    await expect(page.getByText("Composed in main.")).toBeVisible();
+
+    // ...and the content marker draws itself, because this template is
+    // assigned to no page. ⚠️ The assertion that matters: `DocumentContent`
+    // renders `null`, so before this slice an editor saw nothing at all here
+    // and could not tell a marker from a missing one.
+    await expect(page.getByText(/renders its own sections here/)).toBeVisible();
+
+    // Both areas are offered, and the one on screen says so.
+    const areas = page.getByRole("navigation", { name: "Template areas" });
+    await expect(areas.getByRole("link", { name: "body", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+
+    // --- switching area is a link, not a new token ------------------------
+    await areas.getByRole("link", { name: "header", exact: true }).click();
+    await expect(page).toHaveURL(/\?area=header$/);
+
+    // `header` holds the newsletter and no marker. Asserted as two absences
+    // plus the URL rather than by the newsletter's copy: a block's rendered
+    // text is design content that moves, and this test is about which tree got
+    // rendered. The gap band being **hidden** is the load-bearing half —
+    // `applyTemplate` returns its second argument for a tree with no marker,
+    // so an unguarded call would replace this area with the stand-in.
+    await expect(page.getByText("Composed in main.")).toBeHidden();
+    await expect(page.getByText(/renders its own sections here/)).toBeHidden();
+
+    // --- the token alone falls back to the area that renders --------------
+    // A link shared without its query string, or hand-trimmed. It must land on
+    // the marker's area — the one `/` would actually render — rather than on
+    // whichever name sorts first.
+    await page.goto(href!.replace(/\?.*$/, ""));
+    await expect(page.getByText("Composed in main.")).toBeVisible();
+    await expect(page.getByText(/renders its own sections here/)).toBeVisible();
+
+    // --- an area that does not exist falls back the same way --------------
+    await page.goto(`${href!.replace(/\?.*$/, "")}?area=sidebar`);
+    await expect(page.getByText("Composed in main.")).toBeVisible();
+  });
+
   test("removes an area, and the removal survives a reload", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/templates");

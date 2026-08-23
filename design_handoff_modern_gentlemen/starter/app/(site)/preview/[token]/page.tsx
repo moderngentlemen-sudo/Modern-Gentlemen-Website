@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
 import { expandPatternRefs } from "@/lib/services/patterns";
+import { expandPublicPatterns, soleFramedPage } from "@/lib/services/publicContent";
 import { resolvePreview } from "@/lib/services/preview";
+import { readAreas } from "@/lib/blocks/areas";
+import {
+  collectContentMarkers,
+  applyTemplate,
+  resolvePreviewArea,
+  DOCUMENT_CONTENT_GAP_TYPE,
+} from "@/lib/blocks/templateContent";
 import { BLOCK_TREE_KEY, type DocumentType } from "@/lib/domain/documents";
+import type { BlockTree } from "@/lib/blocks/types";
 import { PreviewBar } from "./PreviewBar";
 
 export const metadata: Metadata = {
@@ -26,25 +35,124 @@ export const dynamic = "force-dynamic";
  * The draft renders through the same `SectionRenderer` the live site uses, so
  * what an approver sees is what publishing would produce — not a separate
  * preview renderer that could drift from the real one.
+ *
+ * ⚠️ **`?area=` is how a template names the tree to show, and it is in the URL
+ * rather than in the token by necessity, not by preference.** `preview_sessions`
+ * has a `context` jsonb column that looks like the right home for it —
+ * `resolve_preview` does not return that column, and it is the only way an
+ * anonymous holder can read the row at all. Widening the function's return type
+ * means dropping and recreating a `security definer` function that `anon`
+ * executes, for a value that gates nothing: the token already hands over the
+ * template's whole draft payload, **every area of it**, so which one gets drawn
+ * is a view concern and not a capability boundary. Keeping it in the query
+ * string also lets the bar offer the other areas as plain links instead of
+ * minting a token each time somebody switches.
  */
-export default async function PreviewPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+export default async function PreviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ token }, query] = await Promise.all([params, searchParams]);
   const preview = await resolvePreview(token);
 
   if (!preview) return <PreviewUnavailable />;
 
-  const sections = await sectionsFor(preview.entityType, preview.data);
+  // Every type resolves to the same shape, so the bar and the renderer below
+  // stay one call each. The five types that keep one ordered tree simply have
+  // no area to name — `PreviewBar` reads that as "say nothing about areas"
+  // rather than as a template with none, which is a different thing and shows
+  // a different message.
+  const view: PreviewView =
+    preview.entityType === "template"
+      ? await templateView(preview.entityId, preview.data, first(query.area))
+      : { sections: await sectionsFor(preview.entityType, preview.data), areaNames: [] };
 
   return (
     <>
-      <PreviewBar entityType={preview.entityType} expiresAt={preview.expiresAt} />
-      {sections.length > 0 ? (
-        <SectionRenderer sections={sections} />
+      <PreviewBar
+        entityType={preview.entityType}
+        expiresAt={preview.expiresAt}
+        token={token}
+        area={view.area}
+        areaNames={view.areaNames}
+        framing={view.framing}
+      />
+      {view.sections.length > 0 ? (
+        <SectionRenderer sections={view.sections} />
       ) : (
-        <EmptyDraft entityType={preview.entityType} />
+        <EmptyDraft entityType={preview.entityType} area={view.area} />
       )}
     </>
   );
+}
+
+/** A repeated query parameter is a malformed link, not a choice to guess at. */
+function first(value: string | string[] | undefined): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+interface PreviewView {
+  sections: Block[];
+  /** The template area on screen. `undefined` for every type that has no areas. */
+  area?: string;
+  /** Every area this template has, alphabetically. Empty for the other types. */
+  areaNames: string[];
+  /** The page whose sections stand in at the marker, when exactly one does. */
+  framing?: string;
+}
+
+/**
+ * One area of a template, composed the way the live site composes a page.
+ *
+ * The composition is `composePublishedPage`'s, with the two trees swapped
+ * round: there the page is the subject and the template is the frame, here the
+ * template is the subject and a page stands in for the content. Both end at the
+ * same `applyTemplate` call, which is what makes a marker nested inside a
+ * `columns`/`column` land in the right place without a second rule.
+ *
+ * **Two pattern expansions with different sources, deliberately.** The
+ * template's own tree is a draft being previewed, so its synced patterns
+ * resolve draft-first — an editor previewing a layout wants the patterns as
+ * they currently stand. The page spliced into it is *live* content, so its
+ * patterns resolve exactly as `/` resolves them, published only. Using one
+ * source for both would make half the screen a lie in one direction or the
+ * other.
+ *
+ * ⚠️ **`applyTemplate` is called only when the area actually holds a marker.**
+ * It returns its second argument when there is none — the right answer for a
+ * page (render the page, unframed) and precisely the wrong one here, where it
+ * would replace a `header` area's blocks with the stand-in content.
+ */
+async function templateView(
+  templateId: string,
+  payload: unknown,
+  requested: string | null
+): Promise<PreviewView> {
+  const areas = readAreas(payload);
+  const areaNames = Object.keys(areas).sort();
+  const area = resolvePreviewArea(areas, requested);
+
+  // A template with no areas at all — `0003` defaults the column to
+  // `{"areas":{}}`, and a row predating the builder can still be in that state.
+  if (area === null) return { sections: [], areaNames };
+
+  const tree = await expandPatternRefs(areas[area], { preferDraft: true });
+  if (collectContentMarkers(tree).length === 0) return { sections: tree, area, areaNames };
+
+  const page = await soleFramedPage(templateId);
+  const substitute: BlockTree = page
+    ? await expandPublicPatterns(page.sections)
+    : [{ _key: "documentcontentgap", _type: DOCUMENT_CONTENT_GAP_TYPE, settings: {} }];
+
+  return {
+    sections: applyTemplate(tree, substitute),
+    area,
+    areaNames,
+    framing: page?.title,
+  };
 }
 
 /**
@@ -84,16 +192,23 @@ function PreviewUnavailable() {
   );
 }
 
-function EmptyDraft({ entityType }: { entityType: DocumentType }) {
+/**
+ * `area` is named when there is one, because "this template has no sections
+ * yet" is misleading for a template whose *other* area is full — and switching
+ * areas is one click away in the bar below.
+ */
+function EmptyDraft({ entityType, area }: { entityType: DocumentType; area?: string }) {
   return (
     <main className="flex min-h-[70vh] items-center justify-center px-6">
       <div className="max-w-[440px] text-center">
         <p className="font-serif text-lg italic text-mg-fg/50">Nothing to show</p>
         <h1 className="mt-2 font-grotesk text-[28px] font-semibold tracking-[-0.03em]">
-          This {entityType} has no sections yet
+          {area ? `The ${area} area is empty` : `This ${entityType} has no sections yet`}
         </h1>
         <p className="mt-3 text-mg-fg/60">
-          The draft is empty. Add a section in the builder and reload this preview.
+          {area
+            ? "Add a section to this area in the builder, or switch areas below."
+            : "The draft is empty. Add a section in the builder and reload this preview."}
         </p>
       </div>
     </main>

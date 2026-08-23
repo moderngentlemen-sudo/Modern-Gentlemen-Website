@@ -214,6 +214,69 @@ async function publishedTemplateArea(
 }
 
 /**
+ * The single published page a template frames, or `null` when that is not one
+ * page.
+ *
+ * This is `publishedTemplateArea` run backwards, and it exists for the preview
+ * route: a template previewed on its own is a header band sitting on a footer
+ * band, and what an editor is actually deciding about is how it looks *around a
+ * page*. So the preview frames a real one where the answer is unambiguous.
+ *
+ * ⚠️ **"Exactly one, or none" is the whole rule, and the refusal is the point.**
+ * A `content_type` assignment frames every published page there is; picking one
+ * of several to stand for the rest would put a page an editor did not choose in
+ * front of them and call it a preview. That is the same arbitrariness
+ * `findContentArea` refuses when two areas hold a marker, and the same one
+ * `validateTemplateAreas` refuses when a template holds two markers. When the
+ * answer is not one page, the marker draws itself instead — see
+ * `DocumentContentGap`.
+ *
+ * Reads through the public client, and `published_data` only: a preview shows
+ * an unpublished *template*, framing the site as it actually stands. Pulling a
+ * page's draft in here would put two different unpublished things on one screen
+ * with nothing to tell them apart.
+ */
+export interface FramedPage {
+  slug: string;
+  title: string;
+  sections: BlockTree;
+}
+
+export async function soleFramedPage(templateId: string): Promise<FramedPage | null> {
+  const db = createPublicClient();
+
+  const { data: assignments, error } = await db
+    .from("template_assignments")
+    .select("scope, entry_id")
+    .eq("template_id", templateId);
+
+  if (error) throw new Error(`Could not read this template's assignments: ${error.message}`);
+  if (!assignments?.length) return null;
+
+  const wholeType = assignments.some((row) => row.scope === "content_type");
+  const entryIds = assignments
+    .filter((row) => row.scope === "entry" && row.entry_id)
+    .map((row) => row.entry_id as string);
+
+  let query = db.from("pages").select("slug, title, published_data").eq("status", "published");
+  if (!wholeType) {
+    if (entryIds.length === 0) return null;
+    query = query.in("id", entryIds);
+  }
+
+  // Two rows are fetched where one is wanted, so that "exactly one" is measured
+  // rather than assumed from a `.limit(1)` that would have made three pages
+  // look like one.
+  const { data: pages, error: pageError } = await query.limit(2);
+  if (pageError)
+    throw new Error(`Could not read the pages this template frames: ${pageError.message}`);
+  if (pages?.length !== 1) return null;
+
+  const page = pages[0];
+  return { slug: page.slug, title: page.title, sections: sectionsOf(page.published_data) };
+}
+
+/**
  * A page's sections, framed by its template when one is assigned and published.
  *
  * The composition order matters and is the reverse of what reads naturally:

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { saveDraft } from "@/lib/services/documents";
 import { publicPathsForTemplate } from "@/lib/services/templates";
+import { createPreview } from "@/lib/services/preview";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
 import { AREA_NAME_PATTERN, AREAS_KEY } from "@/lib/blocks/areas";
 import type { Json } from "@/lib/db/database.types";
@@ -164,20 +165,50 @@ export async function rollbackAction(input: unknown): Promise<ActionResult<{ ver
 }
 
 /**
- * Templates cannot be previewed, and this refuses rather than pretending.
+ * Templates can be previewed now, and the token carries an area in its query
+ * string rather than in the session row.
  *
- * `Builder` is passed `canPreview={false}` on the template route so the button
- * is not offered at all — but the action is a prop on a shape every builder
- * route fills in, and an action that silently minted a token for something
- * `/preview/[token]` renders as empty would be worse than one that says why.
- * `BLOCK_TREE_KEY.template` is `null`, so the preview route resolves a template
- * to no sections; giving it an area to render is a slice of its own.
+ * This function used to refuse — `BLOCK_TREE_KEY.template` is `null`, so
+ * `/preview/[token]` resolved a template to no sections and the honest thing
+ * was to say so rather than mint a token for a blank page. The route reads
+ * areas now, so the refusal is gone; what remains of the old reasoning is the
+ * `area` parameter, which is the whole difference between this action and the
+ * five identical ones beside it.
+ *
+ * **The area is validated here and again by the route**, and neither check is
+ * redundant. This one is the client's claim about which area is open in the
+ * builder, checked only for *shape*: the action cannot know which areas the
+ * template has without a read it does not otherwise need, and a name that does
+ * not exist is not a security problem — it is a link that falls back to the
+ * marker's area. The route does the membership check, against the payload it
+ * has already loaded. A token pasted with `?area=` hand-edited never reaches
+ * this function at all, which is why the route is where that check has to live.
  */
-export async function createPreviewAction(): Promise<
-  ActionResult<{ path: string; expiresAt: string }>
-> {
-  return {
-    ok: false,
-    error: "Templates cannot be previewed yet — the preview route renders one tree, not areas.",
-  };
+export async function createPreviewAction(
+  input: unknown
+): Promise<ActionResult<{ path: string; expiresAt: string }>> {
+  const parsed = z
+    .object({
+      id: Id,
+      device: z.enum(["desktop", "tablet", "mobile"]).optional(),
+      area: z.string().regex(AREA_NAME_PATTERN).optional(),
+    })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+
+  try {
+    const preview = await createPreview({
+      type: "template",
+      entityId: parsed.data.id,
+      device: parsed.data.device,
+    });
+
+    const path = parsed.data.area
+      ? `${preview.path}?area=${encodeURIComponent(parsed.data.area)}`
+      : preview.path;
+
+    return ok({ path, expiresAt: preview.expiresAt });
+  } catch (error) {
+    return toActionResult(error);
+  }
 }

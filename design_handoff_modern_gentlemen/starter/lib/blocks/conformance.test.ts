@@ -15,6 +15,7 @@ import { blockManifests, blockTypes, manifestFor } from "./manifests";
 import { normalizeBlock } from "./normalize";
 import { formatIssues, validateBlock } from "./validate";
 import { isField, type Field, type FieldSet } from "./fields";
+import { DOCUMENT_CONTENT_GAP_TYPE, DOCUMENT_CONTENT_TYPE } from "./templateContent";
 import { BLOCK_CATEGORIES, type BlockManifest } from "./types";
 
 const manifests = Object.entries(blockManifests) as [string, BlockManifest][];
@@ -32,6 +33,16 @@ describe("registry ↔ manifest parity", () => {
 
   it("the manifest map is keyed by each manifest's own type", () => {
     for (const [key, manifest] of manifests) expect(manifest.type).toBe(key);
+  });
+
+  it("the two template markers are registered under the names their callers use", () => {
+    // Both are constructed by code rather than chosen from the library, so
+    // nothing an editor does would surface a typo: `SectionRenderer` renders
+    // nothing at all for an unregistered `_type` outside development, and the
+    // gap block's whole job is to stop a template's content slot being
+    // invisible. A wrong string would restore exactly the bug it removes.
+    expect(registry).toHaveProperty(DOCUMENT_CONTENT_TYPE);
+    expect(registry).toHaveProperty(DOCUMENT_CONTENT_GAP_TYPE);
   });
 });
 

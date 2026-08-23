@@ -21,6 +21,7 @@ import { clsx } from "@/components/ui/clsx";
 import type { ActionResult, SerializedIssue } from "@/app/(admin)/admin/_lib/action-result";
 import { HAIRLINE } from "@/components/admin/ui/styles";
 import { manifestFor } from "@/lib/blocks/manifests";
+import { areaNameOf } from "@/lib/blocks/areas";
 
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
 import { PatternsProvider } from "./PatternsContext";
@@ -62,6 +63,13 @@ export interface BuilderServerActions {
   createPreview: (input: {
     id: string;
     device?: "desktop" | "tablet" | "mobile";
+    /**
+     * The template area the builder has open, so the minted link points at the
+     * tree the editor is actually looking at. Ignored by the five types that
+     * keep one ordered tree — `areaNameOf` returns `null` for their `treeKey`,
+     * and the template action is the only one whose schema accepts it.
+     */
+    area?: string;
   }) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
 }
 
@@ -111,15 +119,20 @@ export function Builder({
   patterns?: BuilderPattern[];
 }) {
   const id = init.doc.id;
+  // `treeKey` is a payload *path*, and for a template it is `areas.<name>`.
+  // Reading the open area off it here rather than adding a seventh field to
+  // `BuilderDocument` keeps one source for "which tree is open" — the same one
+  // the store commits through.
+  const area = areaNameOf(init.doc.treeKey) ?? undefined;
 
   const callbacks: BuilderCallbacks = useMemo(
     () => ({
       saveDraft: (payload) => actions.saveDraft({ id, payload }),
       publish: () => actions.publish({ id }),
       snapshot: () => actions.snapshot({ id }),
-      createPreview: (device) => actions.createPreview({ id, device }),
+      createPreview: (device) => actions.createPreview({ id, device, area }),
     }),
-    [actions, id]
+    [actions, id, area]
   );
 
   return (
