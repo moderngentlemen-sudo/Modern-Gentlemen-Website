@@ -17,6 +17,12 @@ import { createPage as createPageRow, EMPTY_PAGE_PAYLOAD } from "@/lib/db/reposi
 import { RepositoryError } from "@/lib/db/repositories/errors";
 import type { Json } from "@/lib/db/database.types";
 import { validateTree, type BlockIssue } from "@/lib/blocks/validate";
+import { AREAS_KEY, readAreas } from "@/lib/blocks/areas";
+import {
+  collectContentMarkers,
+  DOCUMENT_CONTENT_TYPE,
+  TEMPLATE_SEED_AREA,
+} from "@/lib/blocks/templateContent";
 import type { BlockNode } from "@/lib/blocks/types";
 import {
   BLOCK_TREE_KEY,
@@ -92,7 +98,66 @@ export function validateDocumentPayload(type: DocumentType, payload: Json): Docu
     }
   }
 
+  if (type === "template") issues.push(...validateTemplateAreas(payload));
+
   return { ok: issues.length === 0, issues };
+}
+
+/**
+ * A template needs exactly one `documentContent` marker, anywhere in it.
+ *
+ * Both failures are silent at authoring time and destructive at render time,
+ * which is precisely the class publish validation exists to catch:
+ *
+ *   * **No marker** — the template frames nothing, so every page assigned to it
+ *     loses its own sections. `applyTemplate` refuses to do that (it returns
+ *     the document's sections when there is no marker), so what an editor would
+ *     actually see is a template that appears to do nothing at all — harder to
+ *     diagnose than a failure.
+ *   * **Two markers** — the page's sections render twice, and with more than
+ *     one area holding one, *which* area renders becomes arbitrary.
+ *
+ * ⚠️ **There is deliberately no rule about *which* area holds it.** An earlier
+ * version required `main`, and the templates E2E found the flaw immediately: it
+ * renames the only area to `body`, and a name-based rule turned that ordinary
+ * edit into an unpublishable document. `findContentArea` keys the renderer on
+ * the marker instead, so area names are cosmetic and a rename is harmless.
+ *
+ * It reads the payload directly rather than through `blockTreesOf`, because the
+ * marker's *area* is what the count has to span and `blockTreesOf` has already
+ * flattened that into a path string by the time a caller sees it.
+ */
+function validateTemplateAreas(payload: Json): (BlockIssue & { path: string })[] {
+  const areas = readAreas(payload);
+  const markers = Object.entries(areas).flatMap(([name, tree]) =>
+    collectContentMarkers(tree).map((key) => ({ area: name, key }))
+  );
+
+  if (markers.length === 0) {
+    return [
+      {
+        key: "",
+        type: DOCUMENT_CONTENT_TYPE,
+        path: `${AREAS_KEY}.${TEMPLATE_SEED_AREA}`,
+        message:
+          "A template needs a Page content block — without one, every page using " +
+          "it would lose its own sections.",
+      },
+    ];
+  }
+
+  if (markers.length > 1) {
+    return [
+      {
+        key: markers[1].key,
+        type: DOCUMENT_CONTENT_TYPE,
+        path: `${AREAS_KEY}.${markers[1].area}`,
+        message: `A template needs exactly one Page content block; this one has ${markers.length}.`,
+      },
+    ];
+  }
+
+  return [];
 }
 
 /** Raised when a caller tries to publish a payload that fails its own manifests. */

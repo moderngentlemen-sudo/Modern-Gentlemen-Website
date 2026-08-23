@@ -27,6 +27,7 @@ import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
 import { Canvas } from "./Canvas";
 import { InsertMenu } from "./InsertMenu";
+import { blockCatalogFor } from "@/components/sections/registry";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PublishBar } from "./PublishBar";
 import { ValidationTray } from "./ValidationTray";
@@ -154,6 +155,13 @@ function BuilderLayout({
 }) {
   useAutosave(callbacks.saveDraft);
 
+  // `documentContent` is offered in a template and nowhere else — see
+  // `blockCatalogFor`. Read from the store rather than threaded through props,
+  // because the document type is already there and a second copy could disagree.
+  const documentType = useBuilder((s) => s.doc.type);
+  // Memoised for referential stability: `blockCatalogFor` builds a new array
+  // each call, and the rail's grouping memo takes the catalogue as a dependency.
+  const catalog = useMemo(() => blockCatalogFor(documentType), [documentType]);
   const insert = useBuilder((s) => s.insert);
   const insertMany = useBuilder((s) => s.insertMany);
   const insertPatternRef = useBuilder((s) => s.insertPatternRef);
@@ -253,6 +261,7 @@ function BuilderLayout({
         <div className="flex min-h-0 flex-1">
           <aside className={clsx("w-[230px] shrink-0 overflow-hidden border-r", HAIRLINE)}>
             <InsertMenu
+              catalog={catalog}
               onInsert={(type) => {
                 // Insert after whatever is selected, so building a page reads
                 // top-to-bottom rather than always appending to the end — and

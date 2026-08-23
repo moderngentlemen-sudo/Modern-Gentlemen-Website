@@ -20,11 +20,15 @@
 
 import { createPublicClient } from "@/lib/db/public";
 import { collectPatternRefs, expandPatterns } from "@/lib/blocks/expand";
+import { applyTemplate, findContentArea } from "@/lib/blocks/templateContent";
+import { readAreas } from "@/lib/blocks/areas";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { Json } from "@/lib/db/database.types";
 
 /** The published payload of a page, as the renderer wants it. */
 export interface PublishedPage {
+  /** Needed by `composePublishedPage`: an entry-scoped assignment keys on it. */
+  id: string;
   slug: string;
   title: string;
   sections: BlockTree;
@@ -49,7 +53,7 @@ export async function getPublishedPage(slug: string): Promise<PublishedPage | nu
 
   const { data, error } = await db
     .from("pages")
-    .select("slug, title, published_data, status")
+    .select("id, slug, title, published_data, status")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
@@ -63,6 +67,7 @@ export async function getPublishedPage(slug: string): Promise<PublishedPage | nu
   if (!data) return null;
 
   return {
+    id: data.id,
     slug: data.slug,
     title: data.title,
     sections: sectionsOf(data.published_data),
@@ -128,4 +133,105 @@ export async function expandPublicPatterns(tree: BlockTree): Promise<BlockTree> 
   for (const row of data ?? []) payloads.set(row.id, row.published_data);
 
   return expandPatterns(tree, payloads as ReadonlyMap<string, unknown>);
+}
+
+/**
+ * The published `main` area of the template assigned to a page, or `null`.
+ *
+ * This is the caller `resolveTemplateFor` never had. It deliberately does **not**
+ * reuse it: that function reads through `lib/db/server.ts`, which calls
+ * `cookies()`, and any route that awaits `cookies()` is opted out of static
+ * rendering by Next. Calling it from `/` would have turned the homepage into a
+ * per-request render with nothing failing to say so — the exact hazard
+ * `expandPublicPatterns` documents one function above, met a second time.
+ *
+ * Resolution order is `0003`'s and `resolveTemplateId`'s: entry beats
+ * content_type. There is no taxonomy scope for pages — a page has no taxonomy —
+ * so the middle rung is skipped rather than reimplemented.
+ *
+ * ⚠️ **`published_data` only, and no `draft_data` fallback**, for both reasons
+ * the pattern reader gives: `0020` revoked the draft column from `anon`, so
+ * selecting it fails as `42501` naming the table and not the column; and falling
+ * back to a draft would ship an editor's half-finished layout to every page
+ * assigned to the template at once.
+ */
+async function publishedTemplateArea(
+  contentType: string,
+  entryId: string
+): Promise<BlockTree | null> {
+  const db = createPublicClient();
+
+  // Two queries rather than one `.or(...)`, deliberately. PostgREST's `or`
+  // takes a filter *string*, and building one by interpolating a value is the
+  // shape of every injection bug ever written — `entryId` is a uuid from our own
+  // row today, which is exactly the reasoning that stops being true the day
+  // somebody passes a slug. Two indexed lookups on a table with single-digit
+  // rows cost nothing worth protecting.
+  const [entryScoped, typeScoped] = await Promise.all([
+    db
+      .from("template_assignments")
+      .select("template_id")
+      .eq("scope", "entry")
+      .eq("entry_id", entryId)
+      .maybeSingle(),
+    db
+      .from("template_assignments")
+      .select("template_id")
+      .eq("scope", "content_type")
+      .eq("content_type", contentType)
+      .maybeSingle(),
+  ]);
+
+  const assignmentError = entryScoped.error ?? typeScoped.error;
+  if (assignmentError) {
+    throw new Error(`Could not read template assignments: ${assignmentError.message}`);
+  }
+
+  // Most specific first, which is `0003`'s documented order and the one
+  // `resolveTemplateId` implements on the admin side.
+  const templateId = entryScoped.data?.template_id ?? typeScoped.data?.template_id;
+  if (!templateId) return null;
+
+  const { data: template, error: templateError } = await db
+    .from("templates")
+    .select("published_data")
+    .eq("id", templateId)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (templateError) {
+    throw new Error(`Could not read the assigned template: ${templateError.message}`);
+  }
+  // An assigned-but-unpublished template is not an error and not a fallback to
+  // its draft: the page renders on its own, exactly as it did before anybody
+  // assigned a template to it. The loud half of this belongs in the admin.
+  if (!template) return null;
+
+  // The area holding the marker, whatever it is called. Keyed on the marker
+  // rather than on a name so that renaming an area cannot unhook the template
+  // — see `findContentArea`.
+  return findContentArea(readAreas(template.published_data));
+}
+
+/**
+ * A page's sections, framed by its template when one is assigned and published.
+ *
+ * The composition order matters and is the reverse of what reads naturally:
+ * patterns are expanded **inside the page's own sections first**, then the
+ * result is spliced into the template. Expanding afterwards would also expand
+ * refs the *template* contains, which sounds like a feature until you notice it
+ * makes one read of `patterns` serve two different trees and lose track of which
+ * unresolved ref belonged to which. The template's own refs are expanded by its
+ * own call below, on the composed tree, which is where they belong.
+ *
+ * Returns the page's sections untouched when nothing is assigned — so a site
+ * with no templates renders byte-identically to one that has never heard of
+ * them. That is what makes this change provable against the sixteen baselines.
+ */
+export async function composePublishedPage(page: PublishedPage): Promise<BlockTree> {
+  const expanded = await expandPublicPatterns(page.sections);
+  const area = await publishedTemplateArea("page", page.id);
+  if (!area) return expanded;
+
+  return expandPublicPatterns(applyTemplate(area, expanded));
 }

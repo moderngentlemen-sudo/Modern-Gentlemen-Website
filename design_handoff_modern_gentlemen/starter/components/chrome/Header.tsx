@@ -220,11 +220,23 @@ export function Header({
 
           {/* RIGHT — icon cluster: search · bag · theme */}
           <div className="flex items-center gap-[5px] min-[681px]:gap-3.5 shrink-0">
-            <IconButton label="Search" title="Search" onClick={() => setSearch(true)}>
+            <IconButton
+              label="Search"
+              title="Search"
+              expanded={search}
+              controls="mg-search-overlay"
+              onClick={() => setSearch(true)}
+            >
               <SearchIcon />
             </IconButton>
             {showBag && (
-              <IconButton label="Bag" title="Bag" onClick={() => setBag(true)}>
+              <IconButton
+                label="Bag"
+                title="Bag"
+                expanded={bag}
+                controls="mg-bag-drawer"
+                onClick={() => setBag(true)}
+              >
                 <BagIcon />
                 {cart.count > 0 && (
                   <span className="absolute -top-[3px] -right-[3px] box-border min-w-[17px] h-[17px] px-1 grid place-items-center bg-mg-accent text-white font-grotesk font-semibold text-[10px] leading-none">
@@ -284,12 +296,26 @@ function IconButton({
   title,
   onClick,
   className = "",
+  expanded,
+  controls,
   children,
 }: {
   label: string;
   title?: string;
   onClick: () => void;
   className?: string;
+  /**
+   * Present only on the buttons that open an overlay.
+   *
+   * The drawer trigger has carried `aria-expanded` since Track A; search and bag
+   * open the same kind of modal dialog and did not, which a screen-reader user
+   * hears as an ordinary button that appears to do nothing. `undefined` keeps
+   * the attribute off buttons that toggle nothing — an always-false
+   * `aria-expanded` on the theme switch would be a different lie.
+   */
+  expanded?: boolean;
+  /** The dialog this button opens, so the relationship is announced too. */
+  controls?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -297,6 +323,8 @@ function IconButton({
       type="button"
       aria-label={label}
       title={title}
+      aria-expanded={expanded}
+      aria-controls={expanded === undefined ? undefined : controls}
       onClick={onClick}
       className={`relative flex items-center justify-center h-[38px] w-[38px] rounded-full border border-transparent bg-transparent text-white transition-transform duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] hover:scale-[1.2] active:scale-95 ${className}`}
     >

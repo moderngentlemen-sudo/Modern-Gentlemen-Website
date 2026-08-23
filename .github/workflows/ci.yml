@@ -208,7 +208,7 @@ jobs:
 
   # Critical journeys and the screenshot guard on the pixel-verified design.
   e2e:
-    name: E2E & visual regression
+    name: E2E, visual & accessibility
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -308,6 +308,17 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:visual
+
+      # Same `if: always()` reasoning as the visual step, and the same lesson:
+      # accessibility answers a different question from either of the two above,
+      # and a failing E2E spec must not be able to hide a WCAG regression.
+      - name: Accessibility (axe)
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:a11y
 
       - name: Upload Playwright report
         if: failure()

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { SectionRenderer } from "@/components/SectionRenderer";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { expandPublicPatterns, getPublishedPage } from "@/lib/services/publicContent";
+import { composePublishedPage, getPublishedPage } from "@/lib/services/publicContent";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { BRAND, canonicalUrl, organizationJsonLd } from "@/lib/domain/seo";
 
@@ -69,10 +69,17 @@ export default async function HomePage() {
           every page is the same claim repeated, and search engines take the
           homepage's as canonical anyway. Renders no markup. */}
       <JsonLd data={organizationJsonLd(canonicalSiteUrl())} />
-      {/* Synced patterns are substituted before rendering — see
-          `expandPublicPatterns`. A page with none is handed back untouched, so
-          this costs nothing on a page that uses no pattern. */}
-      <SectionRenderer sections={await expandPublicPatterns(page.sections)} />
+      {/*
+       * `composePublishedPage` does two substitutions, in this order: synced
+       * patterns are expanded, then the result is spliced into the `main` area
+       * of whatever template is assigned to this page.
+       *
+       * A page with no pattern and no assigned template is handed back
+       * untouched, which is what keeps this change invisible to the sixteen
+       * baselines — and is why the homepage still renders byte-identically on a
+       * project that has never created a template.
+       */}
+      <SectionRenderer sections={await composePublishedPage(page)} />
     </>
   );
 }

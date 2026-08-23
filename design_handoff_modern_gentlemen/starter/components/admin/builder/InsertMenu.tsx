@@ -4,7 +4,7 @@ import { useMemo, useState, type PointerEventHandler } from "react";
 import { useDndContext, useDraggable } from "@dnd-kit/core";
 
 import { clsx } from "@/components/ui/clsx";
-import { blockCatalog } from "@/components/sections/registry";
+import { blockCatalog, type BlockCatalogEntry } from "@/components/sections/registry";
 import { BLOCK_CATEGORIES } from "@/lib/blocks/types";
 import { TextInput } from "@/components/admin/ui/Input";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
@@ -48,10 +48,16 @@ export function InsertMenu({
   onInsert,
   patterns = [],
   onInsertPattern,
+  catalog = blockCatalog,
 }: {
   onInsert: (type: string) => void;
   patterns?: PatternEntry[];
   onInsertPattern?: (id: string) => void;
+  /**
+   * The blocks this document type may insert. Defaults to the unscoped list, so
+   * every existing caller and every test keeps the behaviour it had.
+   */
+  catalog?: BlockCatalogEntry[];
 }) {
   const [query, setQuery] = useState("");
   const [preview, setPreview] = useState<{ type: string; top: number; left: number } | null>(null);
@@ -69,18 +75,18 @@ export function InsertMenu({
   const grouped = useMemo(() => {
     const term = query.trim().toLowerCase();
     const matches = term
-      ? blockCatalog.filter(
+      ? catalog.filter(
           (block) =>
             block.label.toLowerCase().includes(term) ||
             block.description.toLowerCase().includes(term)
         )
-      : blockCatalog;
+      : catalog;
 
     return BLOCK_CATEGORIES.map((category) => ({
       category,
       blocks: matches.filter((block) => block.category === category),
     })).filter((group) => group.blocks.length > 0);
-  }, [query]);
+  }, [query, catalog]);
 
   const matchingPatterns = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -201,7 +207,7 @@ function LibraryItem({
   onInsert,
   onPreview,
 }: {
-  block: (typeof blockCatalog)[number];
+  block: BlockCatalogEntry;
   onInsert: (type: string) => void;
   onPreview: (preview: { type: string; top: number; left: number } | null) => void;
 }) {

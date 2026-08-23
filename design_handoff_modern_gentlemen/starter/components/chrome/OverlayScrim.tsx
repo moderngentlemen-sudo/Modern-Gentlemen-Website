@@ -11,12 +11,15 @@ export function OverlayScrim({
   children,
   align = "center",
   label,
+  id,
 }: {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   align?: "center" | "left" | "right";
   label?: string;
+  /** DOM id, so the button that opens this can name it via `aria-controls`. */
+  id?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const returnRef = useRef<HTMLElement | null>(null);
@@ -83,6 +86,7 @@ export function OverlayScrim({
     <div
       className={`fixed inset-0 z-[100] flex ${justify} bg-black/60 backdrop-blur-sm`}
       onClick={onClose}
+      id={id}
       role="dialog"
       aria-modal="true"
       aria-label={label}
