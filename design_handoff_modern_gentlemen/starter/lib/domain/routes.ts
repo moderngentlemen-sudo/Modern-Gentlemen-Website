@@ -68,3 +68,55 @@ export const ADMIN_SEGMENT = {
 export function adminPathForDocument(type: DocumentType, id: string): string {
   return `/admin/${ADMIN_SEGMENT[type]}/${id}`;
 }
+
+/**
+ * What to call a document in a sentence an editor reads.
+ *
+ * The builder's publish dialog said "the live version of the page" whichever
+ * type it was looking at — correct while `page` was the only type with a
+ * builder route, and quietly wrong for the five that followed. A vocabulary
+ * here rather than a ternary in the component, for the same reason
+ * `ADMIN_SEGMENT` is here: the next screen that needs the noun should find it
+ * rather than invent a second one.
+ */
+export const DOCUMENT_NOUN = {
+  page: "page",
+  template: "template",
+  pattern: "pattern",
+  article: "article",
+  product: "product",
+  category: "category page",
+} as const satisfies Record<DocumentType, string>;
+
+/**
+ * Where a document is served, or `null` when it is not served anywhere.
+ *
+ * **The null is the point.** A template and a pattern have a `slug` column like
+ * everything else, but neither has a URL: a template frames the documents
+ * assigned to it and a pattern is composed into the pages that use it. The
+ * publish dialog printed `/{slug}` regardless, so publishing a pattern called
+ * `editorial-trio` advertised a page at `/editorial-trio` that has never
+ * existed and cannot be made to.
+ *
+ * `product` and `category` are included because both are real public routes and
+ * both reach this dialog — a category through the builder, a product through
+ * the same shared bar.
+ */
+export function publicPathForDocument(type: DocumentType, slug: string): string | null {
+  switch (type) {
+    case "page":
+      return publicPathForPage(slug);
+    case "article":
+      return publicPathForArticle(slug);
+    case "category":
+      return publicPathForCategory(slug);
+    case "product":
+      return publicPathForProduct(slug);
+    // A template frames other documents; a pattern is composed into them.
+    // Neither is reachable by URL, and saying so is the whole reason this
+    // returns null rather than a best guess.
+    case "template":
+    case "pattern":
+      return null;
+  }
+}

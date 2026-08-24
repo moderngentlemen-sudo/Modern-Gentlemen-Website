@@ -4,9 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useCatalog } from "@/lib/catalog/CatalogProvider";
-import { formatGBP } from "@/lib/domain/money";
+import { formatGBP, penceToPounds, poundsToPence } from "@/lib/domain/money";
 import { useCart } from "@/lib/cart/CartProvider";
+import {
+  defaultVariant,
+  findVariant,
+  isVariantSellable,
+  variantPricePence,
+} from "@/lib/domain/variants";
 import { QtyStepper } from "@/components/store/QtyStepper";
+import { VariantPicker } from "@/components/store/VariantPicker";
 import { ProductCard } from "@/components/store/ProductCard";
 import { MediaImage } from "@/components/ui/MediaImage";
 
@@ -42,17 +49,41 @@ export function ProductView({ slug }: { slug: string }) {
   const [img, setImg] = useState(0);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  // `null` is "nothing chosen yet", not "no variant" — the choice is *derived*
+  // below rather than seeded into state by an effect, so the first paint
+  // already shows a selection and a price rather than flashing an unselected
+  // row. It is also what makes the reset below one line.
+  const [variantId, setVariantId] = useState<string | null>(null);
 
   // Reset transient state when navigating between products (related-link SPA nav).
   useEffect(() => {
     setImg(0);
     setQty(1);
     setAdded(false);
+    setVariantId(null);
   }, [slug]);
 
   if (!product) notFound();
 
-  const memberPrice = Math.round(product.price * (1 - cart.memberRate));
+  const variants = product.variants ?? [];
+  // A selection that no longer exists (the merchant deleted that size while the
+  // page was open) falls back to the default rather than to nothing, which is
+  // the same tolerance the cart shows a stale line.
+  const selected = findVariant(variants, variantId) ?? defaultVariant(variants);
+  const price = penceToPounds(variantPricePence(poundsToPence(product.price), selected));
+  // Sellability gates the button, not the price: a sold-out size still shows
+  // what it costs, because "£160, unavailable" tells a shopper more than a
+  // blank.
+  const sellable = variants.length === 0 || (selected !== null && isVariantSellable(selected));
+
+  // ⚠️ Pounds arithmetic, and deliberately left as it was found. This rounds a
+  // £145 member price to £123 where the bag charges £123.25 — a real 25p
+  // disagreement between this page and the checkout, and a violation of the
+  // integer-pence rule. It is **not** fixed here because the correct value
+  // renders different pixels on a baseline-verified page, which is a decision
+  // about the sixteen screenshots rather than a bug fix. Recorded in
+  // PROGRESS.md's Known issues with the one-line repair.
+  const memberPrice = Math.round(price * (1 - cart.memberRate));
 
   return (
     <div className="container-mg py-10 md:py-14">
@@ -108,13 +139,31 @@ export function ProductView({ slug }: { slug: string }) {
             {product.name}
           </h1>
           <div className="mt-4 flex items-baseline gap-4">
-            <span className="font-grotesk text-2xl">{formatGBP(product.price)}</span>
+            <span className="font-grotesk text-2xl">{formatGBP(price)}</span>
             <span className="font-mono text-xs text-mg-fg/50">
               Members {formatGBP(memberPrice)}
             </span>
           </div>
           <p className="mt-5 text-mg-fg/70 text-pretty">{product.blurb}</p>
           <p className="mt-2 font-mono text-xs text-mg-fg/50">{product.material}</p>
+
+          <VariantPicker
+            variants={variants}
+            selectedId={selected?.id ?? null}
+            onSelect={(id) => {
+              setVariantId(id);
+              // The confirmation belongs to what was added, not to the page. A
+              // shopper who adds the medium and then clicks the large must not
+              // be looking at "Added to bag ✓" for a size that is not in it.
+              setAdded(false);
+            }}
+          />
+
+          {selected?.sku && (
+            <p className="mt-3 font-mono text-[11px] tracking-[0.1em] text-mg-fg/40">
+              SKU {selected.sku}
+            </p>
+          )}
 
           <div className="mt-8 flex items-stretch gap-3">
             <QtyStepper
@@ -124,12 +173,17 @@ export function ProductView({ slug }: { slug: string }) {
             />
             <button
               onClick={() => {
-                cart.add(product.slug, qty);
+                cart.add(product.slug, qty, selected?.id ?? null);
                 setAdded(true);
               }}
-              className="flex-1 bg-mg-accent font-mono uppercase text-xs tracking-[0.2em] text-white transition-colors hover:bg-mg-fg hover:text-mg-bg"
+              disabled={!sellable}
+              className={`flex-1 font-mono uppercase text-xs tracking-[0.2em] transition-colors ${
+                sellable
+                  ? "bg-mg-accent text-white hover:bg-mg-fg hover:text-mg-bg"
+                  : "cursor-not-allowed border border-mg-bd/25 text-mg-fg/40"
+              }`}
             >
-              {added ? "Added to bag ✓" : "Add to bag"}
+              {!sellable ? "Unavailable" : added ? "Added to bag ✓" : "Add to bag"}
             </button>
           </div>
 

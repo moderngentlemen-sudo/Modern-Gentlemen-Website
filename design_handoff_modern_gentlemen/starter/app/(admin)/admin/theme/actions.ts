@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { publishTheme, saveThemeDraft, unpublishTheme } from "@/lib/services/theme";
+import { publishTheme, rollbackTheme, saveThemeDraft, unpublishTheme } from "@/lib/services/theme";
 import { themeColorsSchema } from "@/lib/domain/theme";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
@@ -90,6 +90,43 @@ export async function unpublishThemeAction(input: unknown): Promise<ActionResult
   try {
     await unpublishTheme(parsed.data?.note);
     return done();
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Restore an earlier theme into the draft.
+ *
+ * `HistoryView` is shared with every document type, so it passes `{ id, version }`
+ * — but there is exactly one theme row and the service looks it up by key, so
+ * the id is accepted and ignored rather than trusted. Taking an id from the
+ * client and writing to whatever row it named is how a shared component turns
+ * into a way to edit something else.
+ *
+ * Unlike the other three actions here, this does **not** revalidate `/`: a
+ * rollback lands in the draft and the public site is still serving the last
+ * published palette. Revalidating would be a lie about what changed, and an
+ * expensive one — the `<style>` block lives in the root layout, so it rebuilds
+ * every static page.
+ */
+const Rollback = z.object({
+  id: z.string().uuid().optional(),
+  version: z.number().int().nonnegative(),
+  note: z.string().max(500).optional(),
+});
+
+export async function rollbackThemeAction(
+  input: unknown
+): Promise<ActionResult<{ version: number }>> {
+  const parsed = Rollback.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+
+  try {
+    const version = await rollbackTheme(parsed.data.version, parsed.data.note);
+    revalidatePath("/admin/theme");
+    revalidatePath("/admin/theme/history");
+    return ok({ version });
   } catch (error) {
     return toActionResult(error);
   }

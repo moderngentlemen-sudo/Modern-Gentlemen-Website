@@ -35,9 +35,24 @@ export type RevisionSummary = Omit<RevisionRow, "data">;
 const SUMMARY_COLUMNS =
   "id, entity_type, entity_id, version, label, reason, note, created_by, created_at";
 
+/**
+ * What may appear in `revisions.entity_type` / `publish_events.entity_type`.
+ *
+ * Wider than `DocumentType` by exactly one, and the reason is `0017`: it put
+ * `theme` on `document_table()`'s allowlist, so `publish_document` writes a
+ * revision and a publish event for the theme like any document. Both columns
+ * are plain `text` with no foreign key and — checked across every migration —
+ * no CHECK constraint, so the database has always accepted it.
+ *
+ * `theme` is deliberately **not** a `DocumentType` (see `lib/domain/theme.ts`),
+ * so widening here rather than there is what keeps the block-validation and
+ * scheduling paths closed to it while its history stays readable.
+ */
+export type RevisionEntityType = DocumentType | "theme";
+
 export async function listRevisions(
   db: Db,
-  type: DocumentType,
+  type: RevisionEntityType,
   entityId: string,
   limit = 50
 ): Promise<RevisionSummary[]> {
@@ -138,7 +153,7 @@ export interface PublishEventRow {
 
 export async function listPublishEvents(
   db: Db,
-  type: DocumentType,
+  type: RevisionEntityType,
   entityId: string,
   limit = 50
 ): Promise<PublishEventRow[]> {

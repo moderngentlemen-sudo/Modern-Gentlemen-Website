@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createPattern } from "@/lib/services/patterns";
+import { createPattern, setPatternDetails } from "@/lib/services/patterns";
 import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
 import { ok, type ActionResult } from "../_lib/action-result";
@@ -22,10 +22,29 @@ const Key = z
   .max(120)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case words separated by hyphens");
 
+/**
+ * `description` and `categoryId` are optional and nullable, and both meanings
+ * matter: absent leaves the column alone, `null` clears it. Empty strings are
+ * normalised to `null` at the boundary so a cleared textarea does not store
+ * `""` — a description that is present and blank renders as a blank line in the
+ * builder's rail where the block count used to be.
+ */
+const Description = z
+  .string()
+  .trim()
+  .max(500, "Keep it under 500 characters")
+  .nullable()
+  .optional()
+  .transform((v) => (v ? v : null));
+
+const CategoryId = z.string().uuid().nullable().optional();
+
 const CreateInput = z.object({
   name: z.string().trim().min(1, "Enter a name").max(200),
   key: Key,
   syncMode: z.enum(["detachable", "synced"]),
+  description: Description,
+  categoryId: CategoryId,
 });
 
 export async function createPatternAction(input: unknown): Promise<ActionResult<{ id: string }>> {
@@ -54,6 +73,13 @@ export async function createPatternAction(input: unknown): Promise<ActionResult<
       name: parsed.data.name,
       key: parsed.data.key,
       syncMode: parsed.data.syncMode,
+      // ✅ Both collected as of this phase. `createPattern` in the repository
+      // has accepted them since Phase 4 and no caller ever passed one, so
+      // `patterns.description` was written by nothing while the builder's rail
+      // read it — every entry fell through to "N sections" — and
+      // `patterns.category_id` pointed at five seeded rows nothing could reach.
+      description: parsed.data.description ?? undefined,
+      categoryId: parsed.data.categoryId ?? undefined,
       blocks: [],
     });
     revalidatePath("/admin/patterns");
@@ -129,6 +155,38 @@ export async function renamePatternAction(input: unknown): Promise<ActionResult>
     // `name` and `key` are the pattern's columns; the service speaks the
     // repository's vocabulary, where they are the title and the slug.
     await renameDocument("pattern", id, { title: name, slug: key });
+    revalidatePath("/admin/patterns");
+    revalidatePath(`/admin/patterns/${id}`);
+    return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+/**
+ * The two columns a rename cannot reach.
+ *
+ * Kept as its own action rather than folded into `renamePatternAction` because
+ * the underlying services differ: renaming goes through the generic
+ * `renameDocument`, which is shared with pages, articles and products and
+ * speaks title/slug, while these two exist on `patterns` alone. The dialog
+ * calls both and reports the first failure.
+ */
+const DetailsInput = z.object({
+  id: z.string().uuid(),
+  description: Description,
+  categoryId: CategoryId,
+});
+
+export async function setPatternDetailsAction(input: unknown): Promise<ActionResult> {
+  const parsed = DetailsInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  try {
+    const { id, description, categoryId } = parsed.data;
+    await setPatternDetails(id, { description, categoryId: categoryId ?? null });
     revalidatePath("/admin/patterns");
     revalidatePath(`/admin/patterns/${id}`);
     return ok(undefined);

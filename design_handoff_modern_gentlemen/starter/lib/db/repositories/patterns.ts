@@ -18,6 +18,13 @@ type Db = SupabaseClient<Database>;
 
 export type PatternSyncMode = "synced" | "detachable";
 
+export interface PatternCategoryRow {
+  id: string;
+  slug: string;
+  label: string;
+  position: number;
+}
+
 export interface PatternRow {
   id: string;
   key: string;
@@ -76,6 +83,50 @@ export async function listPatterns(
   let query = db.from("patterns").select("*").order("name");
   if (categoryId) query = query.eq("category_id", categoryId);
   return (unwrap("listPatterns", await query) as PatternRow[]) ?? [];
+}
+
+/**
+ * The pattern categories, in `position` order.
+ *
+ * `0003_content_spine.sql` seeded five of them — Heroes, Editorial, Commerce,
+ * Bands & CTAs, Saved layouts — and **nothing has ever read the table**. The
+ * column on `patterns` that references it was written by nothing and read by
+ * nothing, which is the same shape as the `sync_schedule` gap the scheduled-feeds
+ * slice closed: a fully-built feature with no way in.
+ */
+export async function listPatternCategories(db: Db): Promise<PatternCategoryRow[]> {
+  return (
+    (unwrap(
+      "listPatternCategories",
+      await db.from("pattern_categories").select("id, slug, label, position").order("position")
+    ) as PatternCategoryRow[]) ?? []
+  );
+}
+
+/**
+ * The two columns the admin never collected.
+ *
+ * Separate from `renameDocument` on purpose: that one is generic over every
+ * document table and speaks title/slug, while `description` and `category_id`
+ * exist on `patterns` alone. Folding them in would have meant a generic
+ * function with two pattern-shaped optional arguments.
+ *
+ * `null` is a real value for both — it clears the field — so the caller says
+ * which keys it means by their presence, the same convention `updateVariant`
+ * uses.
+ */
+export async function updatePatternDetails(
+  db: Db,
+  id: string,
+  patch: { description?: string | null; categoryId?: string | null }
+): Promise<void> {
+  const update: Database["public"]["Tables"]["patterns"]["Update"] = {};
+
+  if (patch.description !== undefined) update.description = patch.description;
+  if (patch.categoryId !== undefined) update.category_id = patch.categoryId;
+  if (Object.keys(update).length === 0) return;
+
+  unwrap("updatePatternDetails", await db.from("patterns").update(update).eq("id", id));
 }
 
 export async function createPattern(

@@ -103,6 +103,12 @@ export interface BuilderPattern {
   syncMode: "synced" | "detachable";
   /** Whether it has a published payload — the live site expands nothing else. */
   published: boolean;
+  /**
+   * The heading the rail files this under. Optional so a caller that has not
+   * been updated still type-checks; `InsertMenu` treats absent and null the
+   * same, as the plain "Patterns" group it has always used.
+   */
+  category?: { label: string; position: number } | null;
 }
 
 export function Builder({

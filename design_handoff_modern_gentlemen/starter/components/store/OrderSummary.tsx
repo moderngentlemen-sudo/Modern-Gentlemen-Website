@@ -30,9 +30,11 @@ export function OrderSummary({
       {showItems && (
         <ul className="mb-4 space-y-2 border-b border-mg-bd/10 pb-4">
           {cart.lines.map((l) => (
-            <li key={l.slug} className="flex justify-between gap-3 text-sm">
+            <li key={l.key} className="flex justify-between gap-3 text-sm">
               <span className="text-mg-fg/70">
-                {l.product.name} <span className="text-mg-fg/40">× {l.qty}</span>
+                {l.product.name}
+                {l.variant && <span className="text-mg-fg/45"> · {l.variant.title}</span>}{" "}
+                <span className="text-mg-fg/40">× {l.qty}</span>
               </span>
               <span className="shrink-0 font-mono">{formatGBP(l.lineTotal)}</span>
             </li>

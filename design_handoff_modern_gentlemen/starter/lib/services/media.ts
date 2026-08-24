@@ -20,6 +20,7 @@ import { getDocument as getDocumentRow } from "@/lib/db/repositories/documents";
 import { collectMediaReferences } from "@/lib/blocks/media";
 import type { BlockNode } from "@/lib/blocks/types";
 import { isDocumentType } from "@/lib/domain/documents";
+import { readImageDimensions } from "@/lib/domain/imageDimensions";
 import {
   CENTRE,
   galleryReferences,
@@ -309,6 +310,17 @@ export async function uploadAsset(input: UploadInput): Promise<AssetView> {
   const existing = await repo.findAssetByChecksum(db, checksum);
   if (existing) return toAssetView(existing);
 
+  // ✅ Read from the file's own header as of this phase. `media_assets.width`
+  // and `.height` have existed since `0002_media.sql` and `insertAsset` has
+  // accepted them since Phase 5a, and **no caller ever passed one** — so every
+  // asset held null for both and `AssetDetails`' "Dimensions" row, guarded on
+  // `asset.width && asset.height`, has never rendered for anything.
+  //
+  // Null for a video, an audio file, a PDF, and for an image format the parser
+  // does not read (SVG has no intrinsic pixel size to read; AVIF and HEIC are
+  // not parsed). Null is what the column held before, so nothing regresses.
+  const dimensions = kind === "image" ? readImageDimensions(input.bytes) : null;
+
   const storagePath = storagePathFor(input.fileName, crypto.randomUUID().slice(0, 8));
 
   const upload = await db.storage
@@ -326,6 +338,8 @@ export async function uploadAsset(input: UploadInput): Promise<AssetView> {
       mimeType: input.mimeType,
       fileName: input.fileName,
       byteSize: input.bytes.byteLength,
+      width: dimensions?.width ?? null,
+      height: dimensions?.height ?? null,
       title: input.title ?? null,
       altText: input.altText ?? null,
       checksum,

@@ -25,6 +25,7 @@ import {
   productSpecsSchema,
   type ProductAvailability,
 } from "@/lib/domain/products";
+import type { PublicVariant } from "@/lib/domain/variants";
 import type { Product, Tag } from "@/lib/cart/types";
 
 /**
@@ -62,6 +63,45 @@ function galleryUrls(rows: MediaRow[] | null): string[] {
 }
 
 /**
+ * The variant rows, mapped to the public shape and ordered by `position`.
+ *
+ * Sorted in TypeScript for the same reason the gallery is: PostgREST's embedded
+ * ordering fails soft, and here a wrong order would put the sizes on the picker
+ * in whatever sequence the planner chose.
+ *
+ * ⚠️ **`stock` is deliberately not selected.** Not mapped-and-dropped —
+ * *not selected*, so the column never reaches the browser at all. `lib/domain/
+ * variants.ts` sets out why an inventory count is not public data; leaving it
+ * out of the query is what makes that a property of the wire rather than of the
+ * component that happens to render today.
+ */
+interface VariantRow {
+  id: string;
+  title: string;
+  sku: string | null;
+  price_pence: number | null;
+  availability: string;
+  position: number;
+}
+
+function variantsOf(rows: VariantRow[] | null): PublicVariant[] {
+  if (!rows) return [];
+
+  return [...rows]
+    .sort((a, b) => a.position - b.position)
+    .map((row) => ({
+      id: row.id,
+      title: row.title,
+      sku: row.sku,
+      pricePence: row.price_pence,
+      // Same narrowing, and the same default, as the product's own column: a
+      // row holding something outside the vocabulary is treated as unsellable
+      // rather than crashing the PDP.
+      availability: isProductAvailability(row.availability) ? row.availability : "out_of_stock",
+    }));
+}
+
+/**
  * `badges` is an array in the database and `tag` is one value on the card,
  * because the card has room for exactly one. The first badge wins; anything the
  * store has no styling for is dropped to `""`, which is what the demo catalog
@@ -80,7 +120,7 @@ export async function listPublishedProducts(): Promise<Product[]> {
     // by parsing this at the type level, and `string` carries nothing to parse.
     // Split it and every field below degrades to `GenericStringError`.
     .select(
-      "slug, name, cat, cat_label, blurb, story, material, price_pence, badges, specs, product_media(position, media_assets(bucket, storage_path, external_url))"
+      "slug, name, cat, cat_label, blurb, story, material, price_pence, badges, specs, product_media(position, media_assets(bucket, storage_path, external_url)), product_variants(id, title, sku, price_pence, availability, position)"
     )
     .eq("status", "published")
     .order("position", { ascending: true });
@@ -92,22 +132,32 @@ export async function listPublishedProducts(): Promise<Product[]> {
     throw new Error(`Could not read the published products: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => ({
-    slug: row.slug,
-    cat: row.cat ?? "",
-    catLabel: row.cat_label ?? "",
-    name: row.name,
-    // Integer pence is the canonical unit; pounds exist only at this boundary,
-    // where the pixel-verified components expect them. lib/domain/money is the
-    // only place that converts.
-    price: penceToPounds(row.price_pence),
-    tag: tagOf(row.badges),
-    material: row.material ?? "",
-    blurb: row.blurb ?? "",
-    story: row.story ?? "",
-    specs: productSpecsSchema.parse(row.specs ?? []),
-    images: galleryUrls(row.product_media as MediaRow[] | null),
-  }));
+  return (data ?? []).map((row) => {
+    const variants = variantsOf(row.product_variants as VariantRow[] | null);
+
+    return {
+      slug: row.slug,
+      cat: row.cat ?? "",
+      catLabel: row.cat_label ?? "",
+      name: row.name,
+      // Integer pence is the canonical unit; pounds exist only at this boundary,
+      // where the pixel-verified components expect them. lib/domain/money is the
+      // only place that converts.
+      price: penceToPounds(row.price_pence),
+      tag: tagOf(row.badges),
+      material: row.material ?? "",
+      blurb: row.blurb ?? "",
+      story: row.story ?? "",
+      specs: productSpecsSchema.parse(row.specs ?? []),
+      images: galleryUrls(row.product_media as MediaRow[] | null),
+      // Omitted rather than empty when a product is sold as one thing. The demo
+      // catalogue this read is asserted against field-by-field in
+      // `tests/integration/publicCatalog.test.ts` carries no variants, and an
+      // always-present `variants: []` would make that deep equality fail on a
+      // difference that is not one.
+      ...(variants.length > 0 ? { variants } : {}),
+    };
+  });
 }
 
 /**

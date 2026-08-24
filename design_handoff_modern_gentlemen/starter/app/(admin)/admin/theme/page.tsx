@@ -2,6 +2,7 @@ import { requirePermission } from "@/lib/services/auth";
 import { getTheme } from "@/lib/services/theme";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { StatusPill } from "@/components/admin/ui/Badge";
+import { Button } from "@/components/admin/ui/Button";
 import { ThemeEditor } from "./ThemeEditor";
 
 /**
@@ -21,7 +22,19 @@ export default async function ThemePage() {
       <AdminPageHeader
         eyebrow="Design"
         title="Theme"
-        actions={<StatusPill status={theme.status} />}
+        actions={
+          <div className="flex items-center gap-3">
+            <StatusPill status={theme.status} />
+            {/* The way in to the history that `0017` has been recording since it
+                landed. Gated on the same permission the screen itself asserts,
+                so a role without it is not offered a link to a 403. */}
+            {user.permissions.has("revision.read") && (
+              <Button href="/admin/theme/history" variant="outline" size="sm">
+                History
+              </Button>
+            )}
+          </div>
+        }
       >
         <p className="mt-2 text-[13px] text-mg-fg/50">
           The colour tokens every page renders with. Edits are saved as a draft; the site keeps

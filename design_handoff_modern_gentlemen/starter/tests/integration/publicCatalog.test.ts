@@ -46,6 +46,82 @@ describe("the published catalogue", () => {
     }
   });
 
+  /**
+   * The variant read, against a real stack and the real anonymous policies.
+   *
+   * Two things need proving and neither can be proved in a unit test. First
+   * that `0019`'s parent-status policy lets an anonymous caller read the
+   * variants of a *published* product at all — the embedded select returns an
+   * empty array rather than an error when a policy refuses, so a broken policy
+   * looks exactly like a product with no sizes. Second that the seeded
+   * catalogue still carries none, which is the fact the sixteen visual
+   * baselines rest on: the picker renders only when variants exist.
+   */
+  it("carries no variants for the seeded catalogue, which is what keeps the picker additive", async () => {
+    const products = await listPublishedProducts();
+
+    for (const product of products) {
+      // Absent, not empty. `Product.variants` is optional so that the
+      // field-by-field comparison above stays a real assertion.
+      expect(product.variants).toBeUndefined();
+    }
+  });
+
+  // Inserts rows, so it follows this file's existing rule for anything that
+  // mutates: a throwaway local stack only. `isLocal` is true in CI, which is
+  // where it needs to run. On the shared remote project a failure between the
+  // insert and the cleanup would leave a probe variant showing on a live PDP —
+  // and unlike the unpublish test below, this one would be *visible to
+  // shoppers* rather than merely wrong.
+  it.runIf(testEnv.isLocal)(
+    "returns a published product's variants to an anonymous reader",
+    async () => {
+      // Written directly rather than through the service because the admin path
+      // needs a session; the read below is the anonymous one under RLS, which is
+      // the half at risk.
+      const db = adminClient();
+      const target = demo[0];
+
+      const { data: product } = await db
+        .from("products")
+        .select("id")
+        .eq("slug", target.slug)
+        .single();
+
+      const { data: inserted, error } = await db
+        .from("product_variants")
+        .insert([
+          { product_id: product!.id, title: "zz-probe-large", price_pence: 15_999, position: 1 },
+          { product_id: product!.id, title: "zz-probe-small", price_pence: null, position: 0 },
+        ])
+        .select("id");
+
+      expect(error).toBeNull();
+
+      try {
+        const read = await listPublishedProducts();
+        const found = read.find((p) => p.slug === target.slug);
+
+        // Ordered by position, not by insertion: the picker's leftmost option is
+        // the merchant's first, and PostgREST's embedded ordering fails soft.
+        expect(found?.variants?.map((v) => v.title)).toEqual(["zz-probe-small", "zz-probe-large"]);
+        expect(found?.variants?.map((v) => v.pricePence)).toEqual([null, 15_999]);
+        // `stock` is never selected, so it cannot reach a browser.
+        expect(found?.variants?.[0]).not.toHaveProperty("stock");
+      } finally {
+        // The project is shared with a live human — every probe row goes away,
+        // and the `zz-` prefix is what keeps it distinguishable meanwhile.
+        await db
+          .from("product_variants")
+          .delete()
+          .in(
+            "id",
+            (inserted ?? []).map((row) => row.id)
+          );
+      }
+    }
+  );
+
   it("gives every product its imagery", async () => {
     const products = await listPublishedProducts();
 

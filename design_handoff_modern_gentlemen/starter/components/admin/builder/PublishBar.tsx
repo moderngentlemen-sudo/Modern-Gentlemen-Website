@@ -11,7 +11,7 @@ import { useToast } from "@/components/admin/ui/Toast";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 import { isSchedulable } from "@/lib/domain/documents";
 import { areaNameOf } from "@/lib/blocks/areas";
-import { adminPathForDocument } from "@/lib/domain/routes";
+import { DOCUMENT_NOUN, adminPathForDocument, publicPathForDocument } from "@/lib/domain/routes";
 
 import { useBuilder } from "./StoreContext";
 import type { BuilderCallbacks } from "./Builder";
@@ -72,6 +72,7 @@ export function PublishBar({
   const totalIssues = areaTotals.length === 0 ? issues : areaTotals.reduce((a, b) => a + b, 0);
 
   const [confirmPublish, setConfirmPublish] = useState(false);
+  const publicPath = publicPathForDocument(doc.type, doc.slug);
   const [preview, setPreview] = useState<{ path: string; expiresAt: string } | null>(null);
 
   function publish() {
@@ -232,7 +233,10 @@ export function PublishBar({
         open={confirmPublish}
         onClose={() => setConfirmPublish(false)}
         title={`Publish “${doc.title}”?`}
-        description="This makes the current draft the live version of the page."
+        // ⚠️ This said "the live version of the page" for every document type
+        // the shared builder has ever opened. True while `page` was the only
+        // one with a builder route; wrong for the five that followed it.
+        description={`This makes the current draft the live version of the ${DOCUMENT_NOUN[doc.type]}.`}
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirmPublish(false)}>
@@ -244,7 +248,17 @@ export function PublishBar({
           </>
         }
       >
-        <DetailRow label="Slug">/{doc.slug}</DetailRow>
+        {/*
+          A template and a pattern have a `slug` and no URL, and this row used
+          to print `/{slug}` for both — advertising a page at `/editorial-trio`
+          that has never existed. `publicPathForDocument` returns null for
+          exactly those two, and the row says what the value actually is.
+        */}
+        {publicPath === null ? (
+          <DetailRow label="Key">{doc.slug}</DetailRow>
+        ) : (
+          <DetailRow label="URL">{publicPath}</DetailRow>
+        )}
         <DetailRow label="Current version">v{doc.version}</DetailRow>
         <DetailRow label="Validation">
           {totalIssues === 0 ? (
@@ -256,6 +270,14 @@ export function PublishBar({
             </span>
           )}
         </DetailRow>
+
+        {publicPath === null && (
+          <p className="mt-3 text-[12px] text-mg-fg/60">
+            {doc.type === "template"
+              ? "A template has no page of its own. Publishing it changes every document assigned to it."
+              : "A pattern has no page of its own. Publishing it changes the pages that link to it; pages that inserted a copy are unaffected."}
+          </p>
+        )}
 
         {totalIssues > 0 && (
           <p className="mt-3 text-[12px] text-mg-fg/60">

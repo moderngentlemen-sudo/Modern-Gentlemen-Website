@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/admin/ui/Button";
 import { Dialog } from "@/components/admin/ui/Dialog";
-import { TextInput } from "@/components/admin/ui/Input";
+import { TextArea, TextInput } from "@/components/admin/ui/Input";
 import { Select } from "@/components/admin/ui/Select";
 import { Panel } from "@/components/admin/ui/Panel";
 import { StatusPill } from "@/components/admin/ui/Badge";
@@ -15,7 +15,12 @@ import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { useToast } from "@/components/admin/ui/Toast";
 import type { DocumentStatus } from "@/lib/domain/documents";
 
-import { createPatternAction, deletePatternAction, renamePatternAction } from "./actions";
+import {
+  createPatternAction,
+  deletePatternAction,
+  renamePatternAction,
+  setPatternDetailsAction,
+} from "./actions";
 
 /**
  * `title` and `slug` are the *aliases* the document repository returns for a
@@ -28,7 +33,31 @@ export interface PatternRow {
   status: DocumentStatus;
   version: number;
   updated_at: string;
+  /**
+   * The two pattern-only columns, merged in by the page.
+   *
+   * They are not part of the generic document shape and never will be — see the
+   * note on the merge in `page.tsx`.
+   */
+  description: string | null;
+  categoryId: string | null;
 }
+
+/** A pattern category as a `Select` option. `pattern_categories`, by label. */
+export interface CategoryOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * The "no category" option.
+ *
+ * A `Select` cannot hold `null`, and an empty string is what an unselected
+ * option yields, so the two are converted at the edges of this component rather
+ * than being allowed to reach the action — which takes a uuid or null and
+ * nothing else.
+ */
+const NO_CATEGORY = "";
 
 type SyncMode = "detachable" | "synced";
 
@@ -61,12 +90,51 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/**
+ * The category select, shared by the create and edit dialogs.
+ *
+ * One component rather than two copies because the "no category" conversion is
+ * the fiddly part — `NO_CATEGORY` in, `null` out — and it is exactly the kind of
+ * thing that gets written correctly once and wrongly the second time.
+ *
+ * The categories themselves are seeded by `0003_content_spine.sql` and there is
+ * deliberately no editor for them here: five rows that have existed since
+ * Phase 1 are the gap this closes, and a management screen for a fixed
+ * vocabulary would be a different, larger feature.
+ */
+function PatternCategorySelect({
+  categories,
+  value,
+  onChange,
+  error,
+}: {
+  categories: CategoryOption[];
+  value: string;
+  onChange: (next: string) => void;
+  error?: string;
+}) {
+  if (categories.length === 0) return null;
+
+  return (
+    <Select
+      label="Category"
+      value={value}
+      onChange={onChange}
+      options={[{ value: NO_CATEGORY, label: "No category" }, ...categories]}
+      help="Groups this pattern in the builder's insert menu."
+      error={error}
+    />
+  );
+}
+
 export function PatternsList({
   patterns,
+  categories,
   canWrite,
   canDelete,
 }: {
   patterns: PatternRow[];
+  categories: CategoryOption[];
   canWrite: boolean;
   canDelete: boolean;
 }) {
@@ -78,6 +146,8 @@ export function PatternsList({
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [syncMode, setSyncMode] = useState<SyncMode>("detachable");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState<string>(NO_CATEGORY);
   const [keyTouched, setKeyTouched] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<PatternRow | null>(null);
@@ -89,29 +159,49 @@ export function PatternsList({
   const [renaming, setRenaming] = useState<PatternRow | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renameKey, setRenameKey] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategoryId, setEditCategoryId] = useState<string>(NO_CATEGORY);
 
   function openRename(pattern: PatternRow) {
     setError(undefined);
     setRenameName(pattern.title);
     setRenameKey(pattern.slug);
+    setEditDescription(pattern.description ?? "");
+    setEditCategoryId(pattern.categoryId ?? NO_CATEGORY);
     setRenaming(pattern);
   }
 
-  function rename() {
+  function saveEdits() {
     if (!renaming) return;
     setError(undefined);
     startTransition(async () => {
-      const result = await renamePatternAction({
+      // Two actions because the two halves go through different services — the
+      // rename through the generic `renameDocument`, the details through the
+      // pattern-only update. Sequential rather than in parallel so a failure in
+      // the first stops the second: reporting "saved" for half a dialog is
+      // worse than reporting the failure.
+      const renamed = await renamePatternAction({
         id: renaming.id,
         name: renameName,
         key: renameKey,
       });
-      if (!result.ok) {
-        setError(result.error);
+      if (!renamed.ok) {
+        setError(renamed.error);
         return;
       }
+
+      const detailed = await setPatternDetailsAction({
+        id: renaming.id,
+        description: editDescription,
+        categoryId: editCategoryId === NO_CATEGORY ? null : editCategoryId,
+      });
+      if (!detailed.ok) {
+        setError(detailed.error);
+        return;
+      }
+
       setRenaming(null);
-      toast.push("Pattern renamed", "success");
+      toast.push("Pattern updated", "success");
       router.refresh();
     });
   }
@@ -119,7 +209,13 @@ export function PatternsList({
   function create() {
     setError(undefined);
     startTransition(async () => {
-      const result = await createPatternAction({ name, key: key || slugify(name), syncMode });
+      const result = await createPatternAction({
+        name,
+        key: key || slugify(name),
+        syncMode,
+        description,
+        categoryId: categoryId === NO_CATEGORY ? null : categoryId,
+      });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -127,6 +223,8 @@ export function PatternsList({
       setCreating(false);
       setName("");
       setKey("");
+      setDescription("");
+      setCategoryId(NO_CATEGORY);
       setKeyTouched(false);
       toast.push("Pattern created", "success");
       router.push(`/admin/patterns/${result.data.id}`);
@@ -207,7 +305,7 @@ export function PatternsList({
                           onClick={() => openRename(pattern)}
                           disabled={pending}
                         >
-                          Rename
+                          Edit
                         </Button>
                       )}
                       {canDelete && (
@@ -267,6 +365,26 @@ export function PatternsList({
             required
           />
           {/*
+            ✅ **Collected as of this phase**, both of them. The repository has
+            accepted a description since Phase 4 and no caller passed one, so
+            the builder's rail — which renders `pattern.description` and falls
+            back to "N sections" — showed the fallback for every pattern that
+            has ever existed.
+          */}
+          <TextArea
+            label="Description"
+            value={description}
+            onChange={setDescription}
+            rows={2}
+            placeholder="Three editorial cards with a lead image."
+            help="Shown in the builder's insert menu, in place of the section count."
+          />
+          <PatternCategorySelect
+            categories={categories}
+            value={categoryId}
+            onChange={setCategoryId}
+          />
+          {/*
             ✅ **A real choice as of this phase.** It was hard-coded to
             `detachable` for three phases and deliberately not offered, because
             no public route expanded a `_ref` — a synced pattern rendered in
@@ -288,7 +406,7 @@ export function PatternsList({
       <Dialog
         open={renaming !== null}
         onClose={() => setRenaming(null)}
-        title={`Rename “${renaming?.title ?? ""}”`}
+        title={`Edit “${renaming?.title ?? ""}”`}
         description="The key is an internal handle, not a URL — no public page links to it, and renaming changes nothing about the pages already using this pattern."
         footer={
           <>
@@ -297,7 +415,7 @@ export function PatternsList({
             </Button>
             <Button
               variant="solid"
-              onClick={rename}
+              onClick={saveEdits}
               loading={pending}
               disabled={!renameName.trim() || !renameKey.trim()}
             >
@@ -313,8 +431,20 @@ export function PatternsList({
             value={renameKey}
             onChange={setRenameKey}
             help="Lower-case words separated by hyphens."
-            error={error}
             required
+          />
+          <TextArea
+            label="Description"
+            value={editDescription}
+            onChange={setEditDescription}
+            rows={2}
+            help="Shown in the builder's insert menu, in place of the section count."
+          />
+          <PatternCategorySelect
+            categories={categories}
+            value={editCategoryId}
+            onChange={setEditCategoryId}
+            error={error}
           />
         </div>
       </Dialog>
