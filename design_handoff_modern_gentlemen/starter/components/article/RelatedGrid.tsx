@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { RelatedItem } from "@/lib/domain/articles";
+import { backgroundImageUrl } from "../ui/imageUrl";
 
 /** "KEEP READING" — a 3-up grid of related article cards (glass caption bar). */
 export function RelatedGrid({ items }: { items: RelatedItem[] }) {
@@ -19,7 +20,7 @@ export function RelatedGrid({ items }: { items: RelatedItem[] }) {
           >
             <div
               className="absolute inset-0 bg-[#0d0d0d] bg-cover bg-center"
-              style={{ backgroundImage: `url(${r.image})` }}
+              style={{ backgroundImage: backgroundImageUrl(r.image, 640) }}
             />
             <div
               className="absolute inset-0"

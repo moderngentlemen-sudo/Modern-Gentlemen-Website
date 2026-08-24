@@ -1,4 +1,5 @@
 import { BodyIntro } from "./primitives";
+import { backgroundImageUrl } from "../ui/imageUrl";
 
 /**
  * Structured body variants (data-driven). Demo content is fixed per variant,
@@ -7,7 +8,14 @@ import { BodyIntro } from "./primitives";
  * #f4f4f4 use theme tokens here so the bodies read in both themes.
  */
 
-const bg = (src: string) => ({ backgroundImage: `url(${src})` });
+/**
+ * Background layers for the structured article bodies.
+ *
+ * `width` is the slot the layer covers at desktop: the photo-essay figures run
+ * the width of the reading column, the three-up gallery cells are a third of
+ * it, and the numbered list rows sit in a fixed 300px cell.
+ */
+const bg = (src: string, width: number) => ({ backgroundImage: backgroundImageUrl(src, width) });
 
 // ── Interview / Ask ────────────────────────────────────────────────────────
 const QA_INTERVIEW = [
@@ -185,7 +193,7 @@ export function BodyPhoto() {
         <figure key={p.cap} className="mb-11">
           <div
             className="h-[64vh] min-h-[420px] bg-[#0d0d0d] bg-cover bg-center"
-            style={bg(p.src)}
+            style={bg(p.src, 1200)}
           />
           <figcaption className="mt-3.5 font-mono text-[12px] tracking-[0.12em] text-mg-fg/45">
             {p.cap}
@@ -215,7 +223,7 @@ export function BodyGallery() {
       <div data-gal className="grid grid-cols-3 gap-3.5">
         {GALLERY.map((g) => (
           <figure key={g.cap} data-galcell className="overflow-hidden">
-            <div className="h-[300px] bg-[#0d0d0d] bg-cover bg-center" style={bg(g.src)} />
+            <div className="h-[300px] bg-[#0d0d0d] bg-cover bg-center" style={bg(g.src, 640)} />
             <figcaption className="px-1 pt-3 font-mono text-[10px] tracking-[0.12em] text-mg-fg/45">
               {g.cap}
             </figcaption>
@@ -282,7 +290,7 @@ export function BodyList() {
             <div
               data-listimg
               className="h-full min-h-[180px] bg-[#0d0d0d] bg-cover bg-center"
-              style={bg(it.src)}
+              style={bg(it.src, 640)}
             />
             <div className="p-[22px_26px_22px_0] max-[820px]:px-[22px]">
               <div className="flex items-center gap-3">

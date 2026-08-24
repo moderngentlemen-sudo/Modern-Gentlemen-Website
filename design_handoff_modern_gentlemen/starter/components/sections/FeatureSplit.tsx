@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
 import { clsx } from "../ui/clsx";
+import { MediaImage } from "../ui/MediaImage";
 
 interface Props {
   eyebrow?: string;
@@ -25,10 +26,7 @@ export function FeatureSplit({
   if (variant === "fullBleed") {
     return (
       <section data-darkband className="relative h-[560px] bg-[#0d0d0d] text-white overflow-hidden">
-        {image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        )}
+        {image && <MediaImage src={image} alt="" slot="fullBleed" className="object-cover" />}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
@@ -64,14 +62,11 @@ export function FeatureSplit({
       <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
         <div
           className={clsx(
-            "aspect-[4/3] overflow-hidden bg-mg-surface",
+            "relative aspect-[4/3] overflow-hidden bg-mg-surface",
             imgFirst ? "md:order-1" : "md:order-2"
           )}
         >
-          {image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={headline} className="h-full w-full object-cover" />
-          )}
+          {image && <MediaImage src={image} alt={headline} slot="half" className="object-cover" />}
         </div>
         <div className={imgFirst ? "md:order-2" : "md:order-1"}>
           {eyebrow && <Eyebrow className="block mb-4">{eyebrow}</Eyebrow>}

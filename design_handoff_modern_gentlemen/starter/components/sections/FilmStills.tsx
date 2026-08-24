@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Eyebrow } from "../ui/Eyebrow";
+import { MediaImage } from "../ui/MediaImage";
+import { optimizedImageUrl } from "../ui/imageUrl";
 
 interface Item {
   title: string;
@@ -130,7 +132,7 @@ function FilmTile({
           <video
             ref={vidRef}
             src={item.videoUrl}
-            poster={item.still}
+            poster={item.still ? optimizedImageUrl(item.still, 640) : undefined}
             loop
             muted
             playsInline
@@ -138,11 +140,11 @@ function FilmTile({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : item.still ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <MediaImage
             src={item.still}
             alt={item.title}
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            slot="strip"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : null}
         <span

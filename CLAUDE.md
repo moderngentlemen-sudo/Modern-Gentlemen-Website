@@ -57,7 +57,7 @@ design_handoff_modern_gentlemen/starter/
 │                 SessionStart hook prints the true count — this line has been
 │                 stale twice, so it deliberately no longer names one)
 ├─ scripts/       seed.ts, create-admin.ts, status.mjs
-└─ tests/         e2e/, integration/, visual/, a11y/, support/, setup/
+└─ tests/         e2e/, integration/, visual/, a11y/, perf/, support/, setup/
 ```
 
 ## Standing rules
@@ -200,6 +200,22 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   validation refuses zero markers (the page's sections would vanish) and two (they
   would render twice). Only `page` templates render today — `/article/[slug]` and
   the PDP are fixed components, not block trees.
+- **A public image goes through `MediaImage` or `imageUrl.ts`, and it needs a
+  `slot`.** `components/ui/MediaImage.tsx` is the public site's `<img>`;
+  `optimizedImageUrl`/`backgroundImageUrl` cover the two places `next/image`
+  cannot reach — a `<video poster>` and a CSS `background-image`. Two traps, both
+  silent. **Leaving `sizes` off** (or picking the wrong `slot`) makes `next/image`
+  assume `100vw` and download a viewport-wide file for a thumbnail: nothing
+  errors, nothing looks wrong, the bytes just come back — which is how the
+  homepage shipped 3,936 KB of images to a phone while every gate was green.
+  And **`next/image` throws on a host it is not configured for**, which on a
+  public route is a 500 — public image URLs come out of the database and an
+  editor can type any URL into one, so `isOptimizableImageSrc` decides and
+  anything it refuses (a third-party host, an SVG) renders `unoptimized`.
+  `OPTIMIZABLE_IMAGE_HOSTS` and `next.config.mjs`'s `remotePatterns` must agree;
+  a unit test reads the config and asserts it. `npm run test:perf` is the gate.
+  ⚠️ `fill` is `position: absolute`, so **the parent must be positioned** — a
+  `static` parent lets the image escape and cover the wrong box.
 - **Never commit secrets.** Real values live only in
   `starter/.env.local` (gitignored). `.env.example` carries placeholder names.
 
@@ -211,12 +227,14 @@ Run all four from `design_handoff_modern_gentlemen/starter/`:
 npm run format:check && npm run lint && npm run typecheck && npm test
 ```
 
-**`npm run test:a11y` is the fifth gate worth running by hand**, and the only
-Playwright suite a session container can actually execute — it needs a built,
-seeded site but **no credentials**, where `test:e2e` silently `test.skip`s
-itself without `E2E_ADMIN_EMAIL` and reports green having run nothing. It is
-axe-core over every public route in both themes plus the overlays' keyboard
-behaviour, and it has its own CI step.
+**`npm run test:a11y` and `npm run test:perf` are the fifth and sixth gates
+worth running by hand**, and the two Playwright suites a session container can
+actually execute — they need a built, seeded site but **no credentials**, where
+`test:e2e` silently `test.skip`s itself without `E2E_ADMIN_EMAIL` and reports
+green having run nothing. `test:a11y` is axe-core over every public route in
+both themes plus the overlays' keyboard behaviour; `test:perf` is the image
+budget — bytes per route on mobile, and a check that no `<img>` is served more
+than 2.5× the width it is painted at. Both have their own CI step.
 
 ⚠️ **`format:check` walks `starter/` only, so it does not check this file, or
 `PROGRESS.md`, or `design_handoff_modern_gentlemen/CLAUDE.md`** — CI runs it with

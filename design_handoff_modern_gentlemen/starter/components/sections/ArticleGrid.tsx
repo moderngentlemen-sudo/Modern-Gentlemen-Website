@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RailLabel } from "../ui/RailLabel";
+import { backgroundImageUrl } from "../ui/imageUrl";
 
 interface Card {
   tag: string;
@@ -34,7 +35,7 @@ export function ArticleGrid({
               <div
                 aria-hidden
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                style={{ backgroundImage: `url(${c.image})` }}
+                style={{ backgroundImage: backgroundImageUrl(c.image, 640) }}
               />
             </div>
             <div className="p-[20px_22px_26px]">
