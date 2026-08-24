@@ -431,6 +431,12 @@ export function PatternsList({
             value={renameKey}
             onChange={setRenameKey}
             help="Lower-case words separated by hyphens."
+            // The error stays on the key, which is where it belongs: the one
+            // thing this dialog rejects is a key another pattern already holds,
+            // and `renamePatternAction` runs before the details write. Hanging
+            // it on the category select below — which this briefly did — put a
+            // message about the key under an unrelated field.
+            error={error}
             required
           />
           <TextArea
@@ -444,7 +450,6 @@ export function PatternsList({
             categories={categories}
             value={editCategoryId}
             onChange={setEditCategoryId}
-            error={error}
           />
         </div>
       </Dialog>
