@@ -258,11 +258,13 @@ reads `products` — and, since 6b, the menus — on *every* public route, so wi
 fake URL and key the layout throws and all 16 baselines fail. The visual suite,
 `npm run build` and the E2E suite all need **real** credentials now.
 
-**Exactly three variables make `npm run build` and `npm run test:visual` work:**
+**Exactly three variables make `npm run build`, `npm run test:visual`, `npm run test:a11y` and `npm run test:perf` work** (all four start a web server against a built site, so all four need them):
 
 ```
 NEXT_PUBLIC_SUPABASE_URL        # Supabase MCP: get_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY   # Supabase MCP: get_publishable_keys
+NEXT_PUBLIC_SUPABASE_ANON_KEY   # Supabase MCP: get_publishable_keys — take the
+                                # sb_publishable_… one, NOT the legacy anon JWT
+                                # beside it, which carries "disabled": true
 NEXT_PUBLIC_SITE_URL            # any absolute origin; http://localhost:3000 is fine
 ```
 
