@@ -172,7 +172,7 @@ export default function MembershipPage() {
                     <span
                       className={clsx(
                         "mb-2 font-mono text-[11px]",
-                        t.featured ? "text-white/75" : "text-mg-fg/50"
+                        t.featured ? "text-white/85" : "text-mg-fg/50"
                       )}
                     >
                       {per}

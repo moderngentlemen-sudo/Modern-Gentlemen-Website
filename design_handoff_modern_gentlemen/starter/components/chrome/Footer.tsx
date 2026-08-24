@@ -98,7 +98,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
 
       {/* Follow + socials */}
       <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row min-[681px]:items-center justify-between gap-3.5 min-[681px]:gap-5 py-[26px] border-b border-white/[0.06]">
-        <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/40">
+        <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/50">
           Follow Modern Gentlemen
         </span>
         <div className="flex gap-3 text-[#f4f4f4]/55">
@@ -119,7 +119,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
       {/* Legal. The prototype sets this line as plain text; the labels stay
           linked here, with literal " · " separators so the run measures the
           same as the design's single string. */}
-      <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/40">
+      <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/50">
         <span>© {new Date().getFullYear()} Modern Gentlemen — Est. 2026</span>
         <span className="whitespace-pre-wrap">
           {legal.map((link, i) => (

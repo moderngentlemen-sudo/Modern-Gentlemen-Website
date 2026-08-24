@@ -79,7 +79,7 @@ export function CtaBand({
           <div className="flex flex-wrap items-center justify-between gap-[28px]">
             <div className="max-w-[520px]">
               {eyebrow && (
-                <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/80">
+                <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/90">
                   {eyebrow}
                 </div>
               )}
@@ -99,7 +99,7 @@ export function CtaBand({
         ) : (
           <>
             {eyebrow && (
-              <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/80">
+              <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/90">
                 {eyebrow}
               </div>
             )}
@@ -107,7 +107,7 @@ export function CtaBand({
               {heading}
             </h2>
             {sub && (
-              <p className="mx-auto mb-[30px] mt-[18px] max-w-[480px] font-grotesk font-light text-[16px] leading-[1.6] text-white/80">
+              <p className="mx-auto mb-[30px] mt-[18px] max-w-[480px] font-grotesk font-light text-[16px] leading-[1.6] text-white/90">
                 {sub}
               </p>
             )}

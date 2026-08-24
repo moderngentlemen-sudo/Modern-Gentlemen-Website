@@ -107,7 +107,7 @@ function Store({ active, setActive }: { active: string; setActive?: (g: string) 
       <section data-darkband className="mt-16 bg-mg-accent text-white">
         <div className="container-mg flex flex-wrap items-center justify-between gap-6 py-12">
           <div>
-            <p className="font-mono uppercase text-[11px] tracking-[0.2em] text-white/80">
+            <p className="font-mono uppercase text-[11px] tracking-[0.2em] text-white/90">
               Members save 15%
             </p>
             <p className="mt-2 font-grotesk text-2xl md:text-3xl">Every order, every time.</p>

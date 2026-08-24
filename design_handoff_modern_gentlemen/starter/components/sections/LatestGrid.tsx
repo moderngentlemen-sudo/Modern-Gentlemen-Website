@@ -142,7 +142,7 @@ function Tile({ item }: { item: Item }) {
           <p className="font-light text-sm leading-[1.5] text-[#f4f4f4]/55">{item.body}</p>
         )}
         {item.meta && (
-          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.16em] text-[#f4f4f4]/40">
+          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.16em] text-[#f4f4f4]/50">
             {item.meta}
           </span>
         )}
@@ -161,7 +161,7 @@ function Tile({ item }: { item: Item }) {
     const inner = (
       <div className="flex w-full flex-col justify-between bg-mg-accent text-white px-[30px] py-7 transition-transform duration-200 hover:-translate-y-[3px]">
         {item.kicker && (
-          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-white/80">
+          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-white/90">
             {item.kicker}
           </span>
         )}
@@ -169,7 +169,7 @@ function Tile({ item }: { item: Item }) {
           {item.title}
         </h3>
         {item.body && (
-          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.16em] text-white/75">
+          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.16em] text-white/85">
             {item.body}
           </span>
         )}
