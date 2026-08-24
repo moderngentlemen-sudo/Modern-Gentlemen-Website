@@ -18,14 +18,20 @@ Exact values, lifted from the prototype design system. Set these as the single s
 
 ### CSS-variable setup
 ```css
-:root { --mg-bg:#0d0d0d; --mg-fg:#f4f4f4; --mg-surface:#131315; --mg-bd:#ffffff; --mg-accent:#c8102e; --mg-accent-rgb:200 16 46; --mg-accent-serif:#ff4d5e;
+:root { --mg-bg:#0d0d0d; --mg-fg:#f4f4f4; --mg-surface:#131315; --mg-bd:#ffffff; --mg-accent:#c8102e; --mg-accent-rgb:200 16 46;
+        --mg-accent-serif:#ff4d5e; --mg-accent-serif-rgb:255 77 94;
         --mg-muted:rgba(244,244,244,0.5); --mg-faint:rgba(244,244,244,0.35); --mg-band-border:rgba(255,255,255,0.12); }
-html[data-mgtheme="light"] { --mg-bg:#f4f4f4; --mg-fg:#141414; --mg-surface:#ffffff; --mg-bd:#141414; --mg-accent-serif:#c8102e;
+html[data-mgtheme="light"] { --mg-bg:#f4f4f4; --mg-fg:#141414; --mg-surface:#ffffff; --mg-bd:#141414;
+        --mg-accent-serif:#c8102e; --mg-accent-serif-rgb:200 16 46;
         --mg-muted:#8a8a8a; --mg-faint:#b0b0b0; --mg-band-border:transparent; }
 ```
 Then in Tailwind reference them (`bg-[var(--mg-bg)]`) or map to theme colors (below).
 
 **`--mg-accent-rgb` is the same red in `R G B` channels**, added when the theme editor made the accent editable. Tailwind cannot compute an alpha from a colour whose value is `var(--x)` — it drops the utility entirely — so `mg.accent` maps to `rgb(var(--mg-accent-rgb) / <alpha-value>)` and the ~21 `bg-mg-accent/5`-style utilities keep working. `--mg-accent` stays a hex for the three raw `var(--mg-accent)` uses in `globals.css`. The theme editor derives one from the other, so they cannot drift.
+
+**`--mg-accent-serif-rgb` is the second such twin, and it was added to fix a bug this document previously helped cause.** `mg.accentSerif` was mapped to a bare `var(--mg-accent-serif)` — the exact form the paragraph above warns about — so **all fifteen `mg-accentSerif/NN` utilities compiled to no CSS at all**: every admin error border and tint, the builder's invalid-block frame, the danger Button and Badge, and the sign-in and forgot-password error boxes. Nothing failed, because a border that is absent looks like a design that never had one. Unlike the accent, the serif accent **changes per context**, so the twin is redeclared everywhere `--mg-accent-serif` is — `:root`, the light theme and `[data-darkband]`.
+
+⚠️ **The rule generalises, and three tokens still break it.** `fg`, `bd` and `bg` are declared as bare `var()` and carry **417 alpha usages across 129 files** that have never emitted a single rule — every `text-mg-fg/70` on the public site paints at full opacity today, and the sixteen baselines were captured that way. Repairing it is a visible, site-wide change to a pixel-verified design and is therefore the brand's call; it is held as a `KNOWN GAP` in `starter/lib/domain/alphaUtilities.test.ts`, which also **fails any *new* alpha-modified token declared as a bare `var()`**. See the decisions log in `/PROGRESS.md`.
 
 Three token facts the table above does not carry, all load-bearing:
 - `--mg-accent` is the **only** token never overridden — same value in light, dark and inside a dark band.
@@ -75,7 +81,11 @@ theme: { extend: {
   colors: {
     mg: {
       bg: 'var(--mg-bg)', fg: 'var(--mg-fg)', surface: 'var(--mg-surface)',
-      bd: 'var(--mg-bd)', accent: '#C8102E', accentSerif: 'var(--mg-accent-serif)',
+      bd: 'var(--mg-bd)',
+      // ⚠️ Both accents MUST be channel form — a bare `var()` makes every
+      // `/NN` alpha utility compile to nothing, silently. See the note above.
+      accent: 'rgb(var(--mg-accent-rgb) / <alpha-value>)',
+      accentSerif: 'rgb(var(--mg-accent-serif-rgb) / <alpha-value>)',
     },
   },
   fontFamily: {
