@@ -13,7 +13,33 @@ import type { BlockTree } from "@/lib/blocks/types";
 import type { Json } from "@/lib/db/database.types";
 import { requirePermission } from "./auth";
 
-export type { PatternRow, PatternSyncMode } from "@/lib/db/repositories/patterns";
+export type {
+  PatternCategoryRow,
+  PatternRow,
+  PatternSyncMode,
+} from "@/lib/db/repositories/patterns";
+
+/**
+ * The pattern categories an editor may file a pattern under.
+ *
+ * Gated on `pattern.read` rather than `pattern.write`: the list is also what
+ * the builder's rail groups by, and someone who may insert a pattern but not
+ * create one still needs to see the headings.
+ */
+export async function listPatternCategories() {
+  await requirePermission("pattern.read");
+  const db = await createClient();
+  return repo.listPatternCategories(db);
+}
+
+export async function setPatternDetails(
+  id: string,
+  patch: { description?: string | null; categoryId?: string | null }
+) {
+  await requirePermission("pattern.write");
+  const db = await createClient();
+  return repo.updatePatternDetails(db, id, patch);
+}
 
 export async function listPatterns(options: { categoryId?: string } = {}) {
   await requirePermission("pattern.read");
@@ -43,6 +69,14 @@ export interface InsertablePattern {
    */
   syncMode: repo.PatternSyncMode;
   /**
+   * The heading the rail files this pattern under, or null for "Patterns".
+   *
+   * A label rather than an id because the rail renders it and nothing else
+   * needs to join on it — and `position` comes along so the groups sort the way
+   * the categories do rather than alphabetically.
+   */
+  category: { label: string; position: number } | null;
+  /**
    * Whether the pattern has a published payload.
    *
    * ⚠️ **Only meaningful for a synced one, and then it is load-bearing.** The
@@ -70,7 +104,11 @@ export interface InsertablePattern {
 export async function listInsertablePatterns(): Promise<InsertablePattern[]> {
   await requirePermission("pattern.read");
   const db = await createClient();
-  const rows = await repo.listPatterns(db);
+  const [rows, categories] = await Promise.all([
+    repo.listPatterns(db),
+    repo.listPatternCategories(db),
+  ]);
+  const byId = new Map(categories.map((c) => [c.id, c]));
 
   return rows
     .map((row) => {
@@ -83,10 +121,27 @@ export async function listInsertablePatterns(): Promise<InsertablePattern[]> {
         blockCount: blocks.length,
         blocks,
         syncMode: row.sync_mode,
+        category: categoryOf(row.category_id, byId),
         published: row.published_data !== null,
       };
     })
     .filter((pattern) => pattern.blockCount > 0);
+}
+
+/**
+ * A pattern's category as the rail wants it — or null.
+ *
+ * Null covers two different things on purpose: the pattern is filed under
+ * nothing, and the pattern names a category row that no longer exists.
+ * `category_id` is `on delete set null`, so the second is rare, but a dangling
+ * id would otherwise render a heading with no text.
+ */
+function categoryOf(
+  categoryId: string | null,
+  byId: ReadonlyMap<string, repo.PatternCategoryRow>
+): { label: string; position: number } | null {
+  const found = categoryId ? byId.get(categoryId) : undefined;
+  return found ? { label: found.label, position: found.position } : null;
 }
 
 export async function createPattern(input: {

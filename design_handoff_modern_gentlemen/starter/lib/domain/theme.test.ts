@@ -30,20 +30,23 @@ import {
 const DARK =
   ":root:root{" +
   "--mg-bg:#0d0d0d;--mg-fg:#f4f4f4;--mg-surface:#131315;--mg-bd:#ffffff;" +
-  "--mg-accent:#c8102e;--mg-accent-rgb:200 16 46;--mg-accent-serif:#ff4d5e;" +
+  "--mg-accent:#c8102e;--mg-accent-rgb:200 16 46;" +
+  "--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94;" +
   "--mg-muted:rgba(244, 244, 244, 0.5);--mg-faint:rgba(244, 244, 244, 0.35);" +
   "--mg-band-border:rgba(255, 255, 255, 0.12)}";
 
 const LIGHT =
   'html[data-mgtheme="light"]:root{' +
   "--mg-bg:#f4f4f4;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;" +
-  "--mg-accent-serif:#c8102e;--mg-muted:#8a8a8a;--mg-faint:#b0b0b0;" +
+  "--mg-accent-serif:#c8102e;--mg-accent-serif-rgb:200 16 46;" +
+  "--mg-muted:#8a8a8a;--mg-faint:#b0b0b0;" +
   "--mg-band-border:transparent}";
 
 const DARK_BAND =
   "[data-darkband][data-darkband]{" +
   "--mg-bg:#0d0d0d;--mg-fg:#f4f4f4;--mg-surface:#161618;--mg-bd:#ffffff;" +
-  "--mg-accent-serif:#ff4d5e;--mg-muted:rgba(244, 244, 244, 0.5);" +
+  "--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94;" +
+  "--mg-muted:rgba(244, 244, 244, 0.5);" +
   "--mg-faint:rgba(244, 244, 244, 0.35)}";
 
 /**
@@ -88,9 +91,13 @@ describe("DEFAULT_THEME_COLORS mirrors app/globals.css", () => {
   ] as const)("matches the %s block declaration for declaration", (context, selector) => {
     const declared = declarationsIn(selector);
 
-    // --mg-accent-rgb is derived rather than stored, so it is not a token and is
-    // checked separately below.
-    delete declared["--mg-accent-rgb"];
+    // The `-rgb` twins are derived rather than stored, so they are not tokens
+    // and are checked separately below. Matched by suffix rather than named one
+    // at a time: a second twin (`--mg-accent-serif-rgb`) arrived with the
+    // accentSerif fix, and a list would have had to be remembered.
+    for (const key of Object.keys(declared)) {
+      if (key.endsWith("-rgb")) delete declared[key];
+    }
 
     const fromDefaults: Record<string, string> = {};
     for (const token of TOKENS_BY_CONTEXT[context]) {
@@ -101,9 +108,22 @@ describe("DEFAULT_THEME_COLORS mirrors app/globals.css", () => {
     expect(fromDefaults).toEqual(declared);
   });
 
-  it("derives the same channel triple globals.css declares by hand", () => {
+  it("derives the same channel triples globals.css declares by hand", () => {
     expect(declarationsIn(":root")["--mg-accent-rgb"]).toBe(
       accentChannels(DEFAULT_THEME_COLORS.dark?.accent)
+    );
+    // The serif accent changes per context, so its twin is checked in all
+    // three: a hand-written triple is exactly the thing that drifts, and a
+    // wrong one here paints every admin error border the wrong red rather than
+    // failing.
+    expect(declarationsIn(":root")["--mg-accent-serif-rgb"]).toBe(
+      accentChannels(DEFAULT_THEME_COLORS.dark?.accentSerif)
+    );
+    expect(declarationsIn('html[data-mgtheme="light"]')["--mg-accent-serif-rgb"]).toBe(
+      accentChannels(DEFAULT_THEME_COLORS.light?.accentSerif)
+    );
+    expect(declarationsIn("[data-darkband]")["--mg-accent-serif-rgb"]).toBe(
+      accentChannels(DEFAULT_THEME_COLORS.darkBand?.accentSerif)
     );
   });
 });
@@ -139,6 +159,24 @@ describe("themeCssText — the contract with globals.css", () => {
     expect(themeCssText({ dark: { accent: "#c8102e" } })).toBe(
       ":root:root{--mg-accent:#c8102e;--mg-accent-rgb:200 16 46}"
     );
+  });
+
+  it("emits the serif accent's twin too, in every context it is declared in", () => {
+    // The regression that mattered: without the twin, `mg-accentSerif/40`
+    // compiles to nothing and every admin error border silently disappears.
+    expect(themeCssText({ light: { accentSerif: "#c8102e" } })).toBe(
+      'html[data-mgtheme="light"]:root{--mg-accent-serif:#c8102e;--mg-accent-serif-rgb:200 16 46}'
+    );
+    expect(themeCssText({ darkBand: { accentSerif: "#ff4d5e" } })).toBe(
+      "[data-darkband][data-darkband]{--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94}"
+    );
+  });
+
+  it("refuses a non-hex serif accent, because a twin cannot be derived from one", () => {
+    // The cost of the fix, asserted rather than left in a comment: `accentSerif`
+    // took any CSS colour until now. An rgba() value is dropped and the default
+    // stands, the same way the accent has always behaved.
+    expect(themeCssText({ light: { accentSerif: "rgba(200, 16, 46, 0.8)" } })).toBe("");
   });
 
   it("never declares the band hairline inside a dark band", () => {

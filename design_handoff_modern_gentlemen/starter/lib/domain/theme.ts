@@ -307,10 +307,32 @@ const accentValue = z.string().refine((v) => accentChannels(v) !== null, {
   message: "The accent must be a hex colour — it also drives an rgb() channel triple",
 });
 
+/**
+ * The tokens that also emit an `R G B` channel twin, and the variable each
+ * writes it to.
+ *
+ * A map rather than three `token === "accent"` comparisons because a second
+ * token joined `accent` here and the comparisons were in three places — the
+ * schema, the parse and the emitter — with nothing tying them together. Adding
+ * `accentSerif` to two of the three would have produced a token that validates
+ * as hex-only while emitting no twin, which is a stylesheet that silently drops
+ * every alpha utility: precisely the bug this change is fixing.
+ *
+ * ⚠️ **Membership here makes a token hex-only**, because `rgba()` and
+ * `transparent` have no sensible channel triple. That is a real narrowing for
+ * `accentSerif`, which accepted any CSS colour until now — every default is a
+ * hex, so nothing stored needs migrating, but an editor who had typed an
+ * `rgba()` serif accent would find it rejected and the default restored.
+ */
+const CHANNEL_TWIN: Partial<Record<ThemeToken, string>> = {
+  accent: "--mg-accent-rgb",
+  accentSerif: "--mg-accent-serif-rgb",
+};
+
 function contextSchema(context: ThemeContext) {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const token of TOKENS_BY_CONTEXT[context]) {
-    shape[token] = (token === "accent" ? accentValue : colorValue).optional();
+    shape[token] = (CHANNEL_TWIN[token] ? accentValue : colorValue).optional();
   }
   // `.passthrough()` is this codebase's convention for a jsonb payload: a schema
   // that quietly discards what it does not recognise turns "another feature
@@ -362,7 +384,9 @@ export function parseThemeColors(value: unknown): ThemeColors {
 
     const kept: Partial<Record<ThemeToken, string>> = {};
     for (const token of TOKENS_BY_CONTEXT[context]) {
-      const safe = token === "accent" ? accentSafe(incoming[token]) : safeCssColor(incoming[token]);
+      const safe = CHANNEL_TWIN[token]
+        ? accentSafe(incoming[token])
+        : safeCssColor(incoming[token]);
       if (safe !== null) kept[token] = safe;
     }
     if (Object.keys(kept).length > 0) out[context] = kept;
@@ -406,15 +430,16 @@ export function themeCssText(colors: ThemeColors): string {
 
     const declarations: string[] = [];
     for (const token of TOKENS_BY_CONTEXT[context]) {
-      const safe = token === "accent" ? accentSafe(values[token]) : safeCssColor(values[token]);
+      const safe = CHANNEL_TWIN[token] ? accentSafe(values[token]) : safeCssColor(values[token]);
       if (safe === null) continue;
 
       declarations.push(`${CSS_VAR[token]}:${safe}`);
 
       // The channel twin, emitted from the same stored value so the pair cannot
       // disagree. See `accentChannels` and `tailwind.config.ts`.
-      if (token === "accent") {
-        declarations.push(`--mg-accent-rgb:${accentChannels(safe)}`);
+      const twin = CHANNEL_TWIN[token];
+      if (twin) {
+        declarations.push(`${twin}:${accentChannels(safe)}`);
       }
     }
 

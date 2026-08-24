@@ -77,13 +77,16 @@ test.describe("patterns", () => {
     await createPattern(page, otherName, otherKey);
   });
 
+  // The control is "Edit" rather than "Rename" since the dialog grew the two
+  // pattern-only columns (`description`, `category_id`) alongside the name and
+  // the key. The rename half is unchanged and is what this still asserts.
   test("renames it — both the name and the key", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/patterns");
 
     await page
       .getByRole("row", { name: new RegExp(patternName) })
-      .getByRole("button", { name: "Rename" })
+      .getByRole("button", { name: "Edit" })
       .click();
 
     const dialog = page.getByRole("dialog");
@@ -96,7 +99,7 @@ test.describe("patterns", () => {
     await dialog.getByLabel("Key").fill(renamedKey);
     await dialog.getByRole("button", { name: "Save", exact: true }).click();
 
-    await expect(page.getByText("Pattern renamed")).toBeVisible();
+    await expect(page.getByText("Pattern updated")).toBeVisible();
 
     // The row shows both new values — which is the whole point, since a pattern
     // could not be renamed at all before `renameDocument`: getting the name
@@ -113,7 +116,7 @@ test.describe("patterns", () => {
 
     await page
       .getByRole("row", { name: new RegExp(renamedName) })
-      .getByRole("button", { name: "Rename" })
+      .getByRole("button", { name: "Edit" })
       .click();
 
     const dialog = page.getByRole("dialog");

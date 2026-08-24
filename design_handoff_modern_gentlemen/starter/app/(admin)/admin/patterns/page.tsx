@@ -1,5 +1,6 @@
 import { requirePermission } from "@/lib/services/auth";
 import { listDocuments } from "@/lib/services/documents";
+import { listPatternCategories, listPatterns } from "@/lib/services/patterns";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { PatternsList, type PatternRow } from "./PatternsList";
 
@@ -13,7 +14,24 @@ export default async function PatternsIndex() {
   // `key`→`slug`, which is what lets this list and the shared builder treat a
   // pattern exactly like a page. The pattern-specific service is for the
   // columns only it has (`sync_mode`, `category_id`).
-  const patterns = await listDocuments("pattern", { limit: 100 });
+  const documents = await listDocuments("pattern", { limit: 100 });
+
+  // Two reads because the two halves live in different vocabularies, and the
+  // comment above says why. `listDocuments` gives the generic document shape the
+  // list and the shared builder run on; `listPatterns` gives the columns only a
+  // pattern has — `description` and `category_id`, which nothing collected until
+  // now. Merged by id rather than joined in SQL: the document repository's
+  // aliasing is what makes a pattern interchangeable with a page everywhere
+  // else, and widening its select for two pattern-only columns would give that
+  // up for one screen.
+  const details = new Map((await listPatterns()).map((row) => [row.id, row]));
+  const categories = await listPatternCategories();
+
+  const patterns = documents.map((doc) => ({
+    ...doc,
+    description: details.get(doc.id)?.description ?? null,
+    categoryId: details.get(doc.id)?.category_id ?? null,
+  }));
 
   return (
     <>
@@ -26,6 +44,7 @@ export default async function PatternsIndex() {
 
       <PatternsList
         patterns={patterns as PatternRow[]}
+        categories={categories.map((c) => ({ value: c.id, label: c.label }))}
         canWrite={user.permissions.has("pattern.write")}
         canDelete={user.permissions.has("pattern.delete")}
       />

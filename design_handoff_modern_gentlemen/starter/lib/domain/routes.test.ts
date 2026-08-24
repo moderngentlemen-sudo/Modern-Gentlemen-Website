@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import { DOCUMENT_TYPES } from "./documents";
 import {
   ADMIN_SEGMENT,
+  DOCUMENT_NOUN,
   adminPathForDocument,
   HOME_PAGE_SLUG,
   publicPathForArticle,
   publicPathForCategory,
+  publicPathForDocument,
   publicPathForPage,
 } from "./routes";
 
@@ -53,6 +55,35 @@ describe("adminPathForDocument", () => {
     // here rather than producing an `/admin/undefined/...` link at run time.
     for (const type of DOCUMENT_TYPES) {
       expect(ADMIN_SEGMENT[type], `no admin segment for ${type}`).toBeTruthy();
+    }
+  });
+});
+
+describe("publicPathForDocument", () => {
+  it("gives the public URL for the four types that have one", () => {
+    expect(publicPathForDocument("page", "home")).toBe("/");
+    expect(publicPathForDocument("page", "about")).toBe("/about");
+    expect(publicPathForDocument("article", "speed-considered")).toBe("/article/speed-considered");
+    expect(publicPathForDocument("category", "style")).toBe("/style");
+    expect(publicPathForDocument("product", "travel-watch-roll")).toBe(
+      "/product/travel-watch-roll"
+    );
+  });
+
+  it("returns null for a template and a pattern, which have no URL at all", () => {
+    // The defect this closes: the publish dialog printed `/{slug}` regardless,
+    // so publishing a pattern advertised a page that has never existed.
+    expect(publicPathForDocument("template", "editorial-frame")).toBeNull();
+    expect(publicPathForDocument("pattern", "editorial-trio")).toBeNull();
+  });
+
+  it("answers for every document type, so a new one cannot be forgotten", () => {
+    // `publicPathForDocument` switches exhaustively and `DOCUMENT_NOUN` is
+    // `satisfies Record<DocumentType, string>`, so both fail at compile time —
+    // this is the runtime half, and it also proves no noun is blank.
+    for (const type of DOCUMENT_TYPES) {
+      expect(() => publicPathForDocument(type, "a-slug")).not.toThrow();
+      expect(DOCUMENT_NOUN[type].length).toBeGreaterThan(0);
     }
   });
 });

@@ -33,7 +33,7 @@ export default function BagPage() {
           <div>
             <ul className="divide-y divide-mg-bd/10 border-y border-mg-bd/10">
               {cart.lines.map((l) => (
-                <li key={l.slug} className="flex gap-4 py-6 sm:gap-5">
+                <li key={l.key} className="flex gap-4 py-6 sm:gap-5">
                   <Link
                     href={`/product/${l.slug}`}
                     className="h-[104px] w-20 shrink-0 overflow-hidden bg-mg-surface sm:h-[130px] sm:w-[104px]"
@@ -55,17 +55,22 @@ export default function BagPage() {
                     >
                       {l.product.name}
                     </Link>
+                    {l.variant && (
+                      <p className="mt-1 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
+                        {l.variant.title}
+                      </p>
+                    )}
                     <p className="mt-1 font-mono text-xs text-mg-fg/50">
-                      {formatGBP(l.product.price)} each
+                      {formatGBP(l.unitPrice)} each
                     </p>
                     <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-3 pt-4">
                       <QtyStepper
                         qty={l.qty}
-                        onDec={() => cart.setQty(l.slug, l.qty - 1)}
-                        onInc={() => cart.setQty(l.slug, l.qty + 1)}
+                        onDec={() => cart.setQty(l.key, l.qty - 1)}
+                        onInc={() => cart.setQty(l.key, l.qty + 1)}
                       />
                       <button
-                        onClick={() => cart.remove(l.slug)}
+                        onClick={() => cart.remove(l.key)}
                         className="py-1.5 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accent"
                       >
                         Remove

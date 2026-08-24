@@ -44,7 +44,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
           <>
             <div className="flex-1 overflow-auto p-6 space-y-5">
               {cart.lines.map((l) => (
-                <div key={l.slug} className="flex gap-4">
+                <div key={l.key} className="flex gap-4">
                   <div className="h-20 w-16 shrink-0 overflow-hidden bg-mg-bg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -61,19 +61,24 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                     >
                       {l.product.name}
                     </Link>
+                    {l.variant && (
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.15em] text-mg-fg/50">
+                        {l.variant.title}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center border border-mg-bd/25">
-                        <button className="px-2" onClick={() => cart.setQty(l.slug, l.qty - 1)}>
+                        <button className="px-2" onClick={() => cart.setQty(l.key, l.qty - 1)}>
                           –
                         </button>
                         <span className="px-2 font-mono text-xs">{l.qty}</span>
-                        <button className="px-2" onClick={() => cart.setQty(l.slug, l.qty + 1)}>
+                        <button className="px-2" onClick={() => cart.setQty(l.key, l.qty + 1)}>
                           +
                         </button>
                       </div>
                       <button
                         className="font-mono text-[10px] text-mg-fg/50 hover:text-mg-accent"
-                        onClick={() => cart.remove(l.slug)}
+                        onClick={() => cart.remove(l.key)}
                       >
                         Remove
                       </button>

@@ -16,7 +16,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 
 import { manifestFor } from "@/lib/blocks/manifests";
 
-import { InsertMenu } from "./InsertMenu";
+import { InsertMenu, type PatternEntry } from "./InsertMenu";
 
 const LABEL = manifestFor("pullQuote")!.label;
 
@@ -156,5 +156,93 @@ describe("the preview never blocks the canvas", () => {
     const preview = document.querySelector("[data-block-preview]")!;
     expect(preview.className).toContain("pointer-events-none");
     expect(preview.parentElement!.className).toContain("pointer-events-none");
+  });
+});
+
+/**
+ * Pattern grouping — the payoff for collecting `category_id` at last.
+ *
+ * `pattern_categories` has held five seeded rows since `0003_content_spine.sql`
+ * and `patterns.category_id` referenced them with nothing writing the column,
+ * so every pattern landed in one flat "Patterns" heading. These assert the
+ * three things that grouping has to get right: the seeded order, the
+ * uncategorised fallback, and that a search which empties a group removes its
+ * heading too.
+ */
+const PATTERNS: PatternEntry[] = [
+  {
+    id: "p1",
+    name: "Editorial trio",
+    description: "Three cards with a lead image.",
+    blockCount: 3,
+    category: { label: "Editorial", position: 1 },
+  },
+  {
+    id: "p2",
+    name: "Hero with video",
+    description: null,
+    blockCount: 1,
+    category: { label: "Heroes", position: 0 },
+  },
+  { id: "p3", name: "Unfiled layout", description: null, blockCount: 2, category: null },
+];
+
+function renderWithPatterns(patterns = PATTERNS) {
+  const onInsertPattern = vi.fn();
+  render(<InsertMenu onInsert={() => {}} patterns={patterns} onInsertPattern={onInsertPattern} />);
+  return onInsertPattern;
+}
+
+describe("patterns in the rail", () => {
+  it("groups them under their categories, in the categories' own order", () => {
+    renderWithPatterns();
+
+    const headings = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent)
+      // The block categories share the heading level; only the pattern groups
+      // are asserted here.
+      .filter((label) => ["Heroes", "Editorial", "Patterns"].includes(label ?? ""));
+
+    // Heroes is position 0 and Editorial 1, so seeded order — not alphabetical,
+    // which would put Editorial first and is the bug this pins.
+    expect(headings).toEqual(["Heroes", "Editorial", "Patterns"]);
+  });
+
+  it("files an uncategorised pattern under the heading the rail always had", () => {
+    renderWithPatterns([PATTERNS[2]]);
+
+    expect(screen.getByRole("heading", { level: 3, name: "Patterns" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Unfiled layout/ })).toBeInTheDocument();
+  });
+
+  it("shows the description where it has one and the section count where it does not", () => {
+    renderWithPatterns();
+
+    // The whole reason `description` was worth collecting: until now every
+    // entry fell through to the count, because nothing ever wrote the column.
+    expect(
+      screen.getByRole("button", { name: /Three cards with a lead image/ })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /1 section$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /2 sections$/ })).toBeInTheDocument();
+  });
+
+  it("drops a heading whose patterns no longer match the search", async () => {
+    renderWithPatterns();
+
+    await userEvent.type(screen.getByLabelText("Add a section"), "trio");
+
+    expect(screen.getByRole("heading", { level: 3, name: "Editorial" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 3, name: "Heroes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 3, name: "Patterns" })).not.toBeInTheDocument();
+  });
+
+  it("inserts the pattern that was clicked", async () => {
+    const onInsertPattern = renderWithPatterns();
+
+    await userEvent.click(screen.getByRole("button", { name: /Editorial trio/ }));
+
+    expect(onInsertPattern).toHaveBeenCalledWith("p1");
   });
 });

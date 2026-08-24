@@ -17,6 +17,14 @@
      emits both from one stored value, so they cannot drift. */
   --mg-accent-rgb: 200 16 46;
   --mg-accent-serif: #ff4d5e;
+  /* The serif accent's channel twin, and it exists for a bug rather than for
+     symmetry: `--mg-accent-serif` was a bare `var()` in `tailwind.config.ts`,
+     so all thirteen `mg-accentSerif/NN` utilities in this codebase compiled to
+     no CSS at all — every error border and error tint in the admin, plus the
+     sign-in and forgot-password error boxes, was simply absent. Unlike the
+     accent above, this one changes per context, so it is redeclared wherever
+     `--mg-accent-serif` is. */
+  --mg-accent-serif-rgb: 255 77 94;
   /* Secondary text ramps (prototype `tMuted` / `tFaint`). Flat greys in light,
      translucent paper in dark — not opacities of --mg-fg. */
   --mg-muted: rgba(244, 244, 244, 0.5);
@@ -29,6 +37,7 @@ html[data-mgtheme="light"] {
   --mg-surface: #ffffff;
   --mg-bd: #141414;
   --mg-accent-serif: #c8102e;
+  --mg-accent-serif-rgb: 200 16 46;
   --mg-muted: #8a8a8a;
   --mg-faint: #b0b0b0;
   /* Inset dark bands take a hairline only in dark mode; on paper the edge is
@@ -46,6 +55,7 @@ html[data-mgtheme="light"] {
   --mg-surface: #161618;
   --mg-bd: #ffffff;
   --mg-accent-serif: #ff4d5e;
+  --mg-accent-serif-rgb: 255 77 94;
   --mg-muted: rgba(244, 244, 244, 0.5);
   --mg-faint: rgba(244, 244, 244, 0.35);
 }

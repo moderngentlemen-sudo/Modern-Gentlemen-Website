@@ -11,6 +11,7 @@ import {
   updateVariant,
 } from "@/lib/services/products";
 import { PRODUCT_AVAILABILITIES, PRODUCT_MEDIA_ROLES } from "@/lib/domain/products";
+import { revalidatePublicProduct } from "../revalidate";
 import { ok, type ActionResult } from "../../_lib/action-result";
 import { toActionResult } from "../../_lib/errors";
 
@@ -21,6 +22,18 @@ import { toActionResult } from "../../_lib/errors";
  * publishing services and has a different audience. Same contract: parse first,
  * call a service, return an `ActionResult` rather than throwing — and written
  * out one export at a time for the reason the article actions record.
+ *
+ * ⚠️ **Every one of these revalidates the public product too, and until the
+ * variant picker shipped none of them did.** `revalidate.ts` states the rule —
+ * "anything that changes what a visitor sees calls this" — and these five were
+ * the exception, revalidating only the admin screen they were invoked from.
+ *
+ * For variants that exception was invisible, because variants had no public
+ * surface to go stale. **For the gallery it was a live bug**: `galleryUrls` in
+ * `lib/services/publicCatalog.ts` has read `product_media` since Phase 7b, so
+ * an editor who added a photograph saw the admin agree with them and the PDP
+ * keep the old one for up to an hour. Exactly the failure the shared helper was
+ * extracted to prevent, in the one file that never called it.
  */
 const Id = z.string().uuid();
 
@@ -45,6 +58,7 @@ export async function createVariantAction(input: unknown): Promise<ActionResult<
   try {
     const variant = await createVariant(parsed.data);
     revalidatePath(`/admin/products/${parsed.data.productId}`);
+    await revalidatePublicProduct(parsed.data.productId);
     return ok({ id: variant.id });
   } catch (error) {
     return toActionResult(error);
@@ -73,6 +87,7 @@ export async function updateVariantAction(input: unknown): Promise<ActionResult>
   try {
     await updateVariant(id, patch);
     revalidatePath(`/admin/products/${productId}`);
+    await revalidatePublicProduct(productId);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);
@@ -86,6 +101,7 @@ export async function deleteVariantAction(input: unknown): Promise<ActionResult>
   try {
     await deleteVariant(parsed.data.id);
     revalidatePath(`/admin/products/${parsed.data.productId}`);
+    await revalidatePublicProduct(parsed.data.productId);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);
@@ -108,6 +124,7 @@ export async function attachProductMediaAction(input: unknown): Promise<ActionRe
   try {
     await attachProductMedia(productId, rest);
     revalidatePath(`/admin/products/${productId}`);
+    await revalidatePublicProduct(productId);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);
@@ -121,6 +138,7 @@ export async function detachProductMediaAction(input: unknown): Promise<ActionRe
   try {
     await detachProductMedia(parsed.data.productId, parsed.data.assetId);
     revalidatePath(`/admin/products/${parsed.data.productId}`);
+    await revalidatePublicProduct(parsed.data.productId);
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);

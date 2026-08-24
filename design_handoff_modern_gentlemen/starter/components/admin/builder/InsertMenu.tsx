@@ -42,6 +42,12 @@ export interface PatternEntry {
   name: string;
   description: string | null;
   blockCount: number;
+  /**
+   * The heading this pattern files under, or null for the plain "Patterns"
+   * group. `position` is the category's own order, so the groups read the way
+   * `pattern_categories` was seeded rather than alphabetically.
+   */
+  category?: { label: string; position: number } | null;
 }
 
 export function InsertMenu({
@@ -98,6 +104,35 @@ export function InsertMenu({
     );
   }, [patterns, query]);
 
+  /**
+   * The matching patterns, grouped under their category headings.
+   *
+   * Grouped here rather than in the service because the *matching* set is what
+   * gets grouped: a search that leaves one category with no hits must drop the
+   * heading too, and only this component knows what matched.
+   *
+   * An uncategorised pattern falls into a trailing "Patterns" group — the
+   * heading the rail has always used — so a database where nothing is filed
+   * yet renders exactly as it did before.
+   */
+  const patternGroups = useMemo(() => {
+    const groups = new Map<string, { label: string; position: number; items: PatternEntry[] }>();
+
+    for (const pattern of matchingPatterns) {
+      const label = pattern.category?.label ?? "Patterns";
+      // Uncategorised sorts last: Infinity rather than a large number, so no
+      // future category position can accidentally outrank it.
+      const position = pattern.category?.position ?? Number.POSITIVE_INFINITY;
+      const found = groups.get(label);
+      if (found) found.items.push(pattern);
+      else groups.set(label, { label, position, items: [pattern] });
+    }
+
+    return [...groups.values()].sort(
+      (a, b) => a.position - b.position || a.label.localeCompare(b.label)
+    );
+  }, [matchingPatterns]);
+
   return (
     <div className="flex h-full flex-col">
       <div className={clsx("border-b px-3 py-3", HAIRLINE)}>
@@ -122,31 +157,32 @@ export function InsertMenu({
           Click-to-insert is the accessible path the rail has always had, so
           shipping it alone leaves nothing unreachable.
         */}
-        {onInsertPattern && matchingPatterns.length > 0 && (
-          <section className={clsx("border-b", HAIRLINE)}>
-            <h3 className={clsx(LABEL_SM, "px-3 pb-1 pt-3")}>Patterns</h3>
-            <ul>
-              {matchingPatterns.map((pattern) => (
-                <li key={pattern.id}>
-                  <button
-                    type="button"
-                    onClick={() => onInsertPattern(pattern.id)}
-                    className={clsx(
-                      "block w-full px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
-                      FOCUS_RING
-                    )}
-                  >
-                    <span className="block text-[13px] font-medium">{pattern.name}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
-                      {pattern.description ??
-                        `${pattern.blockCount} section${pattern.blockCount === 1 ? "" : "s"}`}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {onInsertPattern &&
+          patternGroups.map((group) => (
+            <section key={group.label} className={clsx("border-b", HAIRLINE)}>
+              <h3 className={clsx(LABEL_SM, "px-3 pb-1 pt-3")}>{group.label}</h3>
+              <ul>
+                {group.items.map((pattern) => (
+                  <li key={pattern.id}>
+                    <button
+                      type="button"
+                      onClick={() => onInsertPattern(pattern.id)}
+                      className={clsx(
+                        "block w-full px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
+                        FOCUS_RING
+                      )}
+                    >
+                      <span className="block text-[13px] font-medium">{pattern.name}</span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
+                        {pattern.description ??
+                          `${pattern.blockCount} section${pattern.blockCount === 1 ? "" : "s"}`}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
 
         {grouped.map((group) => (
           <section key={group.category} className={clsx("border-b", HAIRLINE)}>

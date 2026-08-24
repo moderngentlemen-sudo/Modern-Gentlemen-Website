@@ -30,6 +30,7 @@ import {
   type ThemeColors,
   type ThemeStatus,
 } from "@/lib/domain/theme";
+import * as revisionsRepo from "@/lib/db/repositories/revisions";
 import { requirePermission } from "./auth";
 import { rpcError } from "./publishing";
 
@@ -158,3 +159,62 @@ export async function unpublishTheme(note?: string): Promise<number> {
 
 /** Re-exported so the admin can offer "reset to the design baseline". */
 export { DEFAULT_THEME_COLORS };
+
+// ---------------------------------------------------------------------------
+// History
+// ---------------------------------------------------------------------------
+
+/**
+ * The theme's revision history, and the rollback that goes with it.
+ *
+ * **The data has existed since `0017` and nothing has ever read it.** That
+ * migration put `theme` on `document_table()`'s allowlist so the theme could be
+ * published through `publish_document`, and that function writes a `revisions`
+ * row and a `publish_events` row in the same transaction as every publish. So
+ * every theme publish since has been recorded, and `/admin/theme` was the one
+ * document-shaped editor with no way to look at it — or to undo.
+ *
+ * These go direct to the repository for the same reason `publishTheme` goes
+ * direct to the RPC: `lib/services/revisions.ts` is typed `DocumentType` and
+ * `theme` deliberately is not one. The repository takes the wider
+ * `RevisionEntityType`, which is honest about what the columns hold.
+ */
+export async function listThemeHistory(limit = 50) {
+  await requirePermission("revision.read");
+  const db = await createClient();
+  const row = await requireThemeRow(db);
+  return revisionsRepo.listRevisions(db, "theme", row.id, limit);
+}
+
+export async function listThemePublishEvents(limit = 50) {
+  await requirePermission("revision.read");
+  const db = await createClient();
+  const row = await requireThemeRow(db);
+  return revisionsRepo.listPublishEvents(db, "theme", row.id, limit);
+}
+
+/**
+ * Restores an earlier theme **into the draft**, exactly as a document rollback
+ * does.
+ *
+ * Nothing reaches the site until the editor publishes — which matters more here
+ * than anywhere else in the admin, because a theme change is site-wide and
+ * instant: an undo that shipped on click would repaint every page before anyone
+ * had looked at it.
+ */
+export async function rollbackTheme(version: number, note?: string): Promise<number> {
+  await requirePermission("revision.restore");
+
+  const db = await createClient();
+  const row = await requireThemeRow(db);
+
+  const { data, error } = await db.rpc("rollback_document", {
+    p_entity_type: "theme",
+    p_entity_id: row.id,
+    p_version: version,
+    p_note: note,
+  });
+
+  if (error) throw rpcError("rollback_document", "revision.restore", error);
+  return data as number;
+}
