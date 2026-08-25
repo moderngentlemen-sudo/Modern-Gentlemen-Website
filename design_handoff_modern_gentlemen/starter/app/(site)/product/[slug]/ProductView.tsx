@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useCatalog } from "@/lib/catalog/CatalogProvider";
-import { formatGBP, penceToPounds, poundsToPence } from "@/lib/domain/money";
+import { formatGBP, formatPence, penceToPounds, poundsToPence } from "@/lib/domain/money";
+import { memberUnitPrice } from "@/lib/domain/pricing";
 import { useCart } from "@/lib/cart/CartProvider";
 import {
   defaultVariant,
@@ -70,20 +71,18 @@ export function ProductView({ slug }: { slug: string }) {
   // page was open) falls back to the default rather than to nothing, which is
   // the same tolerance the cart shows a stale line.
   const selected = findVariant(variants, variantId) ?? defaultVariant(variants);
-  const price = penceToPounds(variantPricePence(poundsToPence(product.price), selected));
+  const pricePence = variantPricePence(poundsToPence(product.price), selected);
+  const price = penceToPounds(pricePence);
   // Sellability gates the button, not the price: a sold-out size still shows
   // what it costs, because "£160, unavailable" tells a shopper more than a
   // blank.
   const sellable = variants.length === 0 || (selected !== null && isVariantSellable(selected));
 
-  // ⚠️ Pounds arithmetic, and deliberately left as it was found. This rounds a
-  // £145 member price to £123 where the bag charges £123.25 — a real 25p
-  // disagreement between this page and the checkout, and a violation of the
-  // integer-pence rule. It is **not** fixed here because the correct value
-  // renders different pixels on a baseline-verified page, which is a decision
-  // about the sixteen screenshots rather than a bug fix. Recorded in
-  // PROGRESS.md's Known issues with the one-line repair.
-  const memberPrice = Math.round(price * (1 - cart.memberRate));
+  // Pence in, pence out, through the same helper the bag's totals use. This was
+  // pounds arithmetic until now — `Math.round(145 * 0.85)` quoted a member £123
+  // for a product the checkout charged £123.25 for — so the page and the till
+  // disagreed by 25p on the site's own headline benefit.
+  const memberPricePence = memberUnitPrice(pricePence, cart.memberRate);
 
   return (
     <div className="container-mg py-10 md:py-14">
@@ -141,7 +140,7 @@ export function ProductView({ slug }: { slug: string }) {
           <div className="mt-4 flex items-baseline gap-4">
             <span className="font-grotesk text-2xl">{formatGBP(price)}</span>
             <span className="font-mono text-xs text-mg-fg/50">
-              Members {formatGBP(memberPrice)}
+              Members {formatPence(memberPricePence)}
             </span>
           </div>
           <p className="mt-5 text-mg-fg/70 text-pretty">{product.blurb}</p>

@@ -176,6 +176,20 @@ describe("the published catalogue", () => {
     expect(offers.priceCurrency).toBe("GBP");
   });
 
+  it("reads the variant rows structured data prices from", async () => {
+    // The whole seeded catalogue is variant-free, so this asserts the *shape*
+    // rather than a count: the field is present and empty, and the JSON-LD
+    // therefore still takes the single-Offer branch the sixteen baselines and
+    // the live site's structured data were captured under. The day a product
+    // gains a size, this read is what carries it into the `<head>`.
+    const seo = await getPublishedProductSeo(demo[0].slug);
+
+    expect(seo!.variants).toEqual([]);
+    expect(
+      (productJsonLd("https://example.test", seo!).offers as Record<string, unknown>)["@type"]
+    ).toBe("Offer");
+  });
+
   it("returns null for an unknown slug rather than throwing", async () => {
     // The PDP layout renders no JSON-LD at all on this path, and the page shows
     // its own not-found. A throw here would 500 instead.

@@ -74,6 +74,46 @@ describe("a product sold as one thing", () => {
   });
 });
 
+describe("the member price", () => {
+  /**
+   * The 25p bug. This line used to compute `Math.round(price * (1 - rate))`
+   * over **pounds**, so the PDP quoted a member £123 for a product the bag
+   * charged £123.25 for — the page and the checkout disagreeing about the
+   * site's own headline benefit, and a violation of the integer-pence rule.
+   */
+  it("keeps the pence, and matches what the bag charges a member", () => {
+    renderPdp(VARIED.slug);
+
+    expect(details().getByText("Members £123.25")).toBeInTheDocument();
+    expect(details().queryByText("Members £123")).not.toBeInTheDocument();
+  });
+
+  it("follows the selected variant's price, not the product's", async () => {
+    const user = userEvent.setup();
+    renderPdp(VARIED.slug);
+
+    await user.click(screen.getByRole("button", { name: "Large" }));
+
+    // £159.99 → 15999p, 15% is 2399.85 → 2400, leaving 13599.
+    expect(details().getByText("Members £135.99")).toBeInTheDocument();
+  });
+
+  it("still renders whole pounds without decimals where the maths is exact", () => {
+    // £20 is the case that proves this did not just become "always show pence":
+    // formatGBP's contract is that whole amounts carry no decimals, and the
+    // sixteen baselines were captured under it.
+    render(
+      <CatalogProvider products={[{ ...VARIED, slug: "zz-round", price: 20, variants: [] }]}>
+        <CartProvider>
+          <ProductView slug="zz-round" />
+        </CartProvider>
+      </CatalogProvider>
+    );
+
+    expect(details().getByText("Members £17")).toBeInTheDocument();
+  });
+});
+
 describe("a product sold in sizes", () => {
   it("opens on the first buyable option, not the first one", () => {
     renderPdp(VARIED.slug);

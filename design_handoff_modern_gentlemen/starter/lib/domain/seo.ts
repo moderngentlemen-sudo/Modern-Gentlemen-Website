@@ -16,8 +16,13 @@
 import { penceToPounds } from "./money";
 import type { ProductAvailability } from "./products";
 import { publicPathForArticle, publicPathForProduct } from "./routes";
+import { isVariantSellable, variantPricePence, type PublicVariant } from "./variants";
 
 export const BRAND = "Modern Gentlemen";
+
+/** Every price in this catalogue is sterling. The column carries a currency and
+ *  the day it varies this should read it rather than assume. */
+const CURRENCY = "GBP";
 
 /** The suffix every page title carries, matching the one `/article/[slug]` has
  *  used since Track A. An em dash, not a hyphen — it is the brand's own. */
@@ -102,6 +107,94 @@ export interface ProductForSchema {
   pricePence: number;
   availability: ProductAvailability;
   images: string[];
+  /**
+   * Absent or empty means "sold as one thing" — the shape every product had
+   * before variants had a public surface, and the shape the whole seeded
+   * catalogue still has. Optional rather than required so that stays the
+   * default rather than something each caller must remember to say.
+   */
+  variants?: readonly PublicVariant[];
+}
+
+/** A price in pence as schema.org wants it: a bare decimal, no currency symbol. */
+function schemaPrice(pence: number): string {
+  // toFixed(2), because 14500 pence is 145 and a crawler expects "145.00".
+  return penceToPounds(pence).toFixed(2);
+}
+
+/**
+ * One variant's `Offer`.
+ *
+ * `url` is the PDP's, not a per-variant one, because there is no per-variant
+ * URL to give: the picker is client state, the page does not read a `?variant=`
+ * and inventing one here would advertise a link that resolves to the default
+ * size. `name` carries the variant's title so a rich result can tell the offers
+ * apart, and `sku` is emitted only when the merchant actually entered one —
+ * `"sku": null` is worse than no `sku` at all.
+ */
+function variantOffer(url: string, productPricePence: number, variant: PublicVariant) {
+  return {
+    "@type": "Offer",
+    url,
+    name: variant.title,
+    ...(variant.sku ? { sku: variant.sku } : {}),
+    priceCurrency: CURRENCY,
+    price: schemaPrice(variantPricePence(productPricePence, variant)),
+    availability: schemaAvailability(variant.availability),
+  };
+}
+
+/**
+ * The offer block: one `Offer` for a product sold as one thing, an
+ * `AggregateOffer` for one sold as variations.
+ *
+ * ⚠️ **The single-offer branch is byte-identical to what shipped before
+ * variants existed**, and that is deliberate rather than incidental: no seeded
+ * product carries a variant row, so the whole catalogue's structured data is
+ * unchanged by this and the sixteen visual baselines cannot move.
+ *
+ * **The range is computed over the *sellable* variants where any are sellable.**
+ * A discontinued small at £99 beside an in-stock large at £159 would otherwise
+ * advertise `lowPrice: 99.00` for money nobody can spend, which is the precise
+ * shape of mismatch that gets a product feed penalised. When nothing is
+ * sellable the range falls back to every variant — an out-of-stock product
+ * still has a price, and omitting `lowPrice` would make the block invalid
+ * rather than honest.
+ *
+ * **Variant availability governs, and the product's own column is not consulted
+ * here.** That matches the PDP exactly: once a product has variants, the page's
+ * add-to-bag button reads the selected variant's availability and nothing else.
+ * Structured data that disagreed with the button would be the worse bug.
+ */
+function offersFor(
+  url: string,
+  product: ProductForSchema,
+  variants: readonly PublicVariant[]
+): Record<string, unknown> {
+  if (variants.length === 0) {
+    return {
+      "@type": "Offer",
+      url,
+      priceCurrency: CURRENCY,
+      price: schemaPrice(product.pricePence),
+      availability: schemaAvailability(product.availability),
+    };
+  }
+
+  const sellable = variants.filter(isVariantSellable);
+  const priced = (sellable.length > 0 ? sellable : variants).map((variant) =>
+    variantPricePence(product.pricePence, variant)
+  );
+
+  return {
+    "@type": "AggregateOffer",
+    url,
+    priceCurrency: CURRENCY,
+    lowPrice: schemaPrice(Math.min(...priced)),
+    highPrice: schemaPrice(Math.max(...priced)),
+    offerCount: variants.length,
+    offers: variants.map((variant) => variantOffer(url, product.pricePence, variant)),
+  };
 }
 
 /**
@@ -127,14 +220,7 @@ export function productJsonLd(siteUrl: string, product: ProductForSchema): Recor
     ...(product.material ? { material: product.material } : {}),
     image: product.images.map((image) => canonicalUrl(siteUrl, image)),
     brand: { "@type": "Brand", name: BRAND },
-    offers: {
-      "@type": "Offer",
-      url,
-      priceCurrency: "GBP",
-      // toFixed(2), because 14500 pence is 145 and a crawler expects "145.00".
-      price: penceToPounds(product.pricePence).toFixed(2),
-      availability: schemaAvailability(product.availability),
-    },
+    offers: offersFor(url, product, product.variants ?? []),
   };
 }
 
