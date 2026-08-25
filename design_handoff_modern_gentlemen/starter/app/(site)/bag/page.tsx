@@ -51,7 +51,7 @@ export default function BagPage() {
                     </span>
                     <Link
                       href={`/product/${l.slug}`}
-                      className="mt-1 font-grotesk text-lg hover:text-mg-accent"
+                      className="mt-1 font-grotesk text-lg hover:text-mg-accentInk"
                     >
                       {l.product.name}
                     </Link>
@@ -71,7 +71,7 @@ export default function BagPage() {
                       />
                       <button
                         onClick={() => cart.remove(l.key)}
-                        className="py-1.5 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accent"
+                        className="py-1.5 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accentInk"
                       >
                         Remove
                       </button>
@@ -83,7 +83,7 @@ export default function BagPage() {
             </ul>
             <Link
               href="/shop"
-              className="mt-6 inline-block font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent"
+              className="mt-6 inline-block font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accentInk"
             >
               ← Continue shopping
             </Link>
@@ -98,7 +98,7 @@ export default function BagPage() {
                 !cart.isMember ? (
                   <Link
                     href="/membership"
-                    className="mt-3 block text-center font-mono uppercase text-[11px] tracking-[0.12em] text-mg-fg/60 hover:text-mg-accent"
+                    className="mt-3 block text-center font-mono uppercase text-[11px] tracking-[0.12em] text-mg-fg/60 hover:text-mg-accentInk"
                   >
                     Members save 15% — become a member
                   </Link>

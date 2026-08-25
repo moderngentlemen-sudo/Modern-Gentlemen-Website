@@ -224,7 +224,7 @@ export function ArticleDetails({
                         aria-pressed={on}
                         className={
                           on
-                            ? "border border-mg-accent bg-mg-accent/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-accent"
+                            ? "border border-mg-accent bg-mg-accent/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-accentInk"
                             : "border border-mg-bd/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60 hover:border-mg-fg"
                         }
                       >

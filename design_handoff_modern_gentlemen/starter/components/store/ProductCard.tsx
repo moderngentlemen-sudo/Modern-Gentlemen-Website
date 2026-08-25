@@ -45,7 +45,7 @@ export function ProductCard({
         </span>
         <Link
           href={`/product/${product.slug}`}
-          className="mt-1 font-grotesk text-[17px] leading-snug hover:text-mg-accent"
+          className="mt-1 font-grotesk text-[17px] leading-snug hover:text-mg-accentInk"
         >
           {product.name}
         </Link>
@@ -57,7 +57,7 @@ export function ProductCard({
               onClick={() => onAdd(product.slug)}
               className={`font-mono uppercase text-[11px] tracking-[0.15em] px-4 py-2 border transition-colors ${
                 added
-                  ? "border-mg-accent text-mg-accent"
+                  ? "border-mg-accent text-mg-accentInk"
                   : "border-mg-bd/25 hover:bg-mg-accent hover:text-white hover:border-mg-accent"
               }`}
             >

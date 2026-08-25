@@ -959,22 +959,32 @@ describe("delete permissions are real gates", () => {
   });
 
   /**
-   * `categories` is deliberately absent from `0022`, and this says so in a way
-   * that goes red if somebody adds it without doing the rest of the work.
+   * ⚠️ **INVERTED — the third characterisation test in this file to complete the
+   * full cycle**, after `is_system` for `0018` and `draft_data` for `0020`.
    *
-   * A category has two delete routes checking different permissions —
-   * `/admin/taxonomy` requires `taxonomy.write`, `/admin/categories` requires
-   * `category.delete` — and `0021` widened the write policy to
-   * `taxonomy.write OR category.write` expressly so `author` would keep
-   * behaving as it did. A restrictive `category.delete` gate breaks the
-   * taxonomy screen for that role. See `0022`'s header and Known issues.
+   * It read "KNOWN GAP: taxonomy.write still deletes a category, because 0022
+   * excluded it" and asserted `count` was 0. `0022`'s header named the
+   * prerequisite — reconciling the two service paths — as a product decision
+   * rather than a policy repair. That decision was taken: deleting a category
+   * destroys a layout document as well as a label, so both routes now require
+   * `category.delete`, and `0023` is the restrictive policy that became
+   * possible. The row survives and `count` is 1.
    */
-  it("KNOWN GAP: taxonomy.write still deletes a category, because 0022 excluded it", async () => {
+  it("refuses a taxonomy.write holder a category, now that 0023 gates it", async () => {
     const taxonomyWriterRole = await fixtures.createRole(["taxonomy.write"]);
     const taxonomyWriter = await fixtures.createUser([taxonomyWriterRole]);
     const taxonomyWriterDb = await fixtures.signIn(taxonomyWriter.email, taxonomyWriter.password);
 
     const category = await makeCategory();
+
+    // Renaming first, for the reason the article case gives: it proves the
+    // actor reaches the row perfectly well and is stopped only at DELETE,
+    // rather than having lost access to `categories` altogether.
+    const { error: editError } = await taxonomyWriterDb
+      .from("categories")
+      .update({ name: "Renamed, which is still allowed" })
+      .eq("id", category.id);
+    expect(editError, "renaming is ordinary taxonomy.write work").toBeNull();
 
     await taxonomyWriterDb.from("categories").delete().eq("id", category.id);
 
@@ -983,9 +993,25 @@ describe("delete permissions are real gates", () => {
       .select("*", { count: "exact", head: true })
       .eq("id", category.id);
 
-    // INVERT THIS when the two service paths are reconciled and a restrictive
-    // `category.delete` policy lands: the row survives, and `count` becomes 1.
-    expect(count, "recorded as it behaves today, not as it should").toBe(0);
+    expect(count, "taxonomy.write alone must no longer delete a category").toBe(1);
+  });
+
+  /**
+   * The positive half, and the one that stops a `using (false)` policy passing.
+   * Every negative assertion above is satisfied just as well by a policy that
+   * refuses everybody.
+   */
+  it("still lets a category.delete holder delete one", async () => {
+    const category = await makeCategory();
+
+    await editorDb.from("categories").delete().eq("id", category.id);
+
+    const { count } = await db
+      .from("categories")
+      .select("*", { count: "exact", head: true })
+      .eq("id", category.id);
+
+    expect(count, "the editor role holds category.delete").toBe(0);
   });
 });
 

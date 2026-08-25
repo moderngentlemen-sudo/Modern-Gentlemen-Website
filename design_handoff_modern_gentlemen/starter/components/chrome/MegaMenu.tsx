@@ -36,7 +36,7 @@ export function MegaMenu({ entry, onClose }: { entry: NavLink | null; onClose: (
         <div className="flex-1 grid grid-cols-2 gap-x-12 gap-y-8">
           {columns.map((col) => (
             <div key={col.heading ?? "ungrouped"}>
-              <div className="font-mono text-[10px] leading-[normal] tracking-[0.22em] text-mg-accent mb-[18px]">
+              <div className="font-mono text-[10px] leading-[normal] tracking-[0.22em] text-mg-accentInk mb-[18px]">
                 {col.heading}
               </div>
               <div className="flex flex-col gap-3">
@@ -70,7 +70,7 @@ export function MegaMenu({ entry, onClose }: { entry: NavLink | null; onClose: (
               </span>
             </div>
             <div className="px-[18px] pt-4 pb-[18px]">
-              <div className="font-mono text-[9.5px] leading-[normal] tracking-[0.2em] text-[#ff4d5e] mb-2">
+              <div className="font-mono text-[9.5px] leading-[normal] tracking-[0.2em] text-mg-accentSerif mb-2">
                 {feature.tag}
               </div>
               <div className="font-grotesk font-medium text-[19px] leading-[1.2] tracking-[-0.02em]">

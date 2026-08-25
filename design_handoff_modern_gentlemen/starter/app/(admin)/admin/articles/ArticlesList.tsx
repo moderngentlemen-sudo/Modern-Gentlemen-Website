@@ -137,7 +137,7 @@ export function ArticlesList({
                     <Td>
                       <Link
                         href={`/admin/articles/${article.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {article.title}
                       </Link>

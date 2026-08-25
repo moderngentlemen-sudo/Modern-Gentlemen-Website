@@ -47,7 +47,7 @@ export function FilmStills({
         {allHref && (
           <Link
             href={allHref}
-            className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accent whitespace-nowrap"
+            className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accentInk whitespace-nowrap"
           >
             {allLabel}
           </Link>

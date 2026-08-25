@@ -33,7 +33,7 @@ export function CategoryHero({ eyebrow, title, blurb, image, chips }: Props) {
         }}
       />
       <div className="container-mg relative pt-[120px] pb-[56px]">
-        <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#ff4d5e]">
+        <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-mg-accentSerif">
           {eyebrow}
         </p>
         <h1 className="mt-5 font-grotesk font-semibold text-[52px] min-[681px]:text-[84px] leading-[0.92] tracking-[-0.05em] text-balance">

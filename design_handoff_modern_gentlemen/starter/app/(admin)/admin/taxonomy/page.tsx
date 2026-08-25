@@ -58,6 +58,12 @@ export default async function TaxonomyIndex() {
         // A category is a document since `0021`, so composing its page is a
         // separate grant from managing the taxonomy row.
         canEditLayout={user.permissions.has("category.write")}
+        // Deleting a category destroys its layout document too, so it takes
+        // `category.delete` — the same grant `/admin/categories` requires.
+        // Until now this screen deleted the identical thing on
+        // `taxonomy.write`, so which permission you needed depended on which
+        // screen you were standing on. Tags and authors are unaffected.
+        canDeleteCategory={user.permissions.has("category.delete")}
       />
     </>
   );

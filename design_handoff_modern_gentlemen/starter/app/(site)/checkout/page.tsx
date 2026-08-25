@@ -111,7 +111,7 @@ export default function CheckoutPage() {
   if (order) {
     return (
       <div className="container-mg flex min-h-[70vh] flex-col items-center justify-center py-24 text-center">
-        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">
+        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accentInk">
           Order confirmed
         </p>
         <p className="mt-4 font-serif italic text-2xl text-mg-accentSerif">Thank you.</p>
@@ -135,7 +135,7 @@ export default function CheckoutPage() {
         </dl>
         <Link
           href="/shop"
-          className="mt-8 inline-block font-mono uppercase text-xs tracking-[0.2em] text-mg-accent"
+          className="mt-8 inline-block font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk"
         >
           Continue shopping →
         </Link>
@@ -147,7 +147,7 @@ export default function CheckoutPage() {
   if (cart.lines.length === 0) {
     return (
       <div className="container-mg flex min-h-[70vh] flex-col items-center justify-center py-24 text-center">
-        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">
+        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accentInk">
           Nothing to check out
         </p>
         <h1 className="mt-4 font-grotesk font-semibold text-3xl md:text-4xl">Your bag is empty.</h1>
@@ -185,7 +185,7 @@ export default function CheckoutPage() {
                         active
                           ? "bg-mg-accent text-white"
                           : done
-                            ? "bg-mg-accent/15 text-mg-accent"
+                            ? "bg-mg-accent/15 text-mg-accentInk"
                             : "border border-mg-bd/25 text-mg-fg/40"
                       }`}
                     >
@@ -400,7 +400,7 @@ function ReviewCard({
         </span>
         <button
           onClick={onEdit}
-          className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-accent"
+          className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-accentInk"
         >
           Edit
         </button>

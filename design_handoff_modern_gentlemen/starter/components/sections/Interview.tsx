@@ -30,7 +30,7 @@ export function Interview({
       <div className="mt-10 space-y-8">
         {qa?.map((item, i) => (
           <div key={i}>
-            <p className="font-grotesk text-lg text-mg-accent text-pretty">{item.q}</p>
+            <p className="font-grotesk text-lg text-mg-accentInk text-pretty">{item.q}</p>
             <p className="mt-2 text-mg-fg/80 leading-relaxed text-pretty">{item.a}</p>
           </div>
         ))}

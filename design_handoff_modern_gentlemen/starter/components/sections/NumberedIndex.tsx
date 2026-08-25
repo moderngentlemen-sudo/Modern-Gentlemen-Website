@@ -17,10 +17,10 @@ export function NumberedIndex({ heading, items }: { heading?: string; items: Ite
         {items?.map((it, i) => {
           const row = (
             <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-6 py-5 border-b border-mg-bd/12 group">
-              <span className="font-mono text-sm text-mg-accent">
+              <span className="font-mono text-sm text-mg-accentInk">
                 {it.num ?? String(i + 1).padStart(2, "0")}
               </span>
-              <span className="font-grotesk text-lg md:text-xl group-hover:text-mg-accent">
+              <span className="font-grotesk text-lg md:text-xl group-hover:text-mg-accentInk">
                 {it.title}
               </span>
               {it.meta && <MonoLabel className="!text-mg-fg/40">{it.meta}</MonoLabel>}

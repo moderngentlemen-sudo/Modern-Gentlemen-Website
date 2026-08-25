@@ -46,7 +46,7 @@ export function BodyQa() {
       </BodyIntro>
       {QA_INTERVIEW.map((row) => (
         <div key={row.q} className="mb-[30px]">
-          <p className="mb-3 font-grotesk font-medium text-[19px] leading-[1.4] tracking-[-0.01em] text-[#ff4d5e]">
+          <p className="mb-3 font-grotesk font-medium text-[19px] leading-[1.4] tracking-[-0.01em] text-mg-accentSerif">
             {row.q}
           </p>
           <p className="font-grotesk font-light text-[18px] leading-[1.72] text-mg-fg/[0.86]">
@@ -138,7 +138,7 @@ export function BodySpec() {
                 r.kind === "header"
                   ? "font-mono text-[10px] tracking-[0.04em] text-mg-fg/45"
                   : r.kind === "verdict"
-                    ? "font-mono text-[11px] tracking-[0.04em] text-[#ff4d5e]"
+                    ? "font-mono text-[11px] tracking-[0.04em] text-mg-accentSerif"
                     : "font-mono text-[11px] tracking-[0.04em] text-mg-fg/[0.85]"
               }
             >
@@ -294,7 +294,7 @@ export function BodyList() {
             />
             <div className="p-[22px_26px_22px_0] max-[820px]:px-[22px]">
               <div className="flex items-center gap-3">
-                <span className="font-grotesk font-semibold text-[30px] leading-none tracking-[-0.04em] text-mg-accent">
+                <span className="font-grotesk font-semibold text-[30px] leading-none tracking-[-0.04em] text-mg-accentInk">
                   {it.rank}
                 </span>
                 <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-mg-fg/45">
@@ -357,7 +357,7 @@ export function BodySteps() {
             key={s.n}
             className="grid grid-cols-[auto_1fr] gap-[22px] border-t border-mg-bd/10 py-6"
           >
-            <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-full border border-mg-accent font-grotesk font-medium text-[17px] text-mg-accent">
+            <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-full border border-mg-accent font-grotesk font-medium text-[17px] text-mg-accentInk">
               {s.n}
             </div>
             <div>
@@ -416,7 +416,7 @@ export function BodyRegimen() {
             key={r.tag}
             className="grid grid-cols-[78px_1fr_auto] items-center gap-[18px] bg-mg-surface p-[20px_24px]"
           >
-            <div className="font-grotesk font-semibold text-[26px] leading-none tracking-[-0.03em] text-mg-accent">
+            <div className="font-grotesk font-semibold text-[26px] leading-none tracking-[-0.03em] text-mg-accentInk">
               {r.time}
             </div>
             <div>
@@ -476,7 +476,7 @@ export function BodyTimeline() {
       <div className="flex flex-col">
         {TIMELINE.map((t) => (
           <div key={t.year} className="grid grid-cols-[110px_1fr] gap-[26px] pb-[30px]">
-            <div className="font-grotesk font-semibold text-[22px] leading-none tracking-[-0.02em] text-mg-accent">
+            <div className="font-grotesk font-semibold text-[22px] leading-none tracking-[-0.02em] text-mg-accentInk">
               {t.year}
             </div>
             <div className="relative border-l border-mg-bd/[0.14] pb-1 pl-6">
@@ -531,7 +531,7 @@ export function BodyRundown({ issue }: { issue: string }) {
             key={r.tag}
             className="grid grid-cols-[auto_1fr] gap-[18px] border-t border-mg-bd/10 py-[22px]"
           >
-            <span className="pt-[5px] font-mono text-[11px] uppercase tracking-[0.14em] text-mg-accent">
+            <span className="pt-[5px] font-mono text-[11px] uppercase tracking-[0.14em] text-mg-accentInk">
               {r.tag}
             </span>
             <div>

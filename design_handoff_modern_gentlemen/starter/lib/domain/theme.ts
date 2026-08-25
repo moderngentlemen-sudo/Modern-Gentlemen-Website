@@ -57,6 +57,7 @@ export const THEME_TOKENS = [
   "surface",
   "bd",
   "accent",
+  "accentInk",
   "accentSerif",
   "muted",
   "faint",
@@ -81,10 +82,21 @@ export type ThemeContext = (typeof THEME_CONTEXTS)[number];
  * nine into all three" implementation is wrong in two specific ways, and both
  * failures are silent — the site still renders, it renders differently.
  *
- * `accent` is dark-only because it is the one token `globals.css` never
- * overrides: the racing red is identical in light, in dark, and inside a dark
- * band. Emitting it into the other two would be a no-op today and a divergence
- * the first time somebody edited one of the three copies.
+ * `accent` is dark-only, and still is: the racing red as a **fill** is identical
+ * in light, in dark and inside a dark band, so emitting it into the other two
+ * would be a no-op and an invitation to let three copies drift.
+ *
+ * ⚠️ **`accentInk` is the three-context one, and the split between the two is
+ * the hard-won part.** The accent as text failed AA on dark — `#c8102e` reads
+ * 3.30 on `#0d0d0d` — and no single value can fix that, because against
+ * `#0d0d0d` AA sets a luminance floor of 0.193 and against light's `#f4f4f4` a
+ * ceiling of 0.162, windows that do not overlap for any hue. The obvious repair
+ * was to brighten `--mg-accent` itself. **Measured, that made things worse: 34
+ * failing nodes became 46**, because the same token fills the red CTA band and
+ * lifting its luminance dropped the white text sitting on it from 5.88 to 4.12.
+ * Ink and fill want opposite directions, so they are two tokens. `darkBand`
+ * declares the ink for the case a delta model hides — a dark band on a LIGHT
+ * page, which would otherwise inherit light's `#c8102e` onto `#0d0d0d`.
  *
  * `bandBorder` is absent from `darkBand` on purpose. `globals.css:27-30`: the
  * hairline is keyed off the PAGE theme — translucent white on a dark page,
@@ -98,8 +110,8 @@ export type ThemeContext = (typeof THEME_CONTEXTS)[number];
  */
 export const TOKENS_BY_CONTEXT = {
   dark: THEME_TOKENS,
-  light: ["bg", "fg", "surface", "bd", "accentSerif", "muted", "faint", "bandBorder"],
-  darkBand: ["bg", "fg", "surface", "bd", "accentSerif", "muted", "faint"],
+  light: ["bg", "fg", "surface", "bd", "accentInk", "accentSerif", "muted", "faint", "bandBorder"],
+  darkBand: ["bg", "fg", "surface", "bd", "accentInk", "accentSerif", "muted", "faint"],
 } as const satisfies Record<ThemeContext, readonly ThemeToken[]>;
 
 /** Token name -> custom property. The one place the two vocabularies meet. */
@@ -109,6 +121,7 @@ const CSS_VAR: Record<ThemeToken, string> = {
   surface: "--mg-surface",
   bd: "--mg-bd",
   accent: "--mg-accent",
+  accentInk: "--mg-accent-ink",
   accentSerif: "--mg-accent-serif",
   muted: "--mg-muted",
   faint: "--mg-faint",
@@ -146,7 +159,8 @@ export const THEME_TOKEN_LABELS: Record<ThemeToken, string> = {
   fg: "Foreground",
   surface: "Surface",
   bd: "Border",
-  accent: "Accent",
+  accent: "Accent fill",
+  accentInk: "Accent text",
   accentSerif: "Serif accent",
   muted: "Muted text",
   faint: "Faint text",
@@ -187,9 +201,10 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
     surface: "#131315",
     bd: "#ffffff",
     accent: "#c8102e",
+    accentInk: "#f7142e",
     accentSerif: "#ff4d5e",
     muted: "rgba(244, 244, 244, 0.5)",
-    faint: "rgba(244, 244, 244, 0.35)",
+    faint: "rgba(244, 244, 244, 0.5)",
     bandBorder: "rgba(255, 255, 255, 0.12)",
   },
   light: {
@@ -197,6 +212,7 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
     fg: "#141414",
     surface: "#ffffff",
     bd: "#141414",
+    accentInk: "#c8102e",
     accentSerif: "#c8102e",
     muted: "#8a8a8a",
     faint: "#b0b0b0",
@@ -207,9 +223,10 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
     fg: "#f4f4f4",
     surface: "#161618",
     bd: "#ffffff",
+    accentInk: "#f7142e",
     accentSerif: "#ff4d5e",
     muted: "rgba(244, 244, 244, 0.5)",
-    faint: "rgba(244, 244, 244, 0.35)",
+    faint: "rgba(244, 244, 244, 0.5)",
   },
 };
 
@@ -326,6 +343,7 @@ const accentValue = z.string().refine((v) => accentChannels(v) !== null, {
  */
 const CHANNEL_TWIN: Partial<Record<ThemeToken, string>> = {
   accent: "--mg-accent-rgb",
+  accentInk: "--mg-accent-ink-rgb",
   accentSerif: "--mg-accent-serif-rgb",
 };
 

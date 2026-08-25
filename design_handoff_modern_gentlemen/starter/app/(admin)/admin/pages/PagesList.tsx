@@ -126,7 +126,7 @@ export function PagesList({
                     <Td>
                       <Link
                         href={`/admin/pages/${page.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {page.title}
                       </Link>

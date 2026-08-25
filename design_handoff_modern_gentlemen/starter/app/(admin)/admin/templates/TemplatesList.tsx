@@ -251,7 +251,7 @@ export function TemplatesList({
                       <Td>
                         <Link
                           href={`/admin/templates/${template.id}`}
-                          className="font-medium hover:text-mg-accent"
+                          className="font-medium hover:text-mg-accentInk"
                         >
                           {template.name}
                         </Link>

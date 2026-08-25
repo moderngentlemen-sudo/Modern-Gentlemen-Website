@@ -87,11 +87,11 @@ export function ProductView({ slug }: { slug: string }) {
   return (
     <div className="container-mg py-10 md:py-14">
       <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/45">
-        <Link href="/shop" className="hover:text-mg-accent">
+        <Link href="/shop" className="hover:text-mg-accentInk">
           Store
         </Link>{" "}
         <span className="text-mg-fg/25">/</span>{" "}
-        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accent">
+        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accentInk">
           {product.catLabel}
         </Link>{" "}
         <span className="text-mg-fg/25">/</span>{" "}
@@ -131,7 +131,7 @@ export function ProductView({ slug }: { slug: string }) {
 
         {/* Details */}
         <div>
-          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">
+          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accentInk">
             {product.catLabel}
           </span>
           <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl tracking-[-0.02em]">
@@ -189,13 +189,13 @@ export function ProductView({ slug }: { slug: string }) {
           <ul className="mt-6 space-y-2">
             {ASSURANCES.map((a) => (
               <li key={a} className="flex items-center gap-2 text-sm text-mg-fg/70">
-                <span className="text-mg-accent">✓</span> {a}
+                <span className="text-mg-accentInk">✓</span> {a}
               </li>
             ))}
           </ul>
 
           <div className="mt-12">
-            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk">
               The Story
             </h2>
             {product.story.split("\n\n").map((para, i) => (
@@ -206,7 +206,7 @@ export function ProductView({ slug }: { slug: string }) {
           </div>
 
           <div className="mt-8">
-            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk">
               Specifications
             </h2>
             <dl className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
@@ -232,7 +232,7 @@ export function ProductView({ slug }: { slug: string }) {
           <h2 className="font-grotesk font-semibold text-2xl md:text-3xl">You might also like</h2>
           <Link
             href="/shop"
-            className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent"
+            className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accentInk"
           >
             All products →
           </Link>

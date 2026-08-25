@@ -310,7 +310,7 @@ export function PublishBar({
             href={preview?.path ?? "#"}
             target="_blank"
             rel="noreferrer"
-            className="break-all font-mono text-[11px] text-mg-accent hover:underline"
+            className="break-all font-mono text-[11px] text-mg-accentInk hover:underline"
           >
             {preview?.path}
           </a>

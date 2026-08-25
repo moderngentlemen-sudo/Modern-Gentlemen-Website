@@ -154,7 +154,7 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
                     <Td>
                       <Link
                         href={`/admin/integrations/${source.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {source.name}
                       </Link>

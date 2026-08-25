@@ -47,7 +47,7 @@ export function ValidationTray() {
                     .querySelector(`[data-block-key="${key}"]`)
                     ?.scrollIntoView({ block: "center" });
                 }}
-                className="w-full text-left text-[12px] hover:text-mg-accent"
+                className="w-full text-left text-[12px] hover:text-mg-accentInk"
               >
                 <span className="font-medium">
                   {manifestFor(blockIssues[0].type)?.label ?? blockIssues[0].type}

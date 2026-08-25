@@ -201,7 +201,7 @@ export function BodyReview() {
     <article className="mx-auto max-w-[760px] px-6 pt-[56px] pb-10">
       <div className="mb-10 grid grid-cols-[1fr_auto] items-center gap-6 border border-mg-bd/[0.12] bg-mg-surface p-[26px_30px]">
         <div>
-          <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[#ff4d5e]">
+          <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-mg-accentSerif">
             The Verdict
           </div>
           <div className="font-serif italic text-[19px] leading-[1.4] text-mg-fg/[0.82]">
@@ -209,7 +209,7 @@ export function BodyReview() {
           </div>
         </div>
         <div className="flex-shrink-0 text-center">
-          <div className="font-grotesk font-semibold text-[52px] leading-none tracking-[-0.04em] text-mg-accent">
+          <div className="font-grotesk font-semibold text-[52px] leading-none tracking-[-0.04em] text-mg-accentInk">
             8.6
           </div>
           <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-mg-fg/40">
@@ -228,7 +228,7 @@ export function BodyReview() {
           </div>
         </div>
         <div className=" border border-mg-bd/10 p-[20px_22px]">
-          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#ff4d5e]">
+          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-mg-accentSerif">
             Against
           </div>
           <div className="font-grotesk font-light text-[15px] leading-[1.7] text-mg-fg/80">

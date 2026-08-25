@@ -33,7 +33,7 @@ export function ProductRow({
           {eyebrow && <div className="font-serif italic text-mg-fg/50 text-lg">{eyebrow}</div>}
           <h2 className="font-grotesk font-semibold text-3xl md:text-4xl mt-1">{heading}</h2>
         </div>
-        <Link href={href} className="font-mono text-[11px] tracking-[0.18em] text-mg-accent">
+        <Link href={href} className="font-mono text-[11px] tracking-[0.18em] text-mg-accentInk">
           STORE ALL →
         </Link>
       </div>
@@ -60,7 +60,7 @@ export function ProductRow({
                 </div>
                 <button
                   onClick={() => cart.add(p.slug)}
-                  className={`mt-2 w-full py-2 font-mono text-[10px] uppercase tracking-[0.15em] border ${cart.has(p.slug) ? "border-mg-accent text-mg-accent" : "border-mg-bd/25 hover:bg-mg-fg hover:text-mg-bg"}`}
+                  className={`mt-2 w-full py-2 font-mono text-[10px] uppercase tracking-[0.15em] border ${cart.has(p.slug) ? "border-mg-accent text-mg-accentInk" : "border-mg-bd/25 hover:bg-mg-fg hover:text-mg-bg"}`}
                 >
                   {cart.has(p.slug) ? "Added ✓" : "Add to bag"}
                 </button>

@@ -77,7 +77,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                         </button>
                       </div>
                       <button
-                        className="font-mono text-[10px] text-mg-fg/50 hover:text-mg-accent"
+                        className="font-mono text-[10px] text-mg-fg/50 hover:text-mg-accentInk"
                         onClick={() => cart.remove(l.key)}
                       >
                         Remove
@@ -91,7 +91,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
 
             <div className="border-t border-mg-bd/10 p-6 space-y-3">
               {cart.memberDiscount > 0 && (
-                <div className="flex justify-between font-mono text-xs text-mg-accent">
+                <div className="flex justify-between font-mono text-xs text-mg-accentInk">
                   <span>Member discount</span>
                   <span>– {formatGBP(cart.memberDiscount)}</span>
                 </div>
@@ -115,7 +115,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
               <Link
                 href="/bag"
                 onClick={onClose}
-                className="block text-center font-mono text-[11px] text-mg-fg/60 hover:text-mg-accent"
+                className="block text-center font-mono text-[11px] text-mg-fg/60 hover:text-mg-accentInk"
               >
                 View full bag
               </Link>

@@ -71,7 +71,7 @@ export default async function AdminHome() {
                   {recent.map((page) => (
                     <tr key={page.id}>
                       <Td>
-                        <Link href={`/admin/pages/${page.id}`} className="hover:text-mg-accent">
+                        <Link href={`/admin/pages/${page.id}`} className="hover:text-mg-accentInk">
                           {page.title}
                         </Link>
                       </Td>

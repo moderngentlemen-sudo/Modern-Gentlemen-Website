@@ -543,7 +543,7 @@ export function SourceEditor({
                   {lastRun.status === "review" && (
                     <Link
                       href={`/admin/integrations/jobs/${lastRun.jobId}`}
-                      className="text-mg-accent hover:underline"
+                      className="text-mg-accentInk hover:underline"
                     >
                       Review
                     </Link>
@@ -574,7 +574,7 @@ export function SourceEditor({
                     <Td>
                       <Link
                         href={`/admin/integrations/jobs/${job.id}`}
-                        className="hover:text-mg-accent"
+                        className="hover:text-mg-accentInk"
                       >
                         {formatWhen(job.createdAt)}
                       </Link>

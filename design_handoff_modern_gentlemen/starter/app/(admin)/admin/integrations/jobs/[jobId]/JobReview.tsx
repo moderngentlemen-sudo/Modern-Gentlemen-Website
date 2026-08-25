@@ -306,7 +306,7 @@ export function JobReview({
                   {item.productId ? (
                     <Link
                       href={`/admin/products/${item.productId}`}
-                      className="font-medium hover:text-mg-accent"
+                      className="font-medium hover:text-mg-accentInk"
                     >
                       {item.name ?? "(unnamed)"}
                     </Link>

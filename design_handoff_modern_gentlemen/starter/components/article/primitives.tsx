@@ -12,7 +12,7 @@ export function ArticleKicker({
   return (
     <div
       className={clsx(
-        "font-mono text-[11px] uppercase tracking-[0.26em] text-[#ff4d5e]",
+        "font-mono text-[11px] uppercase tracking-[0.26em] text-mg-accentSerif",
         className
       )}
     >
@@ -61,9 +61,9 @@ export function BodyIntro({
 export function InlinePullQuote({ quote }: { quote: string }) {
   return (
     <blockquote className="my-[48px] text-center font-serif italic text-[34px] leading-[1.25] text-mg-fg">
-      <span className="text-mg-accent">&ldquo;</span>
+      <span className="text-mg-accentInk">&ldquo;</span>
       {quote}
-      <span className="text-mg-accent">&rdquo;</span>
+      <span className="text-mg-accentInk">&rdquo;</span>
     </blockquote>
   );
 }

@@ -23,7 +23,7 @@ export function OrderSummary({
   const cart = useCart();
   return (
     <div className="border border-mg-bd/15 p-6">
-      <h2 className="mb-4 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+      <h2 className="mb-4 font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk">
         {heading}
       </h2>
 

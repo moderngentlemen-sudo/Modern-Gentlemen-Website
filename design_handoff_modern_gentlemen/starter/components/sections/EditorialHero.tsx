@@ -26,7 +26,7 @@ export function EditorialHero({ eyebrow, headline, accent, dek, align = "left", 
       )}
       style={{ paddingInline: `max(22px, calc((100% - ${width}px) / 2))` }}
     >
-      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#ff4d5e]">
+      <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-mg-accentSerif">
         {eyebrow}
       </div>
       <h1
@@ -38,7 +38,7 @@ export function EditorialHero({ eyebrow, headline, accent, dek, align = "left", 
         )}
       >
         {headline}
-        {accent && <span className="text-mg-accent">{accent}</span>}
+        {accent && <span className="text-mg-accentInk">{accent}</span>}
       </h1>
       {dek && (
         <p

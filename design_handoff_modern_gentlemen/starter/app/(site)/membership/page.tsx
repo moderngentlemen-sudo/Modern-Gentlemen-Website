@@ -154,7 +154,7 @@ export default function MembershipPage() {
                 <div
                   className={clsx(
                     "font-mono text-[10px] uppercase tracking-[0.2em]",
-                    t.featured ? "text-white/85" : "text-[#ff4d5e]"
+                    t.featured ? "text-white/85" : "text-mg-accentSerif"
                   )}
                 >
                   {t.name}
@@ -199,7 +199,7 @@ export default function MembershipPage() {
                       <span
                         className={clsx(
                           "mt-px flex-shrink-0",
-                          t.featured ? "text-white" : "text-mg-accent"
+                          t.featured ? "text-white" : "text-mg-accentInk"
                         )}
                         aria-hidden
                       >
@@ -236,7 +236,7 @@ export default function MembershipPage() {
         <HairlineGrid className="grid-cols-1 min-[681px]:grid-cols-2 min-[821px]:grid-cols-4">
           {BENEFITS.map((b) => (
             <div key={b.no} className="bg-mg-surface p-[34px_28px]">
-              <div className="font-grotesk font-semibold text-[30px] leading-none tracking-[-0.03em] text-mg-accent">
+              <div className="font-grotesk font-semibold text-[30px] leading-none tracking-[-0.03em] text-mg-accentInk">
                 {b.no}
               </div>
               <div className="mt-4 font-grotesk font-medium text-[17px] leading-[1.15] tracking-[-0.015em]">
@@ -266,13 +266,13 @@ export default function MembershipPage() {
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-[22px] font-grotesk font-medium text-[19px] leading-[1.2] tracking-[-0.015em] [&::-webkit-details-marker]:hidden">
                 <span>{f.q}</span>
                 <span
-                  className="font-grotesk text-[22px] text-mg-accent group-open:hidden"
+                  className="font-grotesk text-[22px] text-mg-accentInk group-open:hidden"
                   aria-hidden
                 >
                   +
                 </span>
                 <span
-                  className="hidden font-grotesk text-[22px] text-mg-accent group-open:inline"
+                  className="hidden font-grotesk text-[22px] text-mg-accentInk group-open:inline"
                   aria-hidden
                 >
                   –

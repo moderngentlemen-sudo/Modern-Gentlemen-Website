@@ -197,7 +197,7 @@ export function AssetDetails({
               <li key={usage.id} className="py-1.5">
                 <p className="text-[12px] text-mg-fg/80">
                   {usage.href ? (
-                    <Link href={usage.href} className="hover:text-mg-accent">
+                    <Link href={usage.href} className="hover:text-mg-accentInk">
                       {usage.title ?? `${usage.entityType} ${usage.entityId.slice(0, 8)}`}
                     </Link>
                   ) : (

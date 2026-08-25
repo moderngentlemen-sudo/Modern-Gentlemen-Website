@@ -1,0 +1,101 @@
+-- 0023 — `category.delete` starts actually gating a delete.
+--
+-- The seventh table, and the one `0022` had to leave out. Its header named the
+-- prerequisite exactly: "Reconciling those two service paths is the
+-- prerequisite, and it is a product decision about what the taxonomy screen's
+-- delete means rather than a policy repair." That decision has now been taken.
+--
+-- ---------------------------------------------------------------------------
+-- The defect, which is NOT quite `0022`'s
+-- ---------------------------------------------------------------------------
+-- ⚠️ Checked against `pg_policies` on the live project rather than assumed from
+-- `0022`'s description, and it is worse than that description implies.
+-- `categories` carries exactly two policies:
+--
+--   "categories: public read published"  SELECT  (status='published' OR is_staff())
+--   "categories: write"                  ALL     (taxonomy.write OR category.write)
+--
+-- There is **no permissive delete policy at all**. The other six tables paired
+-- an `ALL` write policy with an additive `x.delete` policy, which at least
+-- mentioned the permission; here `category.delete` appears in the RLS
+-- catalogue **nowhere**. It is a permission the application checks
+-- (`deleteDocument` requires it) and the database has never heard of, so the
+-- effective rule is
+--
+--   taxonomy.write OR category.write
+--
+-- Holding either is enough to delete any category through a direct PostgREST
+-- call, which carries none of the service layer's checks with it.
+--
+-- ---------------------------------------------------------------------------
+-- What changed above this migration, and why it had to change first
+-- ---------------------------------------------------------------------------
+-- A category has two delete routes and they checked different permissions:
+--
+--   /admin/taxonomy   → taxonomy.deleteCategory   → 'taxonomy.write'
+--   /admin/categories → documents.deleteDocument  → 'category.delete'
+--
+-- so a restrictive gate on `category.delete` would have broken the first screen
+-- for anyone holding `taxonomy.write` without it. `lib/services/taxonomy.ts`
+-- now requires `category.delete` too, and `/admin/taxonomy` hides the Delete
+-- control accordingly, so both routes agree before this policy lands. Applying
+-- this migration without that change would produce a button that throws.
+--
+-- The reasoning behind aligning them rather than widening the grant: `0021`
+-- made a category the sixth document type, so deleting one destroys a layout
+-- document, its revisions and its publish history alongside the label. That is
+-- not the same act as deleting a tag, and it should not have been reachable on
+-- the same permission.
+--
+-- ---------------------------------------------------------------------------
+-- Who loses access
+-- ---------------------------------------------------------------------------
+-- Read off `role_permissions` on the live project rather than off `0001`:
+--
+--   role           taxonomy.write   category.write   category.delete   loses
+--   admin          yes              yes              yes               nothing
+--   editor         yes              yes              yes               nothing
+--   author         yes              yes              NO                deleting a category
+--   merchandiser   no               no               no                nothing
+--   viewer         no               no               no                nothing
+--
+-- So `author` alone, and the loss is consistent rather than novel: `author`
+-- holds **no `*.delete` permission of any kind** — not `article.delete`, not
+-- `media.delete`, not `product.delete`. Being able to delete a category was the
+-- single exception, and it existed because this screen predates categories
+-- being documents. An author can still create and rename them.
+--
+-- `user_roles` on the live project holds one row, a single `admin`, so the
+-- production blast radius today is zero.
+--
+-- ---------------------------------------------------------------------------
+-- Why RESTRICTIVE
+-- ---------------------------------------------------------------------------
+-- `0018`'s argument, unchanged and repeated by `0022`: restrictive policies are
+-- AND-ed with the whole permissive set, so one of them constrains every route
+-- to a DELETE at once, including any policy added later. Folding the check into
+-- the `categories: write` policy would fix today's pair and silently reopen the
+-- hole the next time a third policy is added — which is how this arrived.
+--
+-- This adds no grant. The permissive policies still decide who may delete; this
+-- removes from that set anyone not holding `category.delete`.
+--
+-- ---------------------------------------------------------------------------
+-- What this does NOT change
+-- ---------------------------------------------------------------------------
+--   * `service_role` has BYPASSRLS, so `scripts/seed.ts` and the integration
+--     suite's fixture teardown are unaffected.
+--   * Reading, writing and publishing categories. Only DELETE is touched.
+--   * Tags and authors, which are still rows rather than documents and still
+--     delete on `taxonomy.write`.
+--   * `articles.category_id`, which is ON DELETE SET NULL — deleting a category
+--     still unfiles its articles rather than removing them.
+--
+-- Re-runnable, like every migration here: Postgres has no
+-- `create policy if not exists`, so the drop is what makes a replay safe. The
+-- `Migrations are idempotent` CI step re-applies all of them onto themselves
+-- and fails if any statement complains.
+
+drop policy if exists "categories: delete needs category.delete" on public.categories;
+create policy "categories: delete needs category.delete" on public.categories
+  as restrictive for delete using (public.has_permission('category.delete'));

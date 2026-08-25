@@ -33,7 +33,9 @@ export function Newsletter({
         {heading}
       </h2>
       {done ? (
-        <p className="mt-8 font-mono text-sm text-mg-accent">Thanks — you&apos;re on the list.</p>
+        <p className="mt-8 font-mono text-sm text-mg-accentInk">
+          Thanks — you&apos;re on the list.
+        </p>
       ) : (
         <form
           className="mt-[26px] mx-auto flex w-[520px] max-w-full bg-mg-surface border border-mg-bd/[0.09] overflow-hidden"

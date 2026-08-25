@@ -21,6 +21,15 @@ const config: Config = {
           // theme emitter derives `--mg-accent-rgb` from it, so the two cannot
           // drift and an editor still stores one value.
           accent: "rgb(var(--mg-accent-rgb) / <alpha-value>)",
+          // ⚠️ **The accent as INK, and it is a separate colour from `accent`
+          // because ink and fill want opposite luminances.** `text-mg-accent`
+          // on a dark band was 3.30; brightening `--mg-accent` to fix it
+          // dropped the white text on the red CTA band from 5.88 to 4.12,
+          // measured, and took the failing-node count from 34 to 46. So the
+          // fill stays #c8102e and the ink goes brighter on dark only.
+          // Every `text-`/`fill-`/`stroke-` use of the accent belongs here;
+          // `bg-`, `border-` and `ring-` belong on `accent` above.
+          accentInk: "rgb(var(--mg-accent-ink-rgb) / <alpha-value>)",
           // ⚠️ **This line used to be `var(--mg-accent-serif)`, and this comment
           // used to cite it as the standing proof of the paragraph above** —
           // correctly, and for three phases nobody drew the obvious conclusion.

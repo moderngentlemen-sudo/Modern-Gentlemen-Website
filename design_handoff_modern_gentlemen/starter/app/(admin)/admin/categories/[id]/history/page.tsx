@@ -45,7 +45,7 @@ export default async function CategoryHistory({ params }: { params: Promise<{ id
               not nested under /category. See `publicPathForCategory`. */}
           <Link
             href={publicPathForCategory(category.slug)}
-            className="font-mono hover:text-mg-accent"
+            className="font-mono hover:text-mg-accentInk"
           >
             {publicPathForCategory(category.slug)}
           </Link>

@@ -31,13 +31,15 @@ const DARK =
   ":root:root{" +
   "--mg-bg:#0d0d0d;--mg-fg:#f4f4f4;--mg-surface:#131315;--mg-bd:#ffffff;" +
   "--mg-accent:#c8102e;--mg-accent-rgb:200 16 46;" +
+  "--mg-accent-ink:#f7142e;--mg-accent-ink-rgb:247 20 46;" +
   "--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94;" +
-  "--mg-muted:rgba(244, 244, 244, 0.5);--mg-faint:rgba(244, 244, 244, 0.35);" +
+  "--mg-muted:rgba(244, 244, 244, 0.5);--mg-faint:rgba(244, 244, 244, 0.5);" +
   "--mg-band-border:rgba(255, 255, 255, 0.12)}";
 
 const LIGHT =
   'html[data-mgtheme="light"]:root{' +
   "--mg-bg:#f4f4f4;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;" +
+  "--mg-accent-ink:#c8102e;--mg-accent-ink-rgb:200 16 46;" +
   "--mg-accent-serif:#c8102e;--mg-accent-serif-rgb:200 16 46;" +
   "--mg-muted:#8a8a8a;--mg-faint:#b0b0b0;" +
   "--mg-band-border:transparent}";
@@ -45,9 +47,10 @@ const LIGHT =
 const DARK_BAND =
   "[data-darkband][data-darkband]{" +
   "--mg-bg:#0d0d0d;--mg-fg:#f4f4f4;--mg-surface:#161618;--mg-bd:#ffffff;" +
+  "--mg-accent-ink:#f7142e;--mg-accent-ink-rgb:247 20 46;" +
   "--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94;" +
   "--mg-muted:rgba(244, 244, 244, 0.5);" +
-  "--mg-faint:rgba(244, 244, 244, 0.35)}";
+  "--mg-faint:rgba(244, 244, 244, 0.5)}";
 
 /**
  * Read the real stylesheet and pull the three token blocks out of it.
@@ -135,6 +138,7 @@ const CSS_VAR_FOR_TEST: Record<string, string> = {
   surface: "--mg-surface",
   bd: "--mg-bd",
   accent: "--mg-accent",
+  accentInk: "--mg-accent-ink",
   accentSerif: "--mg-accent-serif",
   muted: "--mg-muted",
   faint: "--mg-faint",
@@ -146,13 +150,31 @@ describe("themeCssText — the contract with globals.css", () => {
     expect(themeCssText(DEFAULT_THEME_COLORS)).toBe(DARK + LIGHT + DARK_BAND);
   });
 
-  it("declares the accent once, and only in the dark block", () => {
+  /**
+   * ⚠️ **INVERTED.** This test read "declares the accent once, and only in the
+   * dark block" and asserted `toHaveLength(1)`. It was correct for as long as
+   * one red served both themes — and that stopped being possible, not merely
+   * unfashionable: against `#0d0d0d` AA sets a luminance floor of 0.193 and
+   * against `#f4f4f4` a ceiling of 0.162, and no hue sits in both. The accent
+   * is now a three-context token and the assertion is its opposite.
+   */
+  it("declares the accent fill once and the accent ink in all three", () => {
     const css = themeCssText(DEFAULT_THEME_COLORS);
 
-    // `--mg-accent-rgb` also matches a naive count of "--mg-accent", so anchor
-    // on the delimiter that follows the property name.
+    // `--mg-accent-rgb` and `--mg-accent-ink` also match a naive count of
+    // "--mg-accent", so anchor on the delimiter that follows each name.
     expect(css.match(/--mg-accent:/g)).toHaveLength(1);
-    expect(css.indexOf("--mg-accent:")).toBeLessThan(css.indexOf(LIGHT));
+    expect(css.match(/--mg-accent-ink:/g)).toHaveLength(3);
+
+    // The split that this whole change turns on: the fill must NOT follow the
+    // ink brighter, because white text sits on the fill. Brightening it took
+    // the failing-node count from 34 to 46.
+    expect(DEFAULT_THEME_COLORS.dark?.accent).toBe("#c8102e");
+    expect(DEFAULT_THEME_COLORS.dark?.accentInk).not.toBe(DEFAULT_THEME_COLORS.dark?.accent);
+
+    // And a dark band on a light page must not inherit light's ink.
+    expect(DEFAULT_THEME_COLORS.darkBand?.accentInk).toBe(DEFAULT_THEME_COLORS.dark?.accentInk);
+    expect(DEFAULT_THEME_COLORS.light?.accentInk).not.toBe(DEFAULT_THEME_COLORS.dark?.accentInk);
   });
 
   it("emits the accent's channel twin beside it, derived from the same value", () => {
@@ -321,11 +343,30 @@ describe("token tables", () => {
     }
   });
 
-  it("keeps the two asymmetries that globals.css depends on", () => {
+  /**
+   * ⚠️ **There used to be two asymmetries here and now there is one.** The
+   * accent was dark-only while one red served both themes; it is a full
+   * three-context token since AA forced the red to differ per theme. What
+   * remains is the trap, and it is the more dangerous of the two anyway.
+   */
+  it("keeps the asymmetry globals.css depends on: no bandBorder on a dark band", () => {
+    // `globals.css` keys the hairline off the PAGE theme — translucent white on
+    // a dark page, `transparent` on a light one — so a dark band on paper still
+    // takes no hairline. Letting `darkBand` declare it would draw one there.
+    expect(TOKENS_BY_CONTEXT.darkBand).not.toContain("bandBorder");
+    expect(TOKENS_BY_CONTEXT.light).toContain("bandBorder");
+  });
+
+  it("keeps the accent FILL dark-only — it is one value in all three contexts", () => {
     expect(TOKENS_BY_CONTEXT.dark).toContain("accent");
     expect(TOKENS_BY_CONTEXT.light).not.toContain("accent");
     expect(TOKENS_BY_CONTEXT.darkBand).not.toContain("accent");
-    expect(TOKENS_BY_CONTEXT.darkBand).not.toContain("bandBorder");
+  });
+
+  it("lets every context declare the accent INK, because no one red passes in both", () => {
+    for (const context of THEME_CONTEXTS) {
+      expect(TOKENS_BY_CONTEXT[context]).toContain("accentInk");
+    }
   });
 
   it("supplies a default for every token a context declares", () => {

@@ -112,12 +112,21 @@ export function TaxonomyManager({
   authors,
   canWrite,
   canEditLayout,
+  canDeleteCategory,
 }: {
   categories: TaxonomyRow[];
   tags: TaxonomyRow[];
   authors: TaxonomyRow[];
   canWrite: boolean;
   canEditLayout: boolean;
+  /**
+   * `category.delete`, and it applies to categories only.
+   *
+   * Deleting a category destroys a layout document as well as a label, so it
+   * takes the same permission `/admin/categories` has always required. A tag or
+   * an author is still just a row, and still deletes on `taxonomy.write`.
+   */
+  canDeleteCategory: boolean;
 }) {
   return (
     <div className="space-y-8 px-8 py-8">
@@ -126,9 +135,22 @@ export function TaxonomyManager({
         rows={categories}
         canWrite={canWrite}
         canEditLayout={canEditLayout}
+        canDelete={canDeleteCategory}
       />
-      <TaxonomySection kind="tag" rows={tags} canWrite={canWrite} canEditLayout={false} />
-      <TaxonomySection kind="author" rows={authors} canWrite={canWrite} canEditLayout={false} />
+      <TaxonomySection
+        kind="tag"
+        rows={tags}
+        canWrite={canWrite}
+        canEditLayout={false}
+        canDelete={canWrite}
+      />
+      <TaxonomySection
+        kind="author"
+        rows={authors}
+        canWrite={canWrite}
+        canEditLayout={false}
+        canDelete={canWrite}
+      />
     </div>
   );
 }
@@ -138,12 +160,15 @@ function TaxonomySection({
   rows,
   canWrite,
   canEditLayout,
+  canDelete,
 }: {
   kind: Kind;
   rows: TaxonomyRow[];
   canWrite: boolean;
   /** `category.write`, which is a different grant from `taxonomy.write`. */
   canEditLayout: boolean;
+  /** Separate from `canWrite` for categories only — see `TaxonomyManager`. */
+  canDelete: boolean;
 }) {
   const config = CONFIG[kind];
   const router = useRouter();
@@ -270,24 +295,24 @@ function TaxonomySection({
                       </Button>
                     )}
                     {canWrite && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={pending}
-                          onClick={() => openEdit(row)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={pending}
-                          onClick={() => setConfirmDelete(row)}
-                        >
-                          Delete
-                        </Button>
-                      </>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={pending}
+                        onClick={() => openEdit(row)}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={pending}
+                        onClick={() => setConfirmDelete(row)}
+                      >
+                        Delete
+                      </Button>
                     )}
                   </Td>
                 </tr>

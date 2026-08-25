@@ -287,7 +287,7 @@ export function PatternsList({
                     <Td>
                       <Link
                         href={`/admin/patterns/${pattern.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {pattern.title}
                       </Link>

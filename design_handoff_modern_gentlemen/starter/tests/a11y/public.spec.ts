@@ -104,32 +104,35 @@ function audit(page: Page) {
  *
  * What is left, and why each is still here:
  *
- *   * **The brand red at small sizes** (`#c8102e` on the dark band and on the
- *     `#131315` surface, `#ff4d5e` on light). This is the real decision. There
- *     is **no single red that passes at small text in both themes**: lightening
- *     `#c8102e` by ~25% toward white reaches 4.69 on dark and then drops to 3.77
- *     on the light page, where the current value passes at 5.35. Fixing it means
- *     a theme-dependent accent, or reserving the accent for large/non-text use.
- *     That is a brand identity question, not an implementation one.
+ * ⚠️ **This list held eight pairs and now holds three.** The red and the dark
+ * faint are gone — settled rather than silently dropped:
+ *
+ *   * **The brand red** was split into a fill and an ink. `--mg-accent` stays
+ *     `#c8102e` because white text sits on it; `--mg-accent-ink` is `#f7142e`
+ *     in dark contexts and `#c8102e` on light, and every `text-`side use moved
+ *     to it. Brightening the single token instead was tried and **measured to
+ *     make things worse — 34 failing nodes became 46** — because the red CTA
+ *     band is the same colour and its white text fell from 5.88 to 4.12.
+ *   * **The serif accent** was 14 hard-coded `text-[#ff4d5e]` literals painting
+ *     the dark value onto light pages. They are the token now, so light gets
+ *     `#c8102e` at 5.35.
+ *   * **`--mg-faint` on the dark band** was the 0.35 alpha compositing to
+ *     `#5e5e5e`. It is 0.5 and `#818181` — 4.99.
+ *
+ * What remains is one decision, deliberately still open:
+ *
  *   * **`--mg-muted` / `--mg-faint` on light** (`#8a8a8a`, `#b0b0b0`). Both need
  *     to reach `#707070` to clear 4.5, which is the *same* value — so AA
- *     collapses the light-mode two-step grey ramp into one step. That has a real
- *     design cost and is left with the red.
- *   * **`--mg-faint` on the dark band** (`#5e5e5e`, the 0.35 alpha), for the
- *     same reason.
+ *     collapses the light-mode two-step grey ramp into one step. That is a real
+ *     design cost rather than an arithmetic one, and it is the brand's.
  *
  * **INVERT AS EACH IS SETTLED**: delete the entry, and the rule starts guarding
  * it. When the list empties, delete it and the KNOWN GAP test with it.
  */
 const ACCEPTED_CONTRAST_GAPS: ReadonlyArray<{ fg: string; bg: string; why: string }> = [
-  { fg: "#c8102e", bg: "#0d0d0d", why: "brand red on the dark band — 3.30" },
-  { fg: "#c8102e", bg: "#131315", why: "brand red on the dark surface — 3.15" },
-  { fg: "#ff4d5e", bg: "#ffffff", why: "accent-serif on a light card — 3.24" },
-  { fg: "#ff4d5e", bg: "#f4f4f4", why: "accent-serif on the light page — 2.94" },
   { fg: "#8a8a8a", bg: "#f4f4f4", why: "--mg-muted on light — 3.13" },
   { fg: "#8a8a8a", bg: "#ffffff", why: "--mg-muted on a light card — 3.45" },
   { fg: "#b0b0b0", bg: "#f4f4f4", why: "--mg-faint on light — 1.97" },
-  { fg: "#5e5e5e", bg: "#0d0d0d", why: "--mg-faint on the dark band — 2.99" },
 ];
 
 /**
@@ -329,9 +332,10 @@ test("no link is left nameless by an undescribed image", async ({ page }) => {
  * delete this test, and let the per-route audits carry contrast like every
  * other rule.
  */
-test("KNOWN GAP: the brand red still fails AA at small sizes", async ({ page }) => {
-  // The dark band is where the red is worst (3.30), and it renders in both
-  // themes, so `/` in light is enough to observe it.
+test("KNOWN GAP: the light grey ramp still fails AA at small sizes", async ({ page }) => {
+  // ⚠️ **Renamed.** This watched "the brand red" until the ink/fill split fixed
+  // it. All six survivors are `--mg-muted`/`--mg-faint` on light, and they all
+  // render on the homepage, so `/` in light is still where to observe them.
   await open(page, "/", "light");
 
   // A fresh builder, not `audit()`: axe refuses `withTags` and `withRules`
@@ -343,13 +347,11 @@ test("KNOWN GAP: the brand red still fails AA at small sizes", async ({ page }) 
   // moves whenever its content does, and pinning it would make an editorial
   // change look like an accessibility regression.
   //
-  // ⚠️ **What this asserts is now narrower than it was, and deliberately so.**
-  // It used to say "the palette fails", which was true of 175 nodes across four
-  // causes. The 81% that was a repair rather than a decision has been fixed —
-  // the `/40` dark-band labels and the CTA band's whites — so what is left is
-  // the brand red and the light-mode grey ramp, and those are what this now
-  // watches. Every pair below is in ACCEPTED_CONTRAST_GAPS; if this reaches
-  // zero, that list and the per-route filter are lying.
+  // ⚠️ **Narrower again, for the second time.** It watched 175 nodes across four
+  // causes, then the brand red plus the light grey ramp, and now the light grey
+  // ramp alone — **6 nodes, down from 34 at the start of this change.** Every
+  // pair below is in ACCEPTED_CONTRAST_GAPS; if this reaches zero, that list and
+  // the per-route filter are lying.
   expect(
     nodes.length,
     "contrast is fixed — empty ACCEPTED_CONTRAST_GAPS and delete this test"
