@@ -100,7 +100,7 @@ export function BlockPreview({ type }: { type: string }) {
                     disappears, so the placeholder would read as an empty box.
                   */}
                   <div className="flex min-h-[220px] items-center justify-center border-4 border-dashed border-mg-fg/40 p-6 text-center">
-                    <p className="font-mono text-[28px] uppercase tracking-[0.16em] text-mg-fg/40">
+                    <p className="font-mono text-[28px] uppercase tracking-[0.16em] text-mg-fg/60">
                       {slot.label}
                     </p>
                   </div>

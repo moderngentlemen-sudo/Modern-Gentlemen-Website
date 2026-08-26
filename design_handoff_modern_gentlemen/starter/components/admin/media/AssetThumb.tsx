@@ -62,7 +62,7 @@ export function AssetThumb({ asset, className }: { asset: AssetView; className?:
 
   return (
     <div className={box}>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/45">
+      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60">
         {asset.kind}
       </span>
     </div>

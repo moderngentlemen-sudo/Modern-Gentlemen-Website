@@ -77,7 +77,7 @@ export function AuthorCard({ author, initial }: { author: string; initial: strin
       </div>
       <div>
         <div className="font-grotesk font-medium text-[15px] text-mg-fg">{author}</div>
-        <div className="mt-[3px] font-serif italic text-[13px] leading-[1.5] text-mg-fg/55">
+        <div className="mt-[3px] font-serif italic text-[13px] leading-[1.5] text-mg-fg/60">
           Contributing editor, on style, stewardship, and the considered life.
         </div>
       </div>

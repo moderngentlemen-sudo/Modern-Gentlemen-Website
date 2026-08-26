@@ -55,7 +55,7 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
           </Button>
         }
       >
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           {source.kind === "xml_feed"
             ? "An XML feed. Map its fields onto ours, then run it — everything it finds is staged for review."
             : source.kind === "shopify"

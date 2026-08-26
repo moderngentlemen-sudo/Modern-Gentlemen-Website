@@ -172,7 +172,7 @@ export default function MembershipPage() {
                     <span
                       className={clsx(
                         "mb-2 font-mono text-[11px]",
-                        t.featured ? "text-white/85" : "text-mg-fg/50"
+                        t.featured ? "text-white/85" : "text-mg-fg/60"
                       )}
                     >
                       {per}
@@ -242,7 +242,7 @@ export default function MembershipPage() {
               <div className="mt-4 font-grotesk font-medium text-[17px] leading-[1.15] tracking-[-0.015em]">
                 {b.title}
               </div>
-              <p className="mt-[10px] font-grotesk font-light text-[13.5px] leading-[1.55] text-mg-fg/[0.58] text-pretty">
+              <p className="mt-[10px] font-grotesk font-light text-[13.5px] leading-[1.55] text-mg-fg/60 text-pretty">
                 {b.dek}
               </p>
             </div>

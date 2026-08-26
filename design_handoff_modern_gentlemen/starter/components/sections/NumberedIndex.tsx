@@ -23,7 +23,7 @@ export function NumberedIndex({ heading, items }: { heading?: string; items: Ite
               <span className="font-grotesk text-lg md:text-xl group-hover:text-mg-accentInk">
                 {it.title}
               </span>
-              {it.meta && <MonoLabel className="!text-mg-fg/40">{it.meta}</MonoLabel>}
+              {it.meta && <MonoLabel className="!text-mg-fg/60">{it.meta}</MonoLabel>}
             </div>
           );
           return <li key={i}>{it.href ? <Link href={it.href}>{row}</Link> : row}</li>;

@@ -29,7 +29,8 @@ import {
 // names the block that moved.
 const DARK =
   ":root:root{" +
-  "--mg-bg:#0d0d0d;--mg-fg:#f4f4f4;--mg-surface:#131315;--mg-bd:#ffffff;" +
+  "--mg-bg:#0d0d0d;--mg-bg-rgb:13 13 13;--mg-fg:#f4f4f4;--mg-fg-rgb:244 244 244;" +
+  "--mg-surface:#131315;--mg-surface-rgb:19 19 21;--mg-bd:#ffffff;--mg-bd-rgb:255 255 255;" +
   "--mg-accent:#c8102e;--mg-accent-rgb:200 16 46;" +
   "--mg-accent-ink:#f7142e;--mg-accent-ink-rgb:247 20 46;" +
   "--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94;" +
@@ -38,15 +39,17 @@ const DARK =
 
 const LIGHT =
   'html[data-mgtheme="light"]:root{' +
-  "--mg-bg:#f4f4f4;--mg-fg:#141414;--mg-surface:#ffffff;--mg-bd:#141414;" +
+  "--mg-bg:#f4f4f4;--mg-bg-rgb:244 244 244;--mg-fg:#141414;--mg-fg-rgb:20 20 20;" +
+  "--mg-surface:#ffffff;--mg-surface-rgb:255 255 255;--mg-bd:#141414;--mg-bd-rgb:20 20 20;" +
   "--mg-accent-ink:#c8102e;--mg-accent-ink-rgb:200 16 46;" +
   "--mg-accent-serif:#c8102e;--mg-accent-serif-rgb:200 16 46;" +
-  "--mg-muted:#8a8a8a;--mg-faint:#b0b0b0;" +
+  "--mg-muted:#5a5a5a;--mg-faint:#707070;" +
   "--mg-band-border:transparent}";
 
 const DARK_BAND =
   "[data-darkband][data-darkband]{" +
-  "--mg-bg:#0d0d0d;--mg-fg:#f4f4f4;--mg-surface:#161618;--mg-bd:#ffffff;" +
+  "--mg-bg:#0d0d0d;--mg-bg-rgb:13 13 13;--mg-fg:#f4f4f4;--mg-fg-rgb:244 244 244;" +
+  "--mg-surface:#161618;--mg-surface-rgb:22 22 24;--mg-bd:#ffffff;--mg-bd-rgb:255 255 255;" +
   "--mg-accent-ink:#f7142e;--mg-accent-ink-rgb:247 20 46;" +
   "--mg-accent-serif:#ff4d5e;--mg-accent-serif-rgb:255 77 94;" +
   "--mg-muted:rgba(244, 244, 244, 0.5);" +
@@ -214,8 +217,10 @@ describe("themeCssText — the contract with globals.css", () => {
   it("omits a block with nothing to say, and returns empty for an empty theme", () => {
     expect(themeCssText({})).toBe("");
     expect(themeCssText({ light: {} })).toBe("");
+    // `bg` carries a channel twin now, so it emits the pair — and shorthand
+    // hex still expands, which is what stops a stored `#fff` being refused.
     expect(themeCssText({ light: { bg: "#fff" } })).toBe(
-      'html[data-mgtheme="light"]:root{--mg-bg:#fff}'
+      'html[data-mgtheme="light"]:root{--mg-bg:#fff;--mg-bg-rgb:255 255 255}'
     );
   });
 

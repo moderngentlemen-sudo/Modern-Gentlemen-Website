@@ -23,7 +23,7 @@ export function Field({
     <label className="block">
       <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
         {label}
-        {optional && <span className="text-mg-fg/35"> (optional)</span>}
+        {optional && <span className="text-mg-fg/60"> (optional)</span>}
       </span>
       <input
         type={type}

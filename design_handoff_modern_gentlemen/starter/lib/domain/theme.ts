@@ -214,8 +214,8 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
     bd: "#141414",
     accentInk: "#c8102e",
     accentSerif: "#c8102e",
-    muted: "#8a8a8a",
-    faint: "#b0b0b0",
+    muted: "#5a5a5a",
+    faint: "#707070",
     bandBorder: "transparent",
   },
   darkBand: {
@@ -342,6 +342,22 @@ const accentValue = z.string().refine((v) => accentChannels(v) !== null, {
  * `rgba()` serif accent would find it rejected and the default restored.
  */
 const CHANNEL_TWIN: Partial<Record<ThemeToken, string>> = {
+  // ⚠️ These four joined late, and the bug they close is the largest this
+  // codebase has had: without a twin, Tailwind drops every alpha-modified
+  // utility for the token, so ~413 `text-mg-fg/70`-shaped classes across 129
+  // files emitted no CSS at all. `muted` and `faint` are deliberately absent —
+  // they are `rgba()` in dark, a twin can only come from a hex, and they have
+  // no alpha usages to lose.
+  //
+  // ⚠️ Membership narrows these four to **hex only** (see the note above this
+  // map): an editor can no longer store `rgba()` or a named colour for the
+  // background, foreground, surface or border. Nothing stored needs migrating —
+  // every default is a hex and no theme has ever been published — and shorthand
+  // (`#fff`) still expands, so the narrowing bites only on a form nobody uses.
+  bg: "--mg-bg-rgb",
+  fg: "--mg-fg-rgb",
+  surface: "--mg-surface-rgb",
+  bd: "--mg-bd-rgb",
   accent: "--mg-accent-rgb",
   accentInk: "--mg-accent-ink-rgb",
   accentSerif: "--mg-accent-serif-rgb",

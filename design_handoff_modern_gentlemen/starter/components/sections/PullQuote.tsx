@@ -26,7 +26,7 @@ export function PullQuote({ quote, attribution, size = "lg" }: Props) {
         {quote}
         <span className="text-mg-accentInk">&rdquo;</span>
       </blockquote>
-      <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/50">
+      <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/60">
         {attribution}
       </div>
     </section>

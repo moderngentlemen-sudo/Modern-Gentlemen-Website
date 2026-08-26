@@ -38,7 +38,7 @@ export default async function PatternHistory({ params }: { params: Promise<{ id:
           </Button>
         }
       >
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/60">
           {/* A pattern's key is not a path, so unlike the page header this is
               plain text rather than a link to the public site. */}
           <span className="font-mono">{pattern.slug}</span>

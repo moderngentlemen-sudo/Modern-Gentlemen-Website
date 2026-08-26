@@ -26,7 +26,7 @@ export function StatsBand({
               <div className="font-grotesk font-semibold text-[54px] leading-none tracking-[-0.04em] text-mg-accentInk">
                 {s.value}
               </div>
-              <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/55 text-pretty">
+              <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60 text-pretty">
                 {s.label}
               </div>
             </div>

@@ -19,7 +19,7 @@ export function EmptyState({
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
       {eyebrow && <MonoLabel>{eyebrow}</MonoLabel>}
       <h2 className="mt-2 font-grotesk text-[20px] font-semibold tracking-[-0.02em]">{title}</h2>
-      {children && <p className="mt-2 max-w-[420px] text-[13px] text-mg-fg/50">{children}</p>}
+      {children && <p className="mt-2 max-w-[420px] text-[13px] text-mg-fg/60">{children}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>
   );

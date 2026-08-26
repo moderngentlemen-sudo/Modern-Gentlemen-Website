@@ -43,7 +43,7 @@ export default async function TaxonomyIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Taxonomy">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           The lists articles are filed against. Deleting one never deletes the articles that used it
           — they simply become unfiled. A category also has a page layout of its own, composed in
           the builder.

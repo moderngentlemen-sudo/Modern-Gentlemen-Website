@@ -120,7 +120,7 @@ export function HistoryView({
                       </Badge>
                     </Td>
                     <Td className="text-mg-fg/60">{revision.label ?? "—"}</Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">
+                    <Td className="font-mono text-[12px] text-mg-fg/60">
                       {new Date(revision.created_at).toLocaleString()}
                     </Td>
                     <Td className="text-right">
@@ -171,7 +171,7 @@ export function HistoryView({
                       </Badge>
                     </Td>
                     <Td className="text-mg-fg/60">{event.note ?? "—"}</Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">
+                    <Td className="font-mono text-[12px] text-mg-fg/60">
                       {new Date(event.created_at).toLocaleString()}
                     </Td>
                   </tr>

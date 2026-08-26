@@ -378,7 +378,7 @@ export function ProductDetails({
 
         <PanelSection title="Specifications">
           {form.specs.length === 0 && (
-            <p className="text-[12px] text-mg-fg/45">
+            <p className="text-[12px] text-mg-fg/60">
               No rows yet. These render as the PDP&rsquo;s spec table, in this order.
             </p>
           )}
@@ -478,7 +478,7 @@ export function ProductDetails({
               );
             })}
           </ul>
-          <p className="text-[12px] text-mg-fg/45">
+          <p className="text-[12px] text-mg-fg/60">
             The store card shows the first. The column is a list because NEW and LIMITED are not
             mutually exclusive.
           </p>
@@ -486,7 +486,7 @@ export function ProductDetails({
 
         <PanelSection title="Collections">
           {collections.length === 0 ? (
-            <p className="text-[12px] text-mg-fg/45">
+            <p className="text-[12px] text-mg-fg/60">
               None exist yet. Create them under Collections.
             </p>
           ) : (

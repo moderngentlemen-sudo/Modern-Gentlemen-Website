@@ -126,7 +126,7 @@ export default function CheckoutPage() {
             ["Total paid", order.total],
           ].map(([k, v]) => (
             <div key={k}>
-              <dt className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-fg/40">
+              <dt className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-fg/60">
                 {k}
               </dt>
               <dd className="mt-1 text-sm">{v}</dd>
@@ -186,13 +186,13 @@ export default function CheckoutPage() {
                           ? "bg-mg-accent text-white"
                           : done
                             ? "bg-mg-accent/15 text-mg-accentInk"
-                            : "border border-mg-bd/25 text-mg-fg/40"
+                            : "border border-mg-bd/25 text-mg-fg/60"
                       }`}
                     >
                       {done ? "✓" : i + 1}
                     </span>
                     <span
-                      className={`font-mono uppercase text-[11px] tracking-[0.15em] ${active ? "text-mg-fg" : "text-mg-fg/40"}`}
+                      className={`font-mono uppercase text-[11px] tracking-[0.15em] ${active ? "text-mg-fg" : "text-mg-fg/60"}`}
                     >
                       {s}
                     </span>
@@ -288,7 +288,7 @@ export default function CheckoutPage() {
           {step === 2 && (
             <div className="grid max-w-md gap-4">
               <h2 className="font-grotesk text-xl">Payment</h2>
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mg-fg/50">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mg-fg/60">
                 Demo checkout — no real card is charged.
               </p>
               <Field
@@ -395,7 +395,7 @@ function ReviewCard({
   return (
     <div className="border border-mg-bd/15 p-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50">
+        <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
           {title}
         </span>
         <button

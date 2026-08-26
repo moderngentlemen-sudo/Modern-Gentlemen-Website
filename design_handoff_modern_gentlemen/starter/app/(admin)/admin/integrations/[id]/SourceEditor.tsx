@@ -380,7 +380,7 @@ export function SourceEditor({
 
       <Panel>
         <PanelSection title="Field mapping">
-          <p className="mb-4 text-[13px] text-mg-fg/50">
+          <p className="mb-4 text-[13px] text-mg-fg/60">
             Each row reads one path out of a source record and writes one of our fields. Paths are
             slash-separated and relative to one product.{" "}
             {isShopify ? (
@@ -406,7 +406,7 @@ export function SourceEditor({
           )}
 
           {mappings.length === 0 ? (
-            <p className="text-[13px] text-mg-fg/50">No fields mapped yet.</p>
+            <p className="text-[13px] text-mg-fg/60">No fields mapped yet.</p>
           ) : (
             <Table caption="Field mappings">
               <thead>
@@ -509,7 +509,7 @@ export function SourceEditor({
 
       <Panel>
         <PanelSection title="Runs">
-          <p className="mb-4 text-[13px] text-mg-fg/50">
+          <p className="mb-4 text-[13px] text-mg-fg/60">
             A run fetches the feed and stages what it finds. Nothing reaches the catalogue until it
             is approved and applied.
           </p>
@@ -525,7 +525,7 @@ export function SourceEditor({
                 Run now
               </Button>
               {(!enabled || missing.length > 0) && (
-                <span className="text-[12px] text-mg-fg/50">
+                <span className="text-[12px] text-mg-fg/60">
                   {!enabled ? "Enable the source first." : "Map the required fields first."}
                 </span>
               )}
@@ -554,7 +554,7 @@ export function SourceEditor({
           )}
 
           {jobs.length === 0 ? (
-            <p className="text-[13px] text-mg-fg/50">This source has never run.</p>
+            <p className="text-[13px] text-mg-fg/60">This source has never run.</p>
           ) : (
             <Table caption="Recent runs">
               <thead>
@@ -595,7 +595,7 @@ export function SourceEditor({
                     <Td className="font-mono text-[12px]">{job.total}</Td>
                     <Td className="font-mono text-[12px]">{job.created}</Td>
                     <Td className="font-mono text-[12px]">{job.updated}</Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">{job.unchanged}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">{job.unchanged}</Td>
                     <Td className="font-mono text-[12px]">{job.failed}</Td>
                   </tr>
                 ))}

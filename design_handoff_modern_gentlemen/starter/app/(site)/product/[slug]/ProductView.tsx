@@ -86,15 +86,15 @@ export function ProductView({ slug }: { slug: string }) {
 
   return (
     <div className="container-mg py-10 md:py-14">
-      <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/45">
+      <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
         <Link href="/shop" className="hover:text-mg-accentInk">
           Store
         </Link>{" "}
-        <span className="text-mg-fg/25">/</span>{" "}
+        <span className="text-mg-fg/60">/</span>{" "}
         <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accentInk">
           {product.catLabel}
         </Link>{" "}
-        <span className="text-mg-fg/25">/</span>{" "}
+        <span className="text-mg-fg/60">/</span>{" "}
         <span className="text-mg-fg/70">{product.name}</span>
       </nav>
 
@@ -139,12 +139,12 @@ export function ProductView({ slug }: { slug: string }) {
           </h1>
           <div className="mt-4 flex items-baseline gap-4">
             <span className="font-grotesk text-2xl">{formatGBP(price)}</span>
-            <span className="font-mono text-xs text-mg-fg/50">
+            <span className="font-mono text-xs text-mg-fg/60">
               Members {formatPence(memberPricePence)}
             </span>
           </div>
           <p className="mt-5 text-mg-fg/70 text-pretty">{product.blurb}</p>
-          <p className="mt-2 font-mono text-xs text-mg-fg/50">{product.material}</p>
+          <p className="mt-2 font-mono text-xs text-mg-fg/60">{product.material}</p>
 
           <VariantPicker
             variants={variants}
@@ -159,7 +159,7 @@ export function ProductView({ slug }: { slug: string }) {
           />
 
           {selected?.sku && (
-            <p className="mt-3 font-mono text-[11px] tracking-[0.1em] text-mg-fg/40">
+            <p className="mt-3 font-mono text-[11px] tracking-[0.1em] text-mg-fg/60">
               SKU {selected.sku}
             </p>
           )}
@@ -179,7 +179,7 @@ export function ProductView({ slug }: { slug: string }) {
               className={`flex-1 font-mono uppercase text-xs tracking-[0.2em] transition-colors ${
                 sellable
                   ? "bg-mg-accent text-white hover:bg-mg-fg hover:text-mg-bg"
-                  : "cursor-not-allowed border border-mg-bd/25 text-mg-fg/40"
+                  : "cursor-not-allowed border border-mg-bd/25 text-mg-fg/60"
               }`}
             >
               {!sellable ? "Unavailable" : added ? "Added to bag ✓" : "Add to bag"}
@@ -215,7 +215,7 @@ export function ProductView({ slug }: { slug: string }) {
                   key={k}
                   className="flex justify-between gap-4 border-b border-mg-bd/10 py-2 text-sm"
                 >
-                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">
+                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/60">
                     {k}
                   </dt>
                   <dd className="min-w-0 text-right">{v}</dd>

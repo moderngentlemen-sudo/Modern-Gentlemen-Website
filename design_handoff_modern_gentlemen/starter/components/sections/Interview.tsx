@@ -23,7 +23,7 @@ export function Interview({
         {headline}
       </h2>
       {subject && (
-        <p className="mt-3 font-mono text-xs uppercase tracking-[0.18em] text-mg-fg/50">
+        <p className="mt-3 font-mono text-xs uppercase tracking-[0.18em] text-mg-fg/60">
           {subject}
         </p>
       )}

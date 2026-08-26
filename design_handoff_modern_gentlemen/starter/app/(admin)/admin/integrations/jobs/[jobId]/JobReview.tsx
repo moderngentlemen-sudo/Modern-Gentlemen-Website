@@ -259,7 +259,7 @@ export function JobReview({
 
         <div className="ml-auto flex items-center gap-3">
           {approvedCount > 0 && !canWriteProducts && (
-            <span className="text-[12px] text-mg-fg/50">
+            <span className="text-[12px] text-mg-fg/60">
               Applying needs permission to write products.
             </span>
           )}
@@ -317,7 +317,7 @@ export function JobReview({
                     <p className="mt-1 text-[12px] text-mg-accentSerif">{item.error}</p>
                   )}
                 </Td>
-                <Td className="font-mono text-[12px] text-mg-fg/50">{item.externalId ?? "—"}</Td>
+                <Td className="font-mono text-[12px] text-mg-fg/60">{item.externalId ?? "—"}</Td>
                 <Td>
                   <Badge tone={ACTION_TONES[item.action]}>{item.action}</Badge>
                 </Td>
@@ -326,22 +326,22 @@ export function JobReview({
                 </Td>
                 <Td className="text-[12px] text-mg-fg/60">
                   {item.action === "create" ? (
-                    <span className="text-mg-fg/40">new product</span>
+                    <span className="text-mg-fg/60">new product</span>
                   ) : item.diff && item.diff.length > 0 ? (
                     <ul className="space-y-0.5">
                       {item.diff.slice(0, 3).map((change) => (
                         <li key={change.field} className="font-mono text-[11px]">
                           {change.field}:{" "}
-                          <span className="text-mg-fg/40">{show(change.before)}</span> →{" "}
+                          <span className="text-mg-fg/60">{show(change.before)}</span> →{" "}
                           {show(change.after)}
                         </li>
                       ))}
                       {item.diff.length > 3 && (
-                        <li className="text-[11px] text-mg-fg/40">+{item.diff.length - 3} more</li>
+                        <li className="text-[11px] text-mg-fg/60">+{item.diff.length - 3} more</li>
                       )}
                     </ul>
                   ) : (
-                    <span className="text-mg-fg/40">—</span>
+                    <span className="text-mg-fg/60">—</span>
                   )}
                 </Td>
                 <Td className="text-right">

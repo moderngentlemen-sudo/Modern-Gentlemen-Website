@@ -12,7 +12,7 @@ export default async function PagesIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Pages">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           Every page is an ordered list of sections, composed in the builder.
         </p>
       </AdminPageHeader>

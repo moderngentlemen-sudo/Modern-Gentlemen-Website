@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { penceToPounds } from "./money";
+import { productJsonLd } from "./seo";
 import {
+  cardPricePence,
   cartLineKey,
   defaultVariant,
   findVariant,
@@ -142,5 +145,76 @@ describe("cart line identity", () => {
     const slugs = ["travel-watch-roll", "a", "watch-roll-2"];
     for (const slug of slugs) expect(slug).not.toContain("::");
     expect("11111111-1111-4111-8111-111111111111").not.toContain("::");
+  });
+});
+
+describe("cardPricePence", () => {
+  const v = (over: Partial<PublicVariant> & { id: string }): PublicVariant => ({
+    title: "Size",
+    sku: null,
+    pricePence: null,
+    availability: "in_stock",
+    ...over,
+  });
+
+  it("quotes the product's own price when it is sold as one thing", () => {
+    // The property the sixteen baselines depend on: no seeded product has a
+    // variant row, so every card must read exactly as it always has.
+    expect(cardPricePence(14_500, undefined)).toEqual({ pence: 14_500, from: false });
+    expect(cardPricePence(14_500, [])).toEqual({ pence: 14_500, from: false });
+  });
+
+  it("says From when the buyable sizes differ", () => {
+    expect(cardPricePence(14_500, [v({ id: "a" }), v({ id: "b", pricePence: 15_999 })])).toEqual({
+      pence: 14_500,
+      from: true,
+    });
+  });
+
+  it("does not say From when three sizes are all one price", () => {
+    // "From £145" implies a choice. If every size costs the same there is none,
+    // and the word is just noise.
+    expect(cardPricePence(14_500, [v({ id: "a" }), v({ id: "b" }), v({ id: "c" })])).toEqual({
+      pence: 14_500,
+      from: false,
+    });
+  });
+
+  it("ignores a size nobody can buy, so it cannot advertise unspendable money", () => {
+    const mixed = [
+      v({ id: "a", pricePence: 9_900, availability: "discontinued" }),
+      v({ id: "b", pricePence: 15_900 }),
+    ];
+    // £99 exists in the data and must not reach the card.
+    expect(cardPricePence(14_500, mixed)).toEqual({ pence: 15_900, from: false });
+  });
+
+  it("falls back to every size when none is sellable", () => {
+    const none = [
+      v({ id: "a", pricePence: 9_900, availability: "out_of_stock" }),
+      v({ id: "b", pricePence: 15_900, availability: "discontinued" }),
+    ];
+    expect(cardPricePence(14_500, none)).toEqual({ pence: 9_900, from: true });
+  });
+
+  it("agrees with the AggregateOffer's lowPrice, which is the point", () => {
+    // The card and the structured data behind it disagreeing about the lowest
+    // price is the mismatch a shopping feed is penalised for. Same rule, same
+    // inputs, asserted together rather than hoped for.
+    const variants = [
+      v({ id: "a", pricePence: 9_900, availability: "discontinued" }),
+      v({ id: "b", pricePence: 15_900 }),
+      v({ id: "c", pricePence: 17_500 }),
+    ];
+    const offers = productJsonLd("https://example.test", {
+      name: "Jacket",
+      slug: "jacket",
+      pricePence: 14_500,
+      availability: "in_stock",
+      images: [],
+      variants,
+    }).offers as Record<string, unknown>;
+
+    expect(offers.lowPrice).toBe(penceToPounds(cardPricePence(14_500, variants).pence).toFixed(2));
   });
 });

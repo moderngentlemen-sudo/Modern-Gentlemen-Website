@@ -201,7 +201,7 @@ function EmptyDraft({ entityType, area }: { entityType: DocumentType; area?: str
   return (
     <main className="flex min-h-[70vh] items-center justify-center px-6">
       <div className="max-w-[440px] text-center">
-        <p className="font-serif text-lg italic text-mg-fg/50">Nothing to show</p>
+        <p className="font-serif text-lg italic text-mg-fg/60">Nothing to show</p>
         <h1 className="mt-2 font-grotesk text-[28px] font-semibold tracking-[-0.03em]">
           {area ? `The ${area} area is empty` : `This ${entityType} has no sections yet`}
         </h1>

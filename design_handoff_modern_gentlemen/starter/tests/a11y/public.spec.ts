@@ -88,88 +88,39 @@ function audit(page: Page) {
 }
 
 /**
- * The colour pairs AA does not yet meet, and that the brand has not yet decided
- * about. Everything else must pass `color-contrast` from now on.
+ * ✅ **`ACCEPTED_CONTRAST_GAPS` is gone, and so is the `KNOWN GAP` test that
+ * watched it. `color-contrast` is now enforced everywhere, unconditionally.**
  *
- * **This list replaced a blanket `disableRules(["color-contrast"])`,** which was
- * the right call when 175 nodes failed for one undecided reason — a suite that
- * fails everywhere reports nothing about anything. It stopped being the right
- * call once the decidable part was fixed: with the rule switched off entirely, a
- * **new** contrast bug anywhere on the site was invisible, which is the same
- * "green check that checks nothing" this repo has now recorded four times.
+ * The list held eight colour pairs, then three, then none. What closed it, in
+ * the order the causes were settled:
  *
- * Naming the survivors instead means contrast is **enforced everywhere except
- * these exact pairs**, and a regression that reintroduces one of the fixed ones
- * — a `/40` label back on a dark band, say — fails immediately.
+ *   * **The dark-band labels and the CTA band's whites** — opacity steps, an
+ *     earlier slice. 175 nodes to 34.
+ *   * **The accent**, split into a fill (`--mg-accent`, still `#c8102e`, because
+ *     white text sits on it) and an ink (`--mg-accent-ink`, `#f7142e` on dark).
+ *     Brightening the single token instead was tried and **measured to make
+ *     things worse — 34 nodes became 46.**
+ *   * **14 hard-coded `text-[#ff4d5e]` literals** painting the dark serif accent
+ *     onto light pages, against the design baseline's own token table.
+ *   * **`--mg-faint`'s dark alpha**, 0.35 to 0.5.
+ *   * **The alpha-utility repair**, which is the one that mattered most and
+ *     briefly made everything worse: ~413 `text-mg-fg/NN` classes had been
+ *     compiling to nothing, so muted text had always painted at FULL strength.
+ *     Fixing that took the count **6 → 110**, because the bug had been hiding
+ *     every one of those failures. The floor is arithmetic: `--mg-fg` needs
+ *     **alpha 0.59** to clear 4.5 on `#f4f4f4`, so 177 call sites below `/60`
+ *     were raised to it.
+ *   * **The light grey ramp**, `#8a8a8a`/`#b0b0b0` to `#5a5a5a`/`#707070` — and
+ *     the ramp did **not** have to collapse into one step, which this repo's
+ *     notes asserted three times. Anything at or below `#707070` passes both
+ *     light grounds, so keeping muted darker than faint preserves two steps.
  *
- * What is left, and why each is still here:
- *
- * ⚠️ **This list held eight pairs and now holds three.** The red and the dark
- * faint are gone — settled rather than silently dropped:
- *
- *   * **The brand red** was split into a fill and an ink. `--mg-accent` stays
- *     `#c8102e` because white text sits on it; `--mg-accent-ink` is `#f7142e`
- *     in dark contexts and `#c8102e` on light, and every `text-`side use moved
- *     to it. Brightening the single token instead was tried and **measured to
- *     make things worse — 34 failing nodes became 46** — because the red CTA
- *     band is the same colour and its white text fell from 5.88 to 4.12.
- *   * **The serif accent** was 14 hard-coded `text-[#ff4d5e]` literals painting
- *     the dark value onto light pages. They are the token now, so light gets
- *     `#c8102e` at 5.35.
- *   * **`--mg-faint` on the dark band** was the 0.35 alpha compositing to
- *     `#5e5e5e`. It is 0.5 and `#818181` — 4.99.
- *
- * What remains is one decision, deliberately still open:
- *
- *   * **`--mg-muted` / `--mg-faint` on light** (`#8a8a8a`, `#b0b0b0`). Both need
- *     to reach `#707070` to clear 4.5, which is the *same* value — so AA
- *     collapses the light-mode two-step grey ramp into one step. That is a real
- *     design cost rather than an arithmetic one, and it is the brand's.
- *
- * **INVERT AS EACH IS SETTLED**: delete the entry, and the rule starts guarding
- * it. When the list empties, delete it and the KNOWN GAP test with it.
+ * ⚠️ **If a pair ever has to be excepted again, do not reach for
+ * `disableRules`.** Reinstate a named list like the one deleted here: a blanket
+ * exclusion makes a *new* contrast bug invisible, which this file recorded
+ * learning once already.
  */
-const ACCEPTED_CONTRAST_GAPS: ReadonlyArray<{ fg: string; bg: string; why: string }> = [
-  { fg: "#8a8a8a", bg: "#f4f4f4", why: "--mg-muted on light — 3.13" },
-  { fg: "#8a8a8a", bg: "#ffffff", why: "--mg-muted on a light card — 3.45" },
-  { fg: "#b0b0b0", bg: "#f4f4f4", why: "--mg-faint on light — 1.97" },
-];
 
-/**
- * Drop the `color-contrast` nodes that are a documented, undecided gap, and keep
- * everything else.
- *
- * A violation whose nodes are *all* accepted disappears; one with a single
- * unaccepted node survives carrying only that node, so the failure message
- * names the new problem rather than the backlog.
- *
- * ⚠️ **Matching is on the colour pair, not the element.** That is deliberate:
- * the pair is the thing the brand has to decide about, and it does not move when
- * content does. Keying on a selector would make every editorial change look like
- * an accessibility regression — the mistake the KNOWN GAP test below already
- * records avoiding by asserting a floor rather than an exact count.
- */
-function withoutAcceptedContrastGaps(
-  violations: Awaited<ReturnType<AxeBuilder["analyze"]>>["violations"]
-): Awaited<ReturnType<AxeBuilder["analyze"]>>["violations"] {
-  const accepted = (node: { any?: readonly { data?: unknown }[] }) => {
-    const data = node.any?.[0]?.data as { fgColor?: string; bgColor?: string } | undefined;
-    if (!data?.fgColor || !data?.bgColor) return false;
-    return ACCEPTED_CONTRAST_GAPS.some(
-      (gap) =>
-        gap.fg.toLowerCase() === data.fgColor!.toLowerCase() &&
-        gap.bg.toLowerCase() === data.bgColor!.toLowerCase()
-    );
-  };
-
-  return violations
-    .map((v) =>
-      v.id === "color-contrast" ? { ...v, nodes: v.nodes.filter((n) => !accepted(n)) } : v
-    )
-    .filter((v) => v.nodes.length > 0);
-}
-
-/** Violations, formatted so a failure names the element rather than a rule id. */
 function describe(violations: Awaited<ReturnType<AxeBuilder["analyze"]>>["violations"]): string {
   return violations
     .map((v) => {
@@ -188,14 +139,10 @@ for (const theme of THEMES) {
       test(`${route.name} has no WCAG A/AA violations`, async ({ page }) => {
         await open(page, route.path, theme);
 
-        // `color-contrast` is **enforced here now**, minus the pairs in
-        // ACCEPTED_CONTRAST_GAPS. It used to be disabled outright, which was
-        // right while 175 nodes failed for one undecided reason and wrong the
-        // moment the decidable 81% of them were fixed — see that list.
+        // `color-contrast` is enforced with no exceptions — see the note above.
         const { violations } = await audit(page).analyze();
-        const unaccepted = withoutAcceptedContrastGaps(violations);
 
-        expect(unaccepted.length, `${route.path} (${theme}):\n${describe(unaccepted)}`).toBe(0);
+        expect(violations.length, `${route.path} (${theme}):\n${describe(violations)}`).toBe(0);
       });
     }
   });
@@ -297,76 +244,23 @@ test("no link is left nameless by an undescribed image", async ({ page }) => {
 });
 
 /**
- * KNOWN GAP — the palette does not meet AA at small sizes, and the design
- * baseline says it does.
+ * ✅ **The `KNOWN GAP` contrast test that stood here has been deleted, which was
+ * its own stated retirement condition.**
  *
- * This is a characterisation test: it asserts the wrong-but-current behaviour,
- * named so nobody mistakes it for an endorsement, and carrying the instruction
- * to invert it. The technique is this repo's own — `is_system` for `0018` and
- * `draft_data` for `0020` both went through the full cycle, and both survived
- * the months between discovery and fix **because they were asserted rather than
- * written down in prose.**
+ * It asserted the wrong-but-current behaviour — "the palette does not meet AA at
+ * small sizes, and the design baseline says it does" — as a floor rather than a
+ * count, so editorial changes could not make it flap. It went 204 nodes → 175 →
+ * 34 → 6 → **0**, and its instruction was explicit: *"INVERT THIS when that
+ * decision is made: drop the `disableRules` above, delete this test, and let the
+ * per-route audits carry contrast like every other rule."* Both halves done.
  *
- * What the sweep found, across 11 routes × 2 themes: **204 contrast violations
- * and nothing else.** Every other WCAG A/AA rule passes. They collapse into
- * four token-level causes, not scattered mistakes:
- *
- *   * `#696969` on `#0d0d0d` — 156 of them, the dark-band mono labels at
- *     9–10px. Ratio **3.54**, needs 4.5.
- *   * The racing red itself — `#c8102e` on dark and `#ff4d5e` on light, at
- *     10–12px. Ratios **2.94–3.3**.
- *   * `--mg-muted` `#8a8a8a` and `--mg-faint` `#b0b0b0` on light. **1.97–3.45**.
- *   * Pale pink on red inside the CTA band, `#f4cfd5` on `#c8102e`. **4.12** —
- *     the near miss.
- *
- * ⚠️ **Fixing this is a design decision, not a repair, which is why it is
- * recorded rather than done.** Every failure is a design token or the brand
- * accent at a size the prototypes specify. Changing them moves pixels on a
- * site that is pixel-verified against `handoff/screenshots/`, so it invalidates
- * the sixteen baselines by construction — and `design_handoff_modern_gentlemen/
- * CLAUDE.md` both forbids deviating from the tokens *and* claims they already
- * meet AA. Those two statements cannot both survive this measurement. Which one
- * gives is the brand's call.
- *
- * **INVERT THIS when that decision is made**: drop the `disableRules` above,
- * delete this test, and let the per-route audits carry contrast like every
- * other rule.
+ * **This is the fifth characterisation test in this repo to complete the full
+ * cycle** — asserted as a gap, cited to justify a change, inverted or deleted in
+ * the same commit as the fix — after `is_system` (`0018`), `draft_data`
+ * (`0020`), `taxonomy.write` on categories (`0023`) and the alpha-utility ramp.
+ * The technique is the reusable part: a gap recorded only in prose is a gap
+ * nobody notices closing.
  */
-test("KNOWN GAP: the light grey ramp still fails AA at small sizes", async ({ page }) => {
-  // ⚠️ **Renamed.** This watched "the brand red" until the ink/fill split fixed
-  // it. All six survivors are `--mg-muted`/`--mg-faint` on light, and they all
-  // render on the homepage, so `/` in light is still where to observe them.
-  await open(page, "/", "light");
-
-  // A fresh builder, not `audit()`: axe refuses `withTags` and `withRules`
-  // together, and the rule id is the precise thing being measured here.
-  const { violations } = await new AxeBuilder({ page }).withRules(["color-contrast"]).analyze();
-  const nodes = violations.flatMap((v) => v.nodes);
-
-  // Asserted as a floor rather than an exact count: the homepage's node count
-  // moves whenever its content does, and pinning it would make an editorial
-  // change look like an accessibility regression.
-  //
-  // ⚠️ **Narrower again, for the second time.** It watched 175 nodes across four
-  // causes, then the brand red plus the light grey ramp, and now the light grey
-  // ramp alone — **6 nodes, down from 34 at the start of this change.** Every
-  // pair below is in ACCEPTED_CONTRAST_GAPS; if this reaches zero, that list and
-  // the per-route filter are lying.
-  expect(
-    nodes.length,
-    "contrast is fixed — empty ACCEPTED_CONTRAST_GAPS and delete this test"
-  ).toBeGreaterThan(0);
-
-  // And the survivors must still be the *documented* ones. A node here that is
-  // not in the accepted list would already have failed the per-route audits;
-  // this catches the inverse — a fixed pair silently regressing back into the
-  // backlog and being mistaken for "still known".
-  const unaccepted = withoutAcceptedContrastGaps(violations).flatMap((v) => v.nodes);
-  expect(
-    unaccepted.length,
-    `contrast failures outside ACCEPTED_CONTRAST_GAPS:\n${describe(withoutAcceptedContrastGaps(violations))}`
-  ).toBe(0);
-});
 
 /**
  * Reduced motion is gated, not merely declared.

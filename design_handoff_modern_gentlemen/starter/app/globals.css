@@ -5,9 +5,15 @@
 /* Theme tokens (see 02_DESIGN_TOKENS.md). Dark is the base; light overrides. */
 :root {
   --mg-bg: #0d0d0d;
+  --mg-bg-rgb: 13 13 13;
   --mg-fg: #f4f4f4;
+  /* The channel twins exist so Tailwind can compute an alpha. `text-mg-fg/70`
+     and ~413 siblings compiled to nothing without them. See tailwind.config.ts. */
+  --mg-fg-rgb: 244 244 244;
   --mg-surface: #131315;
+  --mg-surface-rgb: 19 19 21;
   --mg-bd: #ffffff;
+  --mg-bd-rgb: 255 255 255;
   /* The brand red as a FILL — buttons, the CTA band, badges, borders. Identical
      in all three contexts, and it must stay #c8102e: white text sits on it, and
      white on #c8102e is 5.88 while white on a brighter red is 4.12. Raising it
@@ -53,9 +59,13 @@
 }
 html[data-mgtheme="light"] {
   --mg-bg: #f4f4f4;
+  --mg-bg-rgb: 244 244 244;
   --mg-fg: #141414;
+  --mg-fg-rgb: 20 20 20;
   --mg-surface: #ffffff;
+  --mg-surface-rgb: 255 255 255;
   --mg-bd: #141414;
+  --mg-bd-rgb: 20 20 20;
   /* The ink and the fill are the SAME value on paper: #c8102e reads 5.35 on
      --mg-bg and 5.88 on a white card, so light never had the problem dark has.
      Declared anyway rather than inherited, so the pair is legible in one place
@@ -64,8 +74,18 @@ html[data-mgtheme="light"] {
   --mg-accent-ink-rgb: 200 16 46;
   --mg-accent-serif: #c8102e;
   --mg-accent-serif-rgb: 200 16 46;
-  --mg-muted: #8a8a8a;
-  --mg-faint: #b0b0b0;
+  /* ⚠️ **The light ramp keeps BOTH steps, and the received wisdom that it could
+     not is wrong.** This file's own notes and the design baseline both said
+     `--mg-muted` and `--mg-faint` "both need #707070, so AA collapses the
+     two-step light ramp into one step". That assumed moving each to the
+     MINIMUM passing value. In fact **anything at or below #707070 clears 4.5
+     on both #f4f4f4 (4.50) and #ffffff (4.95)** — so keeping muted darker than
+     faint preserves a real ramp. The step narrows (0.180 luminance apart
+     before, 0.060 now) but it survives.
+     muted #5a5a5a: 6.27 on the page, 6.90 on a card.
+     faint #707070: 4.50 on the page, 4.95 on a card — the AA ceiling exactly. */
+  --mg-muted: #5a5a5a;
+  --mg-faint: #707070;
   /* Inset dark bands take a hairline only in dark mode; on paper the edge is
      the band itself (prototype `bandBorder`). Keyed off the PAGE theme, so
      [data-darkband] must not override it. */
@@ -77,9 +97,13 @@ html[data-mgtheme="light"] {
    correctly regardless of the page theme. */
 [data-darkband] {
   --mg-bg: #0d0d0d;
+  --mg-bg-rgb: 13 13 13;
   --mg-fg: #f4f4f4;
+  --mg-fg-rgb: 244 244 244;
   --mg-surface: #161618;
+  --mg-surface-rgb: 22 22 24;
   --mg-bd: #ffffff;
+  --mg-bd-rgb: 255 255 255;
   /* ⚠️ The band needs its own ink, and this is the declaration that does the
      most work of the three. A dark band on a LIGHT page would otherwise inherit
      light's #c8102e and paint it on #0d0d0d — 3.30 — which is where 11 of the

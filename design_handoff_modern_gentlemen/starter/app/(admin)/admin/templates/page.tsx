@@ -24,7 +24,7 @@ export default async function TemplatesIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Templates">
-        <p className="mt-2 max-w-[70ch] text-[13px] text-mg-fg/50">
+        <p className="mt-2 max-w-[70ch] text-[13px] text-mg-fg/60">
           A template is a layout made of named <strong className="font-medium">areas</strong>, each
           one its own block tree, composed in the same builder as a page.
         </p>

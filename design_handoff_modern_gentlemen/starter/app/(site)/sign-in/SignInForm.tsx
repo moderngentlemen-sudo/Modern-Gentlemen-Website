@@ -56,7 +56,7 @@ export function SignInForm({ next }: { next?: string }) {
 
       <Link
         href="/forgot-password"
-        className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/50 underline underline-offset-4 hover:text-mg-accentInk"
+        className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/60 underline underline-offset-4 hover:text-mg-accentInk"
       >
         Forgot your password?
       </Link>

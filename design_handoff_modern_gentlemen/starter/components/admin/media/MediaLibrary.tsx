@@ -200,7 +200,7 @@ export function MediaLibrary({
             onMessage={(message, tone) => toast.push(message, tone)}
           />
         ) : (
-          <p className="border border-dashed border-mg-bd/20 px-4 py-8 text-center text-[12px] text-mg-fg/40">
+          <p className="border border-dashed border-mg-bd/20 px-4 py-8 text-center text-[12px] text-mg-fg/60">
             Select an asset to see its details, alt text and where it is used.
           </p>
         )}

@@ -45,7 +45,7 @@ export function ArticleGrid({
               <h3 className="mt-[11px] font-grotesk font-medium text-[22px] leading-[1.12] tracking-[-0.02em] text-balance">
                 {c.title}
               </h3>
-              <div className="mt-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mg-fg/[0.42]">
+              <div className="mt-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mg-fg/60">
                 {c.read}
               </div>
             </div>

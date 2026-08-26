@@ -31,7 +31,7 @@ export function DocumentContentGap() {
   return (
     <div className="container-mg my-10">
       <div className="border border-dashed border-mg-fg/25 px-6 py-10 text-center">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/45">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/60">
           Page content
         </p>
         <p className="mt-3 font-serif text-lg italic text-mg-fg/60">

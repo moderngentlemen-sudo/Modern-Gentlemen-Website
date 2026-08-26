@@ -55,7 +55,7 @@ export function RelatedArticles({
   return (
     <div>
       {chosen.length === 0 ? (
-        <p className="text-[12px] text-mg-fg/45">
+        <p className="text-[12px] text-mg-fg/60">
           None chosen. The article page falls back to the newest stories filed under the same
           category.
         </p>

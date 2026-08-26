@@ -38,7 +38,7 @@ export default async function TemplateHistory({ params }: { params: Promise<{ id
           </Button>
         }
       >
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/60">
           {/* A template's key is not a path, so this is plain text rather than a
               link to the public site. */}
           <span className="font-mono">{template.slug}</span>

@@ -37,7 +37,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           ) : undefined
         }
       >
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           {job.total_count} records — {job.created_count} new, {job.updated_count} changed,{" "}
           {job.unchanged_count} unchanged, {job.failed_count} failed.
         </p>

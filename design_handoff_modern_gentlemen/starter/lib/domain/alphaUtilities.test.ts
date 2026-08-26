@@ -24,35 +24,40 @@ import config from "../../tailwind.config";
  * `rgb(var(--…-rgb) / 0.4)`; `text-mg-fg/70`, `border-mg-bd/25` and
  * `bg-mg-bg/50` emit nothing whatsoever.
  *
- * ⚠️ **KNOWN GAP — the site-wide half of this is a design decision and is
- * deliberately NOT fixed.** `accent` was always in channel form and
- * `accentSerif` joined it (see below). `fg`, `bd` and `bg` have **417 alpha
- * usages across 129 files** between them and none of them has ever rendered:
- * every `text-mg-fg/70` on the public site paints at full opacity today, and
- * the sixteen baselines in `handoff/screenshots/` were verified against that.
- * Repairing them would lighten muted text and hairline borders across the whole
- * site at once — a visible change to a pixel-verified design, which is the
- * brand's call and not a session's.
+ * ✅ **INVERTED — `KNOWN_BROKEN` is now empty, and this is the fifth
+ * characterisation test in this repo to complete the full cycle** after
+ * `is_system` (`0018`), `draft_data` (`0020`), `taxonomy.write` on categories
+ * (`0023`) and the accent's dark-only context table.
  *
- * **The gap is asserted rather than described**, which is this repo's technique
- * for exactly this situation and the fifth time it has been used: a gap
- * recorded only in prose is a gap nobody notices closing. **When the decision
- * is made, invert `KNOWN_BROKEN` to `[]` in the same commit as the fix** — give
- * each token an `R G B` twin in `app/globals.css` (in every context that
- * redeclares it), add it to `CHANNEL_TWIN` in `lib/domain/theme.ts`, point the
- * palette entry at `rgb(var(--…-rgb) / <alpha-value>)`, and re-record the
- * baselines.
+ * It read: "`fg`, `bd` and `bg` have 417 alpha usages across 129 files between
+ * them and none of them has ever rendered". The brand took the decision and all
+ * four — `surface` was a latent fourth, unused with an alpha but one keystroke
+ * from the same bug — are in channel form now.
+ *
+ * ⚠️ **The instructions this comment carried were followed exactly and were
+ * still incomplete in one way worth recording.** It said to give each token a
+ * twin, register it in `CHANNEL_TWIN`, point the palette entry at the channel
+ * form and re-record the baselines. All true. What it did not say is that the
+ * repair *reintroduces contrast failures the bug was accidentally hiding*: text
+ * that had been painting at full strength starts rendering at its designed
+ * opacity, and a `/45` step over `--mg-bg` is well under AA. **The fix and the
+ * opacity re-tune are one change, not two**, and pretending otherwise leaves
+ * the site failing AA in a new place the moment it starts looking right.
+ *
+ * `muted` and `faint` stay bare `var()` deliberately — they are `rgba()` in
+ * dark, a channel twin can only be derived from a hex, and they have **zero**
+ * alpha usages. The test below still guards them: write one and it fails.
  */
 
 const ROOT = join(__dirname, "../..");
 const SCANNED = ["app", "components", "lib"];
 
 /**
- * The tokens whose alpha utilities currently emit nothing, and are staying that
- * way until the design decision above is taken. Inverting this to `[]` is the
- * whole point of the test.
+ * Empty, and it must stay empty. Every token used with an alpha anywhere in the
+ * codebase now resolves to a real declaration; a new bare-`var()` token used
+ * with an alpha puts its name back in here and fails the test below.
  */
-const KNOWN_BROKEN = ["bd", "bg", "fg"];
+const KNOWN_BROKEN: string[] = [];
 
 /** Every `mg-<token>/<alpha>` in the codebase, as the set of token names. */
 function tokensUsedWithAlpha(): Set<string> {
@@ -101,11 +106,11 @@ describe("alpha-modified Tailwind colours", () => {
     expect(used).toContain("fg");
   });
 
-  it("KNOWN GAP: fg, bd and bg still compile to nothing, pending a design decision", () => {
-    // Asserted as the wrong-but-current behaviour. When the brand decides to
-    // repair the ramp, this goes red on the day of the fix and says so — which
-    // is the entire reason it is a test and not a paragraph.
-    expect(bareVarTokens()).toEqual(KNOWN_BROKEN);
+  it("has no alpha-modified colour left compiling to nothing", () => {
+    // ⚠️ **INVERTED.** This asserted `["bd", "bg", "fg"]` — the wrong-but-current
+    // behaviour — until the brand took the decision. An empty list is now the
+    // property, and a regression names the offending token rather than a count.
+    expect(bareVarTokens()).toEqual([]);
   });
 
   it("keeps every other alpha-modified colour in working channel form", () => {
@@ -125,10 +130,34 @@ describe("alpha-modified Tailwind colours", () => {
     }
   });
 
-  it("keeps the two channel-form colours pointed at their own twin", () => {
-    // Copy-paste between these entries would render every serif-accent alpha in
-    // the racing red instead, which no other gate would notice.
-    expect(palette.accent).toBe("rgb(var(--mg-accent-rgb) / <alpha-value>)");
-    expect(palette.accentSerif).toBe("rgb(var(--mg-accent-serif-rgb) / <alpha-value>)");
+  it("keeps every channel-form colour pointed at its own twin", () => {
+    // Copy-paste between these entries would render one token's alphas in
+    // another's colour, which no other gate would notice — a `bg` pointed at
+    // `--mg-fg-rgb` inverts every translucent panel on the site and throws no
+    // error. Checked exhaustively rather than for the two that existed when
+    // this was written.
+    for (const [token, cssVar] of Object.entries({
+      bg: "--mg-bg-rgb",
+      fg: "--mg-fg-rgb",
+      surface: "--mg-surface-rgb",
+      bd: "--mg-bd-rgb",
+      accent: "--mg-accent-rgb",
+      accentInk: "--mg-accent-ink-rgb",
+      accentSerif: "--mg-accent-serif-rgb",
+    })) {
+      expect(palette[token], `mg.${token} must read its own twin`).toBe(
+        `rgb(var(${cssVar}) / <alpha-value>)`
+      );
+    }
+  });
+
+  it("leaves muted and faint bare, because a twin cannot be derived from rgba()", () => {
+    // Not an oversight: both are `rgba()` in dark by design. Their safety is
+    // that nothing uses them with an alpha — asserted, so the day someone does,
+    // the test above turns red instead of the class silently vanishing.
+    expect(palette.muted).toBe("var(--mg-muted)");
+    expect(palette.faint).toBe("var(--mg-faint)");
+    expect(tokensUsedWithAlpha()).not.toContain("muted");
+    expect(tokensUsedWithAlpha()).not.toContain("faint");
   });
 });

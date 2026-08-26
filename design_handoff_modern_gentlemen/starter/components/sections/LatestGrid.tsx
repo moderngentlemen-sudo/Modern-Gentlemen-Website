@@ -239,7 +239,7 @@ function SimpleCard({ item }: { item: Item }) {
       </div>
       {item.kicker && <MonoLabel className="block mt-4">{item.kicker}</MonoLabel>}
       <h3 className="font-grotesk text-lg mt-2 leading-snug text-pretty">{item.title}</h3>
-      {item.meta && <p className="font-mono text-xs text-mg-fg/50 mt-2">{item.meta}</p>}
+      {item.meta && <p className="font-mono text-xs text-mg-fg/60 mt-2">{item.meta}</p>}
     </article>
   );
   return item.href ? <Link href={item.href}>{inner}</Link> : inner;

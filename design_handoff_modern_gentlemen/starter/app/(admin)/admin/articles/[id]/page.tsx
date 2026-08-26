@@ -65,7 +65,7 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
           </>
         }
       >
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/60">
           <span className="font-mono">/article/{document.slug}</span>
           <StatusPill status={document.status} />
           <span className="font-mono">v{document.version}</span>

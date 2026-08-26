@@ -25,7 +25,7 @@ export function MediaGrid({
   emptyLabel?: string;
 }) {
   if (assets.length === 0) {
-    return <p className="px-1 py-10 text-center text-[13px] text-mg-fg/45">{emptyLabel}</p>;
+    return <p className="px-1 py-10 text-center text-[13px] text-mg-fg/60">{emptyLabel}</p>;
   }
 
   return (
@@ -50,7 +50,7 @@ export function MediaGrid({
                 <span className="block truncate text-[12px] text-mg-fg/80">
                   {asset.title ?? asset.fileName}
                 </span>
-                <span className="mt-0.5 flex items-center justify-between gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-mg-fg/40">
+                <span className="mt-0.5 flex items-center justify-between gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-mg-fg/60">
                   <span>{asset.kind}</span>
                   <span>{formatByteSize(asset.byteSize)}</span>
                 </span>

@@ -280,7 +280,7 @@ function TaxonomySection({
               {rows.map((row) => (
                 <tr key={row.id} className="hover:bg-mg-fg/[0.02]">
                   <Td className="font-medium">{row.title}</Td>
-                  <Td className="font-mono text-[12px] text-mg-fg/50">{row.slug}</Td>
+                  <Td className="font-mono text-[12px] text-mg-fg/60">{row.slug}</Td>
                   {config.detailLabel && (
                     <Td className="max-w-[380px] truncate text-mg-fg/60">{row.detail ?? "—"}</Td>
                   )}

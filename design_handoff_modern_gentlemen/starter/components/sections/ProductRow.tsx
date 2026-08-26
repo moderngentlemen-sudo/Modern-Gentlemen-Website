@@ -30,7 +30,7 @@ export function ProductRow({
     <section className="container-mg py-16 md:py-24">
       <div className="flex items-end justify-between mb-7">
         <div>
-          {eyebrow && <div className="font-serif italic text-mg-fg/50 text-lg">{eyebrow}</div>}
+          {eyebrow && <div className="font-serif italic text-mg-fg/60 text-lg">{eyebrow}</div>}
           <h2 className="font-grotesk font-semibold text-3xl md:text-4xl mt-1">{heading}</h2>
         </div>
         <Link href={href} className="font-mono text-[11px] tracking-[0.18em] text-mg-accentInk">

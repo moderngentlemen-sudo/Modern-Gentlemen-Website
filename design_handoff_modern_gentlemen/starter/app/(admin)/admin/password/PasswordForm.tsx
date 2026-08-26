@@ -63,7 +63,7 @@ export function PasswordForm() {
           />
 
           {/* Inline guidance while typing; `error` is what the server said. */}
-          {problem && !error && <p className="text-[12px] text-mg-fg/50">{problem}</p>}
+          {problem && !error && <p className="text-[12px] text-mg-fg/60">{problem}</p>}
 
           {error && (
             <p role="alert" className="text-[12px] text-mg-accentSerif">

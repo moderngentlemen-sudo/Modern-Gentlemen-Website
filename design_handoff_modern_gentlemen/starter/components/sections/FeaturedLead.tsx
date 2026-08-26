@@ -49,7 +49,7 @@ export function FeaturedLead({
             </p>
           )}
           {(article.author || article.read) && (
-            <div className="mt-[26px] font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/50">
+            <div className="mt-[26px] font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60">
               WORDS · {article.author}&nbsp;·&nbsp;{article.read}
             </div>
           )}

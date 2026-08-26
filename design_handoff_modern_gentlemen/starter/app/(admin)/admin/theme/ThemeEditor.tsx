@@ -166,7 +166,7 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
           </Button>
         )}
 
-        <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/40">
+        <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/60">
           v{initial.version}
           {dirty && " · unsaved"}
         </span>
@@ -178,7 +178,7 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
         hex values across 24 components are outside their reach, and they are
         exactly the surfaces someone changing a background would expect to move.
       */}
-      <div className="border-t border-mg-bd/15 pt-5 text-[12px] leading-relaxed text-mg-fg/45">
+      <div className="border-t border-mg-bd/15 pt-5 text-[12px] leading-relaxed text-mg-fg/60">
         <p>
           <strong className="font-medium text-mg-fg/60">What these reach.</strong> Every surface
           drawn with a theme token, across the public site and this admin. The footer, the hero

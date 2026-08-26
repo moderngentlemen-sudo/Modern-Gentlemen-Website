@@ -25,7 +25,7 @@ export default async function ProductsIndex() {
           </Button>
         }
       >
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           The catalogue. Prices are held in pence and shown in pounds. The public store still
           renders from the demo catalogue until Phase 7 rewires it.
         </p>

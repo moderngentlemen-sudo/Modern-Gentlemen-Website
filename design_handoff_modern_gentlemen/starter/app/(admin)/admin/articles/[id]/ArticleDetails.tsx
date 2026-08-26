@@ -208,7 +208,7 @@ export function ArticleDetails({
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/60">Tags</p>
             {tags.length === 0 ? (
-              <p className="mt-1.5 text-[12px] text-mg-fg/45">
+              <p className="mt-1.5 text-[12px] text-mg-fg/60">
                 No tags exist yet. Create them under Taxonomy.
               </p>
             ) : (
@@ -255,7 +255,7 @@ export function ArticleDetails({
               <img src={featuredUrl} alt="" className="h-32 w-full object-cover" />
             </div>
           ) : (
-            <p className="text-[12px] text-mg-fg/45">
+            <p className="text-[12px] text-mg-fg/60">
               None chosen. Card listings fall back to the article&rsquo;s first image.
             </p>
           )}

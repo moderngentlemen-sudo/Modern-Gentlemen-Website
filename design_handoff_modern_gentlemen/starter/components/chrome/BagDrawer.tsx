@@ -16,7 +16,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
         <div className="flex items-center justify-between p-6 border-b border-mg-bd/10">
           <div className="flex items-baseline gap-3">
             <span className="font-grotesk text-[15px]">Your Bag</span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/50">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/60">
               {cart.count === 0 ? "Empty" : `${cart.count} ${cart.count === 1 ? "Item" : "Items"}`}
             </span>
           </div>
@@ -62,7 +62,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       {l.product.name}
                     </Link>
                     {l.variant && (
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.15em] text-mg-fg/50">
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.15em] text-mg-fg/60">
                         {l.variant.title}
                       </p>
                     )}
@@ -77,7 +77,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                         </button>
                       </div>
                       <button
-                        className="font-mono text-[10px] text-mg-fg/50 hover:text-mg-accentInk"
+                        className="font-mono text-[10px] text-mg-fg/60 hover:text-mg-accentInk"
                         onClick={() => cart.remove(l.key)}
                       >
                         Remove
@@ -101,7 +101,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                 <span className="font-mono">{formatGBP(cart.subtotal - cart.memberDiscount)}</span>
               </div>
               <p
-                className={`font-mono text-[10px] ${cart.shipping === 0 ? "text-[#5fd08a]" : "text-mg-fg/40"}`}
+                className={`font-mono text-[10px] ${cart.shipping === 0 ? "text-[#5fd08a]" : "text-mg-fg/60"}`}
               >
                 {cart.shipping === 0 ? "Free shipping included." : "Free shipping over £50."}
               </p>

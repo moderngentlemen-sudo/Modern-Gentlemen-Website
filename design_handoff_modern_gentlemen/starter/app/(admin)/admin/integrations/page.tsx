@@ -17,7 +17,7 @@ export default async function IntegrationsIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Commerce" title="Integrations">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           Product feeds. A run stages what it finds for review — nothing reaches the catalogue until
           someone approves it, and an imported product arrives as a draft.
         </p>

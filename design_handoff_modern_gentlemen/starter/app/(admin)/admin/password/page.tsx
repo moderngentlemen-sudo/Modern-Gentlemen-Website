@@ -22,7 +22,7 @@ export default async function PasswordPage() {
   return (
     <>
       <AdminPageHeader eyebrow="Account" title="Password">
-        <p className="mt-2 text-[13px] text-mg-fg/50">Signed in as {user.email}.</p>
+        <p className="mt-2 text-[13px] text-mg-fg/60">Signed in as {user.email}.</p>
       </AdminPageHeader>
 
       <div className="px-8 py-8">

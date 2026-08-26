@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Product } from "@/lib/cart/types";
-import { formatGBP } from "@/lib/domain/money";
+import { formatPence, poundsToPence } from "@/lib/domain/money";
+import { cardPricePence } from "@/lib/domain/variants";
 import { MediaImage } from "../ui/MediaImage";
 
 /**
@@ -18,6 +19,11 @@ export function ProductCard({
   added?: boolean;
   onAdd?: (slug: string) => void;
 }) {
+  // Pounds in, pence out, and the arithmetic stays in pence throughout — the
+  // card is a price surface like the PDP and the bag, and this repo's oldest
+  // standing rule is that money never becomes a float on the way.
+  const cardPrice = cardPricePence(poundsToPence(product.price), product.variants);
+
   return (
     <article className="group flex flex-col border border-mg-bd/15 bg-mg-surface">
       <Link
@@ -40,7 +46,7 @@ export function ProductCard({
         )}
       </Link>
       <div className="flex flex-1 flex-col p-4">
-        <span className="font-mono uppercase text-[9px] tracking-[0.2em] text-mg-fg/45">
+        <span className="font-mono uppercase text-[9px] tracking-[0.2em] text-mg-fg/60">
           {product.catLabel}
         </span>
         <Link
@@ -50,7 +56,14 @@ export function ProductCard({
           {product.name}
         </Link>
         <div className="mt-auto pt-4 flex items-center justify-between gap-2">
-          <span className="font-mono text-sm">{formatGBP(product.price)}</span>
+          <span className="font-mono text-sm">
+            {/* "From" only when the buyable sizes actually differ in price. A
+                card quoting the product's own price for a product whose only
+                in-stock size costs more is misleading in the one direction that
+                matters — see `cardPricePence`. */}
+            {cardPrice.from ? "From " : ""}
+            {formatPence(cardPrice.pence)}
+          </span>
           {onAdd && (
             <button
               type="button"

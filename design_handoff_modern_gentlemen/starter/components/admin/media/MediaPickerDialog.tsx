@@ -93,7 +93,7 @@ export function MediaPickerDialog({
       {error && <p className="mb-3 text-[12px] text-mg-accentSerif">{error}</p>}
 
       {loading ? (
-        <p className="py-10 text-center text-[13px] text-mg-fg/45">Searching…</p>
+        <p className="py-10 text-center text-[13px] text-mg-fg/60">Searching…</p>
       ) : (
         <MediaGrid
           assets={assets}

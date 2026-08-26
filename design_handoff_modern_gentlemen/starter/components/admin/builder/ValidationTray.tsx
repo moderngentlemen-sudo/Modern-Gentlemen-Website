@@ -52,7 +52,7 @@ export function ValidationTray() {
                 <span className="font-medium">
                   {manifestFor(blockIssues[0].type)?.label ?? blockIssues[0].type}
                 </span>
-                <span className="text-mg-fg/50">
+                <span className="text-mg-fg/60">
                   {" — "}
                   {blockIssues
                     .map((issue) =>
