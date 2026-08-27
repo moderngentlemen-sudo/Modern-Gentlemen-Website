@@ -54,7 +54,7 @@ function staticBlocks(slug: string): { hero: Block; newsletter: Block } {
       eyebrow: "THE DEBRIEF",
       heading: `The best of ${d.name}, every Sunday.`,
       buttonLabel: "SUBSCRIBE",
-      successLabel: "SUBSCRIBED ✓",
+      successLabel: "THANKS ✓",
     },
   };
 }

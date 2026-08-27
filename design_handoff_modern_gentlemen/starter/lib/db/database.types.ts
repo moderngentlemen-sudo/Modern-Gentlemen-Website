@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -261,6 +261,7 @@ export type Database = {
       categories: {
         Row: {
           created_at: string
+          created_by: string | null
           draft_data: Json
           hero_asset_id: string | null
           id: string
@@ -273,10 +274,12 @@ export type Database = {
           status: string
           template_id: string | null
           updated_at: string
+          updated_by: string | null
           version: number
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           draft_data?: Json
           hero_asset_id?: string | null
           id?: string
@@ -289,10 +292,12 @@ export type Database = {
           status?: string
           template_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           version?: number
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           draft_data?: Json
           hero_asset_id?: string | null
           id?: string
@@ -305,6 +310,7 @@ export type Database = {
           status?: string
           template_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           version?: number
         }
         Relationships: [
@@ -808,6 +814,36 @@ export type Database = {
           status?: string
           updated_at?: string
           version?: number
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1799,6 +1835,16 @@ export type Database = {
           p_version: number
         }
         Returns: number
+      }
+      run_due_publishes: {
+        Args: { p_limit?: number }
+        Returns: {
+          category_slug: string
+          entity_id: string
+          entity_type: string
+          slug: string
+          version: number
+        }[]
       }
       schedulable_document_table: {
         Args: { p_entity_type: string }

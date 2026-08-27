@@ -365,6 +365,136 @@ async function makeCollectionItem(
 
 /* ------------------------------------------------- anonymous read behaviour */
 
+/**
+ * `0024`. **The only table in this schema an anonymous visitor may write to**,
+ * which inverts every other block in this file: the interesting assertions are
+ * that the write is allowed and that nothing else is.
+ *
+ * The defect it closes was not an RLS bug at all — both sign-up bands discarded
+ * the address and claimed success on seven live pages. But the table it needed
+ * is the first public write surface here, so the policy shape is new and worth
+ * pinning: a subscriber list `anon` can read is a subscriber list that has
+ * leaked, and PostgREST is a public endpoint.
+ */
+describe("newsletter: anon may write and may not read", () => {
+  const address = () => `zz-rls-${crypto.randomUUID()}@example.test`;
+
+  it("lets an anonymous visitor sign up", async () => {
+    const email = address();
+
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email, source: "newsletter" });
+    expect(error, "anon must be able to subscribe").toBeNull();
+
+    const { count } = await db
+      .from("newsletter_subscribers")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email);
+    expect(count, "the row is really there").toBe(1);
+  });
+
+  it("refuses anon the list it just wrote to", async () => {
+    // The assertion that matters most. A read here would mean the whole
+    // subscriber list is downloadable with the publishable key that ships in
+    // the client bundle.
+    const { data, error } = await anon.from("newsletter_subscribers").select("email");
+
+    expect(error?.code, "selecting subscribers as anon must be refused").toBe(DENIED);
+    expect(data, "and must not arrive by another route").toBeNull();
+  });
+
+  it("refuses anon a forged `confirmed` status", async () => {
+    // `anon` holds an INSERT grant on (id, email, source) and no other column,
+    // so this is refused by the grant rather than by application validation —
+    // which is what makes it true of a hand-rolled PostgREST call too.
+    // ⚠️ **This type-checks, and that is the point.** `database.types.ts` is
+    // generated from the schema and cannot express a column-level grant, so
+    // TypeScript believes `status` is insertable by anyone. Only the database
+    // knows better — which is exactly why the gate belongs there and not in a
+    // Zod schema a caller could bypass.
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email: address(), source: "newsletter", status: "confirmed" });
+
+    expect(error, "anon must not be able to set status").not.toBeNull();
+  });
+
+  it("stores a new sign-up as pending, never as subscribed", async () => {
+    // Nothing sends a confirmation email yet, so a row claiming otherwise would
+    // be the same untruth the button used to tell, merely stored.
+    const email = address();
+    await anon.from("newsletter_subscribers").insert({ email, source: "ctaBand" });
+
+    const { data } = await db
+      .from("newsletter_subscribers")
+      .select("status, confirmed_at, source")
+      .eq("email", email)
+      .single();
+
+    expect(data?.status).toBe("pending");
+    expect(data?.confirmed_at).toBeNull();
+    expect(data?.source).toBe("ctaBand");
+  });
+
+  it("surfaces a repeat address as 23505, which the repository treats as success", async () => {
+    // ⚠️ **An upsert cannot be used here and this test is where that is
+    // pinned.** PostgREST's upsert path needs SELECT on the table — which is
+    // exactly what this table's grants withhold — so the repository does a
+    // plain insert and tolerates the unique violation instead. Asserting the
+    // *code* rather than "no error" is what stops someone reinstating
+    // `.upsert()` and getting a 42501 on every sign-up.
+    const email = address();
+
+    await anon.from("newsletter_subscribers").insert({ email, source: "newsletter" });
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email, source: "ctaBand" });
+
+    expect(error?.code, "a repeat sign-up is a unique violation").toBe("23505");
+
+    const { count } = await db
+      .from("newsletter_subscribers")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email);
+    expect(count, "and creates no second row").toBe(1);
+  });
+
+  it("refuses an address that is not already lowercased", async () => {
+    // The CHECK is what makes a plain `unique (email)` case-insensitive: no
+    // other casing can exist, so two spellings of one mailbox cannot both be
+    // stored. Normalisation is the domain's job, and this is what makes it a
+    // property of the data rather than a habit of one caller.
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email: "ZZ-Upper@Example.test", source: "newsletter" });
+
+    expect(error?.code, "mixed case must be refused at the database").toBe("23514");
+  });
+
+  it("lets staff read the list", async () => {
+    // The positive half. Every assertion above is satisfied just as well by a
+    // table nobody can touch at all.
+    const email = address();
+    await anon.from("newsletter_subscribers").insert({ email, source: "newsletter" });
+
+    const { data, error } = await editorDb
+      .from("newsletter_subscribers")
+      .select("email")
+      .eq("email", email);
+
+    expect(error, "staff read is ordinary work").toBeNull();
+    expect(data ?? [], "staff can see the sign-up").toHaveLength(1);
+  });
+
+  it("refuses a signed-in account that holds no role", async () => {
+    // `authenticated` carries the table grant, so RLS is the only thing
+    // separating a staff member from any visitor who happens to have an account.
+    const { data } = await outsiderDb.from("newsletter_subscribers").select("email");
+    expect(data ?? [], "a role-less account sees nothing").toHaveLength(0);
+  });
+});
+
 describe("anon reads: unpublished documents are invisible", () => {
   it("hides a draft page and shows a published one", async () => {
     const draft = await makePage("draft");
