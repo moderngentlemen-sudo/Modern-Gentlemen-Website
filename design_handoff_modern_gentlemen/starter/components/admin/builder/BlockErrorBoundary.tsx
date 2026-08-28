@@ -49,7 +49,7 @@ export class BlockErrorBoundary extends Component<Props, State> {
         <p className="mt-2 text-[13px] text-mg-fg/70">
           This block could not be rendered with its current settings.
         </p>
-        <p className="mt-1 font-mono text-[11px] text-mg-fg/40">{this.state.error.message}</p>
+        <p className="mt-1 font-mono text-[11px] text-mg-fg/60">{this.state.error.message}</p>
         {this.props.onSelect && (
           <button
             type="button"

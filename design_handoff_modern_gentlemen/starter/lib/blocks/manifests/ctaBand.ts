@@ -33,7 +33,7 @@ export const ctaBand = defineBlock({
       help: "Email layouts only.",
     }),
     buttonLabel: field.text({ label: "Button label", default: "SUBSCRIBE" }),
-    successLabel: field.text({ label: "Success label", default: "SUBSCRIBED ✓" }),
+    successLabel: field.text({ label: "Success label", default: "THANKS ✓" }),
     cta: field.link({ label: "Call to action", help: "Link layout only." }),
     gutter: field.number({
       label: "Side gutter",

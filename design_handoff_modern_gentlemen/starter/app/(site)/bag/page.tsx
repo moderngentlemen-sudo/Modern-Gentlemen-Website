@@ -13,7 +13,7 @@ export default function BagPage() {
     <div className="container-mg py-12 md:py-16">
       <div className="mb-8 flex items-baseline gap-4">
         <h1 className="font-grotesk font-semibold text-3xl md:text-4xl">Your Bag</h1>
-        <span className="font-mono uppercase text-xs tracking-[0.2em] text-mg-fg/50">{label}</span>
+        <span className="font-mono uppercase text-xs tracking-[0.2em] text-mg-fg/60">{label}</span>
       </div>
 
       {cart.lines.length === 0 ? (
@@ -46,12 +46,12 @@ export default function BagPage() {
                     />
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="font-mono uppercase text-[10px] tracking-[0.2em] text-mg-fg/45">
+                    <span className="font-mono uppercase text-[10px] tracking-[0.2em] text-mg-fg/60">
                       {l.product.catLabel}
                     </span>
                     <Link
                       href={`/product/${l.slug}`}
-                      className="mt-1 font-grotesk text-lg hover:text-mg-accent"
+                      className="mt-1 font-grotesk text-lg hover:text-mg-accentInk"
                     >
                       {l.product.name}
                     </Link>
@@ -60,7 +60,7 @@ export default function BagPage() {
                         {l.variant.title}
                       </p>
                     )}
-                    <p className="mt-1 font-mono text-xs text-mg-fg/50">
+                    <p className="mt-1 font-mono text-xs text-mg-fg/60">
                       {formatGBP(l.unitPrice)} each
                     </p>
                     <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-3 pt-4">
@@ -71,7 +71,7 @@ export default function BagPage() {
                       />
                       <button
                         onClick={() => cart.remove(l.key)}
-                        className="py-1.5 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50 hover:text-mg-accent"
+                        className="py-1.5 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60 hover:text-mg-accentInk"
                       >
                         Remove
                       </button>
@@ -83,7 +83,7 @@ export default function BagPage() {
             </ul>
             <Link
               href="/shop"
-              className="mt-6 inline-block font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent"
+              className="mt-6 inline-block font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accentInk"
             >
               ← Continue shopping
             </Link>
@@ -98,7 +98,7 @@ export default function BagPage() {
                 !cart.isMember ? (
                   <Link
                     href="/membership"
-                    className="mt-3 block text-center font-mono uppercase text-[11px] tracking-[0.12em] text-mg-fg/60 hover:text-mg-accent"
+                    className="mt-3 block text-center font-mono uppercase text-[11px] tracking-[0.12em] text-mg-fg/60 hover:text-mg-accentInk"
                   >
                     Members save 15% — become a member
                   </Link>
@@ -125,7 +125,7 @@ function BagIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="text-mg-fg/40"
+      className="text-mg-fg/60"
     >
       <path d="M6 8h12l-1 12H7L6 8z" />
       <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />

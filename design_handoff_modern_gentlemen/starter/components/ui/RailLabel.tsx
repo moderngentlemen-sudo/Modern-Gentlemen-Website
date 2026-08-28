@@ -13,7 +13,7 @@ export function RailLabel({
   return (
     <div className={clsx("flex items-baseline gap-[14px]", className)}>
       <span aria-hidden className="block h-[2px] w-[26px] bg-mg-accent" />
-      <span className="font-mono uppercase text-[11px] tracking-[0.22em] text-mg-fg/55">
+      <span className="font-mono uppercase text-[11px] tracking-[0.22em] text-mg-fg/60">
         {children}
       </span>
     </div>

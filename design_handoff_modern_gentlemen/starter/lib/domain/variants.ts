@@ -87,6 +87,36 @@ export function defaultVariant(variants: readonly PublicVariant[]): PublicVarian
   return variants.find(isVariantSellable) ?? variants[0];
 }
 
+/**
+ * What a card should quote for a product sold in several sizes.
+ *
+ * ⚠️ **The range spans the SELLABLE variants where any are sellable**, which is
+ * the same rule `productJsonLd`'s `AggregateOffer` uses and deliberately so: a
+ * card and the structured data behind it disagreeing about the lowest price is
+ * exactly the mismatch a shopping feed is penalised for. A discontinued small at
+ * £99 beside an in-stock large at £159 must not advertise £99 — that is money
+ * nobody can spend. When nothing is sellable the range falls back to every
+ * variant, because a sold-out product still has a price.
+ *
+ * Returns `from: false` when every buyable variant costs the same, so a product
+ * whose three sizes are one price reads "£145" rather than a "From £145" that
+ * implies a choice the shopper does not have.
+ */
+export function cardPricePence(
+  productPricePence: Pence,
+  variants: readonly PublicVariant[] | undefined
+): { pence: Pence; from: boolean } {
+  if (!variants || variants.length === 0) return { pence: productPricePence, from: false };
+
+  const sellable = variants.filter(isVariantSellable);
+  const priced = (sellable.length > 0 ? sellable : variants).map((variant) =>
+    variantPricePence(productPricePence, variant)
+  );
+
+  const low = Math.min(...priced);
+  return { pence: low, from: Math.max(...priced) !== low };
+}
+
 /** Whether a product is sold as variations at all. */
 export function hasVariants(product: { variants?: readonly PublicVariant[] }): boolean {
   return (product.variants?.length ?? 0) > 0;

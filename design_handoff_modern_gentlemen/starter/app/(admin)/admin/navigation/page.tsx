@@ -25,7 +25,7 @@ export default async function NavigationIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Site" title="Navigation">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           The header, drawer and footer read these. Changes go live as soon as they are saved — a
           menu has no separate draft.
         </p>
@@ -52,7 +52,7 @@ export default async function NavigationIndex() {
                 {menus.map((menu) => (
                   <tr key={menu.id} className="hover:bg-mg-fg/[0.02]">
                     <Td className="font-medium">{menu.name}</Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">{menu.key}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">{menu.key}</Td>
                     <Td>
                       <StatusPill status={toMenuStatus(menu.status)} />
                     </Td>

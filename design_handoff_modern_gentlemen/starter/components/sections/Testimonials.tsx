@@ -18,7 +18,7 @@ export function Testimonials({ heading, quotes }: { heading?: string; quotes: Qu
             <figcaption className="mt-6">
               <div className="font-grotesk text-sm">{q.name}</div>
               {q.detail && (
-                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-mg-fg/45 mt-1">
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-mg-fg/60 mt-1">
                   {q.detail}
                 </div>
               )}

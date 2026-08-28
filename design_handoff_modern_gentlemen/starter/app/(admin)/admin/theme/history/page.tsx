@@ -49,7 +49,7 @@ export default async function ThemeHistory() {
           </Button>
         }
       >
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/60">
           {/* The theme has no slug and no public path of its own — it is one row
               that every page renders through — so this carries the status and
               the version and nothing that looks like a link. */}

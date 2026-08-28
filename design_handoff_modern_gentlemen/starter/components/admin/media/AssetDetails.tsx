@@ -120,7 +120,7 @@ export function AssetDetails({
           )}
           <div>
             <dt className={LABEL_SM}>URL</dt>
-            <dd className="mt-0.5 break-all font-mono text-[10px] text-mg-fg/50">{asset.url}</dd>
+            <dd className="mt-0.5 break-all font-mono text-[10px] text-mg-fg/60">{asset.url}</dd>
           </div>
         </dl>
       </PanelSection>
@@ -183,10 +183,10 @@ export function AssetDetails({
       </PanelSection>
 
       <PanelSection title={`Used in${usages ? ` (${usages.length})` : ""}`}>
-        {usages === null && <p className="text-[12px] text-mg-fg/40">Checking…</p>}
+        {usages === null && <p className="text-[12px] text-mg-fg/60">Checking…</p>}
 
         {usages !== null && usages.length === 0 && (
-          <p className="text-[12px] text-mg-fg/45">
+          <p className="text-[12px] text-mg-fg/60">
             Nothing references this asset. It is safe to delete.
           </p>
         )}
@@ -197,14 +197,14 @@ export function AssetDetails({
               <li key={usage.id} className="py-1.5">
                 <p className="text-[12px] text-mg-fg/80">
                   {usage.href ? (
-                    <Link href={usage.href} className="hover:text-mg-accent">
+                    <Link href={usage.href} className="hover:text-mg-accentInk">
                       {usage.title ?? `${usage.entityType} ${usage.entityId.slice(0, 8)}`}
                     </Link>
                   ) : (
                     (usage.title ?? `${usage.entityType} ${usage.entityId.slice(0, 8)}`)
                   )}
                 </p>
-                <p className="font-mono text-[10px] text-mg-fg/40">{usage.fieldPath ?? "—"}</p>
+                <p className="font-mono text-[10px] text-mg-fg/60">{usage.fieldPath ?? "—"}</p>
               </li>
             ))}
           </ul>
@@ -213,7 +213,7 @@ export function AssetDetails({
 
       {canDelete && (
         <PanelSection title="Danger" defaultOpen={false}>
-          <p className="text-[12px] text-mg-fg/50">
+          <p className="text-[12px] text-mg-fg/60">
             {inUse
               ? "This asset is in use. Remove it from the pages above before deleting it."
               : "Deleting removes the catalogue entry and the stored file. This cannot be undone."}

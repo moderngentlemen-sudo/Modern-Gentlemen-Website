@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { clsx } from "../ui/clsx";
+import { SIGNUP_MESSAGE, useNewsletterSignup } from "../ui/useNewsletterSignup";
 
 interface Props {
   variant: "split" | "centered" | "link";
@@ -30,17 +30,21 @@ export function CtaBand({
   sub,
   placeholder = "you@email.com",
   buttonLabel = "SUBSCRIBE",
-  successLabel = "SUBSCRIBED ✓",
+  // ⚠️ "SUBSCRIBED ✓" until now, and it was false: nothing was stored and
+  // nothing confirmed. The address is captured now, but it is `pending` until
+  // double opt-in exists, so the honest word is thanks rather than subscribed.
+  successLabel = "THANKS ✓",
   cta,
   gutter = 48,
 }: Props) {
-  const [done, setDone] = useState(false);
+  const { email, setEmail, state, submit } = useNewsletterSignup("ctaBand");
+  const done = state === "done";
 
   const emailForm = (centered: boolean) => (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        setDone(true);
+        void submit();
       }}
       className={clsx(
         "flex flex-wrap gap-[10px]",
@@ -50,16 +54,24 @@ export function CtaBand({
       <input
         type="email"
         required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         aria-label="Email address"
         placeholder={placeholder}
         className="min-w-0 flex-1 border border-white/40 bg-white/[0.12] px-[22px] py-[15px] font-grotesk text-[14px] text-white outline-none placeholder:text-white/60"
       />
       <button
         type="submit"
-        className="bg-[#0d0d0d] px-[26px] py-[15px] font-mono text-[10px] uppercase tracking-[0.2em] text-white transition-[filter] hover:brightness-110"
+        disabled={state === "submitting"}
+        className="bg-[#0d0d0d] px-[26px] py-[15px] font-mono text-[10px] uppercase tracking-[0.2em] text-white transition-[filter] hover:brightness-110 disabled:opacity-70"
       >
         {done ? successLabel : buttonLabel}
       </button>
+      {(state === "invalid" || state === "error") && (
+        <p className="w-full font-mono text-[11px] text-white" role="alert">
+          {SIGNUP_MESSAGE[state]}
+        </p>
+      )}
     </form>
   );
 

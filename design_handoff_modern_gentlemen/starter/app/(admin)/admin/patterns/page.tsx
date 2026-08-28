@@ -36,7 +36,7 @@ export default async function PatternsIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Patterns">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           A pattern is a saved group of sections, composed in the same builder as a page. Inserting
           one copies its blocks into the page.
         </p>

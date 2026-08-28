@@ -183,10 +183,10 @@ export function ProductCatalogue({
                   {variants.map((variant) => (
                     <tr key={variant.id} className="hover:bg-mg-fg/[0.02]">
                       <Td className="font-medium">{variant.title}</Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">{variant.sku ?? "—"}</Td>
+                      <Td className="font-mono text-[12px] text-mg-fg/60">{variant.sku ?? "—"}</Td>
                       <Td className="font-mono text-[12px]">
                         {variant.price_pence === null ? (
-                          <span className="text-mg-fg/45">inherits</span>
+                          <span className="text-mg-fg/60">inherits</span>
                         ) : (
                           formatPence(variant.price_pence)
                         )}
@@ -221,7 +221,7 @@ export function ProductCatalogue({
       <Panel className="h-fit">
         <PanelSection title="Gallery">
           {gallery.length === 0 ? (
-            <p className="text-[12px] text-mg-fg/45">
+            <p className="text-[12px] text-mg-fg/60">
               No images attached. The PDP falls back to whatever the block tree holds.
             </p>
           ) : (
@@ -230,7 +230,7 @@ export function ProductCatalogue({
                 <li key={item.assetId} className="border border-mg-bd/15 bg-mg-bg/40 p-1">
                   {/* eslint-disable-next-line @next/next/no-img-element -- external_url assets are not on an allowed remote host */}
                   <img src={item.url} alt="" className="h-20 w-full object-cover" />
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/45">
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60">
                     {item.role}
                   </p>
                   {canWrite && (

@@ -74,7 +74,7 @@ export function Dialog({
         <header className={clsx("flex items-start gap-4 border-b px-5 py-4", HAIRLINE)}>
           <div className="min-w-0 flex-1">
             <h2 className="font-grotesk text-[16px] font-semibold tracking-[-0.02em]">{title}</h2>
-            {description && <p className="mt-1 text-[12px] text-mg-fg/50">{description}</p>}
+            {description && <p className="mt-1 text-[12px] text-mg-fg/60">{description}</p>}
           </div>
           <IconButton label="Close" onClick={onClose}>
             ✕

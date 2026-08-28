@@ -126,16 +126,16 @@ export function PagesList({
                     <Td>
                       <Link
                         href={`/admin/pages/${page.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {page.title}
                       </Link>
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">/{page.slug}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">/{page.slug}</Td>
                     <Td>
                       <StatusPill status={page.status} />
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">v{page.version}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">v{page.version}</Td>
                     <Td className="text-right">
                       {canDelete && (
                         <Button

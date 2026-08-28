@@ -11,6 +11,7 @@ import {
   schemaAvailability,
 } from "./seo";
 import { PRODUCT_AVAILABILITIES } from "./products";
+import type { PublicVariant } from "./variants";
 
 const SITE = "https://modern-gentlemen-website-production.up.railway.app";
 
@@ -138,6 +139,132 @@ describe("productJsonLd", () => {
     ["discontinued", "https://schema.org/Discontinued"],
   ] as const)("maps %s to %s", (availability, expected) => {
     expect(schemaAvailability(availability)).toBe(expected);
+  });
+
+  /**
+   * The defect this closes. `product_variants` gained a public surface — a
+   * picker, a per-variant price, a variant-aware cart line — and the structured
+   * data kept advertising the product's own `price_pence` as a single `Offer`.
+   * A PDP showing £159.99 for the large told a crawler £145, which is the
+   * mismatch Merchant Center suspends a feed over.
+   */
+  describe("a product sold as variations", () => {
+    const variant = (over: Partial<PublicVariant> & { id: string }): PublicVariant => ({
+      title: "Medium",
+      sku: null,
+      pricePence: null,
+      availability: "in_stock",
+      ...over,
+    });
+
+    const varied = {
+      ...product,
+      variants: [
+        variant({ id: "a", title: "Small", pricePence: 13_500, sku: "FJ-S" }),
+        variant({ id: "b", title: "Medium" }),
+        variant({ id: "c", title: "Large", pricePence: 15_999 }),
+      ],
+    };
+
+    it("emits an AggregateOffer spanning the variants' real prices", () => {
+      const offers = productJsonLd(SITE, varied).offers as Record<string, unknown>;
+
+      expect(offers["@type"]).toBe("AggregateOffer");
+      expect(offers.lowPrice).toBe("135.00");
+      expect(offers.highPrice).toBe("159.99");
+      expect(offers.offerCount).toBe(3);
+      expect(offers.priceCurrency).toBe("GBP");
+    });
+
+    it("prices a null-priced variant as the product, exactly as the PDP does", () => {
+      // `pricePence: null` means "whatever the product costs" — the same
+      // meaning the column carries and `variantPricePence` resolves.
+      const offers = productJsonLd(SITE, varied).offers as Record<string, unknown>;
+      const medium = (offers.offers as Record<string, unknown>[])[1];
+
+      expect(medium.name).toBe("Medium");
+      expect(medium.price).toBe("145.00");
+    });
+
+    it("gives every variant its own offer, with its own availability", () => {
+      const withSoldOut = {
+        ...varied,
+        variants: [
+          varied.variants[0],
+          variant({ id: "b", title: "Medium", availability: "out_of_stock" }),
+        ],
+      };
+      const nested = (productJsonLd(SITE, withSoldOut).offers as Record<string, unknown>)
+        .offers as Record<string, unknown>[];
+
+      expect(nested).toHaveLength(2);
+      expect(nested[0].availability).toBe("https://schema.org/InStock");
+      expect(nested[1].availability).toBe("https://schema.org/OutOfStock");
+    });
+
+    it("emits sku only when the merchant entered one", () => {
+      const nested = (productJsonLd(SITE, varied).offers as Record<string, unknown>)
+        .offers as Record<string, unknown>[];
+
+      expect(nested[0].sku).toBe("FJ-S");
+      // Not `null` — an explicit null sku is worse than an absent one.
+      expect("sku" in nested[1]).toBe(false);
+    });
+
+    it("keeps an unbuyable variant out of the advertised range", () => {
+      // A discontinued small at £99 beside an in-stock large at £159 must not
+      // advertise lowPrice 99.00 — that is money nobody can spend, and the
+      // precise shape of mismatch that gets a feed penalised.
+      const mixed = {
+        ...product,
+        variants: [
+          variant({ id: "a", title: "Small", pricePence: 9_900, availability: "discontinued" }),
+          variant({ id: "b", title: "Large", pricePence: 15_900 }),
+        ],
+      };
+      const offers = productJsonLd(SITE, mixed).offers as Record<string, unknown>;
+
+      expect(offers.lowPrice).toBe("159.00");
+      expect(offers.highPrice).toBe("159.00");
+      // Still listed, and still honestly labelled — excluded from the range, not
+      // hidden from the crawler.
+      expect(offers.offerCount).toBe(2);
+      expect((offers.offers as Record<string, unknown>[])[0].availability).toBe(
+        "https://schema.org/Discontinued"
+      );
+    });
+
+    it("falls back to every variant when none is sellable", () => {
+      // An out-of-stock product still has a price. Omitting lowPrice would make
+      // the block invalid rather than honest.
+      const nothingBuyable = {
+        ...product,
+        variants: [
+          variant({ id: "a", pricePence: 9_900, availability: "out_of_stock" }),
+          variant({ id: "b", pricePence: 15_900, availability: "discontinued" }),
+        ],
+      };
+      const offers = productJsonLd(SITE, nothingBuyable).offers as Record<string, unknown>;
+
+      expect(offers.lowPrice).toBe("99.00");
+      expect(offers.highPrice).toBe("159.00");
+    });
+
+    it("leaves a product sold as one thing exactly as it was", () => {
+      // The catalogue is entirely variant-free today, so this branch is what
+      // all sixteen products still emit. Asserted as a whole object rather than
+      // field by field: anything added to it changes live structured data.
+      const offers = productJsonLd(SITE, { ...product, variants: [] }).offers;
+
+      expect(offers).toEqual({
+        "@type": "Offer",
+        url: `${SITE}/product/field-jacket`,
+        priceCurrency: "GBP",
+        price: "145.00",
+        availability: "https://schema.org/InStock",
+      });
+      expect(offers).toEqual(productJsonLd(SITE, product).offers);
+    });
   });
 
   it("covers every availability the database allows", () => {

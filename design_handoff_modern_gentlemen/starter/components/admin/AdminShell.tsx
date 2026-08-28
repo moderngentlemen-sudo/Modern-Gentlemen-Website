@@ -176,7 +176,7 @@ export function AdminPageHeader({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           {eyebrow && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mg-accent">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mg-accentInk">
               {eyebrow}
             </p>
           )}

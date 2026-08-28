@@ -23,10 +23,10 @@ export function StatsBand({
         <HairlineGrid className="grid-cols-2 min-[821px]:grid-cols-4">
           {stats?.map((s, i) => (
             <div key={i} className="bg-mg-surface p-[40px_30px]">
-              <div className="font-grotesk font-semibold text-[54px] leading-none tracking-[-0.04em] text-mg-accent">
+              <div className="font-grotesk font-semibold text-[54px] leading-none tracking-[-0.04em] text-mg-accentInk">
                 {s.value}
               </div>
-              <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/55 text-pretty">
+              <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60 text-pretty">
                 {s.label}
               </div>
             </div>

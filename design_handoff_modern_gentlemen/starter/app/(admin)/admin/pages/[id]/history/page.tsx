@@ -39,8 +39,8 @@ export default async function PageHistory({ params }: { params: Promise<{ id: st
           </Button>
         }
       >
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/50">
-          <Link href={`/admin/pages/${id}`} className="font-mono hover:text-mg-accent">
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/60">
+          <Link href={`/admin/pages/${id}`} className="font-mono hover:text-mg-accentInk">
             /{page.slug}
           </Link>
           <StatusPill status={page.status} />

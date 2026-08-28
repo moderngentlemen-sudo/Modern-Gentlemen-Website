@@ -6,7 +6,7 @@ import { backgroundImageUrl } from "../ui/imageUrl";
 export function RelatedGrid({ items }: { items: RelatedItem[] }) {
   return (
     <section className="mx-auto max-w-[1120px] px-6 pt-10 pb-20">
-      <div className="mb-[22px] font-mono text-[10px] uppercase tracking-[0.24em] text-mg-accent">
+      <div className="mb-[22px] font-mono text-[10px] uppercase tracking-[0.24em] text-mg-accentInk">
         KEEP READING
       </div>
       <div data-gal className="grid grid-cols-3 gap-[18px]">
@@ -37,7 +37,7 @@ export function RelatedGrid({ items }: { items: RelatedItem[] }) {
                 WebkitBackdropFilter: "blur(18px)",
               }}
             >
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#ff4d5e]">
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-accentSerif">
                 {r.tag}
               </div>
               <h3 className="mt-1.5 font-grotesk font-medium text-[19px] leading-[1.15] tracking-[-0.02em] text-white">

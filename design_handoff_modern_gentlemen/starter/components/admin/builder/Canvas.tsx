@@ -133,7 +133,7 @@ function PatternRefCard({
         warn ? "border-mg-accentSerif/50 bg-mg-accent/5" : "border-mg-bd/30 bg-mg-fg/[0.02]"
       )}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/50">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60">
         {!resolved
           ? "Synced pattern — unresolved"
           : published
@@ -145,7 +145,7 @@ function PatternRefCard({
         {name ?? "This pattern is no longer available"}
       </p>
 
-      <p className="mt-1 text-[13px] text-mg-fg/55">
+      <p className="mt-1 text-[13px] text-mg-fg/60">
         {!resolved ? (
           <>
             It may have been deleted, or you may not have permission to read it. The live page
@@ -326,7 +326,7 @@ function EmptySlot({
         over ? "border-mg-accent bg-mg-accent/5" : "border-mg-fg/20"
       )}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/40">
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/60">
         {label} — drop a section here
       </p>
     </div>

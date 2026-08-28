@@ -34,7 +34,7 @@ export default async function AdminHome() {
   return (
     <>
       <AdminPageHeader eyebrow="Overview" title={user.fullName ?? user.email}>
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           Signed in as {user.email} · {user.roles.join(", ") || "no role"}
         </p>
       </AdminPageHeader>
@@ -71,15 +71,15 @@ export default async function AdminHome() {
                   {recent.map((page) => (
                     <tr key={page.id}>
                       <Td>
-                        <Link href={`/admin/pages/${page.id}`} className="hover:text-mg-accent">
+                        <Link href={`/admin/pages/${page.id}`} className="hover:text-mg-accentInk">
                           {page.title}
                         </Link>
                       </Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">/{page.slug}</Td>
+                      <Td className="font-mono text-[12px] text-mg-fg/60">/{page.slug}</Td>
                       <Td>
                         <StatusPill status={page.status} />
                       </Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">v{page.version}</Td>
+                      <Td className="font-mono text-[12px] text-mg-fg/60">v{page.version}</Td>
                     </tr>
                   ))}
                 </tbody>

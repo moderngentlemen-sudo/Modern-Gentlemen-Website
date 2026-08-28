@@ -38,7 +38,7 @@ export function BodyProse({ author, authorInitial }: { author: string; authorIni
           <div className="relative h-[420px] overflow-hidden">
             <HeroImg src="/images/film-workshop.jpg" />
           </div>
-          <figcaption className="mt-3 text-center font-mono text-[11px] tracking-[0.14em] text-mg-fg/40">
+          <figcaption className="mt-3 text-center font-mono text-[11px] tracking-[0.14em] text-mg-fg/60">
             Slow work, kept honest — the coachbuilder&apos;s floor, unhurried.
           </figcaption>
         </figure>
@@ -116,7 +116,7 @@ export function BodyLetter({ author }: { author: string }) {
       </div>
       <div className="mt-10">
         <div className="font-serif italic text-[34px] leading-none text-mg-fg">{author}</div>
-        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/50">
+        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/60">
           Editor-in-Chief · Modern Gentlemen
         </div>
       </div>
@@ -145,7 +145,7 @@ export function BodyFilm() {
       <div className="mt-9 grid grid-cols-3 gap-5 border-t border-mg-bd/[0.12] pt-[26px]">
         {credits.map((c) => (
           <div key={c.label}>
-            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-mg-fg/45">
+            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-mg-fg/60">
               {c.label}
             </div>
             <div className="mt-1.5 font-grotesk font-medium text-[15px] text-mg-fg">{c.value}</div>
@@ -168,7 +168,7 @@ export function BodyProfile() {
       <aside className="flex flex-col gap-px overflow-hidden border border-mg-bd/[0.09] bg-mg-bd/[0.09] min-[821px]:sticky min-[821px]:top-[90px]">
         {stats.map((s) => (
           <div key={s.k} className="bg-mg-surface p-[18px_20px]">
-            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-mg-fg/45">
+            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-mg-fg/60">
               {s.k}
             </div>
             <div className="mt-1.5 font-grotesk font-medium text-[17px] text-mg-fg">{s.v}</div>
@@ -201,7 +201,7 @@ export function BodyReview() {
     <article className="mx-auto max-w-[760px] px-6 pt-[56px] pb-10">
       <div className="mb-10 grid grid-cols-[1fr_auto] items-center gap-6 border border-mg-bd/[0.12] bg-mg-surface p-[26px_30px]">
         <div>
-          <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[#ff4d5e]">
+          <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-mg-accentSerif">
             The Verdict
           </div>
           <div className="font-serif italic text-[19px] leading-[1.4] text-mg-fg/[0.82]">
@@ -209,10 +209,10 @@ export function BodyReview() {
           </div>
         </div>
         <div className="flex-shrink-0 text-center">
-          <div className="font-grotesk font-semibold text-[52px] leading-none tracking-[-0.04em] text-mg-accent">
+          <div className="font-grotesk font-semibold text-[52px] leading-none tracking-[-0.04em] text-mg-accentInk">
             8.6
           </div>
-          <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-mg-fg/40">
+          <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-mg-fg/60">
             Out of 10
           </div>
         </div>
@@ -228,7 +228,7 @@ export function BodyReview() {
           </div>
         </div>
         <div className=" border border-mg-bd/10 p-[20px_22px]">
-          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#ff4d5e]">
+          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-mg-accentSerif">
             Against
           </div>
           <div className="font-grotesk font-light text-[15px] leading-[1.7] text-mg-fg/80">

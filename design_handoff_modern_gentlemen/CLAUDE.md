@@ -25,15 +25,32 @@ Modern Gentlemen — a men's editorial + lifestyle brand (style, grooming, watch
 | `--mg-fg` | `#141414` | `#f4f4f4` |
 | `--mg-surface` | `#ffffff` | `#131315` |
 | `--mg-bd` | `#141414` | `#ffffff` |
-| `--mg-accent` | `#C8102E` | `#C8102E` |
+| `--mg-accent` (fill) | `#C8102E` | `#C8102E` |
+| `--mg-accent-ink` (text) | `#C8102E` | `#f7142e` |
 | `--mg-accent-serif` | `#C8102E` | `#ff4d5e` |
 
 - Default theme **light**; boot before paint (inline script) to avoid flash.
 - `[data-darkband]` regions stay dark in both themes (hero scrims, red CTA bands): pin `--mg-fg:#f4f4f4; --mg-bd:#ffffff`.
-- ⚠️ **Muted text is NOT `color-mix(in srgb, var(--mg-fg) N%, transparent)` — this line said so and was wrong.** `--mg-muted` and `--mg-faint` are four discrete values (`#8a8a8a` / `#b0b0b0` in light, `rgba(244,244,244,0.5)` / `rgba(244,244,244,0.35)` in dark), and `starter/app/globals.css:13-14` says why: "Flat greys in light, translucent paper in dark — not opacities of `--mg-fg`." The implementation won this disagreement long ago; the doc is only now catching up.
+- ⚠️ **Muted text is NOT `color-mix(in srgb, var(--mg-fg) N%, transparent)` — this line said so and was wrong.** `--mg-muted` and `--mg-faint` are four discrete values (`#5a5a5a` / `#707070` in light, `rgba(244,244,244,0.5)` / `rgba(244,244,244,0.5)` in dark). ⚠️ **All four moved for AA**: light was `#8a8a8a` / `#b0b0b0` and dark's faint was `0.35`. **The light ramp kept both steps**, contrary to what this file and `PROGRESS.md` each asserted three times — "both need `#707070`, so AA collapses two steps into one" assumed moving each to the *minimum* passing value, when in fact anything **at or below** `#707070` clears 4.5 on both light grounds, so keeping muted darker preserves a real ramp (the step narrows from 0.180 to 0.060 in luminance, but it survives), and `starter/app/globals.css:13-14` says why: "Flat greys in light, translucent paper in dark — not opacities of `--mg-fg`." The implementation won this disagreement long ago; the doc is only now catching up.
 - Footer is **always dark**, not theme-reactive.
 
-> **The colour tokens are editable data since Phase 6b.** `/admin/theme` writes them to `theme_settings` and `app/layout.tsx` emits them as a `<style>` block over the defaults above. The values in this table remain the baseline and the fallback — they are what a fresh database is seeded with and what the site serves when nothing is published — so this table is still authoritative about what the design *is*. Three additions it now needs: `--mg-accent-rgb` (`200 16 46`), the same red in channels, because Tailwind cannot compute an alpha from a bare `var()`; **`--mg-accent-serif-rgb`, the same twin for the serif accent** (`255 77 94` dark and in a dark band, `200 16 46` light) — added because `mg.accentSerif` was a bare `var()` and all fifteen of its alpha utilities compiled to **no CSS at all**; and `--mg-band-border` / `--mg-muted` / `--mg-faint`, which were always in `globals.css` and never in this table. ⚠️ `fg`, `bd` and `bg` are still bare `var()` and still broken the same way, across 417 usages — a design decision, not an oversight. See `02_DESIGN_TOKENS.md`.
+> ⚠️ **The accent is TWO tokens now, and the split is the AA fix.** `--mg-accent`
+> is the racing red as a **fill** — buttons, the CTA band, badges, borders — and
+> is unchanged at `#C8102E` in all three contexts. `--mg-accent-ink` is the red
+> as **text**, and it is `#f7142e` in dark contexts because `#C8102E` reads only
+> 3.30 on `#0d0d0d`. Every `text-`side use is `text-mg-accentInk`; `bg-`,
+> `border-` and `ring-` stay on `mg-accent`.
+>
+> **Why two rather than one brighter red**, recorded because the obvious repair
+> was tried and measured: brightening `--mg-accent` itself took the failing-node
+> count from **34 to 46**. The red CTA band is the same token, so lifting its
+> luminance dropped the white text sitting on it from 5.88 to 4.12. Ink and fill
+> want opposite directions. And no single value can serve both themes either —
+> against `#0d0d0d` AA sets a luminance floor of 0.193, against `#f4f4f4` a
+> ceiling of 0.162, and those windows do not overlap **for any hue**, not just
+> for red.
+>
+> **The colour tokens are editable data since Phase 6b.** `/admin/theme` writes them to `theme_settings` and `app/layout.tsx` emits them as a `<style>` block over the defaults above. The values in this table remain the baseline and the fallback — they are what a fresh database is seeded with and what the site serves when nothing is published — so this table is still authoritative about what the design *is*. Three additions it now needs: `--mg-accent-rgb` (`200 16 46`), the same red in channels, because Tailwind cannot compute an alpha from a bare `var()`; **`--mg-accent-serif-rgb`, the same twin for the serif accent** (`255 77 94` dark and in a dark band, `200 16 46` light) — added because `mg.accentSerif` was a bare `var()` and all fifteen of its alpha utilities compiled to **no CSS at all**; and `--mg-band-border` / `--mg-muted` / `--mg-faint`, which were always in `globals.css` and never in this table. ✅ ~~`fg`, `bd` and `bg` are still bare `var()` and still broken the same way, across 417 usages~~ — **fixed.** All four of `bg`, `fg`, `surface` and `bd` now carry `--mg-*-rgb` twins in every context, so their ~413 alpha utilities emit CSS at last. `muted` and `faint` stay bare `var()` **deliberately and permanently**: they are `rgba()` in dark, a channel twin can only be derived from a hex, and nothing uses them with an alpha (asserted, not assumed). See `02_DESIGN_TOKENS.md`.
 
 ### Typography
 | Family | Role |
@@ -64,15 +81,21 @@ Member discount **15%**; free shipping **≥ £50** else **£4.95**; qty `0` rem
 > **⚠️ SUPERSEDED (location only, since Phase 7b):** the 16-product catalog is no longer read from `starter/lib/catalog.ts` at runtime. The store renders from Supabase (`products` + `product_media`, via `lib/services/publicCatalog.ts`); the ported array now lives at `starter/lib/demo/catalog.ts` and is the **seed source and test fixture**. The commerce *rules* above are unchanged and still authoritative — and note they are now enforced in integer pence by `lib/domain/pricing.ts`, not in pounds.
 
 ## Accessibility (WCAG 2.2 AA — without altering visuals)
-Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc closes; visible focus rings; alt text on all images; reduced-motion gating. **All of that is now enforced** by `starter/tests/a11y/` (`npm run test:a11y`) rather than asserted here — 28 tests, axe-core over every public route in both themes plus the overlays' keyboard behaviour.
+Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc closes; visible focus rings; alt text on all images; reduced-motion gating. **All of that is now enforced** by `starter/tests/a11y/` (`npm run test:a11y`) rather than asserted here — **27 tests** (28 until the `KNOWN GAP` contrast test earned its deletion), axe-core over every public route in both themes plus the overlays' keyboard behaviour.
 
 > ⚠️ **SUPERSEDED: "Meet AA contrast — the tokens above already do" was measured and is false.** That sentence stood unchecked from Track A until the a11y pass ran axe against rendered pixels, and it found **204 contrast violations** — every one a token or the brand accent at a size this document specifies, not a scattered mistake. The worst: `#696969` on `#0d0d0d` at **3.54**, the brand red `#c8102e`/`#ff4d5e` at **2.94–3.3**, and `--mg-muted`/`--mg-faint` as low as **1.97**, against a 4.5 requirement.
 >
 > **This is an open decision, not a defect to quietly fix** — but it is a **much smaller** one than it was, and one sentence of it was wrong. **81% of those violations were never a token change at all**: 128 were `text-[#f4f4f4]/40` on the dark band (three call sites) and 14 were `text-white/75`–`/80` on the red CTA band. Raising those opacity steps fixed them, and **all sixteen baselines passed unmoved** — so *"changing the tokens or the sizes they are used at invalidates the sixteen baselines by construction"* was a deduction rather than a measurement, and the measurement disagrees.
 >
-> **What is genuinely still the brand's call is the red**, and the arithmetic is why: `#c8102e` reads **3.30** on the dark band, and lightening it ~25% toward white reaches 4.69 there while **dropping to 3.77 on the light page**, where it currently passes at 5.35. **No single red clears 4.5:1 at small text in both themes.** Either the accent becomes theme-dependent, or it is reserved for large/non-text use. The other survivor is the light grey ramp: `--mg-muted` and `--mg-faint` both need `#707070`, so AA collapses two steps into one.
+> ✅ **This is closed. The measured count is now ZERO** — every WCAG A/AA rule, `color-contrast` included, passes on all 11 public routes in both themes, with no exceptions list and no disabled rules. The path was 204 → 175 → 34 → 6 → **110** → 0.
 >
-> It is held as a `KNOWN GAP` characterisation test that asserts today's behaviour and carries the instruction to invert it — the technique that closed `0018` and `0020`. ⚠️ **The per-route audits no longer exclude `color-contrast`**: they enforce it everywhere except eight named colour pairs (`ACCEPTED_CONTRAST_GAPS` in `starter/tests/a11y/public.spec.ts`), each carrying its measured ratio and why it is still there. Blanket exclusion was right while everything failed for one undecided reason, and wrong once the decidable part was fixed — with the rule off, a *new* contrast bug anywhere was invisible. See the decisions log in `/PROGRESS.md`.
+> ⚠️ **The 110 is not a typo and is the most useful number here.** ~413 `text-mg-fg/NN` classes had been compiling to nothing, so muted text painted at **full strength** — which passed contrast by accident. Repairing the alpha utilities made the site look as designed and **took the failures from 6 to 110**, because the bug had been hiding every one of them. **A bug can flatter an audit**; the audit was measuring a site that was not rendering its own design. The floor is arithmetic — `--mg-fg` needs alpha **0.59** to clear 4.5 on `#f4f4f4` — so 177 call sites below `/60` were raised to it.
+>
+> ⚠️ **The prototypes and this token table contradicted each other, and that is worth keeping.** This table has always said the serif accent is `#C8102E` on light; the `design_files/*.dc.html` prototypes hard-code `color:#ff4d5e` inline with no theme scoping, and the components copied them faithfully. The table won, because `#ff4d5e` on `#f4f4f4` is 2.94 and `#c8102e` is 5.35. **A prototype is a rendering of one theme; this table is the rule.**
+>
+> ✅ **The light grey ramp is done too, and it did NOT collapse.** `#5a5a5a` / `#707070`, both steps intact — see the note under the token table for why the "it must collapse" claim was wrong. The dark ramp needed no restructuring either: its steps are separate alphas, so raising faint to 0.5 kept both.
+>
+> ✅ **`ACCEPTED_CONTRAST_GAPS` is gone and so is the `KNOWN GAP` test that watched it** — that was the retirement condition written into the test itself. `color-contrast` is now enforced on every route with **no exceptions**. ⚠️ **If a pair ever has to be excepted again, reinstate a named list rather than reaching for `disableRules`**: a blanket exclusion makes a *new* contrast bug invisible, which this codebase learned once already. See the decisions log in `/PROGRESS.md`.
 
 ## Rules for changes
 - No resizing, merging, simplifying, or cleaning up elements/spacing/components — implement as designed even if non-standard.

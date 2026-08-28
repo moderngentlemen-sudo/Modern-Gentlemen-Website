@@ -281,7 +281,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                   inputRef.current?.focus();
                 }}
                 aria-label="Clear search"
-                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center h-[34px] w-[34px] rounded-full bg-[rgba(120,120,120,0.14)] border border-[rgba(120,120,120,0.28)] touch-manipulation transition-[color,background] duration-200 hover:bg-[rgba(200,16,46,0.16)] hover:text-mg-accent"
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center h-[34px] w-[34px] rounded-full bg-[rgba(120,120,120,0.14)] border border-[rgba(120,120,120,0.28)] touch-manipulation transition-[color,background] duration-200 hover:bg-[rgba(200,16,46,0.16)] hover:text-mg-accentInk"
               >
                 <svg
                   width="15"
@@ -359,7 +359,7 @@ function GroupHead({ label, n }: { label: string; n: number }) {
       data-searchgroup
       className="flex items-baseline justify-between gap-3 pt-5 px-1.5 pb-[9px]"
     >
-      <span className="font-mono text-[10px] leading-[normal] tracking-[0.26em] text-mg-accent">
+      <span className="font-mono text-[10px] leading-[normal] tracking-[0.26em] text-mg-accentInk">
         {label}
       </span>
       <span className="font-mono text-[9px] leading-[normal] tracking-[0.14em] text-[rgba(244,244,244,0.4)]">
@@ -390,7 +390,7 @@ function ResultRow({ row, onGo }: { row: Row; onGo: (href: string) => void }) {
         className="block h-[46px] w-[52px] min-[681px]:w-16 object-cover bg-[#1a1a1c]"
       />
       <div className="min-w-0 flex flex-col gap-[3px]">
-        <span className="font-mono text-[9px] leading-[normal] tracking-[0.18em] text-mg-accent">
+        <span className="font-mono text-[9px] leading-[normal] tracking-[0.18em] text-mg-accentInk">
           {row.tag}
         </span>
         <span className="font-grotesk font-medium text-base leading-[1.2] tracking-[-0.015em] truncate">

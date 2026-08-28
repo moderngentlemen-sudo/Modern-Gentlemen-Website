@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -261,6 +261,7 @@ export type Database = {
       categories: {
         Row: {
           created_at: string
+          created_by: string | null
           draft_data: Json
           hero_asset_id: string | null
           id: string
@@ -273,10 +274,12 @@ export type Database = {
           status: string
           template_id: string | null
           updated_at: string
+          updated_by: string | null
           version: number
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           draft_data?: Json
           hero_asset_id?: string | null
           id?: string
@@ -289,10 +292,12 @@ export type Database = {
           status?: string
           template_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           version?: number
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           draft_data?: Json
           hero_asset_id?: string | null
           id?: string
@@ -305,6 +310,7 @@ export type Database = {
           status?: string
           template_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           version?: number
         }
         Relationships: [
@@ -564,6 +570,7 @@ export type Database = {
           kind: string
           mime_type: string
           placeholder: string | null
+          search_vector: unknown
           storage_path: string
           title: string | null
           updated_at: string
@@ -588,6 +595,7 @@ export type Database = {
           kind: string
           mime_type: string
           placeholder?: string | null
+          search_vector?: unknown
           storage_path: string
           title?: string | null
           updated_at?: string
@@ -612,6 +620,7 @@ export type Database = {
           kind?: string
           mime_type?: string
           placeholder?: string | null
+          search_vector?: unknown
           storage_path?: string
           title?: string | null
           updated_at?: string
@@ -808,6 +817,36 @@ export type Database = {
           status?: string
           updated_at?: string
           version?: number
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1399,6 +1438,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       redirects: {
         Row: {
           created_at: string
@@ -1781,6 +1838,14 @@ export type Database = {
         Returns: number
       }
       purge_expired_preview_sessions: { Args: never; Returns: number }
+      rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window: string }
+        Returns: boolean
+      }
+      replace_feed_mappings: {
+        Args: { p_mappings: Json; p_source_id: string }
+        Returns: undefined
+      }
       resolve_preview: {
         Args: { p_token: string }
         Returns: {
@@ -1799,6 +1864,16 @@ export type Database = {
           p_version: number
         }
         Returns: number
+      }
+      run_due_publishes: {
+        Args: { p_limit?: number }
+        Returns: {
+          category_slug: string
+          entity_id: string
+          entity_type: string
+          slug: string
+          version: number
+        }[]
       }
       schedulable_document_table: {
         Args: { p_entity_type: string }

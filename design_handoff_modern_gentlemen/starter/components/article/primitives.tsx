@@ -12,7 +12,7 @@ export function ArticleKicker({
   return (
     <div
       className={clsx(
-        "font-mono text-[11px] uppercase tracking-[0.26em] text-[#ff4d5e]",
+        "font-mono text-[11px] uppercase tracking-[0.26em] text-mg-accentSerif",
         className
       )}
     >
@@ -61,9 +61,9 @@ export function BodyIntro({
 export function InlinePullQuote({ quote }: { quote: string }) {
   return (
     <blockquote className="my-[48px] text-center font-serif italic text-[34px] leading-[1.25] text-mg-fg">
-      <span className="text-mg-accent">&ldquo;</span>
+      <span className="text-mg-accentInk">&ldquo;</span>
       {quote}
-      <span className="text-mg-accent">&rdquo;</span>
+      <span className="text-mg-accentInk">&rdquo;</span>
     </blockquote>
   );
 }
@@ -77,7 +77,7 @@ export function AuthorCard({ author, initial }: { author: string; initial: strin
       </div>
       <div>
         <div className="font-grotesk font-medium text-[15px] text-mg-fg">{author}</div>
-        <div className="mt-[3px] font-serif italic text-[13px] leading-[1.5] text-mg-fg/55">
+        <div className="mt-[3px] font-serif italic text-[13px] leading-[1.5] text-mg-fg/60">
           Contributing editor, on style, stewardship, and the considered life.
         </div>
       </div>

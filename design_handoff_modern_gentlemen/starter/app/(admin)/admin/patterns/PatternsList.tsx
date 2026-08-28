@@ -287,16 +287,16 @@ export function PatternsList({
                     <Td>
                       <Link
                         href={`/admin/patterns/${pattern.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {pattern.title}
                       </Link>
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">{pattern.slug}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">{pattern.slug}</Td>
                     <Td>
                       <StatusPill status={pattern.status} />
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">v{pattern.version}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">v{pattern.version}</Td>
                     <Td className="text-right">
                       {canWrite && (
                         <Button

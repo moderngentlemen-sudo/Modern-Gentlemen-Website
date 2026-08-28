@@ -36,7 +36,7 @@ export default async function ThemePage() {
           </div>
         }
       >
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           The colour tokens every page renders with. Edits are saved as a draft; the site keeps
           showing the published palette until you publish.
         </p>

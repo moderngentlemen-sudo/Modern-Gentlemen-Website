@@ -24,7 +24,7 @@ export default async function MediaIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Media">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           Every image and clip the site uses, and what each one is used by.
         </p>
       </AdminPageHeader>

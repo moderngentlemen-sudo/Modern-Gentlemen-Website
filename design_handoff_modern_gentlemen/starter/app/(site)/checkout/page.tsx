@@ -111,13 +111,18 @@ export default function CheckoutPage() {
   if (order) {
     return (
       <div className="container-mg flex min-h-[70vh] flex-col items-center justify-center py-24 text-center">
-        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">
+        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accentInk">
           Order confirmed
         </p>
         <p className="mt-4 font-serif italic text-2xl text-mg-accentSerif">Thank you.</p>
         <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl">Your order is in.</h1>
         <p className="mt-4 max-w-md text-mg-fg/60">
-          A confirmation is on its way to {order.email}. (Demo — no card was charged.)
+          {/* ⚠️ This read "A confirmation is on its way to {email}" and nothing
+              sends one — the same class of untruth the newsletter bands told
+              until `0024`. The demo disclaimer beside it did not make the
+              sentence true. Reworded to describe what actually happened. */}
+          Demo checkout — no card was charged, no order was placed and no email will be sent. Your
+          bag has been emptied.
         </p>
         <dl className="mt-8 grid grid-cols-1 gap-6 border-y border-mg-bd/15 py-6 text-left sm:grid-cols-3 sm:gap-8">
           {[
@@ -126,7 +131,7 @@ export default function CheckoutPage() {
             ["Total paid", order.total],
           ].map(([k, v]) => (
             <div key={k}>
-              <dt className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-fg/40">
+              <dt className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-fg/60">
                 {k}
               </dt>
               <dd className="mt-1 text-sm">{v}</dd>
@@ -135,7 +140,7 @@ export default function CheckoutPage() {
         </dl>
         <Link
           href="/shop"
-          className="mt-8 inline-block font-mono uppercase text-xs tracking-[0.2em] text-mg-accent"
+          className="mt-8 inline-block font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk"
         >
           Continue shopping →
         </Link>
@@ -147,7 +152,7 @@ export default function CheckoutPage() {
   if (cart.lines.length === 0) {
     return (
       <div className="container-mg flex min-h-[70vh] flex-col items-center justify-center py-24 text-center">
-        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">
+        <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accentInk">
           Nothing to check out
         </p>
         <h1 className="mt-4 font-grotesk font-semibold text-3xl md:text-4xl">Your bag is empty.</h1>
@@ -185,14 +190,14 @@ export default function CheckoutPage() {
                         active
                           ? "bg-mg-accent text-white"
                           : done
-                            ? "bg-mg-accent/15 text-mg-accent"
-                            : "border border-mg-bd/25 text-mg-fg/40"
+                            ? "bg-mg-accent/15 text-mg-accentInk"
+                            : "border border-mg-bd/25 text-mg-fg/60"
                       }`}
                     >
                       {done ? "✓" : i + 1}
                     </span>
                     <span
-                      className={`font-mono uppercase text-[11px] tracking-[0.15em] ${active ? "text-mg-fg" : "text-mg-fg/40"}`}
+                      className={`font-mono uppercase text-[11px] tracking-[0.15em] ${active ? "text-mg-fg" : "text-mg-fg/60"}`}
                     >
                       {s}
                     </span>
@@ -288,7 +293,7 @@ export default function CheckoutPage() {
           {step === 2 && (
             <div className="grid max-w-md gap-4">
               <h2 className="font-grotesk text-xl">Payment</h2>
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mg-fg/50">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mg-fg/60">
                 Demo checkout — no real card is charged.
               </p>
               <Field
@@ -395,12 +400,12 @@ function ReviewCard({
   return (
     <div className="border border-mg-bd/15 p-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/50">
+        <span className="font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
           {title}
         </span>
         <button
           onClick={onEdit}
-          className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-accent"
+          className="font-mono uppercase text-[10px] tracking-[0.15em] text-mg-accentInk"
         >
           Edit
         </button>

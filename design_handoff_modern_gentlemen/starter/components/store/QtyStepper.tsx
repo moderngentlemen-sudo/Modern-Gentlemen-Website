@@ -15,7 +15,7 @@ export function QtyStepper({
         type="button"
         aria-label="Decrease quantity"
         onClick={onDec}
-        className="px-4 py-2.5 text-lg leading-none hover:text-mg-accent"
+        className="px-4 py-2.5 text-lg leading-none hover:text-mg-accentInk"
       >
         –
       </button>
@@ -26,7 +26,7 @@ export function QtyStepper({
         type="button"
         aria-label="Increase quantity"
         onClick={onInc}
-        className="px-4 py-2.5 text-lg leading-none hover:text-mg-accent"
+        className="px-4 py-2.5 text-lg leading-none hover:text-mg-accentInk"
       >
         +
       </button>

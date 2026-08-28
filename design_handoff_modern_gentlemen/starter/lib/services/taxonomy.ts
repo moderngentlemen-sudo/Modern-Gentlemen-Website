@@ -77,8 +77,29 @@ export async function updateCategory(
   }
 }
 
+/**
+ * Deleting a category — the one taxonomy write that is NOT `taxonomy.write`.
+ *
+ * ⚠️ **This asymmetry is deliberate and it is the point of the function.** A
+ * category stopped being a taxonomy term when `0021` made it the sixth document
+ * type: deleting one now destroys a layout document, its revisions and its
+ * publish history alongside the label, which is a heavier act than renaming a
+ * tag. `/admin/categories` has always gated that on `category.delete` via
+ * `deleteDocument`; this screen gated the identical destruction on
+ * `taxonomy.write`, so which permission you needed depended on which screen you
+ * happened to be standing on.
+ *
+ * `0022` could not close the matching RLS hole because of exactly that split —
+ * its header names reconciling these two paths as the prerequisite, and `0023`
+ * is the migration that became possible once this line changed.
+ *
+ * The cost, stated rather than hidden: `author` holds `taxonomy.write` and not
+ * `category.delete`, so an author can still create and rename categories and
+ * can no longer delete one. That is consistent with every other content type —
+ * `author` holds no `*.delete` permission at all.
+ */
 export async function deleteCategory(id: string): Promise<void> {
-  await requirePermission("taxonomy.write");
+  await requirePermission("category.delete");
   const db = await createClient();
   await repo.deleteCategory(db, id);
 }

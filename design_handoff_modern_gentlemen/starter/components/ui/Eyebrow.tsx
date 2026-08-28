@@ -18,7 +18,7 @@ export function MonoLabel({
   className?: string;
 }) {
   return (
-    <span className={`font-mono uppercase tracking-[0.2em] text-xs text-mg-accent ${className}`}>
+    <span className={`font-mono uppercase tracking-[0.2em] text-xs text-mg-accentInk ${className}`}>
       {children}
     </span>
   );

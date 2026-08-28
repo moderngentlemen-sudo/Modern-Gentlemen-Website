@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useCatalog } from "@/lib/catalog/CatalogProvider";
-import { formatGBP, penceToPounds, poundsToPence } from "@/lib/domain/money";
+import { formatGBP, formatPence, penceToPounds, poundsToPence } from "@/lib/domain/money";
+import { memberUnitPrice } from "@/lib/domain/pricing";
 import { useCart } from "@/lib/cart/CartProvider";
 import {
   defaultVariant,
@@ -70,32 +71,30 @@ export function ProductView({ slug }: { slug: string }) {
   // page was open) falls back to the default rather than to nothing, which is
   // the same tolerance the cart shows a stale line.
   const selected = findVariant(variants, variantId) ?? defaultVariant(variants);
-  const price = penceToPounds(variantPricePence(poundsToPence(product.price), selected));
+  const pricePence = variantPricePence(poundsToPence(product.price), selected);
+  const price = penceToPounds(pricePence);
   // Sellability gates the button, not the price: a sold-out size still shows
   // what it costs, because "£160, unavailable" tells a shopper more than a
   // blank.
   const sellable = variants.length === 0 || (selected !== null && isVariantSellable(selected));
 
-  // ⚠️ Pounds arithmetic, and deliberately left as it was found. This rounds a
-  // £145 member price to £123 where the bag charges £123.25 — a real 25p
-  // disagreement between this page and the checkout, and a violation of the
-  // integer-pence rule. It is **not** fixed here because the correct value
-  // renders different pixels on a baseline-verified page, which is a decision
-  // about the sixteen screenshots rather than a bug fix. Recorded in
-  // PROGRESS.md's Known issues with the one-line repair.
-  const memberPrice = Math.round(price * (1 - cart.memberRate));
+  // Pence in, pence out, through the same helper the bag's totals use. This was
+  // pounds arithmetic until now — `Math.round(145 * 0.85)` quoted a member £123
+  // for a product the checkout charged £123.25 for — so the page and the till
+  // disagreed by 25p on the site's own headline benefit.
+  const memberPricePence = memberUnitPrice(pricePence, cart.memberRate);
 
   return (
     <div className="container-mg py-10 md:py-14">
-      <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/45">
-        <Link href="/shop" className="hover:text-mg-accent">
+      <nav className="mb-8 font-mono uppercase text-[11px] tracking-[0.15em] text-mg-fg/60">
+        <Link href="/shop" className="hover:text-mg-accentInk">
           Store
         </Link>{" "}
-        <span className="text-mg-fg/25">/</span>{" "}
-        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accent">
+        <span className="text-mg-fg/60">/</span>{" "}
+        <Link href={`/shop?cat=${product.cat}`} className="hover:text-mg-accentInk">
           {product.catLabel}
         </Link>{" "}
-        <span className="text-mg-fg/25">/</span>{" "}
+        <span className="text-mg-fg/60">/</span>{" "}
         <span className="text-mg-fg/70">{product.name}</span>
       </nav>
 
@@ -132,7 +131,7 @@ export function ProductView({ slug }: { slug: string }) {
 
         {/* Details */}
         <div>
-          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent">
+          <span className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accentInk">
             {product.catLabel}
           </span>
           <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl tracking-[-0.02em]">
@@ -140,12 +139,12 @@ export function ProductView({ slug }: { slug: string }) {
           </h1>
           <div className="mt-4 flex items-baseline gap-4">
             <span className="font-grotesk text-2xl">{formatGBP(price)}</span>
-            <span className="font-mono text-xs text-mg-fg/50">
-              Members {formatGBP(memberPrice)}
+            <span className="font-mono text-xs text-mg-fg/60">
+              Members {formatPence(memberPricePence)}
             </span>
           </div>
           <p className="mt-5 text-mg-fg/70 text-pretty">{product.blurb}</p>
-          <p className="mt-2 font-mono text-xs text-mg-fg/50">{product.material}</p>
+          <p className="mt-2 font-mono text-xs text-mg-fg/60">{product.material}</p>
 
           <VariantPicker
             variants={variants}
@@ -160,7 +159,7 @@ export function ProductView({ slug }: { slug: string }) {
           />
 
           {selected?.sku && (
-            <p className="mt-3 font-mono text-[11px] tracking-[0.1em] text-mg-fg/40">
+            <p className="mt-3 font-mono text-[11px] tracking-[0.1em] text-mg-fg/60">
               SKU {selected.sku}
             </p>
           )}
@@ -180,7 +179,7 @@ export function ProductView({ slug }: { slug: string }) {
               className={`flex-1 font-mono uppercase text-xs tracking-[0.2em] transition-colors ${
                 sellable
                   ? "bg-mg-accent text-white hover:bg-mg-fg hover:text-mg-bg"
-                  : "cursor-not-allowed border border-mg-bd/25 text-mg-fg/40"
+                  : "cursor-not-allowed border border-mg-bd/25 text-mg-fg/60"
               }`}
             >
               {!sellable ? "Unavailable" : added ? "Added to bag ✓" : "Add to bag"}
@@ -190,13 +189,13 @@ export function ProductView({ slug }: { slug: string }) {
           <ul className="mt-6 space-y-2">
             {ASSURANCES.map((a) => (
               <li key={a} className="flex items-center gap-2 text-sm text-mg-fg/70">
-                <span className="text-mg-accent">✓</span> {a}
+                <span className="text-mg-accentInk">✓</span> {a}
               </li>
             ))}
           </ul>
 
           <div className="mt-12">
-            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk">
               The Story
             </h2>
             {product.story.split("\n\n").map((para, i) => (
@@ -207,7 +206,7 @@ export function ProductView({ slug }: { slug: string }) {
           </div>
 
           <div className="mt-8">
-            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+            <h2 className="mb-3 font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk">
               Specifications
             </h2>
             <dl className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
@@ -216,7 +215,7 @@ export function ProductView({ slug }: { slug: string }) {
                   key={k}
                   className="flex justify-between gap-4 border-b border-mg-bd/10 py-2 text-sm"
                 >
-                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/50">
+                  <dt className="shrink-0 font-mono uppercase text-[11px] tracking-[0.1em] text-mg-fg/60">
                     {k}
                   </dt>
                   <dd className="min-w-0 text-right">{v}</dd>
@@ -233,7 +232,7 @@ export function ProductView({ slug }: { slug: string }) {
           <h2 className="font-grotesk font-semibold text-2xl md:text-3xl">You might also like</h2>
           <Link
             href="/shop"
-            className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accent"
+            className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-accentInk"
           >
             All products →
           </Link>

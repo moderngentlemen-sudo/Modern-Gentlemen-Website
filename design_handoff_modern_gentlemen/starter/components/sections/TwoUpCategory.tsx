@@ -39,13 +39,13 @@ export function TwoUpCategory({ items }: { items: Item[] }) {
               )}
               <div className="flex flex-col gap-2.5 px-[34px] py-[30px]">
                 {it.kicker && (
-                  <Eyebrow className="block !text-[17px] !leading-[normal] !text-mg-accent">
+                  <Eyebrow className="block !text-[17px] !leading-[normal] !text-mg-accentInk">
                     {it.kicker}
                   </Eyebrow>
                 )}
                 <h3 className="font-grotesk font-medium text-[28px] leading-[1.1] tracking-[-0.025em]">
                   {it.href ? (
-                    <Link href={it.href} className="hover:text-mg-accent">
+                    <Link href={it.href} className="hover:text-mg-accentInk">
                       {it.title}
                     </Link>
                   ) : (
@@ -58,7 +58,7 @@ export function TwoUpCategory({ items }: { items: Item[] }) {
                 {it.href && (
                   <Link
                     href={it.href}
-                    className="mt-1 inline-block font-mono uppercase text-[10.5px] leading-[normal] tracking-[0.2em] text-mg-accent"
+                    className="mt-1 inline-block font-mono uppercase text-[10.5px] leading-[normal] tracking-[0.2em] text-mg-accentInk"
                   >
                     Read more →
                   </Link>

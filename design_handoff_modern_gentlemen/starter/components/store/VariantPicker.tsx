@@ -36,7 +36,7 @@ export function VariantPicker({
     <div className="mt-6">
       <h2
         id="mg-variant-label"
-        className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-fg/50"
+        className="font-mono uppercase text-[11px] tracking-[0.2em] text-mg-fg/60"
       >
         Options
       </h2>
@@ -65,9 +65,9 @@ export function VariantPicker({
               className={[
                 "border px-4 py-2 font-mono uppercase text-[11px] tracking-[0.15em] transition-colors",
                 selected
-                  ? "border-mg-accent text-mg-accent"
+                  ? "border-mg-accent text-mg-accentInk"
                   : "border-mg-bd/25 hover:border-mg-bd/60",
-                sellable ? "" : "cursor-not-allowed text-mg-fg/35 line-through",
+                sellable ? "" : "cursor-not-allowed text-mg-fg/60 line-through",
               ].join(" ")}
             >
               {variant.title}

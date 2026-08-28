@@ -208,7 +208,7 @@ export function Drawer({
 
         {/* EST. 2026 + tagline */}
         <div className="-mt-5 mb-[30px] pb-[26px] border-b border-white/10">
-          <div className="font-mono text-[9px] leading-[normal] tracking-[0.26em] text-mg-accent mb-2.5">
+          <div className="font-mono text-[9px] leading-[normal] tracking-[0.26em] text-mg-accentInk mb-2.5">
             EST. 2026
           </div>
           <div className="font-serif italic text-[22px] leading-[1.3] text-[rgba(244,244,244,0.82)]">
@@ -226,7 +226,7 @@ export function Drawer({
             return (
               <div key={g.id} className="border-b border-white/[0.08]">
                 <div className="flex items-center gap-3 py-[9px]">
-                  <span className="shrink-0 font-mono text-[10px] leading-[normal] tracking-[0.16em] text-mg-accent">
+                  <span className="shrink-0 font-mono text-[10px] leading-[normal] tracking-[0.16em] text-mg-accentInk">
                     {num}
                   </span>
                   <Link

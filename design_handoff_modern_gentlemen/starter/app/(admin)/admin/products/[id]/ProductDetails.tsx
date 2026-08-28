@@ -378,7 +378,7 @@ export function ProductDetails({
 
         <PanelSection title="Specifications">
           {form.specs.length === 0 && (
-            <p className="text-[12px] text-mg-fg/45">
+            <p className="text-[12px] text-mg-fg/60">
               No rows yet. These render as the PDP&rsquo;s spec table, in this order.
             </p>
           )}
@@ -443,7 +443,7 @@ export function ProductDetails({
               rendered under "Slug" would point an editor at the wrong control.
             */}
             {error && (
-              <p role="alert" className="text-[13px] text-mg-accent">
+              <p role="alert" className="text-[13px] text-mg-accentInk">
                 {error}
               </p>
             )}
@@ -468,7 +468,7 @@ export function ProductDetails({
                     aria-pressed={on}
                     className={
                       on
-                        ? "border border-mg-accent bg-mg-accent/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-accent"
+                        ? "border border-mg-accent bg-mg-accent/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-accentInk"
                         : "border border-mg-bd/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60 hover:border-mg-fg"
                     }
                   >
@@ -478,7 +478,7 @@ export function ProductDetails({
               );
             })}
           </ul>
-          <p className="text-[12px] text-mg-fg/45">
+          <p className="text-[12px] text-mg-fg/60">
             The store card shows the first. The column is a list because NEW and LIMITED are not
             mutually exclusive.
           </p>
@@ -486,7 +486,7 @@ export function ProductDetails({
 
         <PanelSection title="Collections">
           {collections.length === 0 ? (
-            <p className="text-[12px] text-mg-fg/45">
+            <p className="text-[12px] text-mg-fg/60">
               None exist yet. Create them under Collections.
             </p>
           ) : (
@@ -502,7 +502,7 @@ export function ProductDetails({
                       aria-pressed={on}
                       className={
                         on
-                          ? "border border-mg-accent bg-mg-accent/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-accent"
+                          ? "border border-mg-accent bg-mg-accent/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-accentInk"
                           : "border border-mg-bd/25 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60 hover:border-mg-fg"
                       }
                     >

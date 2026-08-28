@@ -46,7 +46,7 @@ export function PanelSection({
           aria-expanded={open}
           className={clsx("flex min-w-0 flex-1 items-center gap-2 text-left", FOCUS_RING)}
         >
-          <span aria-hidden className="text-[9px] text-mg-fg/40">
+          <span aria-hidden className="text-[9px] text-mg-fg/60">
             {open ? "▾" : "▸"}
           </span>
           <span className={clsx(LABEL_SM, "truncate")}>{title}</span>

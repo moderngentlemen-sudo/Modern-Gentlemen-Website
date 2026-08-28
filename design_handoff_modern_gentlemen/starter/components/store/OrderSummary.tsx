@@ -23,7 +23,7 @@ export function OrderSummary({
   const cart = useCart();
   return (
     <div className="border border-mg-bd/15 p-6">
-      <h2 className="mb-4 font-mono uppercase text-xs tracking-[0.2em] text-mg-accent">
+      <h2 className="mb-4 font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk">
         {heading}
       </h2>
 
@@ -33,8 +33,8 @@ export function OrderSummary({
             <li key={l.key} className="flex justify-between gap-3 text-sm">
               <span className="text-mg-fg/70">
                 {l.product.name}
-                {l.variant && <span className="text-mg-fg/45"> · {l.variant.title}</span>}{" "}
-                <span className="text-mg-fg/40">× {l.qty}</span>
+                {l.variant && <span className="text-mg-fg/60"> · {l.variant.title}</span>}{" "}
+                <span className="text-mg-fg/60">× {l.qty}</span>
               </span>
               <span className="shrink-0 font-mono">{formatGBP(l.lineTotal)}</span>
             </li>
@@ -61,7 +61,7 @@ export function OrderSummary({
       )}
       {secondary}
       {footNote && (
-        <p className="mt-4 text-center font-mono uppercase text-[10px] tracking-[0.12em] text-mg-fg/40">
+        <p className="mt-4 text-center font-mono uppercase text-[10px] tracking-[0.12em] text-mg-fg/60">
           {footNote}
         </p>
       )}

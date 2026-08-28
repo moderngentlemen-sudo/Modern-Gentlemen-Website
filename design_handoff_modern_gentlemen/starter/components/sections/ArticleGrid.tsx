@@ -39,13 +39,13 @@ export function ArticleGrid({
               />
             </div>
             <div className="p-[20px_22px_26px]">
-              <div className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[#ff4d5e]">
+              <div className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-mg-accentSerif">
                 {c.tag}
               </div>
               <h3 className="mt-[11px] font-grotesk font-medium text-[22px] leading-[1.12] tracking-[-0.02em] text-balance">
                 {c.title}
               </h3>
-              <div className="mt-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mg-fg/[0.42]">
+              <div className="mt-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mg-fg/60">
                 {c.read}
               </div>
             </div>

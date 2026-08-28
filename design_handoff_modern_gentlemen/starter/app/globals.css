@@ -5,9 +5,19 @@
 /* Theme tokens (see 02_DESIGN_TOKENS.md). Dark is the base; light overrides. */
 :root {
   --mg-bg: #0d0d0d;
+  --mg-bg-rgb: 13 13 13;
   --mg-fg: #f4f4f4;
+  /* The channel twins exist so Tailwind can compute an alpha. `text-mg-fg/70`
+     and ~413 siblings compiled to nothing without them. See tailwind.config.ts. */
+  --mg-fg-rgb: 244 244 244;
   --mg-surface: #131315;
+  --mg-surface-rgb: 19 19 21;
   --mg-bd: #ffffff;
+  --mg-bd-rgb: 255 255 255;
+  /* The brand red as a FILL — buttons, the CTA band, badges, borders. Identical
+     in all three contexts, and it must stay #c8102e: white text sits on it, and
+     white on #c8102e is 5.88 while white on a brighter red is 4.12. Raising it
+     to fix accent *text* broke accent *backgrounds* — see --mg-accent-ink. */
   --mg-accent: #c8102e;
   /* The same red in `R G B` channels, for Tailwind's `mg-accent` utilities.
      Tailwind cannot compute an alpha from a colour whose value is `var(--x)`,
@@ -16,6 +26,20 @@
      derived in CSS because `rgb()` cannot destructure a hex. The theme editor
      emits both from one stored value, so they cannot drift. */
   --mg-accent-rgb: 200 16 46;
+  /* ⚠️ The accent as INK, and the reason it is a separate token is the whole
+     lesson of this change. #c8102e reads 3.30 on this background and 3.15 on
+     --mg-surface, under the 4.5 AA wants for the 10-12px mono labels it is used
+     on. No one red fixes that: against #0d0d0d AA sets a luminance FLOOR of
+     0.193 and against light's #f4f4f4 a CEILING of 0.162, and those windows do
+     not overlap for ANY hue. So the accent must differ per theme.
+     But brightening --mg-accent itself made things worse, not better —
+     measured, 34 failing nodes became 46 — because the same token fills the red
+     CTA band, and lifting its luminance dropped the white text on it from 5.88
+     to 4.12. Ink and fill want opposite directions. So they are two tokens now:
+     the fill stays #c8102e, and the ink is #f7142e here (4.71 on --mg-bg, 4.50
+     on --mg-surface) and #c8102e on light, where it already passes at 5.35. */
+  --mg-accent-ink: #f7142e;
+  --mg-accent-ink-rgb: 247 20 46;
   --mg-accent-serif: #ff4d5e;
   /* The serif accent's channel twin, and it exists for a bug rather than for
      symmetry: `--mg-accent-serif` was a bare `var()` in `tailwind.config.ts`,
@@ -28,18 +52,40 @@
   /* Secondary text ramps (prototype `tMuted` / `tFaint`). Flat greys in light,
      translucent paper in dark — not opacities of --mg-fg. */
   --mg-muted: rgba(244, 244, 244, 0.5);
-  --mg-faint: rgba(244, 244, 244, 0.35);
+  /* 0.35 composited over --mg-bg is #5e5e5e — 2.99, under AA. 0.5 gives
+     #818181 and 4.99. See the note in [data-darkband] below. */
+  --mg-faint: rgba(244, 244, 244, 0.5);
   --mg-band-border: rgba(255, 255, 255, 0.12);
 }
 html[data-mgtheme="light"] {
   --mg-bg: #f4f4f4;
+  --mg-bg-rgb: 244 244 244;
   --mg-fg: #141414;
+  --mg-fg-rgb: 20 20 20;
   --mg-surface: #ffffff;
+  --mg-surface-rgb: 255 255 255;
   --mg-bd: #141414;
+  --mg-bd-rgb: 20 20 20;
+  /* The ink and the fill are the SAME value on paper: #c8102e reads 5.35 on
+     --mg-bg and 5.88 on a white card, so light never had the problem dark has.
+     Declared anyway rather than inherited, so the pair is legible in one place
+     and the theme editor can drive both. */
+  --mg-accent-ink: #c8102e;
+  --mg-accent-ink-rgb: 200 16 46;
   --mg-accent-serif: #c8102e;
   --mg-accent-serif-rgb: 200 16 46;
-  --mg-muted: #8a8a8a;
-  --mg-faint: #b0b0b0;
+  /* ⚠️ **The light ramp keeps BOTH steps, and the received wisdom that it could
+     not is wrong.** This file's own notes and the design baseline both said
+     `--mg-muted` and `--mg-faint` "both need #707070, so AA collapses the
+     two-step light ramp into one step". That assumed moving each to the
+     MINIMUM passing value. In fact **anything at or below #707070 clears 4.5
+     on both #f4f4f4 (4.50) and #ffffff (4.95)** — so keeping muted darker than
+     faint preserves a real ramp. The step narrows (0.180 luminance apart
+     before, 0.060 now) but it survives.
+     muted #5a5a5a: 6.27 on the page, 6.90 on a card.
+     faint #707070: 4.50 on the page, 4.95 on a card — the AA ceiling exactly. */
+  --mg-muted: #5a5a5a;
+  --mg-faint: #707070;
   /* Inset dark bands take a hairline only in dark mode; on paper the edge is
      the band itself (prototype `bandBorder`). Keyed off the PAGE theme, so
      [data-darkband] must not override it. */
@@ -51,13 +97,28 @@ html[data-mgtheme="light"] {
    correctly regardless of the page theme. */
 [data-darkband] {
   --mg-bg: #0d0d0d;
+  --mg-bg-rgb: 13 13 13;
   --mg-fg: #f4f4f4;
+  --mg-fg-rgb: 244 244 244;
   --mg-surface: #161618;
+  --mg-surface-rgb: 22 22 24;
   --mg-bd: #ffffff;
+  --mg-bd-rgb: 255 255 255;
+  /* ⚠️ The band needs its own ink, and this is the declaration that does the
+     most work of the three. A dark band on a LIGHT page would otherwise inherit
+     light's #c8102e and paint it on #0d0d0d — 3.30 — which is where 11 of the
+     15 failing accent nodes were, in both themes rather than only in dark.
+     The FILL is deliberately not redeclared: white text sits on it here too. */
+  --mg-accent-ink: #f7142e;
+  --mg-accent-ink-rgb: 247 20 46;
   --mg-accent-serif: #ff4d5e;
   --mg-accent-serif-rgb: 255 77 94;
   --mg-muted: rgba(244, 244, 244, 0.5);
-  --mg-faint: rgba(244, 244, 244, 0.35);
+  /* 0.35 composited over #0d0d0d is #5e5e5e — 2.99. 0.5 gives #818181 and
+     4.99, and costs nothing structurally because dark's muted step is a
+     separate alpha, so the two-step ramp survives. The LIGHT ramp is the one
+     AA would collapse, and it is deliberately left alone. */
+  --mg-faint: rgba(244, 244, 244, 0.5);
 }
 
 /* Matches the prototype's root rule exactly. `scrollbar-gutter: stable` is
@@ -109,7 +170,8 @@ a {
   color: inherit;
 }
 a:hover {
-  color: var(--mg-accent);
+  /* Text, so the ink rather than the fill. */
+  color: var(--mg-accent-ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -308,6 +370,7 @@ a:hover {
 /* Chrome: red underline that grows from the left on hover/focus (nav + drawer
    links). Prototype: background-size 0%→100%, 1.6px thick, 6px below text. */
 .mg-underline {
+  /* A painted rule, not text: the fill, deliberately. */
   background-image: linear-gradient(var(--mg-accent), var(--mg-accent));
   background-repeat: no-repeat;
   background-position: 0 100%;
@@ -336,7 +399,7 @@ a:hover {
     500 74px/0.72 var(--font-space-grotesk),
     sans-serif;
   padding: 6px 12px 0 0;
-  color: var(--mg-accent);
+  color: var(--mg-accent-ink);
 }
 [data-scrim] {
   background: linear-gradient(

@@ -13,7 +13,7 @@ export function Timeline({ heading, entries }: { heading?: string; entries: Entr
         {entries?.map((e, i) => (
           <div key={i} className="relative pl-8 pb-10 last:pb-0">
             <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-mg-accent" />
-            <div className="font-mono text-sm text-mg-accent">{e.year}</div>
+            <div className="font-mono text-sm text-mg-accentInk">{e.year}</div>
             <h3 className="font-grotesk text-xl mt-1">{e.title}</h3>
             {e.body && <p className="mt-2 text-mg-fg/70 text-pretty max-w-xl">{e.body}</p>}
           </div>

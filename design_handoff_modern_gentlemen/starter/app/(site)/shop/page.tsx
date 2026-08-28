@@ -95,7 +95,7 @@ function Store({ active, setActive }: { active: string; setActive?: (g: string) 
           {!empty && (
             <Link
               href="/bag"
-              className="font-mono uppercase text-xs tracking-[0.2em] text-mg-accent"
+              className="font-mono uppercase text-xs tracking-[0.2em] text-mg-accentInk"
             >
               View bag →
             </Link>
@@ -114,7 +114,7 @@ function Store({ active, setActive }: { active: string; setActive?: (g: string) 
           </div>
           <Link
             href="/membership"
-            className="border border-white/60 px-6 py-3 font-mono uppercase text-xs tracking-[0.2em] transition-colors hover:bg-white hover:text-mg-accent"
+            className="border border-white/60 px-6 py-3 font-mono uppercase text-xs tracking-[0.2em] transition-colors hover:bg-white hover:text-mg-accentInk"
           >
             Become a member →
           </Link>
@@ -133,7 +133,9 @@ function ShopHero({
 }) {
   return (
     <div className="container-mg border-b border-mg-bd/10 pt-10 pb-8 md:pt-16">
-      <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accent">The MG Store</p>
+      <p className="font-mono uppercase text-xs tracking-[0.28em] text-mg-accentInk">
+        The MG Store
+      </p>
       <h1 className="mt-4 font-grotesk font-semibold text-5xl md:text-7xl tracking-[-0.03em] text-balance">
         Objects worth keeping.
       </h1>

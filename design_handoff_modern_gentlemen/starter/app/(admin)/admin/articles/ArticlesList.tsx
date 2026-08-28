@@ -137,16 +137,16 @@ export function ArticlesList({
                     <Td>
                       <Link
                         href={`/admin/articles/${article.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {article.title}
                       </Link>
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">/article/{article.slug}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">/article/{article.slug}</Td>
                     <Td>
                       <StatusPill status={article.status} />
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">v{article.version}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">v{article.version}</Td>
                     <Td className="text-right">
                       {canDelete && (
                         <Button

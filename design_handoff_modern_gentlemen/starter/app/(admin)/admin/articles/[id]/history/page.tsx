@@ -43,8 +43,8 @@ export default async function ArticleHistory({ params }: { params: Promise<{ id:
           </Button>
         }
       >
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/50">
-          <Link href={`/admin/articles/${id}`} className="font-mono hover:text-mg-accent">
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-mg-fg/60">
+          <Link href={`/admin/articles/${id}`} className="font-mono hover:text-mg-accentInk">
             /article/{article.slug}
           </Link>
           <StatusPill status={article.status} />

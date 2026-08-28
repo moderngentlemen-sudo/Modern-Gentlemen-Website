@@ -141,7 +141,7 @@ export function InsertMenu({
 
       <div className="flex-1 overflow-y-auto">
         {grouped.length === 0 && matchingPatterns.length === 0 && (
-          <p className="px-3 py-6 text-center text-[12px] text-mg-fg/40">
+          <p className="px-3 py-6 text-center text-[12px] text-mg-fg/60">
             No section matches “{query}”.
           </p>
         )}
@@ -173,7 +173,7 @@ export function InsertMenu({
                       )}
                     >
                       <span className="block text-[13px] font-medium">{pattern.name}</span>
-                      <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
+                      <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/60">
                         {pattern.description ??
                           `${pattern.blockCount} section${pattern.blockCount === 1 ? "" : "s"}`}
                       </span>
@@ -287,7 +287,7 @@ function LibraryItem({
       )}
     >
       <span className="block text-[13px] font-medium">{block.label}</span>
-      <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/45">
+      <span className="mt-0.5 block text-[11px] leading-snug text-mg-fg/60">
         {block.description}
       </span>
     </button>

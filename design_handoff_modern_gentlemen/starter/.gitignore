@@ -19,3 +19,4 @@ test-results
 # supabase cli scratch — written beside config.toml once the CLI runs
 supabase/.branches
 supabase/.temp
+*.ts.tmp

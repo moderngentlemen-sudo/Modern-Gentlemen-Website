@@ -114,7 +114,7 @@ export function HeroCoverStar({
             </span>
           )}
           {eyebrow && (
-            <div className="mt-3.5 font-serif italic text-[16px] leading-[normal] text-[#ff4d5e]">
+            <div className="mt-3.5 font-serif italic text-[16px] leading-[normal] text-mg-accentSerif">
               {eyebrow}
             </div>
           )}
@@ -136,7 +136,7 @@ export function HeroCoverStar({
             {cta && (
               <Link
                 href={cta.href}
-                className="inline-block bg-mg-accent px-7 py-[13px] font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-mg-accent"
+                className="inline-block bg-mg-accent px-7 py-[13px] font-mono text-[9px] leading-[normal] tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-mg-accentInk"
               >
                 {cta.label}
               </Link>

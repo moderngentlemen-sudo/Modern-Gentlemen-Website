@@ -15,7 +15,7 @@ export default async function ArticlesIndex() {
   return (
     <>
       <AdminPageHeader eyebrow="Content" title="Articles">
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           Editorial, on the twenty-template library. Sections beyond the template are composed in
           the builder.
         </p>

@@ -176,7 +176,7 @@ export function CollectionsList({
                 {collections.map((collection) => (
                   <tr key={collection.id} className="hover:bg-mg-fg/[0.02]">
                     <Td className="font-medium">{collection.name}</Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">{collection.slug}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">{collection.slug}</Td>
                     <Td className="text-[13px] text-mg-fg/60">{collection.description ?? "—"}</Td>
                     <Td className="text-right">
                       {canWrite && (

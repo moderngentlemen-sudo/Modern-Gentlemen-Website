@@ -99,7 +99,7 @@ function SectionHead({
       {viewAllHref && (
         <Link
           href={viewAllHref}
-          className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accent whitespace-nowrap"
+          className="shrink-0 font-mono uppercase text-[11px] tracking-[0.18em] text-mg-accentInk whitespace-nowrap"
         >
           {viewAllLabel}
         </Link>
@@ -131,7 +131,7 @@ function Tile({ item }: { item: Item }) {
         className="flex w-full flex-col justify-between bg-[#0d0d0d] text-[#f4f4f4] border border-white/10 px-[30px] py-7 transition-transform duration-200 hover:-translate-y-[3px]"
       >
         {item.kicker && (
-          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-mg-accent">
+          <span className="font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-mg-accentInk">
             {item.kicker}
           </span>
         )}
@@ -205,7 +205,7 @@ function Tile({ item }: { item: Item }) {
         }}
       >
         {item.kicker && (
-          <span className="block font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-[#ff4d5e]">
+          <span className="block font-mono uppercase text-[10px] leading-[normal] tracking-[0.2em] text-mg-accentSerif">
             {item.kicker}
           </span>
         )}
@@ -239,7 +239,7 @@ function SimpleCard({ item }: { item: Item }) {
       </div>
       {item.kicker && <MonoLabel className="block mt-4">{item.kicker}</MonoLabel>}
       <h3 className="font-grotesk text-lg mt-2 leading-snug text-pretty">{item.title}</h3>
-      {item.meta && <p className="font-mono text-xs text-mg-fg/50 mt-2">{item.meta}</p>}
+      {item.meta && <p className="font-mono text-xs text-mg-fg/60 mt-2">{item.meta}</p>}
     </article>
   );
   return item.href ? <Link href={item.href}>{inner}</Link> : inner;

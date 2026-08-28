@@ -37,7 +37,7 @@ export function FeaturedLead({
           />
         </div>
         <div className="flex flex-col justify-center p-[32px_24px] min-[681px]:p-[44px_46px]">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#ff4d5e]">
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-mg-accentSerif">
             {article.kicker}
           </div>
           <h2 className="mt-4 font-grotesk font-semibold text-[30px] min-[681px]:text-[40px] leading-[1.02] tracking-[-0.035em] text-balance">
@@ -49,7 +49,7 @@ export function FeaturedLead({
             </p>
           )}
           {(article.author || article.read) && (
-            <div className="mt-[26px] font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/50">
+            <div className="mt-[26px] font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60">
               WORDS · {article.author}&nbsp;·&nbsp;{article.read}
             </div>
           )}

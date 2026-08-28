@@ -92,7 +92,7 @@ function HeroContained({ kicker, title, dek, byline, image }: HeroProps) {
         {dek && (
           <Dek className="mt-5 max-w-[600px] text-[20px] leading-[1.45] text-mg-fg/70">{dek}</Dek>
         )}
-        <Byline className="mt-[22px] text-mg-fg/50">{byline}</Byline>
+        <Byline className="mt-[22px] text-mg-fg/60">{byline}</Byline>
       </div>
       {image && (
         <div data-hero-media className="relative mt-9 h-[52vh] min-h-[360px] overflow-hidden">
@@ -152,7 +152,7 @@ function HeroWide({ kicker, title, dek, byline, image }: HeroProps) {
             {dek}
           </Dek>
         )}
-        <Byline className="mt-5 text-mg-fg/55">{byline}</Byline>
+        <Byline className="mt-5 text-mg-fg/60">{byline}</Byline>
       </div>
     </section>
   );
@@ -195,7 +195,7 @@ function HeroSplit({ kicker, title, dek, byline, image }: HeroProps) {
           {title}
         </h1>
         {dek && <Dek className="mt-5 text-[20px] leading-[1.45] text-mg-fg/[0.72]">{dek}</Dek>}
-        <Byline className="mt-[22px] text-mg-fg/50">{byline}</Byline>
+        <Byline className="mt-[22px] text-mg-fg/60">{byline}</Byline>
       </div>
       {image && (
         <div data-splitimg className="relative h-[60vh] min-h-[440px] overflow-hidden">
@@ -222,7 +222,7 @@ function HeroMasthead({ kicker, title, dek, byline }: HeroProps) {
           {dek}
         </Dek>
       )}
-      <Byline className="mt-[26px] border-t border-mg-bd/[0.12] pt-[22px] text-mg-fg/55">
+      <Byline className="mt-[26px] border-t border-mg-bd/[0.12] pt-[22px] text-mg-fg/60">
         {byline}
       </Byline>
     </section>
@@ -244,7 +244,7 @@ function HeroCentered({ kicker, title, dek, byline }: HeroProps) {
           {dek}
         </Dek>
       )}
-      <Byline className="mt-6 text-mg-fg/50">{byline}</Byline>
+      <Byline className="mt-6 text-mg-fg/60">{byline}</Byline>
     </section>
   );
 }

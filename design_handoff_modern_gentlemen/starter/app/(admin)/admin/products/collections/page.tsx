@@ -20,7 +20,7 @@ export default async function CollectionsPage() {
           </Button>
         }
       >
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           Curated groupings a product can belong to. Membership is set from each product&rsquo;s own
           panel.
         </p>

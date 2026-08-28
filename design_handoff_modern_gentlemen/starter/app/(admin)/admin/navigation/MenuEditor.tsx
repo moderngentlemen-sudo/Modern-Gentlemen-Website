@@ -417,7 +417,7 @@ function Row({
     <div className="flex items-center gap-3">
       <div className="min-w-0 flex-1">
         <span className="text-[13px] font-medium">{item.label}</span>
-        <span className="ml-2 font-mono text-[11px] text-mg-fg/45">
+        <span className="ml-2 font-mono text-[11px] text-mg-fg/60">
           {item.linkType === "url" ? item.url : item.linkType}
         </span>
         {item.group && <span className={`ml-2 ${LABEL_SM}`}>{item.group}</span>}

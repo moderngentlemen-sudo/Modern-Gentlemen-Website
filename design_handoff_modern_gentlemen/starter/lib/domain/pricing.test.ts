@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateTotals, normaliseQty } from "./pricing";
+import { calculateTotals, memberUnitPrice, normaliseQty } from "./pricing";
 import { formatPence, poundsToPence } from "./money";
 
 /** Catalog prices are whole pounds; convert at the boundary as the app does. */
@@ -80,6 +80,57 @@ describe("calculateTotals", () => {
     const totals = calculateTotals([line(10)], { isMember: true, memberRate: 1 });
     expect(totals.payable).toBe(0);
     expect(totals.shipping).toBe(0);
+  });
+});
+
+describe("memberUnitPrice", () => {
+  /**
+   * The regression this function exists for. The PDP used to compute
+   * `Math.round(price * (1 - rate))` over **pounds**, which renders £123 for a
+   * £145 product while the bag charges £123.25 — the page and the checkout
+   * disagreeing by 25p about the site's own headline member benefit.
+   */
+  it("keeps the pence a pounds-rounded discount threw away", () => {
+    expect(memberUnitPrice(poundsToPence(145))).toBe(poundsToPence(123.25));
+    expect(formatPence(memberUnitPrice(poundsToPence(145)))).toBe("£123.25");
+
+    // What the PDP used to render, asserted so the two are visibly different
+    // rather than described as different.
+    expect(Math.round(145 * 0.85)).toBe(123);
+  });
+
+  it("agrees with the cart to the penny for a single unit", () => {
+    // The property that matters: whatever the PDP quotes for one, the bag
+    // charges for one. Asserted across the catalogue's price range rather than
+    // at one convenient value.
+    for (const pounds of [4.95, 19, 52, 145, 159.99, 245, 1250]) {
+      const unit = poundsToPence(pounds);
+      expect(memberUnitPrice(unit)).toBe(
+        calculateTotals([{ unitPrice: unit, qty: 1 }], { isMember: true }).payable
+      );
+    }
+  });
+
+  it("honours an overridden rate, as the cart's own option does", () => {
+    expect(memberUnitPrice(poundsToPence(145), 0.5)).toBe(poundsToPence(72.5));
+    expect(memberUnitPrice(poundsToPence(145), 0)).toBe(poundsToPence(145));
+  });
+
+  it("rounds the discount rather than multiplying by its complement", () => {
+    // 7 pence at 15% is 1.05p. The cart rounds the *discount* (1p) and
+    // subtracts, giving 6. Multiplying by 0.85 gives 5.95 → 6 here too, but the
+    // forms diverge in general, and mirroring the cart is what makes them agree
+    // by construction. 3p at 50% is the smallest case that shows it: Math.round
+    // is half-up, so the discount rounds 1.5 → 2 and leaves 1, while the
+    // complement form rounds the same 1.5 the other way and answers 2.
+    expect(memberUnitPrice(3, 0.5)).toBe(1);
+    expect(Math.round(3 * (1 - 0.5))).toBe(2);
+  });
+
+  it("returns whole pence for every rate it is given", () => {
+    for (const rate of [0.15, 0.075, 1 / 3, 0.999]) {
+      expect(Number.isInteger(memberUnitPrice(14_500, rate))).toBe(true);
+    }
   });
 });
 

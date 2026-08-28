@@ -20,7 +20,7 @@ export function Masthead({ label, people }: { label: string; people: Person[] })
               {p.initial}
             </div>
             <div className="font-grotesk font-medium text-[16px] tracking-[-0.01em]">{p.name}</div>
-            <div className="mt-[5px] font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/50">
+            <div className="mt-[5px] font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60">
               {p.role}
             </div>
           </div>

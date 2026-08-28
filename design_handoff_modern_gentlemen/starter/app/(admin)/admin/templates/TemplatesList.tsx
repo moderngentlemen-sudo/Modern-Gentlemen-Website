@@ -251,23 +251,23 @@ export function TemplatesList({
                       <Td>
                         <Link
                           href={`/admin/templates/${template.id}`}
-                          className="font-medium hover:text-mg-accent"
+                          className="font-medium hover:text-mg-accentInk"
                         >
                           {template.name}
                         </Link>
                       </Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">{template.key}</Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">{template.kind}</Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">
+                      <Td className="font-mono text-[12px] text-mg-fg/60">{template.key}</Td>
+                      <Td className="font-mono text-[12px] text-mg-fg/60">{template.kind}</Td>
+                      <Td className="font-mono text-[12px] text-mg-fg/60">
                         {areas.length === 0 ? "—" : areas.join(", ")}
                       </Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">
+                      <Td className="font-mono text-[12px] text-mg-fg/60">
                         {assignmentLabel(assignmentFor(template.id))}
                       </Td>
                       <Td>
                         <StatusPill status={template.status} />
                       </Td>
-                      <Td className="font-mono text-[12px] text-mg-fg/50">v{template.version}</Td>
+                      <Td className="font-mono text-[12px] text-mg-fg/60">v{template.version}</Td>
                       <Td className="text-right">
                         {canWrite && (assignmentFor(template.id)?.targets.length ?? 0) > 0 && (
                           <Button
@@ -434,14 +434,14 @@ export function TemplatesList({
           ]}
         />
 
-        <p className="mt-3 text-[12px] text-mg-fg/40">
+        <p className="mt-3 text-[12px] text-mg-fg/60">
           Only the scopes the public site reads are offered — a whole content type, or one record.
           Taxonomy-scoped assignment exists in the schema and is deliberately not offered here,
           because nothing on the public site resolves it yet.
         </p>
 
         {assigning?.status !== "published" && (
-          <p className="mt-3 text-[12px] text-mg-fg/40">
+          <p className="mt-3 text-[12px] text-mg-fg/60">
             ⚠️ This template is a draft. The assignment saves, but nothing changes on the site until
             the template is published — the public reader takes published payloads only.
           </p>

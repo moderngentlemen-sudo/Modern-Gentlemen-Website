@@ -182,6 +182,15 @@ export interface PublishedProductSeo {
   pricePence: number;
   availability: ProductAvailability;
   images: string[];
+  /**
+   * Always present, empty for a product sold as one thing — unlike `Product`
+   * above, which omits the key entirely. The difference is deliberate and it is
+   * about what each shape is compared against: `Product` is deep-equalled
+   * against the demo catalogue, where an always-present `variants: []` would
+   * fail on a difference that is not one. Nothing deep-equals this, so the
+   * simpler invariant wins.
+   */
+  variants: PublicVariant[];
 }
 
 export async function getPublishedProductSeo(slug: string): Promise<PublishedProductSeo | null> {
@@ -190,7 +199,7 @@ export async function getPublishedProductSeo(slug: string): Promise<PublishedPro
   const { data, error } = await db
     .from("products")
     .select(
-      "slug, name, blurb, material, price_pence, availability, product_media(position, media_assets(bucket, storage_path, external_url))"
+      "slug, name, blurb, material, price_pence, availability, product_media(position, media_assets(bucket, storage_path, external_url)), product_variants(id, title, sku, price_pence, availability, position)"
     )
     .eq("status", "published")
     .eq("slug", slug)
@@ -216,5 +225,11 @@ export async function getPublishedProductSeo(slug: string): Promise<PublishedPro
     // than crashing a page render — `in_stock` is the wrong default to guess.
     availability: isProductAvailability(data.availability) ? data.availability : "out_of_stock",
     images: galleryUrls(data.product_media as MediaRow[] | null),
+    // The same mapper the store's own read uses, so the prices structured data
+    // advertises and the prices the picker shows come from one place. They
+    // disagreed before this: the PDP priced every size and the JSON-LD
+    // advertised the product's own price as a lone Offer, so a product whose
+    // large costs £159.99 told a crawler £145.
+    variants: variantsOf(data.product_variants as VariantRow[] | null),
   };
 }

@@ -5,9 +5,9 @@ export type BadgeTone = "neutral" | "accent" | "danger" | "muted";
 
 const TONES: Record<BadgeTone, string> = {
   neutral: "border-mg-bd/25 text-mg-fg/70",
-  accent: "border-mg-accent/40 bg-mg-accent/10 text-mg-accent",
+  accent: "border-mg-accent/40 bg-mg-accent/10 text-mg-accentInk",
   danger: "border-mg-accentSerif/40 bg-mg-accentSerif/10 text-mg-accentSerif",
-  muted: "border-mg-bd/15 text-mg-fg/40",
+  muted: "border-mg-bd/15 text-mg-fg/60",
 };
 
 export function Badge({

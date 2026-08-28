@@ -365,6 +365,269 @@ async function makeCollectionItem(
 
 /* ------------------------------------------------- anonymous read behaviour */
 
+/**
+ * `0024`. **The only table in this schema an anonymous visitor may write to**,
+ * which inverts every other block in this file: the interesting assertions are
+ * that the write is allowed and that nothing else is.
+ *
+ * The defect it closes was not an RLS bug at all — both sign-up bands discarded
+ * the address and claimed success on seven live pages. But the table it needed
+ * is the first public write surface here, so the policy shape is new and worth
+ * pinning: a subscriber list `anon` can read is a subscriber list that has
+ * leaked, and PostgREST is a public endpoint.
+ */
+/**
+ * `0025`. Two unrelated defects found in the same audit pass.
+ *
+ * The `site_settings` half is the cheap kind of security fix — a table nobody
+ * reads, empty, and world-readable since `0001`. The mappings half is a real
+ * data-loss bug that had been showing up as E2E flakiness.
+ */
+describe("0025: site_settings is not world-readable", () => {
+  it("refuses anon the settings table", async () => {
+    // `for select using (true)` since `0001`. A table named "settings" is the
+    // kind that acquires an operational value nobody meant to publish, and the
+    // policy was written before anyone knew what would go in it.
+    const { data, error } = await anon.from("site_settings").select("*");
+
+    // Empty rather than 42501: the grant is intact, the policy now returns no
+    // rows. Both are a refusal; asserting emptiness is what survives either.
+    expect(error, "the read itself is not a privilege error").toBeNull();
+    expect(data ?? [], "anon must see no settings").toHaveLength(0);
+  });
+});
+
+describe("0025: replacing feed mappings is atomic", () => {
+  async function makeSource(): Promise<{ id: string }> {
+    const { data, error } = await db
+      .from("product_sources")
+      .insert({ name: prefixed("rls-source"), kind: "xml_feed", config: {} as never })
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(`makeSource: ${error?.message}`);
+    fixtures.track("product_sources", data.id);
+    return data;
+  }
+
+  it("swaps the whole set in one call", async () => {
+    const source = await makeSource();
+    await db.from("feed_field_mappings").insert([
+      { source_id: source.id, target_field: "name", source_path: "/old/a", is_required: true },
+      { source_id: source.id, target_field: "slug", source_path: "/old/b", is_required: false },
+    ]);
+
+    const { error } = await db.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [
+        { target_field: "name", source_path: "/new/n", is_required: true },
+        { target_field: "description", source_path: "/new/d", is_required: false },
+      ] as never,
+    });
+    expect(error, "a valid replace succeeds").toBeNull();
+
+    const { data } = await db
+      .from("feed_field_mappings")
+      .select("target_field, source_path")
+      .eq("source_id", source.id)
+      .order("target_field");
+
+    expect(data?.map((m) => m.target_field)).toEqual(["description", "name"]);
+    expect(data?.every((m) => m.source_path.startsWith("/new/"))).toBe(true);
+  });
+
+  /**
+   * ⚠️ **The assertion the whole migration exists for.** The old
+   * delete-then-insert was two PostgREST round trips: a failure in the second
+   * left the source with **zero** mappings and surfaced no error to the editor.
+   * The count after a failed replace is therefore the regression test — if this
+   * ever reads 0 again, atomicity has been lost.
+   */
+  it("leaves the previous set intact when the new one is invalid", async () => {
+    const source = await makeSource();
+    await db.from("feed_field_mappings").insert([
+      { source_id: source.id, target_field: "name", source_path: "/keep/a", is_required: true },
+      { source_id: source.id, target_field: "slug", source_path: "/keep/b", is_required: false },
+    ]);
+
+    // `target_field` is NOT NULL, so this fails on the insert half — after the
+    // delete half has already run inside the function's transaction.
+    const { error } = await db.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [{ target_field: null, source_path: "/bad", is_required: false }] as never,
+    });
+    expect(error?.code, "an invalid payload must fail loudly").toBe("23502");
+
+    const { count } = await db
+      .from("feed_field_mappings")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source.id);
+
+    expect(count, "the delete must have rolled back with the insert").toBe(2);
+  });
+
+  it("treats an empty array as `clear them`", async () => {
+    const source = await makeSource();
+    await db
+      .from("feed_field_mappings")
+      .insert([
+        { source_id: source.id, target_field: "name", source_path: "/a", is_required: true },
+      ]);
+
+    const { error } = await db.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [] as never,
+    });
+    expect(error, "an empty payload is legitimate, not an error").toBeNull();
+
+    const { count } = await db
+      .from("feed_field_mappings")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source.id);
+    expect(count).toBe(0);
+  });
+
+  it("still runs as the caller, so RLS decides", async () => {
+    // `security invoker` is the design: a `security definer` function would
+    // bypass the editor's RLS and break this repo's oldest standing rule. An
+    // actor without `integration.write` must be refused.
+    const source = await makeSource();
+
+    const { error } = await outsiderDb.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [{ target_field: "name", source_path: "/x", is_required: true }] as never,
+    });
+
+    // The delete matches no rows it may see and the insert is refused by the
+    // policy — either way nothing is written.
+    const { count } = await db
+      .from("feed_field_mappings")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source.id);
+
+    expect(error ?? count, "a role-less account must not write mappings").toBeTruthy();
+    expect(count, "and must leave the table alone").toBe(0);
+  });
+});
+
+describe("newsletter: anon may write and may not read", () => {
+  const address = () => `zz-rls-${crypto.randomUUID()}@example.test`;
+
+  it("lets an anonymous visitor sign up", async () => {
+    const email = address();
+
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email, source: "newsletter" });
+    expect(error, "anon must be able to subscribe").toBeNull();
+
+    const { count } = await db
+      .from("newsletter_subscribers")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email);
+    expect(count, "the row is really there").toBe(1);
+  });
+
+  it("refuses anon the list it just wrote to", async () => {
+    // The assertion that matters most. A read here would mean the whole
+    // subscriber list is downloadable with the publishable key that ships in
+    // the client bundle.
+    const { data, error } = await anon.from("newsletter_subscribers").select("email");
+
+    expect(error?.code, "selecting subscribers as anon must be refused").toBe(DENIED);
+    expect(data, "and must not arrive by another route").toBeNull();
+  });
+
+  it("refuses anon a forged `confirmed` status", async () => {
+    // `anon` holds an INSERT grant on (id, email, source) and no other column,
+    // so this is refused by the grant rather than by application validation —
+    // which is what makes it true of a hand-rolled PostgREST call too.
+    // ⚠️ **This type-checks, and that is the point.** `database.types.ts` is
+    // generated from the schema and cannot express a column-level grant, so
+    // TypeScript believes `status` is insertable by anyone. Only the database
+    // knows better — which is exactly why the gate belongs there and not in a
+    // Zod schema a caller could bypass.
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email: address(), source: "newsletter", status: "confirmed" });
+
+    expect(error, "anon must not be able to set status").not.toBeNull();
+  });
+
+  it("stores a new sign-up as pending, never as subscribed", async () => {
+    // Nothing sends a confirmation email yet, so a row claiming otherwise would
+    // be the same untruth the button used to tell, merely stored.
+    const email = address();
+    await anon.from("newsletter_subscribers").insert({ email, source: "ctaBand" });
+
+    const { data } = await db
+      .from("newsletter_subscribers")
+      .select("status, confirmed_at, source")
+      .eq("email", email)
+      .single();
+
+    expect(data?.status).toBe("pending");
+    expect(data?.confirmed_at).toBeNull();
+    expect(data?.source).toBe("ctaBand");
+  });
+
+  it("surfaces a repeat address as 23505, which the repository treats as success", async () => {
+    // ⚠️ **An upsert cannot be used here and this test is where that is
+    // pinned.** PostgREST's upsert path needs SELECT on the table — which is
+    // exactly what this table's grants withhold — so the repository does a
+    // plain insert and tolerates the unique violation instead. Asserting the
+    // *code* rather than "no error" is what stops someone reinstating
+    // `.upsert()` and getting a 42501 on every sign-up.
+    const email = address();
+
+    await anon.from("newsletter_subscribers").insert({ email, source: "newsletter" });
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email, source: "ctaBand" });
+
+    expect(error?.code, "a repeat sign-up is a unique violation").toBe("23505");
+
+    const { count } = await db
+      .from("newsletter_subscribers")
+      .select("*", { count: "exact", head: true })
+      .eq("email", email);
+    expect(count, "and creates no second row").toBe(1);
+  });
+
+  it("refuses an address that is not already lowercased", async () => {
+    // The CHECK is what makes a plain `unique (email)` case-insensitive: no
+    // other casing can exist, so two spellings of one mailbox cannot both be
+    // stored. Normalisation is the domain's job, and this is what makes it a
+    // property of the data rather than a habit of one caller.
+    const { error } = await anon
+      .from("newsletter_subscribers")
+      .insert({ email: "ZZ-Upper@Example.test", source: "newsletter" });
+
+    expect(error?.code, "mixed case must be refused at the database").toBe("23514");
+  });
+
+  it("lets staff read the list", async () => {
+    // The positive half. Every assertion above is satisfied just as well by a
+    // table nobody can touch at all.
+    const email = address();
+    await anon.from("newsletter_subscribers").insert({ email, source: "newsletter" });
+
+    const { data, error } = await editorDb
+      .from("newsletter_subscribers")
+      .select("email")
+      .eq("email", email);
+
+    expect(error, "staff read is ordinary work").toBeNull();
+    expect(data ?? [], "staff can see the sign-up").toHaveLength(1);
+  });
+
+  it("refuses a signed-in account that holds no role", async () => {
+    // `authenticated` carries the table grant, so RLS is the only thing
+    // separating a staff member from any visitor who happens to have an account.
+    const { data } = await outsiderDb.from("newsletter_subscribers").select("email");
+    expect(data ?? [], "a role-less account sees nothing").toHaveLength(0);
+  });
+});
+
 describe("anon reads: unpublished documents are invisible", () => {
   it("hides a draft page and shows a published one", async () => {
     const draft = await makePage("draft");
@@ -959,22 +1222,32 @@ describe("delete permissions are real gates", () => {
   });
 
   /**
-   * `categories` is deliberately absent from `0022`, and this says so in a way
-   * that goes red if somebody adds it without doing the rest of the work.
+   * ⚠️ **INVERTED — the third characterisation test in this file to complete the
+   * full cycle**, after `is_system` for `0018` and `draft_data` for `0020`.
    *
-   * A category has two delete routes checking different permissions —
-   * `/admin/taxonomy` requires `taxonomy.write`, `/admin/categories` requires
-   * `category.delete` — and `0021` widened the write policy to
-   * `taxonomy.write OR category.write` expressly so `author` would keep
-   * behaving as it did. A restrictive `category.delete` gate breaks the
-   * taxonomy screen for that role. See `0022`'s header and Known issues.
+   * It read "KNOWN GAP: taxonomy.write still deletes a category, because 0022
+   * excluded it" and asserted `count` was 0. `0022`'s header named the
+   * prerequisite — reconciling the two service paths — as a product decision
+   * rather than a policy repair. That decision was taken: deleting a category
+   * destroys a layout document as well as a label, so both routes now require
+   * `category.delete`, and `0023` is the restrictive policy that became
+   * possible. The row survives and `count` is 1.
    */
-  it("KNOWN GAP: taxonomy.write still deletes a category, because 0022 excluded it", async () => {
+  it("refuses a taxonomy.write holder a category, now that 0023 gates it", async () => {
     const taxonomyWriterRole = await fixtures.createRole(["taxonomy.write"]);
     const taxonomyWriter = await fixtures.createUser([taxonomyWriterRole]);
     const taxonomyWriterDb = await fixtures.signIn(taxonomyWriter.email, taxonomyWriter.password);
 
     const category = await makeCategory();
+
+    // Renaming first, for the reason the article case gives: it proves the
+    // actor reaches the row perfectly well and is stopped only at DELETE,
+    // rather than having lost access to `categories` altogether.
+    const { error: editError } = await taxonomyWriterDb
+      .from("categories")
+      .update({ name: "Renamed, which is still allowed" })
+      .eq("id", category.id);
+    expect(editError, "renaming is ordinary taxonomy.write work").toBeNull();
 
     await taxonomyWriterDb.from("categories").delete().eq("id", category.id);
 
@@ -983,9 +1256,25 @@ describe("delete permissions are real gates", () => {
       .select("*", { count: "exact", head: true })
       .eq("id", category.id);
 
-    // INVERT THIS when the two service paths are reconciled and a restrictive
-    // `category.delete` policy lands: the row survives, and `count` becomes 1.
-    expect(count, "recorded as it behaves today, not as it should").toBe(0);
+    expect(count, "taxonomy.write alone must no longer delete a category").toBe(1);
+  });
+
+  /**
+   * The positive half, and the one that stops a `using (false)` policy passing.
+   * Every negative assertion above is satisfied just as well by a policy that
+   * refuses everybody.
+   */
+  it("still lets a category.delete holder delete one", async () => {
+    const category = await makeCategory();
+
+    await editorDb.from("categories").delete().eq("id", category.id);
+
+    const { count } = await db
+      .from("categories")
+      .select("*", { count: "exact", head: true })
+      .eq("id", category.id);
+
+    expect(count, "the editor role holds category.delete").toBe(0);
   });
 });
 

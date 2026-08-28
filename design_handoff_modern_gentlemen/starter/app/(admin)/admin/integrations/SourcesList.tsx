@@ -154,7 +154,7 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
                     <Td>
                       <Link
                         href={`/admin/integrations/${source.id}`}
-                        className="font-medium hover:text-mg-accent"
+                        className="font-medium hover:text-mg-accentInk"
                       >
                         {source.name}
                       </Link>
@@ -164,13 +164,13 @@ export function SourcesList({ sources, canWrite }: { sources: SourceRow[]; canWr
                         </span>
                       )}
                     </Td>
-                    <Td className="font-mono text-[12px] text-mg-fg/50">{source.kind}</Td>
-                    <Td className="text-[12px] text-mg-fg/50">{formatWhen(source.lastSyncedAt)}</Td>
+                    <Td className="font-mono text-[12px] text-mg-fg/60">{source.kind}</Td>
+                    <Td className="text-[12px] text-mg-fg/60">{formatWhen(source.lastSyncedAt)}</Td>
                     <Td>
                       {source.lastStatus ? (
                         <Badge tone={STATUS_TONES[source.lastStatus]}>{source.lastStatus}</Badge>
                       ) : (
-                        <span className="text-[12px] text-mg-fg/35">—</span>
+                        <span className="text-[12px] text-mg-fg/60">—</span>
                       )}
                     </Td>
                     <Td className="text-right">

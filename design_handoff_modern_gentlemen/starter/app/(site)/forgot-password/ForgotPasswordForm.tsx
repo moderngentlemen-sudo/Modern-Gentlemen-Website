@@ -33,7 +33,7 @@ export function ForgotPasswordForm() {
         </p>
         <Link
           href="/sign-in"
-          className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/70 underline underline-offset-4 hover:text-mg-accent"
+          className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/70 underline underline-offset-4 hover:text-mg-accentInk"
         >
           Back to sign in
         </Link>
@@ -68,7 +68,7 @@ export function ForgotPasswordForm() {
 
       <Link
         href="/sign-in"
-        className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/50 underline underline-offset-4 hover:text-mg-accent"
+        className="font-mono text-[11px] uppercase tracking-[0.15em] text-mg-fg/60 underline underline-offset-4 hover:text-mg-accentInk"
       >
         Back to sign in
       </Link>

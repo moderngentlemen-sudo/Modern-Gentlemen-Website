@@ -40,7 +40,7 @@ export default async function MenuPage({ params }: { params: Promise<{ key: stri
   return (
     <>
       <AdminPageHeader eyebrow="Navigation" title={menu.name}>
-        <p className="mt-2 text-[13px] text-mg-fg/50">
+        <p className="mt-2 text-[13px] text-mg-fg/60">
           <span className="font-mono text-[12px]">{menu.key}</span> — saved changes appear on the
           site immediately.
         </p>

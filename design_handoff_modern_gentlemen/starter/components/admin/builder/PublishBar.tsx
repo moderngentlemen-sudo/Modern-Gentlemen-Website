@@ -20,17 +20,17 @@ function SaveStatusLabel() {
   const save = useBuilder((s) => s.save);
   const dirty = useBuilder((s) => s.dirty);
 
-  if (save.kind === "saving") return <span className="text-mg-fg/50">Saving…</span>;
+  if (save.kind === "saving") return <span className="text-mg-fg/60">Saving…</span>;
   if (save.kind === "error") return <span className="text-mg-accentSerif">{save.message}</span>;
-  if (dirty) return <span className="text-mg-fg/50">Unsaved changes</span>;
+  if (dirty) return <span className="text-mg-fg/60">Unsaved changes</span>;
   if (save.kind === "saved") {
     return (
-      <span className="text-mg-fg/40" suppressHydrationWarning>
+      <span className="text-mg-fg/60" suppressHydrationWarning>
         Saved {new Date(save.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </span>
     );
   }
-  return <span className="text-mg-fg/40">All changes saved</span>;
+  return <span className="text-mg-fg/60">All changes saved</span>;
 }
 
 export function PublishBar({
@@ -175,7 +175,7 @@ export function PublishBar({
               onClick={() => setDevice(option)}
               className={clsx(
                 "px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors",
-                device === option ? "bg-mg-fg text-mg-bg" : "text-mg-fg/50 hover:text-mg-fg",
+                device === option ? "bg-mg-fg text-mg-bg" : "text-mg-fg/60 hover:text-mg-fg",
                 FOCUS_RING
               )}
             >
@@ -287,7 +287,7 @@ export function PublishBar({
         )}
 
         {doc.status !== "published" && isSchedulable(doc.type) && (
-          <p className="mt-3 text-[12px] text-mg-fg/40">
+          <p className="mt-3 text-[12px] text-mg-fg/60">
             A scheduled document publishes itself at the time you set, give or take the few minutes
             between runs. It publishes the draft as it stands then, not as it stands now.
           </p>
@@ -310,7 +310,7 @@ export function PublishBar({
             href={preview?.path ?? "#"}
             target="_blank"
             rel="noreferrer"
-            className="break-all font-mono text-[11px] text-mg-accent hover:underline"
+            className="break-all font-mono text-[11px] text-mg-accentInk hover:underline"
           >
             {preview?.path}
           </a>
