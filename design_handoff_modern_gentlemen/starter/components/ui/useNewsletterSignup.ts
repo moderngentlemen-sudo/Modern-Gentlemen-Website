@@ -13,7 +13,7 @@ import type { SubscriberSource } from "@/lib/domain/newsletter";
  * stops one of them being fixed and the other quietly not.
  */
 
-export type SignupState = "idle" | "submitting" | "done" | "invalid" | "error";
+export type SignupState = "idle" | "submitting" | "done" | "invalid" | "throttled" | "error";
 
 export function useNewsletterSignup(source: SubscriberSource) {
   const [email, setEmail] = useState("");
@@ -38,10 +38,14 @@ export function useNewsletterSignup(source: SubscriberSource) {
         return;
       }
 
-      // 400 is an address we cannot use and the visitor can fix; anything else
-      // is ours and they cannot. Different copy for each — an error that blames
-      // the reader for our outage is worse than no error.
-      setState(response.status === 400 ? "invalid" : "error");
+      // Three answers, because there are three things the visitor can do about
+      // them. 400 is an address we cannot use and they can fix; 429 clears by
+      // waiting; anything else is ours and they can do nothing. An error that
+      // blames the reader for our outage is worse than no error, and one that
+      // tells them to fix an address that is fine is worse still.
+      if (response.status === 400) setState("invalid");
+      else if (response.status === 429) setState("throttled");
+      else setState("error");
     } catch {
       // Offline, DNS, a blocked request. Indistinguishable from our own failure
       // from here, and the honest answer to the visitor is the same.
@@ -55,7 +59,7 @@ export function useNewsletterSignup(source: SubscriberSource) {
       setEmail(next);
       // Clear a previous rejection as soon as they start correcting it, so the
       // message describes what is in the box now rather than what used to be.
-      if (state === "invalid" || state === "error") setState("idle");
+      if (state === "invalid" || state === "error" || state === "throttled") setState("idle");
     },
     state,
     submit,
@@ -73,5 +77,9 @@ export function useNewsletterSignup(source: SubscriberSource) {
 export const SIGNUP_MESSAGE: Record<Exclude<SignupState, "idle" | "submitting">, string> = {
   done: "Thanks — we've got your address.",
   invalid: "That address doesn't look right. Try again?",
+  // Deliberately vague about how long. The endpoint sends `Retry-After`, but it
+  // is the whole window rather than the remainder, so quoting a number here
+  // would be quoting one that is usually wrong.
+  throttled: "That's a few tries in a row. Give it a few minutes and try again.",
   error: "Something went wrong. Please try again shortly.",
 };

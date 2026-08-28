@@ -37,10 +37,10 @@ vi.mock("./actions", () => ({
   changePasswordAction: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
 
-function renderForm() {
+function renderForm(requireCurrent = true) {
   render(
     <ToastProvider>
-      <PasswordForm />
+      <PasswordForm requireCurrent={requireCurrent} />
     </ToastProvider>
   );
 
@@ -83,6 +83,66 @@ describe("the field labels", () => {
 
     expect(next).toHaveAttribute("type", "password");
     expect(confirm).toHaveAttribute("type", "password");
+  });
+
+  /**
+   * ⚠️ **"Current password" must not answer to the other two locators.**
+   * "Confirm new password" already contains "new password"; a third field named
+   * "Confirm current password" would have contained it too, and every anchored
+   * regex above would have kept matching one element while the *spec* silently
+   * typed into the wrong box. The name is short on purpose.
+   */
+  it("adds a third field that is unambiguous against the existing locators", () => {
+    const { fields } = renderForm(true);
+
+    expect(fields).toHaveLength(2);
+    expect(screen.getAllByLabelText(/^Current password/)).toHaveLength(1);
+    expect(screen.getByLabelText("Current password *", { exact: true })).toHaveAttribute(
+      "type",
+      "password"
+    );
+  });
+
+  it("omits it on a recovery landing, where there is no current password to give", () => {
+    // The whole point of the exemption. A field asking for something the visitor
+    // does not have is not a security control, it is a dead end — see
+    // app/auth/_lib/recovery.ts.
+    renderForm(false);
+
+    expect(screen.queryByLabelText(/^Current password/)).toBeNull();
+    expect(screen.getAllByLabelText(/new password/i)).toHaveLength(2);
+  });
+});
+
+describe("the submit gate", () => {
+  it("stays disabled until the current password is given", async () => {
+    renderForm(true);
+
+    const button = screen.getByRole("button", { name: "Update password" });
+    await userEvent.type(screen.getByLabelText(/^New password/), "correct horse battery staple");
+    await userEvent.type(
+      screen.getByLabelText(/^Confirm new password/),
+      "correct horse battery staple"
+    );
+
+    // Valid new password, no current one: still refused, and refused in the
+    // browser rather than only by the action.
+    expect(button).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText(/^Current password/), "whatever they use now");
+    expect(button).toBeEnabled();
+  });
+
+  it("does not gate on it when the form is not asking for it", async () => {
+    renderForm(false);
+
+    await userEvent.type(screen.getByLabelText(/^New password/), "correct horse battery staple");
+    await userEvent.type(
+      screen.getByLabelText(/^Confirm new password/),
+      "correct horse battery staple"
+    );
+
+    expect(screen.getByRole("button", { name: "Update password" })).toBeEnabled();
   });
 });
 

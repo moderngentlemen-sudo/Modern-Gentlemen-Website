@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { publicUrl } from "../_lib/publicUrl";
+import { markRecoverySession } from "../_lib/recovery";
 
 /**
  * OAuth / magic-link / password-recovery landing.
@@ -30,5 +31,11 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.redirect(to("/sign-in", "invalid_code"));
 
-  return NextResponse.redirect(to(next));
+  // Only reachable with a code Supabase emailed to the account's own address, so
+  // this is where a session earns the right to set a password without knowing
+  // the old one. See ../_lib/recovery.ts — `/admin/password` asks for the
+  // current password without it.
+  const response = NextResponse.redirect(to(next));
+  markRecoverySession(response);
+  return response;
 }

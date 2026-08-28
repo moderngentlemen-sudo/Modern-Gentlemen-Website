@@ -51,7 +51,76 @@ export interface CappedRequest {
    * Returning `null` falls through to the generic message.
    */
   describeStatus?: (response: Response) => string | null;
+  /** Absent means one attempt and no waiting, which is right for most callers. */
+  retry?: RetryPolicy;
 }
+
+/**
+ * A bounded, header-driven retry.
+ *
+ * ⚠️ **The bounds are the whole design, and this replaces a decision that said
+ * "do not retry at all".** That decision was not wrong about the danger — a
+ * silent retry loop inside a server action that is holding a request open is how
+ * a run that used to fail in ten seconds starts taking four minutes — it was
+ * wrong about the magnitude. Shopify's REST Admin API refills its bucket at two
+ * requests a second and sends `Retry-After: 2.0`; the wait it is asking for is
+ * two seconds, not four minutes.
+ *
+ * So the retry exists and every axis of it is capped: a total number of
+ * attempts, a ceiling on any single wait, and a ceiling on the **sum** of them.
+ * The last is what actually bounds the run — without it, three retries each
+ * honouring a large `Retry-After` is still a long hold — and it makes the worst
+ * case a number this file states rather than one the provider chooses.
+ *
+ * Why it is worth having at all: an import walks pages, and a 429 on page seven
+ * of twelve throws away the six that succeeded. The operator's only remedy is to
+ * run it again, at the same page size, into the same limit.
+ */
+export interface RetryPolicy {
+  /** Statuses worth waiting on. A 4xx that is not 429 will not fix itself. */
+  statuses: readonly number[];
+  /** Total attempts, first one included. `1` disables retrying. */
+  maxAttempts: number;
+  /** Ceiling on one wait, whatever `Retry-After` asks for. */
+  maxDelayMs: number;
+  /** Ceiling on the sum of the waits. The real bound on how long a run can hang. */
+  totalDelayBudgetMs: number;
+  /** Used when the response carries no usable `Retry-After`. */
+  defaultDelayMs: number;
+  /**
+   * Injected so a test does not spend real seconds. Defaults to a timer.
+   * `fetchImpl` is already injected the same way throughout this module.
+   */
+  wait?: (ms: number) => Promise<void>;
+}
+
+/**
+ * `Retry-After` is either a decimal count of seconds or an HTTP date.
+ *
+ * Shopify sends the first (`2.0`). The date form is in the specification and
+ * costs three lines to support, and the alternative is silently falling back to
+ * the default delay for a provider that told us exactly when to come back.
+ *
+ * Null for anything unparseable or negative — a malformed header must not
+ * become `NaN` and then a wait of `NaN` milliseconds, which resolves instantly
+ * and turns the backoff into a hot loop.
+ */
+export function retryAfterMs(header: string | null, now = Date.now()): number | null {
+  if (!header) return null;
+
+  const trimmed = header.trim();
+  if (trimmed === "") return null;
+
+  const seconds = Number(trimmed);
+  if (Number.isFinite(seconds)) return seconds >= 0 ? Math.round(seconds * 1000) : null;
+
+  const date = Date.parse(trimmed);
+  if (Number.isNaN(date)) return null;
+
+  return Math.max(0, date - now);
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export interface CappedResponse {
   text: string;
@@ -65,35 +134,63 @@ export async function fetchCapped(
   url: string,
   request: CappedRequest
 ): Promise<CappedResponse> {
-  let response: Response;
-  try {
-    response = await fetchImpl(url, {
-      headers: request.headers,
-      redirect: request.redirect ?? "follow",
-      signal: AbortSignal.timeout(request.timeoutMs),
-      cache: "no-store",
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
-      throw new AdapterError(`${request.subject} did not respond within ${request.timeoutMs}ms.`);
-    }
-    throw new AdapterError(
-      `${request.subject} could not be reached: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+  const policy = request.retry;
+  const wait = policy?.wait ?? sleep;
+  const attempts = Math.max(1, policy?.maxAttempts ?? 1);
+  let spentMs = 0;
 
-  if (!response.ok) {
+  for (let attempt = 1; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchImpl(url, {
+        headers: request.headers,
+        redirect: request.redirect ?? "follow",
+        // Inside the loop on purpose: a signal is consumed once, and reusing one
+        // would abort the second attempt the moment the first one's clock ran
+        // out. Each attempt gets the timeout the caller asked for.
+        signal: AbortSignal.timeout(request.timeoutMs),
+        cache: "no-store",
+      });
+    } catch (error) {
+      // ⚠️ A transport failure is deliberately NOT retried, even with a policy
+      // set. A timeout has already spent `timeoutMs`, and a request that never
+      // arrived may still have been received — retrying a read is safe, and
+      // this helper cannot know that every caller's request is one.
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new AdapterError(`${request.subject} did not respond within ${request.timeoutMs}ms.`);
+      }
+      throw new AdapterError(
+        `${request.subject} could not be reached: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    if (response.ok) {
+      return {
+        text: await readCapped(response, request.subject),
+        headers: response.headers,
+        status: response.status,
+      };
+    }
+
+    const retryable = policy?.statuses.includes(response.status) === true && attempt < attempts;
+    const asked = retryable ? (retryAfterMs(response.headers.get("retry-after")) ?? null) : null;
+    const delay = retryable ? Math.min(asked ?? policy!.defaultDelayMs, policy!.maxDelayMs) : 0;
+
+    if (retryable && spentMs + delay <= policy!.totalDelayBudgetMs) {
+      // Discard the body before waiting. Without this the connection stays open
+      // holding a payload already decided against — the same reason `readCapped`
+      // cancels its reader when the cap is hit.
+      await response.body?.cancel().catch(() => {});
+      spentMs += delay;
+      await wait(delay);
+      continue;
+    }
+
     const described = request.describeStatus?.(response) ?? null;
     throw new AdapterError(
       described ?? `${request.subject} answered ${response.status} ${response.statusText}.`
     );
   }
-
-  return {
-    text: await readCapped(response, request.subject),
-    headers: response.headers,
-    status: response.status,
-  };
 }
 
 async function readCapped(response: Response, subject: string): Promise<string> {

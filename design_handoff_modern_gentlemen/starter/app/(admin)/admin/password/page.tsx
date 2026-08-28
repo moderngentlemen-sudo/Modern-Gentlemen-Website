@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/services/auth";
+import { hasRecoveryMarker } from "@/app/auth/_lib/recovery";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { PasswordForm } from "./PasswordForm";
 
@@ -15,9 +16,15 @@ import { PasswordForm } from "./PasswordForm";
  *
  * No permission is required: changing your own password is not an editorial
  * capability, and the admin layout has already established there is a session.
+ *
+ * ⚠️ **The marker is read here only to decide which fields to render.** The
+ * action reads it again and makes the real decision — this one is presentation,
+ * and a form posting `currentPassword: undefined` gets asked for it regardless.
+ * Deciding twice is right: a prop is a hint the client could lie about.
  */
 export default async function PasswordPage() {
   const user = await requireUser();
+  const recovering = await hasRecoveryMarker();
 
   return (
     <>
@@ -26,7 +33,7 @@ export default async function PasswordPage() {
       </AdminPageHeader>
 
       <div className="px-8 py-8">
-        <PasswordForm />
+        <PasswordForm requireCurrent={!recovering} />
       </div>
     </>
   );
