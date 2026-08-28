@@ -570,6 +570,7 @@ export type Database = {
           kind: string
           mime_type: string
           placeholder: string | null
+          search_vector: unknown
           storage_path: string
           title: string | null
           updated_at: string
@@ -594,6 +595,7 @@ export type Database = {
           kind: string
           mime_type: string
           placeholder?: string | null
+          search_vector?: unknown
           storage_path: string
           title?: string | null
           updated_at?: string
@@ -618,6 +620,7 @@ export type Database = {
           kind?: string
           mime_type?: string
           placeholder?: string | null
+          search_vector?: unknown
           storage_path?: string
           title?: string | null
           updated_at?: string
@@ -1435,6 +1438,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       redirects: {
         Row: {
           created_at: string
@@ -1817,6 +1838,10 @@ export type Database = {
         Returns: number
       }
       purge_expired_preview_sessions: { Args: never; Returns: number }
+      rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window: string }
+        Returns: boolean
+      }
       replace_feed_mappings: {
         Args: { p_mappings: Json; p_source_id: string }
         Returns: undefined
