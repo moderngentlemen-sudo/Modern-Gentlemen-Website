@@ -17,15 +17,79 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 >
 > So the name is gone. A current-branch name is perishable by construction, and this file cannot hold perishable facts safely. **The `SessionStart` hook already prints the live branch every session** (`node design_handoff_modern_gentlemen/starter/scripts/status.mjs`), which is a source that cannot go stale because it is computed, not written.
 >
-> **Do not build on any `claude/*` branch on the remote.** Every one of them is either merged or abandoned: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11), `claude/phase-7a-public-rewire` (Phase 7a, PR #12), `claude/env-credential-validation` (PR #15) `claude/phase-7b-store-from-db` (Phase 7b) `claude/session-setup-review-9ihb9i` (XML ingestion, PR #26, `485912d`) and `claude/session-setup-review-g564ri` (the Shopify adapter, PR #28, `6ed0447`; then reused for password recovery + the proxy redirect fix, PR #29, `74fbd5d`) and `claude/session-setup-review-gpwraf` (drag-from-library, PR #32, `9d87568`) and `claude/session-setup-review-wesizw` (templates' named areas, PR #52, `cbe7937`) and `claude/session-setup-review-wleu2z` (Track A Phase 7 — the image optimiser + performance budget, PR #64, `a6ccd26`; then reused for the docs cleanup, PR #65, `871b505`) and `claude/session-setup-review-cq00g8` (the RLS suite + `0018`, PR #37, `02fd7fb`; then reused three times more — the docs-only PR #38, `0019` + the patterns admin (PR #39, `ba3ecb7`), and `0020` (PR #40, `6c259f3`)). This list is history and only ever grows; it needs no edit to stay true.
+> **Do not build on any `claude/*` branch on the remote.** Every one of them is either merged or abandoned: `-ntslwo` (`d1dc9d3`), `-ngmzu7` (`0e83650`), `claude/project-status-review-nz8w9i`, `claude/progress-migration-versioning`, `claude/docs-refresh-after-phase5`, `claude/project-status-review-8la85a` (Phase 6a, PR #11), `claude/phase-7a-public-rewire` (Phase 7a, PR #12), `claude/env-credential-validation` (PR #15) `claude/phase-7b-store-from-db` (Phase 7b) `claude/session-setup-review-9ihb9i` (XML ingestion, PR #26, `485912d`) and `claude/session-setup-review-g564ri` (the Shopify adapter, PR #28, `6ed0447`; then reused for password recovery + the proxy redirect fix, PR #29, `74fbd5d`) and `claude/session-setup-review-gpwraf` (drag-from-library, PR #32, `9d87568`) and `claude/session-setup-review-wesizw` (templates' named areas, PR #52, `cbe7937`) and `claude/session-setup-review-wleu2z` (Track A Phase 7 — the image optimiser + performance budget, PR #64, `a6ccd26`; then reused for the docs cleanup, PR #65, `871b505`) and `claude/session-setup-review-sw5u79` (the brand-decision + contrast work and the newsletter capture, PR #69, `40fb9e2`; then reused for the four hardening slices, PR #70, `11ed88d` — and **still carrying one unmerged docs commit**, see the bullet above) and `claude/session-setup-review-cq00g8` (the RLS suite + `0018`, PR #37, `02fd7fb`; then reused three times more — the docs-only PR #38, `0019` + the patterns admin (PR #39, `ba3ecb7`), and `0020` (PR #40, `6c259f3`)). This list is history and only ever grows; it needs no edit to stay true.
 >
 > ✅ **`rls.test.ts` no longer carries a `KNOWN GAP` test, and this note records what the pattern was for rather than warning about a live one.** Both characterisation tests it once held have now completed the full cycle: asserted as the wrong-but-current behaviour, cited to justify a migration, then **inverted in the same commit as the fix** — `is_system` for `0018`, `draft_data` for `0020`. The technique is the reusable part. A gap recorded only in prose is a gap nobody notices closing; asserted, the day someone fixes it the suite goes red and says so. **If you add another, name it `KNOWN GAP` and write the instruction to invert it inside the test**, because that is what made both of them survive the months between discovery and fix.
 >
-> ✅ **Nothing is in flight.** The last ten in-flight bullets — Shopify (PR #28), drag-from-library (PR #32, merged as `9d87568`), the drag-reordering fixes (PR #50, merged as `e9b8225`), templates' named areas (PR #52, merged as `cbe7937`), synced patterns (PR #54, merged as `3d5511a`), previewing a template area (PR #59, merged as `20beee4`), the three-slice branch (PR #61, merged as `8b86fa1`), the scheduling branch (PR #62, merged as `0a7d530`), the Phase 7 branch (PR #64, merged as `a6ccd26`) and the variant-picker branch (PR #67, merged as `6f90a34`) — were each **deleted in the session that opened them, minutes after the merge**. Ten in a row is a habit rather than an accident, and the mechanism is worth recording as the fix: each bullet was written with its own deletion condition inside it, and each deletion happened while the session that owned it was still running. The five failures before that shared one shape — the correction was left until "afterwards", and afterwards the only place to write it was a branch nobody should commit to.
+> ⚠️ **ONE THING IS IN FLIGHT, and this bullet exists because this file's own rule
+> says it must.** `claude/session-setup-review-sw5u79` carries **`e65c9ef`, a
+> docs-only commit** closing two Known-issues bullets that `0026` had already
+> fixed (the media search index and the `products.status` CHECK). PRs #69 and #70
+> from that branch are **merged**; this one commit is not, and at the time of
+> writing has no PR.
+>
+> **Nothing depends on it and nothing is at risk** — it changes no code, and the
+> two bullets describe work that is live on `main` either way. The only cost of
+> ignoring it is that a new session reads two "open" items that are done and
+> spends an hour re-fixing them, which is precisely the failure this file records
+> more than any other.
+>
+> **Delete this bullet the moment that commit lands** — by merging it, or by
+> re-applying the same two edits from a fresh branch and dropping the old one.
+> Either way the branch is then history like every other in the list below.
+>
+> ✅ **Nothing else is in flight.** The last ten in-flight bullets — Shopify (PR #28), drag-from-library (PR #32, merged as `9d87568`), the drag-reordering fixes (PR #50, merged as `e9b8225`), templates' named areas (PR #52, merged as `cbe7937`), synced patterns (PR #54, merged as `3d5511a`), previewing a template area (PR #59, merged as `20beee4`), the three-slice branch (PR #61, merged as `8b86fa1`), the scheduling branch (PR #62, merged as `0a7d530`), the Phase 7 branch (PR #64, merged as `a6ccd26`) and the variant-picker branch (PR #67, merged as `6f90a34`) — were each **deleted in the session that opened them, minutes after the merge**. Ten in a row is a habit rather than an accident, and the mechanism is worth recording as the fix: each bullet was written with its own deletion condition inside it, and each deletion happened while the session that owned it was still running. The five failures before that shared one shape — the correction was left until "afterwards", and afterwards the only place to write it was a branch nobody should commit to.
 >
 > ⚠️ **One exception, or the rule never terminates: a PR whose only content is deleting an in-flight bullet does not get a bullet of its own.** Found by walking into it — PR #35 was docs-only, its bullet had to be removed after it merged, and removing it needs another PR, which by the letter of the rule would need another bullet. The purpose of a bullet is to stop a new session branching into a change it does not know about; a PR that deletes one sentence about a merged PR cannot surprise anybody.
 >
 > **The steady-state sentence above is false whenever a PR is in flight**, which is exactly when a new session is most likely to read it and branch anyway. The ingestion phase hit this and handled it by adding a bullet here naming the open PR, marked for deletion on merge — and then deleting it in the same session the merge happened, which is the half that has failed five times before. **If you leave a PR open at the end of a session, add that bullet back**; a branch carrying an interface the next phase depends on is the case that actually costs something.
+
+> 🟢 **Where the project actually stands, for a session starting cold.** Both
+> tracks are code-complete, and the engineering backlog is empty of anything a
+> session may start on its own initiative. The live Known-issues list holds
+> **eleven** genuinely open items, and they split three ways:
+>
+> - **Five are accepted, recorded so nobody "fixes" them.** dnd-kit's 50ms
+>   post-drop click window (upstream, and the guard is worth more than the window
+>   costs), the unpublishable empty `columns` row (its slot declares `min: 1` on
+>   purpose), the hover preview's mount cost, `visibility.devices` being stored
+>   and deliberately never applied at render, and the fresh-container credential
+>   requirement. Read the bullet before touching any of them.
+> - **Two are environmental** — the E2E resource-starvation mode, and Supabase's
+>   Redirect URLs allow list, which is deployment configuration no test, build or
+>   `check-env.mjs` run can assert.
+> - **Four are real engineering, none urgent**: the `draft_data` column a
+>   role-less authenticated account can still read (the largest — a
+>   `security definer` read path across seven document tables, 41 read sites, and
+>   it changes how every admin screen reads); an ingestion run holding a server
+>   action open for its duration; dropping a block into a *non-empty* container;
+>   and `resolve_preview`'s missing rate limit, **which just got cheap** — `0026`
+>   ships `rate_limit_hit()` and `consumeRateLimit` is one call, so the only open
+>   question is what identity a preview link keys on.
+>
+> Everything else that gates launch is a **brand decision**, not code: see
+> "Decisions the brand owns" and "Not code at all" below. **The next session's
+> first job is to ask which, not to pick one.**
+>
+> ⚠️ **That count was written as "seven" first, and the enumeration disagreed.**
+> The same paragraph also named two ingestion gaps — no image import, manual runs
+> only — that earlier phases had already closed. Both errors came from
+> remembering this file rather than reading it. **Count the boxes; do not recall
+> them.**
+>
+> ⚠️ **Do not read the open `- [ ]` boxes as a to-do list.** There are about
+> thirty, and two thirds of them are **phase history** — snapshots written before
+> the slice that closed them, kept because each records what a slice cost against
+> what it was predicted to cost. `- [ ]` items *above* the `**Known issues**`
+> heading are almost all of this kind: "`/[category]` still renders from the demo
+> modules (7c)" was true when Phase 7b shipped and has been false since 7c. The
+> live list is the one under that heading, and the struck-through entries there
+> are kept for their mechanism, not their status. **This distinction cost a real
+> mistake in the session that wrote this paragraph** — a stale local `main`
+> pointer eight PRs behind listed four closed items as open, and the answer was
+> most of the way written before the branch was re-synced. `git fetch` before you
+> read this file's status claims, and prefer the `SessionStart` hook to any
+> sentence in it.
 
 Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **Track B (backend + admin platform)** is in progress: the data foundation, auth, the block system, publishing, the admin builder, media, the CMS, the products admin, navigation, the theme editor, **ingestion behind both of its adapters** and **the whole public read path** are done. ⚠️ This sentence ended "ingestion is not" for three phases after ingestion started and one after it shipped — **Phase 6b is now complete in full**. `pattern` support is done, and **`template` support is done too**: every one of the six document types now opens in the builder. What is left in Track B is the Phase 1 leftovers and the follow-ups in the next-phase list, none of which is a missing builder capability.
 
