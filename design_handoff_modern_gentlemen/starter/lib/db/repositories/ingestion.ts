@@ -241,30 +241,45 @@ export interface MappingInput {
  * the operator editing it, and the failure mode is "save again", not a corrupt
  * catalogue.
  */
+/**
+ * Replace a source's mappings, atomically.
+ *
+ * ⚠️ **This was a DELETE followed by an INSERT — two PostgREST round trips with
+ * no transaction around them.** Between them the source had zero mappings, and
+ * if the second never arrived (a closed tab, a dropped connection, a 500) it
+ * stayed that way: no error reached the editor, and a source that mapped ten
+ * fields silently mapped none the next time anyone looked. It announced itself
+ * as E2E flakiness, which is the usual way a non-atomic write does.
+ *
+ * `0025` moves both statements into one `plpgsql` function, so they share a
+ * transaction and roll back together.
+ *
+ * **The function is `security invoker`, which is the part that matters.** A
+ * `security definer` function would run as the owner and bypass the caller's
+ * RLS — quietly breaking this repo's oldest standing rule, that admin writes go
+ * through the editor's own session. As an invoker function the
+ * `feed_field_mappings` policies still decide, so `integration.write` is
+ * required exactly as it was before.
+ */
 export async function replaceMappings(
   db: Db,
   sourceId: string,
   mappings: readonly MappingInput[]
 ): Promise<void> {
   unwrap(
-    "replaceMappings.clear",
-    await db.from("feed_field_mappings").delete().eq("source_id", sourceId)
-  );
-
-  if (mappings.length === 0) return;
-
-  unwrap(
-    "replaceMappings.insert",
-    await db.from("feed_field_mappings").insert(
-      mappings.map((mapping) => ({
-        source_id: sourceId,
+    "replaceMappings",
+    await db.rpc("replace_feed_mappings", {
+      p_source_id: sourceId,
+      // An empty array is a legitimate payload meaning "clear them", and the
+      // function handles it without attempting a zero-row insert.
+      p_mappings: mappings.map((mapping) => ({
         target_field: mapping.target_field,
         source_path: mapping.source_path,
         transform: mapping.transform,
         fallback: mapping.fallback,
         is_required: mapping.is_required,
-      }))
-    )
+      })) as never,
+    })
   );
 }
 

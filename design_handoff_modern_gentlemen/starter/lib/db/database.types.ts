@@ -1817,6 +1817,10 @@ export type Database = {
         Returns: number
       }
       purge_expired_preview_sessions: { Args: never; Returns: number }
+      replace_feed_mappings: {
+        Args: { p_mappings: Json; p_source_id: string }
+        Returns: undefined
+      }
       resolve_preview: {
         Args: { p_token: string }
         Returns: {

@@ -117,7 +117,12 @@ export default function CheckoutPage() {
         <p className="mt-4 font-serif italic text-2xl text-mg-accentSerif">Thank you.</p>
         <h1 className="mt-2 font-grotesk font-semibold text-3xl md:text-4xl">Your order is in.</h1>
         <p className="mt-4 max-w-md text-mg-fg/60">
-          A confirmation is on its way to {order.email}. (Demo — no card was charged.)
+          {/* ⚠️ This read "A confirmation is on its way to {email}" and nothing
+              sends one — the same class of untruth the newsletter bands told
+              until `0024`. The demo disclaimer beside it did not make the
+              sentence true. Reworded to describe what actually happened. */}
+          Demo checkout — no card was charged, no order was placed and no email will be sent. Your
+          bag has been emptied.
         </p>
         <dl className="mt-8 grid grid-cols-1 gap-6 border-y border-mg-bd/15 py-6 text-left sm:grid-cols-3 sm:gap-8">
           {[

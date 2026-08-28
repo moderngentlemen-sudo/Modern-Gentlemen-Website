@@ -376,6 +376,139 @@ async function makeCollectionItem(
  * pinning: a subscriber list `anon` can read is a subscriber list that has
  * leaked, and PostgREST is a public endpoint.
  */
+/**
+ * `0025`. Two unrelated defects found in the same audit pass.
+ *
+ * The `site_settings` half is the cheap kind of security fix — a table nobody
+ * reads, empty, and world-readable since `0001`. The mappings half is a real
+ * data-loss bug that had been showing up as E2E flakiness.
+ */
+describe("0025: site_settings is not world-readable", () => {
+  it("refuses anon the settings table", async () => {
+    // `for select using (true)` since `0001`. A table named "settings" is the
+    // kind that acquires an operational value nobody meant to publish, and the
+    // policy was written before anyone knew what would go in it.
+    const { data, error } = await anon.from("site_settings").select("*");
+
+    // Empty rather than 42501: the grant is intact, the policy now returns no
+    // rows. Both are a refusal; asserting emptiness is what survives either.
+    expect(error, "the read itself is not a privilege error").toBeNull();
+    expect(data ?? [], "anon must see no settings").toHaveLength(0);
+  });
+});
+
+describe("0025: replacing feed mappings is atomic", () => {
+  async function makeSource(): Promise<{ id: string }> {
+    const { data, error } = await db
+      .from("product_sources")
+      .insert({ name: prefixed("rls-source"), kind: "xml_feed", config: {} as never })
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(`makeSource: ${error?.message}`);
+    fixtures.track("product_sources", data.id);
+    return data;
+  }
+
+  it("swaps the whole set in one call", async () => {
+    const source = await makeSource();
+    await db.from("feed_field_mappings").insert([
+      { source_id: source.id, target_field: "name", source_path: "/old/a", is_required: true },
+      { source_id: source.id, target_field: "slug", source_path: "/old/b", is_required: false },
+    ]);
+
+    const { error } = await db.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [
+        { target_field: "name", source_path: "/new/n", is_required: true },
+        { target_field: "description", source_path: "/new/d", is_required: false },
+      ] as never,
+    });
+    expect(error, "a valid replace succeeds").toBeNull();
+
+    const { data } = await db
+      .from("feed_field_mappings")
+      .select("target_field, source_path")
+      .eq("source_id", source.id)
+      .order("target_field");
+
+    expect(data?.map((m) => m.target_field)).toEqual(["description", "name"]);
+    expect(data?.every((m) => m.source_path.startsWith("/new/"))).toBe(true);
+  });
+
+  /**
+   * ⚠️ **The assertion the whole migration exists for.** The old
+   * delete-then-insert was two PostgREST round trips: a failure in the second
+   * left the source with **zero** mappings and surfaced no error to the editor.
+   * The count after a failed replace is therefore the regression test — if this
+   * ever reads 0 again, atomicity has been lost.
+   */
+  it("leaves the previous set intact when the new one is invalid", async () => {
+    const source = await makeSource();
+    await db.from("feed_field_mappings").insert([
+      { source_id: source.id, target_field: "name", source_path: "/keep/a", is_required: true },
+      { source_id: source.id, target_field: "slug", source_path: "/keep/b", is_required: false },
+    ]);
+
+    // `target_field` is NOT NULL, so this fails on the insert half — after the
+    // delete half has already run inside the function's transaction.
+    const { error } = await db.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [{ target_field: null, source_path: "/bad", is_required: false }] as never,
+    });
+    expect(error?.code, "an invalid payload must fail loudly").toBe("23502");
+
+    const { count } = await db
+      .from("feed_field_mappings")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source.id);
+
+    expect(count, "the delete must have rolled back with the insert").toBe(2);
+  });
+
+  it("treats an empty array as `clear them`", async () => {
+    const source = await makeSource();
+    await db
+      .from("feed_field_mappings")
+      .insert([
+        { source_id: source.id, target_field: "name", source_path: "/a", is_required: true },
+      ]);
+
+    const { error } = await db.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [] as never,
+    });
+    expect(error, "an empty payload is legitimate, not an error").toBeNull();
+
+    const { count } = await db
+      .from("feed_field_mappings")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source.id);
+    expect(count).toBe(0);
+  });
+
+  it("still runs as the caller, so RLS decides", async () => {
+    // `security invoker` is the design: a `security definer` function would
+    // bypass the editor's RLS and break this repo's oldest standing rule. An
+    // actor without `integration.write` must be refused.
+    const source = await makeSource();
+
+    const { error } = await outsiderDb.rpc("replace_feed_mappings", {
+      p_source_id: source.id,
+      p_mappings: [{ target_field: "name", source_path: "/x", is_required: true }] as never,
+    });
+
+    // The delete matches no rows it may see and the insert is refused by the
+    // policy — either way nothing is written.
+    const { count } = await db
+      .from("feed_field_mappings")
+      .select("*", { count: "exact", head: true })
+      .eq("source_id", source.id);
+
+    expect(error ?? count, "a role-less account must not write mappings").toBeTruthy();
+    expect(count, "and must leave the table alone").toBe(0);
+  });
+});
+
 describe("newsletter: anon may write and may not read", () => {
   const address = () => `zz-rls-${crypto.randomUUID()}@example.test`;
 
