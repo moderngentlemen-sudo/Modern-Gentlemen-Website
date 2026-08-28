@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 
+import { canonicalSiteUrl } from "@/lib/db/env";
+
 /**
  * The marker that says "this session was minted by proving control of the
  * inbox", and the reason `/admin/password` can ask for the current password at
@@ -40,18 +42,43 @@ export const RECOVERY_COOKIE = "mg-recovery";
  */
 const RECOVERY_TTL_SECONDS = 15 * 60;
 
-const options = {
+/**
+ * ⚠️ **`secure` follows the site's own scheme, NOT `NODE_ENV`** — and the
+ * obvious version of this line was written first and is wrong here.
+ *
+ * A `secure` cookie sent over http is **dropped silently by the browser**, and
+ * the symptom is not "the cookie is missing", it is "recovery asks me for the
+ * password I came here because I do not have". `process.env.NODE_ENV ===
+ * "production"` looks like the right condition and is not: **`next start` sets
+ * production on a laptop exactly as it does on Railway**, which this repo has
+ * already recorded once for `canonicalSiteUrl()` — the `NEXT_PUBLIC_SITE_URL`
+ * build failure has the same root. So a local production build served over
+ * http would set a flag the browser then honours by discarding the cookie.
+ *
+ * The scheme of `NEXT_PUBLIC_SITE_URL` is what `secure` actually means: it is
+ * https on Railway and http on `http://localhost:3000`, which is the documented
+ * local value. Wrapped, because `canonicalSiteUrl()` throws when the variable is
+ * unset in a production build, and a cookie helper is the wrong place to
+ * discover that — falling back to `secure` is the safe direction.
+ */
+function isSecureOrigin(): boolean {
+  try {
+    return new URL(canonicalSiteUrl()).protocol === "https:";
+  } catch {
+    return true;
+  }
+}
+
+const options = () => ({
   httpOnly: true,
   sameSite: "lax" as const,
   path: "/",
-  // Never `true` in development: a secure cookie over http is silently dropped,
-  // and the symptom would be "recovery asks for the password I do not have".
-  secure: process.env.NODE_ENV === "production",
-};
+  secure: isSecureOrigin(),
+});
 
 /** Called by `/auth/callback` on a successful code exchange, on its redirect. */
 export function markRecoverySession(response: NextResponse): void {
-  response.cookies.set(RECOVERY_COOKIE, "1", { ...options, maxAge: RECOVERY_TTL_SECONDS });
+  response.cookies.set(RECOVERY_COOKIE, "1", { ...options(), maxAge: RECOVERY_TTL_SECONDS });
 }
 
 /** True when the current request carries the marker. */
@@ -68,5 +95,5 @@ export async function hasRecoveryMarker(): Promise<boolean> {
  * which the user now knows.
  */
 export async function clearRecoveryMarker(): Promise<void> {
-  (await cookies()).set(RECOVERY_COOKIE, "", { ...options, maxAge: 0 });
+  (await cookies()).set(RECOVERY_COOKIE, "", { ...options(), maxAge: 0 });
 }
