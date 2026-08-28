@@ -25,7 +25,7 @@
  */
 
 import { shopifyConfigSchema, type ShopifyConfig } from "@/lib/domain/ingestion";
-import { fetchCapped } from "./http";
+import { fetchCapped, type RetryPolicy } from "./http";
 import { isPresent, segmentsOf, walk } from "./paths";
 import { AdapterError, type AdapterContext, type SourceAdapter } from "./types";
 
@@ -63,6 +63,7 @@ export const shopifyAdapter: SourceAdapter<ShopifyConfig> = {
         // and `fetch` would carry it across a redirect to any host.
         redirect: "manual",
         describeStatus,
+        retry: { ...RATE_LIMIT_RETRY, wait: context.wait },
       });
 
       products.push(...productsIn(response.text));
@@ -176,12 +177,41 @@ function nextPageUrl(headers: Headers, config: ShopifyConfig): string | null {
 }
 
 /**
- * Statuses worth a better sentence than "answered 401 Unauthorized".
+ * How a 429 is waited out.
  *
- * A 429 is deliberately not retried here. Backoff belongs with the queued runs
- * `import_jobs.status` already has a `'queued'` value for, not inside a server
- * action that is holding a request open; saying so is more useful than a silent
- * retry that makes the same run take four minutes.
+ * ⚠️ **This reverses an earlier decision, and the earlier reasoning is worth
+ * keeping because it was half right.** It said backoff belonged with the queued
+ * runs `import_jobs.status` has a `'queued'` value for, "not inside a server
+ * action that is holding a request open", and that saying so beat "a silent
+ * retry that makes the same run take four minutes". The danger is real; the
+ * magnitude was assumed. Shopify's REST Admin API refills its leaky bucket at
+ * two requests a second and answers `Retry-After: 2.0` — it is asking for two
+ * seconds. Four minutes was never on offer, and refusing to wait two seconds
+ * throws away every page the run had already fetched.
+ *
+ * The bounds below are what make the reversal safe. `totalDelayBudgetMs` is the
+ * one that matters: **10 seconds is the most this can add to any one request**,
+ * whatever the provider asks for. Note the unit — per *request*, not per run, so
+ * a twelve-page walk being limited on every page could spend it twelve times.
+ * `max_pages` is what bounds that, and a run hitting the limit on every page has
+ * a page size that needs lowering, which is exactly what the 429 message says.
+ *
+ * Only 429. A 401, 403 or 404 will not fix itself in two seconds, and retrying
+ * a 5xx is a different judgement about idempotence that this adapter has no
+ * reason to make.
+ */
+const RATE_LIMIT_RETRY: RetryPolicy = {
+  statuses: [429],
+  maxAttempts: 3,
+  maxDelayMs: 5_000,
+  totalDelayBudgetMs: 10_000,
+  // Shopify's own answer is 2s; this is what is used when the header is missing
+  // or unparseable, which should not happen and does.
+  defaultDelayMs: 2_000,
+};
+
+/**
+ * Statuses worth a better sentence than "answered 401 Unauthorized".
  */
 function describeStatus(response: Response): string | null {
   switch (response.status) {
@@ -194,7 +224,9 @@ function describeStatus(response: Response): string | null {
     case 404:
       return "Shopify answered 404. Check the shop domain and the API version — a retired version answers this way.";
     case 429:
-      return "Shopify rate-limited the run (429). Lower the page size, or run it again in a few minutes.";
+      // Reached only after the retries above are exhausted, so the advice is
+      // "change something", not "try again" — trying again is what just failed.
+      return "Shopify rate-limited the run (429) and was still limiting it after three attempts. Lower the page size, or run it again in a few minutes.";
     default:
       return null;
   }

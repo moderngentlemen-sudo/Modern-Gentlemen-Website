@@ -32,26 +32,73 @@ export interface ListAssetsOptions {
 const DEFAULT_LIMIT = 60;
 
 /**
- * Search is `ilike` across the four fields an editor actually types into, not
- * full-text.
+ * Search runs full-text first and falls back to `ilike`, and it needs both.
  *
- * 0002 created `media_assets_search_idx`, a GIN index over a
- * `to_tsvector(...)` *expression*. PostgREST can only apply its `fts` operator
- * to a column, so that index is unreachable from here — and a leading-wildcard
- * `ilike` could not use it either. Reaching it needs a stored generated column
- * to hang the index on, which is a `public` schema change and a types
- * regeneration; at the scale this library will hold for a long while, a
- * sequential scan over a few thousand rows is not the bottleneck. Recorded in
- * PROGRESS.md rather than left as a silent mismatch between an index and the
- * code that was supposed to use it.
+ * ⚠️ **`0002`'s index was unreachable for four phases and nothing said so.** It
+ * was a GIN index over a `to_tsvector(...)` *expression*, and PostgREST can only
+ * apply `fts` to a **column** — so the library has always scanned four columns
+ * with a leading-wildcard `ilike`, which no index can serve either. An index
+ * nothing has ever read, paying write cost on every upload. `0026` replaces it
+ * with a stored generated column, which is both a real column PostgREST can
+ * address and something a plain GIN index can sit on.
+ *
+ * **But full-text alone is a downgrade for this particular search**, which is
+ * why the `ilike` stayed — and this was measured on the live library rather than
+ * reasoned about. A filename becomes ONE token: `to_tsvector('english',
+ * 'hero-cover.jpg')` is `'hero-cover.jpg':1`, not three lexemes. So `hero:*`
+ * finds it (prefix of the token) and **`cover:*` finds nothing**, while the old
+ * substring match found it either way. Prefix matching recovers the front of a
+ * filename and never the middle of one, and an editor reaching for "cover" is
+ * not doing anything unusual.
+ *
+ * So: the tsquery runs first and uses the index; if it matches **nothing at
+ * all**, the substring query runs. The second query costs a scan, but only on a
+ * search that was about to show an empty library — the case where an editor is
+ * least willing to be told there is nothing. No result the old code found is
+ * lost, and the common case now hits an index for the first time.
+ *
+ * The emptiness test is the exact `count`, not the length of the returned page:
+ * page two of a match legitimately returns no rows, and re-running on that would
+ * silently swap result sets underneath the pagination.
  */
+
+/** PostgREST reads `,` `(` `)` `*` as its own syntax inside an `or` list. */
 function searchFilter(term: string): string {
-  // Commas and parentheses would otherwise be read as PostgREST syntax.
   const escaped = term.replace(/[(),*]/g, " ").trim();
   const pattern = `%${escaped}%`;
   return ["title", "file_name", "alt_text", "caption"]
     .map((c) => `${c}.ilike.${pattern}`)
     .join(",");
+}
+
+/**
+ * A `to_tsquery` string, built from an editor's free text.
+ *
+ * ⚠️ **Every `to_tsquery` operator is stripped rather than escaped** — `&`, `|`,
+ * `!`, `<->`, parentheses, quotes and the `:` that introduces a weight. A term
+ * reaching `to_tsquery` with a stray operator is a **syntax error from
+ * Postgres**, not an empty result: `search: "a & "` would 500 the media library.
+ * Keeping only alphanumerics means no input can be malformed, which matters more
+ * here than supporting an operator syntax no editor is going to type into a
+ * search box.
+ *
+ * Words are ANDed, so more typing narrows. The trailing `:*` on each makes every
+ * word a prefix — "hero ban" finds "hero banner" — which is what a search box
+ * that filters as you type has to do to be usable at all.
+ *
+ * Null when nothing survives (punctuation only), which tells the caller to skip
+ * the full-text query rather than send `to_tsquery('')`.
+ *
+ * Exported only so `media.test.ts` can assert the stripping. Nothing else calls
+ * it, and nothing else should.
+ */
+export function tsQuery(term: string): string | null {
+  const words = term
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+    .slice(0, 8);
+  if (words.length === 0) return null;
+  return words.map((w) => `${w}:*`).join(" & ");
 }
 
 export async function listAssets(
@@ -61,22 +108,55 @@ export async function listAssets(
   const limit = options.limit ?? DEFAULT_LIMIT;
   const offset = options.offset ?? 0;
 
-  let query = db
-    .from("media_assets")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+  // A builder rather than one mutated query, because the fallback below needs a
+  // second query with the SAME folder, kind, ordering and range. Duplicating
+  // those three filters is how the two paths would come to disagree — the
+  // fallback would quietly search the whole library while the first searched one
+  // folder, and nothing would look wrong.
+  const base = () => {
+    let query = db
+      .from("media_assets")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
-  if (options.kind) query = query.eq("kind", options.kind);
-  if (options.folderId === null) query = query.is("folder_id", null);
-  else if (options.folderId !== undefined) query = query.eq("folder_id", options.folderId);
+    if (options.kind) query = query.eq("kind", options.kind);
+    if (options.folderId === null) query = query.is("folder_id", null);
+    else if (options.folderId !== undefined) query = query.eq("folder_id", options.folderId);
+    return query;
+  };
 
   const term = options.search?.trim();
-  if (term) query = query.or(searchFilter(term));
+  const ts = term ? tsQuery(term) : null;
 
-  const result = await query;
-  const assets = unwrap("listAssets", result) as AssetRow[];
-  return { assets: assets ?? [], total: result.count ?? 0 };
+  // `textSearch` rather than an entry in the `or` list: it is a filter on one
+  // column, and keeping it out of that list is what lets the tsquery hold `&`
+  // without colliding with PostgREST's own separators.
+  const result = await (ts
+    ? // `config` is stated rather than inherited. The generated column is built
+      // with `'english'`; PostgREST would otherwise use the project's
+      // `default_text_search_config` (today also english), and the two agreeing
+      // by coincidence is the kind of thing that stops being true after a
+      // restore or a project move — silently, with the search just not matching.
+      base().textSearch("search_vector", ts, { config: "english" })
+    : term
+      ? base().or(searchFilter(term))
+      : base());
+
+  const assets = (unwrap("listAssets", result) as AssetRow[]) ?? [];
+  const total = result.count ?? 0;
+
+  // The substring fallback: only when full-text ran and matched nothing at all.
+  // See the note above for why this is not "always run both".
+  if (ts && term && total === 0) {
+    const second = await base().or(searchFilter(term));
+    return {
+      assets: (unwrap("listAssets", second) as AssetRow[]) ?? [],
+      total: second.count ?? 0,
+    };
+  }
+
+  return { assets, total };
 }
 
 export async function getAsset(db: Db, id: string): Promise<AssetRow | null> {

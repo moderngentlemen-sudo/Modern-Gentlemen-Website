@@ -10,10 +10,20 @@ import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordProblem } from "@/lib/
 
 import { changePasswordAction } from "./actions";
 
-export function PasswordForm() {
+export interface PasswordFormProps {
+  /**
+   * False only on a recovery landing, where the user cannot supply a password
+   * they came here because they do not know. The server decides this again —
+   * see the note on the page — so this prop shapes the form and nothing else.
+   */
+  requireCurrent: boolean;
+}
+
+export function PasswordForm({ requireCurrent }: PasswordFormProps) {
   const toast = useToast();
   const [saving, startSaving] = useTransition();
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<string>();
@@ -26,11 +36,19 @@ export function PasswordForm() {
   function submit() {
     setError(undefined);
     startSaving(async () => {
-      const result = await changePasswordAction({ password, confirmation });
+      const result = await changePasswordAction({
+        password,
+        confirmation,
+        // Sent only when the form asked for it. An empty string would be a
+        // wrong password rather than an absent one, and the action's messages
+        // separate those two.
+        ...(requireCurrent ? { currentPassword } : {}),
+      });
       if (!result.ok) {
         setError(result.error);
         return;
       }
+      setCurrentPassword("");
       setPassword("");
       setConfirmation("");
       toast.push("Password updated", "success");
@@ -42,9 +60,20 @@ export function PasswordForm() {
       <PanelSection title="Change password">
         <div className="max-w-[440px] space-y-4">
           <p className="text-[13px] leading-relaxed text-mg-fg/60">
-            Applies to your own account. If you arrived here from a reset link you are already
-            signed in — setting a password now is what stops you needing another link next time.
+            {requireCurrent
+              ? "Applies to your own account. Confirm the password you use now, then choose a new one."
+              : "You arrived from a reset link, so there is no current password to confirm — choose a new one and you will not need another link next time."}
           </p>
+
+          {requireCurrent && (
+            <TextInput
+              label="Current password"
+              type="password"
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              required
+            />
+          )}
 
           <TextInput
             label="New password"
@@ -76,7 +105,9 @@ export function PasswordForm() {
               variant="solid"
               onClick={submit}
               loading={saving}
-              disabled={problem !== null || password === ""}
+              disabled={
+                problem !== null || password === "" || (requireCurrent && currentPassword === "")
+              }
             >
               Update password
             </Button>

@@ -14,6 +14,17 @@
  * table — and the route is a public endpoint. Using `createPublicClient()` means
  * the database enforces the same rules whether the write arrives through this
  * service or through a hand-rolled PostgREST call with the publishable key.
+ *
+ * ⚠️ **The rate limit is the one thing here that a hand-rolled PostgREST call
+ * does bypass**, and it is worth being explicit rather than letting the
+ * paragraph above imply otherwise. `rate_limit_hit` is called by this service;
+ * nothing obliges a caller holding the publishable key to call it before
+ * inserting. Closing that would mean moving the check into a `before insert`
+ * trigger on `newsletter_subscribers`, which cannot see the request headers and
+ * so has no caller to key on. The limit is therefore a bound on abuse *through
+ * the form*, which is what a form on a public page attracts; the grant is still
+ * what bounds abuse in general, and it is why the worst case is a table of
+ * addresses rather than anything read back out.
  */
 
 import { createPublicClient } from "@/lib/db/public";
@@ -24,11 +35,37 @@ import {
   normaliseEmail,
   type SubscribeOutcome,
 } from "@/lib/domain/newsletter";
+import { consumeRateLimit, NEWSLETTER_GLOBAL, NEWSLETTER_PER_CALLER } from "./rateLimit";
 
 export async function subscribeToNewsletter(input: {
   email: unknown;
   source: unknown;
+  /** From `clientIdentity(request.headers)`. Null where no proxy set one. */
+  identity: string | null;
 }): Promise<SubscribeOutcome> {
+  // ⚠️ **Before the address is looked at, and that ordering is the design.**
+  // Validating first would make a malformed address a free request, which is
+  // the cheapest possible thing for an abusive caller to send — so the limit is
+  // spent on every request that arrives, not only on the ones that would write
+  // a row. The cost is that a visitor correcting a typo spends budget doing it,
+  // which is what `NEWSLETTER_PER_CALLER`'s limit is sized for.
+  //
+  // Two buckets, and both are consumed rather than short-circuited on the
+  // first: `&&` would leave the global counter unincremented for exactly the
+  // callers it exists to bound. `Promise.all` because they are independent.
+  const [callerAllowed, globalAllowed] = await Promise.all([
+    input.identity === null
+      ? Promise.resolve(true)
+      : consumeRateLimit({
+          scope: "newsletter",
+          identity: input.identity,
+          ...NEWSLETTER_PER_CALLER,
+        }),
+    consumeRateLimit({ scope: "newsletter", identity: "*", ...NEWSLETTER_GLOBAL }),
+  ]);
+
+  if (!callerAllowed || !globalAllowed) return { ok: false, reason: "rate-limited" };
+
   if (typeof input.email !== "string" || !isPlausibleEmail(input.email)) {
     return { ok: false, reason: "invalid-email" };
   }

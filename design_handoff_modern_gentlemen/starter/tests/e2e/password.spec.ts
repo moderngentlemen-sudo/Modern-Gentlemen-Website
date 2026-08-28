@@ -113,6 +113,34 @@ test.describe("password recovery — signed in", () => {
     await expect(update).toBeDisabled();
   });
 
+  /**
+   * The current-password gate, end to end — and it is written so that a
+   * **broken** gate fails loudly instead of locking the suite out of its own
+   * account.
+   *
+   * The new password submitted here is the account's *existing* one. If the gate
+   * works, the wrong current password is refused and nothing is written. If the
+   * gate were removed, the update would reach GoTrue and be refused there with a
+   * different sentence ("New password should be different from the old
+   * password") — so the assertion below fails, and the password is still
+   * unchanged either way. A test that proves a lock works must not be able to
+   * change the lock.
+   */
+  test("refuses a wrong current password", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/admin/password");
+
+    // Present because this session came from a sign-in, not from a reset link.
+    // A recovery landing renders no such field — see app/auth/_lib/recovery.ts.
+    await page.getByLabel(/^Current password/).fill("definitely not the password");
+    await page.getByLabel(/^New password/).fill(password!);
+    await page.getByLabel(/^Confirm new password/).fill(password!);
+
+    await page.getByRole("button", { name: "Update password" }).click();
+
+    await expect(page.getByText("That is not your current password.")).toBeVisible();
+  });
+
   test("signing out still works afterwards, so no password was changed", async ({ page }) => {
     await signIn(page);
     await page.goto("/admin/password");

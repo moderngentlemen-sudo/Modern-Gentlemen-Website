@@ -98,6 +98,11 @@ export function isPlausibleEmail(value: string): boolean {
 /**
  * What the API answers. A shape rather than a string, so the UI picks the copy.
  *
+ * `rate-limited` is separate from `unavailable` because the two mean opposite
+ * things to the visitor: one clears by waiting, the other does not clear by
+ * anything they can do. It says nothing about the address — a refusal is issued
+ * before the address is even looked at — so it is not an enumeration oracle.
+ *
  * ⚠️ **Success carries no detail, and it cannot.** An earlier draft returned
  * `alreadySubscribed`, which would have been an enumeration oracle even unused
  * — and it turned out to be unobtainable anyway: reading it back needs a SELECT
@@ -106,4 +111,4 @@ export function isPlausibleEmail(value: string): boolean {
  * to say.
  */
 export type SubscribeOutcome =
-  { ok: true } | { ok: false; reason: "invalid-email" | "unavailable" };
+  { ok: true } | { ok: false; reason: "invalid-email" | "rate-limited" | "unavailable" };

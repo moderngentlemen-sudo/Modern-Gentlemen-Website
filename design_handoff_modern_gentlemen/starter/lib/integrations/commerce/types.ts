@@ -31,6 +31,15 @@ export interface AdapterContext {
    * credential cannot be read by an adapter that was not given one.
    */
   credential: string | null;
+  /**
+   * How an adapter waits between retries. Defaults to a real timer.
+   *
+   * Injected for the same reason `fetch` is: a test that proves the Shopify
+   * adapter waits out a 429 should not spend four real seconds doing it, and a
+   * suite that does spend them is a suite people stop running. Nothing in
+   * production passes this.
+   */
+  wait?: (ms: number) => Promise<void>;
 }
 
 export class AdapterError extends Error {

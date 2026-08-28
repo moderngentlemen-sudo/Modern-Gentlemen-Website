@@ -185,17 +185,101 @@ describe("fetchRecords", () => {
     ).rejects.toThrow(/401/);
   });
 
-  it("explains a rate limit rather than retrying it", async () => {
-    const shop = {
-      fetch: (async () =>
-        new Response("{}", {
-          status: 429,
-          statusText: "Too Many Requests",
-        })) as unknown as typeof globalThis.fetch,
+  /**
+   * The 429 retry, and the three things about it that can go wrong quietly.
+   *
+   * ⚠️ **`wait` is injected on every one of these.** Without it the adapter
+   * spends its real backoff — four seconds for a run that exhausts the attempts
+   * — and a suite that takes four seconds to prove a two-second wait is a suite
+   * people stop running. The recorded delays are also the assertion: a retry you
+   * cannot see the timing of is a retry you cannot prove honours the header.
+   */
+  function limitedShop(responses: Array<{ status: number; retryAfter?: string; body?: string }>) {
+    const waits: number[] = [];
+    let served = 0;
+
+    const fetch = (async () => {
+      const next = responses[Math.min(served, responses.length - 1)];
+      served += 1;
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (next.retryAfter !== undefined) headers["retry-after"] = next.retryAfter;
+      return new Response(next.body ?? "{}", {
+        status: next.status,
+        statusText: next.status === 429 ? "Too Many Requests" : "OK",
+        headers,
+      });
+    }) as unknown as typeof globalThis.fetch;
+
+    return {
+      waits,
+      calls: () => served,
+      context: { fetch, credential: TOKEN, wait: async (ms: number) => void waits.push(ms) },
     };
-    await expect(
-      shopifyAdapter.fetchRecords(config(), { fetch: shop.fetch, credential: TOKEN })
-    ).rejects.toThrow(/rate-limited/);
+  }
+
+  it("waits out a 429 and carries on when the next attempt succeeds", async () => {
+    const shop = limitedShop([
+      { status: 429, retryAfter: "2.0" },
+      { status: 200, body: pageOf(JACKET) },
+    ]);
+
+    const records = await shopifyAdapter.fetchRecords(config(), shop.context);
+
+    expect(records).toHaveLength(1);
+    expect(shop.calls()).toBe(2);
+    // Honoured, not guessed: Shopify's leaky bucket answers `2.0` seconds.
+    expect(shop.waits).toEqual([2_000]);
+  });
+
+  it("falls back to its own delay when the header is missing or unusable", async () => {
+    // ⚠️ `Number("")` is 0 and `Number("soon")` is NaN. A wait of NaN
+    // milliseconds resolves immediately, which turns the backoff into a hot loop
+    // against a provider that is already refusing — the failure this asserts is
+    // absent.
+    for (const retryAfter of [undefined, "", "soon", "-5"]) {
+      const shop = limitedShop([
+        { status: 429, retryAfter },
+        { status: 200, body: pageOf(JACKET) },
+      ]);
+      await shopifyAdapter.fetchRecords(config(), shop.context);
+      expect(shop.waits, String(retryAfter)).toEqual([2_000]);
+    }
+  });
+
+  it("caps a single wait, however long the provider asks for", async () => {
+    // A provider asking for an hour must not get one: the run is holding a
+    // request open, and the ceiling is this file's to set, not theirs.
+    const shop = limitedShop([
+      { status: 429, retryAfter: "3600" },
+      { status: 200, body: pageOf(JACKET) },
+    ]);
+    await shopifyAdapter.fetchRecords(config(), shop.context);
+    expect(shop.waits).toEqual([5_000]);
+  });
+
+  it("gives up after its attempts and says the retries were spent", async () => {
+    const shop = limitedShop([{ status: 429, retryAfter: "2.0" }]);
+
+    await expect(shopifyAdapter.fetchRecords(config(), shop.context)).rejects.toThrow(
+      /rate-limited.*three attempts/s
+    );
+    // Three attempts, so two waits — not three. An off-by-one here is a wait
+    // nobody is waiting for.
+    expect(shop.calls()).toBe(3);
+    expect(shop.waits).toEqual([2_000, 2_000]);
+  });
+
+  it("does not retry a status that will not fix itself", async () => {
+    // A 401 is a wrong token and a 404 is a wrong domain. Waiting changes
+    // neither, and retrying them turns a clear failure into a slow one.
+    for (const status of [401, 403, 404]) {
+      const shop = limitedShop([{ status }]);
+      await expect(shopifyAdapter.fetchRecords(config(), shop.context)).rejects.toBeInstanceOf(
+        AdapterError
+      );
+      expect(shop.calls(), String(status)).toBe(1);
+      expect(shop.waits, String(status)).toEqual([]);
+    }
   });
 
   it("refuses a body with no products array, naming what arrived", async () => {

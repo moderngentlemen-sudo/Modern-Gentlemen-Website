@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { subscribeToNewsletter } from "@/lib/services/newsletter";
+import { clientIdentity, NEWSLETTER_PER_CALLER } from "@/lib/services/rateLimit";
 
 /**
  * Newsletter sign-up.
@@ -22,12 +23,12 @@ import { subscribeToNewsletter } from "@/lib/services/newsletter";
  * whether an account exists. Here it is enforced by the grant rather than by
  * restraint — reading the row back needs a SELECT `anon` does not have.
  *
- * ⚠️ **No rate limiting**, which is a real gap rather than an oversight, and it
- * is recorded in Known issues beside `resolve_preview`'s. The unique index on
- * `lower(email)` bounds repeats of one address, but nothing bounds a flood of
- * distinct ones. Doing it properly needs shared state this deployment does not
- * have yet — an in-process counter is worthless on a platform that can run more
- * than one container.
+ * **Rate limited, in the database.** The unique constraint on `email` bounds
+ * repeats of one address; two fixed-window counters bound a flood of distinct
+ * ones. They live in Postgres (`0026`) rather than in this process because
+ * Railway can run more than one container — see `lib/services/rateLimit.ts` for
+ * the per-caller and global split, and for why the forged-header case is the
+ * reason there are two.
  */
 export const dynamic = "force-dynamic";
 
@@ -44,16 +45,32 @@ export async function POST(request: NextRequest) {
   }
 
   const input = (body ?? {}) as { email?: unknown; source?: unknown };
-  const outcome = await subscribeToNewsletter({ email: input.email, source: input.source });
+  const outcome = await subscribeToNewsletter({
+    email: input.email,
+    source: input.source,
+    identity: clientIdentity(request.headers),
+  });
 
   if (!outcome.ok) {
-    // 400 for an address this cannot use, 503 for our own failure. The visitor
-    // sees different copy for each: one is theirs to fix, the other is not.
-    const status = outcome.reason === "invalid-email" ? 400 : 503;
+    // 400 for an address this cannot use, 429 for too many attempts, 503 for our
+    // own failure. Three, because the visitor can act on each differently: fix
+    // it, wait, or nothing.
+    if (outcome.reason === "rate-limited") {
+      // `Retry-After` in seconds, and it is the **whole** window rather than the
+      // time remaining in it: the counter is a fixed window and does not report
+      // how far through it the caller is. Over-stating it is the safe direction
+      // — a client that waits too long succeeds, one that waits too little is
+      // refused again.
+      return NextResponse.json(outcome, {
+        status: 429,
+        headers: { "Retry-After": String(NEWSLETTER_PER_CALLER.windowSeconds) },
+      });
+    }
+
     if (outcome.reason === "unavailable") {
       console.error("Newsletter sign-up failed — see the service layer for the cause.");
     }
-    return NextResponse.json(outcome, { status });
+    return NextResponse.json(outcome, { status: outcome.reason === "invalid-email" ? 400 : 503 });
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
