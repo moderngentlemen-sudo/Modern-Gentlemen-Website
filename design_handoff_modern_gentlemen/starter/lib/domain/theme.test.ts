@@ -29,6 +29,9 @@ import {
   safeCssColor,
   themeCssText,
   themeDesignCssText,
+  themeSettingsSchema,
+  themeWebfontFaceCssText,
+  themeWebfontStylesheets,
   toThemeStatus,
 } from "./theme";
 
@@ -190,6 +193,92 @@ describe("editable typography and header settings", () => {
     expect(css).toContain("--font-body:var(--font-space-grotesk),sans-serif");
     expect(css).toContain("--font-base-size:16px");
     expect(css).toContain("--header-height:80px");
+  });
+
+  it("loads provider stylesheets once and maps their family to any role", () => {
+    const typography = {
+      ...DEFAULT_THEME_TYPOGRAPHY,
+      heading: "webfont:brand-serif" as const,
+      webfonts: [
+        {
+          id: "brand-serif",
+          label: "Brand Serif",
+          family: "Playfair Display",
+          source: "stylesheet" as const,
+          url: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap",
+          fallback: "serif" as const,
+          weight: "400",
+          style: "normal" as const,
+        },
+      ],
+    };
+
+    expect(themeWebfontStylesheets(typography)).toEqual([
+      "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap",
+    ]);
+    expect(themeDesignCssText({ ...DEFAULT_THEME_SETTINGS, typography })).toContain(
+      '--font-heading:"Playfair Display",ui-serif,Georgia,"Times New Roman",serif'
+    );
+  });
+
+  it("emits a safe font-face for direct files, including variable weights", () => {
+    const typography = {
+      ...DEFAULT_THEME_TYPOGRAPHY,
+      webfonts: [
+        {
+          id: "brand-sans",
+          label: "Brand Sans",
+          family: "Brand Sans",
+          source: "file" as const,
+          url: "https://cdn.example.com/fonts/brand.woff2?v=2",
+          fallback: "sans" as const,
+          weight: "100 900",
+          style: "normal" as const,
+        },
+      ],
+    };
+
+    expect(themeWebfontFaceCssText(typography)).toBe(
+      '@font-face{font-family:"Brand Sans";src:url("https://cdn.example.com/fonts/brand.woff2?v=2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}'
+    );
+  });
+
+  it("rejects unsafe webfont URLs and missing custom references on write", () => {
+    const typography = {
+      ...DEFAULT_THEME_TYPOGRAPHY,
+      heading: "webfont:missing",
+      webfonts: [
+        {
+          id: "bad-font",
+          label: "Bad",
+          family: "Bad Font",
+          source: "file",
+          url: "javascript:alert(1)",
+          fallback: "sans",
+          weight: "400",
+          style: "normal",
+        },
+      ],
+    };
+
+    const result = themeSettingsSchema.safeParse({ ...DEFAULT_THEME_SETTINGS, typography });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path.join("."))).toEqual(
+        expect.arrayContaining(["typography.webfonts.0.url", "typography.heading"])
+      );
+    }
+  });
+
+  it("drops malformed stored webfonts without losing valid built-in choices", () => {
+    expect(
+      parseThemeTypography({
+        typography: {
+          heading: "systemSerif",
+          webfonts: [{ id: "bad", source: "file", url: "data:font/woff2;base64,xx" }],
+        },
+      })
+    ).toEqual({ ...DEFAULT_THEME_TYPOGRAPHY, heading: "systemSerif" });
   });
 });
 

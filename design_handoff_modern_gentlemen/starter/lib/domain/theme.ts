@@ -249,6 +249,13 @@ export const FONT_PRESETS = [
   "futura",
   "systemSans",
   "systemSerif",
+  "modernSans",
+  "humanistSans",
+  "geometricSans",
+  "transitionalSerif",
+  "oldStyleSerif",
+  "displaySerif",
+  "systemMono",
 ] as const;
 export type FontPreset = (typeof FONT_PRESETS)[number];
 
@@ -259,6 +266,13 @@ export const FONT_PRESET_OPTIONS: readonly { value: FontPreset; label: string }[
   { value: "futura", label: "Futura stack" },
   { value: "systemSans", label: "System sans" },
   { value: "systemSerif", label: "System serif" },
+  { value: "modernSans", label: "Modern sans — Helvetica / Arial" },
+  { value: "humanistSans", label: "Humanist sans — Avenir / Gill Sans" },
+  { value: "geometricSans", label: "Geometric sans — Century Gothic" },
+  { value: "transitionalSerif", label: "Transitional serif — Baskerville" },
+  { value: "oldStyleSerif", label: "Old-style serif — Garamond" },
+  { value: "displaySerif", label: "Display serif — Didot / Bodoni" },
+  { value: "systemMono", label: "System monospace" },
 ];
 
 const FONT_STACK: Record<FontPreset, string> = {
@@ -268,19 +282,51 @@ const FONT_STACK: Record<FontPreset, string> = {
   futura: 'Futura,"Futura PT","Century Gothic",sans-serif',
   systemSans: 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif',
   systemSerif: 'ui-serif,Georgia,"Times New Roman",serif',
+  modernSans: '"Helvetica Neue",Helvetica,Arial,sans-serif',
+  humanistSans: 'Avenir,"Avenir Next","Gill Sans",Calibri,sans-serif',
+  geometricSans: 'Futura,"Century Gothic","Trebuchet MS",sans-serif',
+  transitionalSerif: 'Baskerville,"Baskerville Old Face","Times New Roman",serif',
+  oldStyleSerif: 'Garamond,"Adobe Garamond Pro",Georgia,serif',
+  displaySerif: 'Didot,"Bodoni MT","Times New Roman",serif',
+  systemMono: 'ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace',
 };
+
+export const WEBFONT_SOURCES = ["stylesheet", "file"] as const;
+export type WebfontSource = (typeof WEBFONT_SOURCES)[number];
+export const WEBFONT_FALLBACKS = ["sans", "serif", "mono"] as const;
+export type WebfontFallback = (typeof WEBFONT_FALLBACKS)[number];
+export const WEBFONT_STYLES = ["normal", "italic"] as const;
+export type WebfontStyle = (typeof WEBFONT_STYLES)[number];
+
+export interface ThemeWebfont {
+  /** Stable internal key referenced by typography roles. */
+  id: string;
+  /** Editor-facing name; may differ from the CSS family. */
+  label: string;
+  family: string;
+  source: WebfontSource;
+  /** HTTPS provider stylesheet or direct WOFF/WOFF2 file. */
+  url: string;
+  fallback: WebfontFallback;
+  /** A single CSS weight or a variable range such as `100 900`. */
+  weight: string;
+  style: WebfontStyle;
+}
+
+export type FontSelection = FontPreset | `webfont:${string}`;
 
 export const TYPOGRAPHY_ROLES = ["body", "heading", "editorial", "label", "navigation"] as const;
 export type TypographyRole = (typeof TYPOGRAPHY_ROLES)[number];
 
 export interface ThemeTypography {
-  body: FontPreset;
-  heading: FontPreset;
-  editorial: FontPreset;
-  label: FontPreset;
-  navigation: FontPreset;
+  body: FontSelection;
+  heading: FontSelection;
+  editorial: FontSelection;
+  label: FontSelection;
+  navigation: FontSelection;
   /** Root body size. Components with an explicit size remain intentionally explicit. */
   baseSize: number;
+  webfonts: ThemeWebfont[];
 }
 
 export const DEFAULT_THEME_TYPOGRAPHY: ThemeTypography = {
@@ -290,6 +336,7 @@ export const DEFAULT_THEME_TYPOGRAPHY: ThemeTypography = {
   label: "ibmPlexMono",
   navigation: "futura",
   baseSize: 16,
+  webfonts: [],
 };
 
 export const HEADER_SCROLL_BEHAVIORS = ["hide-on-scroll", "always-visible"] as const;
@@ -331,7 +378,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 2;
+export const THEME_PAYLOAD_VERSION = 3;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -482,14 +529,95 @@ export const themeColorsSchema = z.object({
   darkBand: contextSchema("darkBand").optional(),
 });
 
-export const themeTypographySchema = z.object({
-  body: z.enum(FONT_PRESETS),
-  heading: z.enum(FONT_PRESETS),
-  editorial: z.enum(FONT_PRESETS),
-  label: z.enum(FONT_PRESETS),
-  navigation: z.enum(FONT_PRESETS),
-  baseSize: z.number().int().min(14).max(20),
-});
+const WEBFONT_ID = /^[a-z][a-z0-9-]{0,39}$/;
+const WEBFONT_FAMILY = /^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,79}$/;
+const WEBFONT_WEIGHT = /^(?:[1-9]00)(?: [1-9]00)?$/;
+
+function safeWebfontUrl(value: unknown, source?: WebfontSource): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    if (source === "file" && !/\.(?:woff2?|ttf|otf)$/i.test(url.pathname)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+const themeWebfontSchema = z
+  .object({
+    id: z.string().regex(WEBFONT_ID, "Use a lowercase id such as brand-sans"),
+    label: z.string().trim().min(1).max(60),
+    family: z
+      .string()
+      .trim()
+      .regex(WEBFONT_FAMILY, "Use letters, numbers, spaces, periods, underscores or hyphens"),
+    source: z.enum(WEBFONT_SOURCES),
+    url: z.string().trim().max(2048),
+    fallback: z.enum(WEBFONT_FALLBACKS),
+    weight: z
+      .string()
+      .trim()
+      .regex(WEBFONT_WEIGHT, "Use a weight such as 400 or a variable range such as 100 900"),
+    style: z.enum(WEBFONT_STYLES),
+  })
+  .superRefine((font, context) => {
+    if (safeWebfontUrl(font.url, font.source) === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["url"],
+        message:
+          font.source === "file"
+            ? "Use an HTTPS .woff, .woff2, .ttf or .otf URL"
+            : "Use an HTTPS stylesheet URL without embedded credentials",
+      });
+    }
+  });
+
+const fontSelectionSchema = z
+  .string()
+  .refine(
+    (value) =>
+      (FONT_PRESETS as readonly string[]).includes(value) ||
+      (value.startsWith("webfont:") && WEBFONT_ID.test(value.slice("webfont:".length))),
+    { message: "Choose a built-in font or a configured webfont" }
+  );
+
+export const themeTypographySchema = z
+  .object({
+    body: fontSelectionSchema,
+    heading: fontSelectionSchema,
+    editorial: fontSelectionSchema,
+    label: fontSelectionSchema,
+    navigation: fontSelectionSchema,
+    webfonts: z.array(themeWebfontSchema).max(12),
+    baseSize: z.number().int().min(14).max(20),
+  })
+  .superRefine((typography, context) => {
+    const ids = new Set<string>();
+    typography.webfonts.forEach((font, index) => {
+      if (ids.has(font.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["webfonts", index, "id"],
+          message: "Webfont ids must be unique",
+        });
+      }
+      ids.add(font.id);
+    });
+
+    for (const role of TYPOGRAPHY_ROLES) {
+      const value = typography[role];
+      if (value.startsWith("webfont:") && !ids.has(value.slice("webfont:".length))) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [role],
+          message: "This webfont no longer exists",
+        });
+      }
+    }
+  });
 
 export const themeHeaderSchema = z.object({
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
@@ -564,11 +692,30 @@ export function parseThemeTypography(value: unknown): ThemeTypography {
   const incoming = asRecord(asRecord(value)?.typography);
   if (!incoming) return { ...DEFAULT_THEME_TYPOGRAPHY };
 
-  const out = { ...DEFAULT_THEME_TYPOGRAPHY };
+  const webfonts = Array.isArray(incoming.webfonts)
+    ? incoming.webfonts.flatMap((candidate) => {
+        const parsed = themeWebfontSchema.safeParse(candidate);
+        return parsed.success ? [parsed.data] : [];
+      })
+    : [];
+  const uniqueWebfonts = webfonts.filter(
+    (font, index) => webfonts.findIndex((candidate) => candidate.id === font.id) === index
+  );
+  const webfontIds = new Set(uniqueWebfonts.map((font) => font.id));
+  const out: ThemeTypography = {
+    ...DEFAULT_THEME_TYPOGRAPHY,
+    webfonts: uniqueWebfonts,
+  };
   for (const role of TYPOGRAPHY_ROLES) {
-    const preset = incoming[role];
-    if ((FONT_PRESETS as readonly unknown[]).includes(preset)) {
-      out[role] = preset as FontPreset;
+    const selection = incoming[role];
+    if ((FONT_PRESETS as readonly unknown[]).includes(selection)) {
+      out[role] = selection as FontPreset;
+    } else if (
+      typeof selection === "string" &&
+      selection.startsWith("webfont:") &&
+      webfontIds.has(selection.slice("webfont:".length))
+    ) {
+      out[role] = selection as FontSelection;
     }
   }
   const baseSize = incoming.baseSize;
@@ -681,15 +828,74 @@ const FONT_ROLE_VAR: Record<TypographyRole, string> = {
   navigation: "--font-navigation",
 };
 
+const WEBFONT_FALLBACK_STACK: Record<WebfontFallback, string> = {
+  sans: 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif',
+  serif: 'ui-serif,Georgia,"Times New Roman",serif',
+  mono: 'ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace',
+};
+
+function webfontForSelection(
+  selection: FontSelection,
+  webfonts: readonly ThemeWebfont[]
+): ThemeWebfont | undefined {
+  if (!selection.startsWith("webfont:")) return undefined;
+  const id = selection.slice("webfont:".length);
+  return webfonts.find((font) => font.id === id);
+}
+
+export function fontStackForSelection(
+  selection: FontSelection,
+  webfonts: readonly ThemeWebfont[]
+): string {
+  if ((FONT_PRESETS as readonly string[]).includes(selection)) {
+    return FONT_STACK[selection as FontPreset];
+  }
+  const custom = webfontForSelection(selection, webfonts);
+  if (!custom) return FONT_STACK.systemSans;
+  return `${JSON.stringify(custom.family)},${WEBFONT_FALLBACK_STACK[custom.fallback]}`;
+}
+
+export function themeWebfontStylesheets(typography: ThemeTypography): string[] {
+  return Array.from(
+    new Set(
+      typography.webfonts
+        .filter((font) => font.source === "stylesheet")
+        .map((font) => safeWebfontUrl(font.url, "stylesheet"))
+        .filter((url): url is string => url !== null)
+    )
+  );
+}
+
+export function themeWebfontFaceCssText(typography: ThemeTypography): string {
+  return typography.webfonts
+    .filter((font) => font.source === "file")
+    .flatMap((font) => {
+      const url = safeWebfontUrl(font.url, "file");
+      if (!url) return [];
+      const format = url.toLowerCase().includes(".woff2")
+        ? "woff2"
+        : url.toLowerCase().includes(".woff")
+          ? "woff"
+          : url.toLowerCase().includes(".ttf")
+            ? "truetype"
+            : "opentype";
+      return [
+        `@font-face{font-family:${JSON.stringify(font.family)};src:url(${JSON.stringify(url)}) format("${format}");font-weight:${font.weight};font-style:${font.style};font-display:swap}`,
+      ];
+    })
+    .join("");
+}
+
 /**
  * Typography and dimensional design settings. Every value is selected from a
  * closed preset or a bounded integer before it reaches this string.
  */
 export function themeDesignCssText(settings: ThemeSettings): string {
   const declarations = TYPOGRAPHY_ROLES.map(
-    (role) => `${FONT_ROLE_VAR[role]}:${FONT_STACK[settings.typography[role]]}`
+    (role) =>
+      `${FONT_ROLE_VAR[role]}:${fontStackForSelection(settings.typography[role], settings.typography.webfonts)}`
   );
   declarations.push(`--font-base-size:${settings.typography.baseSize}px`);
   declarations.push(`--header-height:${settings.header.height}px`);
-  return `${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}`;
+  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}`;
 }

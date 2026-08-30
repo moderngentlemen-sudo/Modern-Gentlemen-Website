@@ -15,7 +15,10 @@ import {
   THEME_CONTEXT_LABELS,
   THEME_TOKEN_LABELS,
   TOKENS_BY_CONTEXT,
-  type FontPreset,
+  WEBFONT_FALLBACKS,
+  WEBFONT_SOURCES,
+  WEBFONT_STYLES,
+  type FontSelection,
   type HeaderBackground,
   type HeaderCartVisibility,
   type HeaderScrollBehavior,
@@ -24,9 +27,10 @@ import {
   type ThemeSettings,
   type ThemeToken,
   type ThemeTypography,
+  type ThemeWebfont,
 } from "@/lib/domain/theme";
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
-import { ColorInput } from "@/components/admin/ui/Input";
+import { ColorInput, TextInput } from "@/components/admin/ui/Input";
 import { Button } from "@/components/admin/ui/Button";
 import { Select } from "@/components/admin/ui/Select";
 import { NumberInput } from "@/components/admin/ui/NumberInput";
@@ -98,6 +102,47 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
       ...current,
       typography: { ...current.typography, [key]: value },
     }));
+  }
+
+  function addWebfont() {
+    if (draft.typography.webfonts.length >= 12) return;
+    const id = `custom-${Date.now().toString(36)}`;
+    setTypography("webfonts", [
+      ...draft.typography.webfonts,
+      {
+        id,
+        label: "Custom font",
+        family: "Custom Font",
+        source: "stylesheet",
+        url: "",
+        fallback: "sans",
+        weight: "400",
+        style: "normal",
+      },
+    ]);
+  }
+
+  function updateWebfont(id: string, patch: Partial<ThemeWebfont>) {
+    setTypography(
+      "webfonts",
+      draft.typography.webfonts.map((font) => (font.id === id ? { ...font, ...patch } : font))
+    );
+  }
+
+  function removeWebfont(id: string) {
+    const selection = `webfont:${id}`;
+    setDirty(true);
+    setError(null);
+    setDraft((current) => {
+      const typography = {
+        ...current.typography,
+        webfonts: current.typography.webfonts.filter((font) => font.id !== id),
+      };
+      for (const role of ["body", "heading", "editorial", "label", "navigation"] as const) {
+        if (typography[role] === selection) typography[role] = DEFAULT_THEME_TYPOGRAPHY[role];
+      }
+      return { ...current, typography };
+    });
   }
 
   function setHeader<K extends keyof ThemeHeader>(key: K, value: ThemeHeader[K]) {
@@ -183,30 +228,35 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
             <FontSelect
               label="Body"
               value={draft.typography.body}
+              webfonts={draft.typography.webfonts}
               disabled={!canWrite || pending}
               onChange={(value) => setTypography("body", value)}
             />
             <FontSelect
               label="Headings"
               value={draft.typography.heading}
+              webfonts={draft.typography.webfonts}
               disabled={!canWrite || pending}
               onChange={(value) => setTypography("heading", value)}
             />
             <FontSelect
               label="Editorial accents"
               value={draft.typography.editorial}
+              webfonts={draft.typography.webfonts}
               disabled={!canWrite || pending}
               onChange={(value) => setTypography("editorial", value)}
             />
             <FontSelect
               label="Labels and metadata"
               value={draft.typography.label}
+              webfonts={draft.typography.webfonts}
               disabled={!canWrite || pending}
               onChange={(value) => setTypography("label", value)}
             />
             <FontSelect
               label="Navigation"
               value={draft.typography.navigation}
+              webfonts={draft.typography.webfonts}
               disabled={!canWrite || pending}
               onChange={(value) => setTypography("navigation", value)}
             />
@@ -220,6 +270,135 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               disabled={!canWrite || pending}
               onChange={(value) => value !== undefined && setTypography("baseSize", value)}
             />
+          </div>
+        </PanelSection>
+
+        <PanelSection
+          title="Webfonts"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending || draft.typography.webfonts.length >= 12}
+                onClick={addWebfont}
+              >
+                Add webfont
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="space-y-5">
+            {draft.typography.webfonts.length === 0 ? (
+              <p className="text-[13px] leading-relaxed text-mg-fg/60">
+                Add up to 12 fonts from an HTTPS provider stylesheet or a direct WOFF, WOFF2, TTF or
+                OTF file. Added fonts become available in every typography role above.
+              </p>
+            ) : (
+              draft.typography.webfonts.map((font) => (
+                <div key={font.id} className="border border-mg-bd/15 p-4">
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-medium">{font.label || "Untitled webfont"}</p>
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-mg-fg/60">
+                        {font.source === "stylesheet" ? "Provider stylesheet" : "Direct font file"}
+                      </p>
+                    </div>
+                    {canWrite && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={pending}
+                        onClick={() => removeWebfont(font.id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <TextInput
+                      label="Display name"
+                      value={font.label}
+                      disabled={!canWrite || pending}
+                      onChange={(value) => updateWebfont(font.id, { label: value })}
+                    />
+                    <TextInput
+                      label="CSS font family"
+                      value={font.family}
+                      help="Use the exact family name supplied by the provider."
+                      disabled={!canWrite || pending}
+                      onChange={(value) => updateWebfont(font.id, { family: value })}
+                    />
+                    <Select
+                      label="Source type"
+                      value={font.source}
+                      options={WEBFONT_SOURCES.map((value) => ({
+                        value,
+                        label: value === "stylesheet" ? "Provider stylesheet" : "Direct font file",
+                      }))}
+                      disabled={!canWrite || pending}
+                      onChange={(value) =>
+                        updateWebfont(font.id, { source: value as ThemeWebfont["source"] })
+                      }
+                    />
+                    <TextInput
+                      label={font.source === "stylesheet" ? "Stylesheet URL" : "Font file URL"}
+                      type="url"
+                      value={font.url}
+                      placeholder={
+                        font.source === "stylesheet"
+                          ? "https://fonts.googleapis.com/css2?..."
+                          : "https://cdn.example.com/font.woff2"
+                      }
+                      help="HTTPS only. Provider CSS is loaded as supplied by that provider."
+                      disabled={!canWrite || pending}
+                      onChange={(value) => updateWebfont(font.id, { url: value })}
+                    />
+                    <Select
+                      label="Fallback category"
+                      value={font.fallback}
+                      options={WEBFONT_FALLBACKS.map((value) => ({
+                        value,
+                        label:
+                          value === "sans"
+                            ? "Sans serif"
+                            : value === "serif"
+                              ? "Serif"
+                              : "Monospace",
+                      }))}
+                      disabled={!canWrite || pending}
+                      onChange={(value) =>
+                        updateWebfont(font.id, { fallback: value as ThemeWebfont["fallback"] })
+                      }
+                    />
+                    {font.source === "file" && (
+                      <>
+                        <TextInput
+                          label="Font weight"
+                          value={font.weight}
+                          placeholder="400 or 100 900"
+                          help="Use a single weight or a variable-font range."
+                          disabled={!canWrite || pending}
+                          onChange={(value) => updateWebfont(font.id, { weight: value })}
+                        />
+                        <Select
+                          label="Font style"
+                          value={font.style}
+                          options={WEBFONT_STYLES.map((value) => ({
+                            value,
+                            label: value === "normal" ? "Normal" : "Italic",
+                          }))}
+                          disabled={!canWrite || pending}
+                          onChange={(value) =>
+                            updateWebfont(font.id, { style: value as ThemeWebfont["style"] })
+                          }
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </PanelSection>
 
@@ -394,21 +573,29 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
 function FontSelect({
   label,
   value,
+  webfonts,
   disabled,
   onChange,
 }: {
   label: string;
-  value: FontPreset;
+  value: FontSelection;
+  webfonts: readonly ThemeWebfont[];
   disabled: boolean;
-  onChange: (value: FontPreset) => void;
+  onChange: (value: FontSelection) => void;
 }) {
   return (
     <Select
       label={label}
       value={value}
       disabled={disabled}
-      options={FONT_PRESET_OPTIONS}
-      onChange={(next) => onChange(next as FontPreset)}
+      options={[
+        ...FONT_PRESET_OPTIONS,
+        ...webfonts.map((font) => ({
+          value: `webfont:${font.id}`,
+          label: `${font.label} — webfont`,
+        })),
+      ]}
+      onChange={(next) => onChange(next as FontSelection)}
     />
   );
 }

@@ -5,7 +5,7 @@ import { ThemeProvider, themeBootScript } from "@/lib/theme";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { BRAND } from "@/lib/domain/seo";
 import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
-import { themeDesignCssText } from "@/lib/domain/theme";
+import { themeDesignCssText, themeWebfontStylesheets } from "@/lib/domain/theme";
 
 // Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
 // variable file with a 300–700 axis range. Pinning discrete weights made 300
@@ -70,7 +70,9 @@ export const metadata: Metadata = {
  * takes the opposite stance to the homepage's.
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const themeCss = themeDesignCssText(await getPublishedThemeSettings());
+  const theme = await getPublishedThemeSettings();
+  const themeCss = themeDesignCssText(theme);
+  const webfontStylesheets = themeWebfontStylesheets(theme.typography);
 
   return (
     <html
@@ -79,6 +81,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${grotesk.variable} ${serif.variable} ${mono.variable}`}
     >
       <head>
+        {webfontStylesheets.map((href) => (
+          <link key={href} rel="stylesheet" href={href} />
+        ))}
         {/* Set theme before paint to avoid a flash (see 01_ARCHITECTURE.md). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
 
