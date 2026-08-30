@@ -19,7 +19,7 @@
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -41,6 +41,19 @@ const SKIP_DIRS = new Set(["node_modules", ".next", "test-results", "playwright-
  */
 const IMPORTS_CONSTRUCTOR =
   /import\s*\{[^}]*\b(createClient|createServerClient|createBrowserClient)\b[^}]*\}\s*from\s*"@supabase\/(supabase-js|ssr)"/s;
+
+/**
+ * A repo-relative path with forward slashes, on every platform.
+ *
+ * `relative()` returns the host's separator, so on Windows the walk yields
+ * `lib\db\admin.ts` and every literal below misses — a green suite on Linux
+ * and in CI, one failure on a contributor's machine, and nothing wrong with the
+ * code either one is checking. These assertions are about *which files exist*,
+ * so the separator is incidental and normalising it here is the whole fix.
+ */
+function repoPath(file: string): string {
+  return relative(STARTER, file).split(sep).join("/");
+}
 
 function walk(path: string, out: string[] = []): string[] {
   const stats = statSync(path);
@@ -72,7 +85,7 @@ describe("modern-key header rule coverage", () => {
     // If this drops to zero the walk is broken and every assertion below would
     // pass vacuously — the same failure mode `--passWithNoTests` produces in the
     // integration suite, and this repo has been caught by that three times.
-    const sites = clientConstructionSites().map((f) => relative(STARTER, f));
+    const sites = clientConstructionSites().map(repoPath);
 
     expect(sites.length, `found: ${sites.join(", ")}`).toBeGreaterThanOrEqual(5);
     for (const expected of [
@@ -89,7 +102,7 @@ describe("modern-key header rule coverage", () => {
   it("requires every one of them to apply fetchForKey", () => {
     const offenders = clientConstructionSites()
       .filter((file) => !readFileSync(file, "utf8").includes("fetchForKey"))
-      .map((file) => relative(STARTER, file));
+      .map(repoPath);
 
     expect(
       offenders,
