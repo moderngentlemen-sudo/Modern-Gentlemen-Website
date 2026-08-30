@@ -550,6 +550,30 @@ describe("settings", () => {
     });
     expect(store.getState().tree[0].settings).not.toHaveProperty("design");
   });
+
+  it("writes responsive visual styles outside component settings and can undo them", () => {
+    store.getState().setVisualStyle(key, "mobile", { display: "grid", columns: 2, gap: 16 });
+
+    expect(store.getState().tree[0].visual?.styles?.mobile).toEqual({
+      display: "grid",
+      columns: 2,
+      gap: 16,
+    });
+    expect(store.getState().tree[0].settings).not.toHaveProperty("visual");
+
+    store.getState().undo();
+    expect(store.getState().tree[0].visual).toBeUndefined();
+  });
+
+  it("clears inherited visual overrides and refuses changes while locked", () => {
+    store.getState().setVisualEffects(key, { hover: "lift", motion: "gentle" });
+    store.getState().setVisualEffects(key, { hover: undefined });
+    expect(store.getState().tree[0].visual?.effects).toEqual({ motion: "gentle" });
+
+    store.getState().setLocked(key, true);
+    store.getState().setVisualStyle(key, "desktop", { display: "flex" });
+    expect(store.getState().tree[0].visual?.styles?.desktop).toBeUndefined();
+  });
 });
 
 describe("undo and redo", () => {
@@ -661,7 +685,7 @@ describe("save lifecycle", () => {
     store.getState().insert("pullQuote");
 
     expect(store.getState().payload()).toEqual({
-      _builder: { schemaVersion: 1 },
+      _builder: { schemaVersion: 2 },
       seo: { title: "Home" },
       sections: store.getState().tree,
     });
@@ -812,7 +836,7 @@ describe("areas", () => {
     store.getState().insert("pullQuote");
 
     expect(store.getState().payload()).toEqual({
-      _builder: { schemaVersion: 1 },
+      _builder: { schemaVersion: 2 },
       seo: { title: "Home" },
       sections: store.getState().tree,
     });

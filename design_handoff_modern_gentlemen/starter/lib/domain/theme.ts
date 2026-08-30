@@ -345,6 +345,8 @@ export const HEADER_BACKGROUNDS = ["dynamic", "solid", "transparent"] as const;
 export type HeaderBackground = (typeof HEADER_BACKGROUNDS)[number];
 export const HEADER_CART_VISIBILITY = ["store-only", "always", "hidden"] as const;
 export type HeaderCartVisibility = (typeof HEADER_CART_VISIBILITY)[number];
+export const HEADER_ICON_HOVERS = ["none", "scale", "lift", "circle", "glow"] as const;
+export type HeaderIconHover = (typeof HEADER_ICON_HOVERS)[number];
 
 export interface ThemeHeader {
   scrollBehavior: HeaderScrollBehavior;
@@ -354,6 +356,13 @@ export interface ThemeHeader {
   cartVisibility: HeaderCartVisibility;
   /** Header and page offset, in pixels. */
   height: number;
+  /** Optional compact state after the page begins scrolling. Off preserves the original design. */
+  shrinkOnScroll: boolean;
+  shrunkHeight: number;
+  divider: boolean;
+  scale: number;
+  iconBubbles: boolean;
+  iconHover: HeaderIconHover;
 }
 
 export const DEFAULT_THEME_HEADER: ThemeHeader = {
@@ -363,6 +372,12 @@ export const DEFAULT_THEME_HEADER: ThemeHeader = {
   showThemeToggle: true,
   cartVisibility: "store-only",
   height: 72,
+  shrinkOnScroll: false,
+  shrunkHeight: 58,
+  divider: false,
+  scale: 1,
+  iconBubbles: false,
+  iconHover: "scale",
 };
 
 export interface ThemeLayout {
@@ -395,7 +410,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 4;
+export const THEME_PAYLOAD_VERSION = 5;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -643,6 +658,12 @@ export const themeHeaderSchema = z.object({
   showThemeToggle: z.boolean(),
   cartVisibility: z.enum(HEADER_CART_VISIBILITY),
   height: z.number().int().min(56).max(96),
+  shrinkOnScroll: z.boolean(),
+  shrunkHeight: z.number().int().min(44).max(90),
+  divider: z.boolean(),
+  scale: z.number().min(0.8).max(1.4),
+  iconBubbles: z.boolean(),
+  iconHover: z.enum(HEADER_ICON_HOVERS),
 });
 
 export const themeLayoutSchema = z.object({
@@ -777,6 +798,24 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   const height = incoming.height;
   if (typeof height === "number" && Number.isInteger(height) && height >= 56 && height <= 96) {
     out.height = height;
+  }
+  if (typeof incoming.shrinkOnScroll === "boolean") out.shrinkOnScroll = incoming.shrinkOnScroll;
+  const shrunkHeight = incoming.shrunkHeight;
+  if (
+    typeof shrunkHeight === "number" &&
+    Number.isInteger(shrunkHeight) &&
+    shrunkHeight >= 44 &&
+    shrunkHeight <= 90
+  ) {
+    out.shrunkHeight = shrunkHeight;
+  }
+  if (typeof incoming.divider === "boolean") out.divider = incoming.divider;
+  if (typeof incoming.scale === "number" && incoming.scale >= 0.8 && incoming.scale <= 1.4) {
+    out.scale = incoming.scale;
+  }
+  if (typeof incoming.iconBubbles === "boolean") out.iconBubbles = incoming.iconBubbles;
+  if ((HEADER_ICON_HOVERS as readonly unknown[]).includes(incoming.iconHover)) {
+    out.iconHover = incoming.iconHover as HeaderIconHover;
   }
   return out;
 }

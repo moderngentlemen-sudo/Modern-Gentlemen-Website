@@ -85,6 +85,8 @@ export function Header({
     pinned: drawer || search || (bag && showBag) || !!menuKey || navHover,
   });
   const hidden = settings.scrollBehavior === "hide-on-scroll" && scrollHidden;
+  const compact = settings.shrinkOnScroll && scrolled && !drawer && !search && !bag && !menuKey;
+  const headerHeight = compact ? settings.shrunkHeight : settings.height;
 
   // Dynamic is the verified prototype behavior; the other two are explicit
   // editor choices and leave menu/overlay behavior unchanged.
@@ -111,7 +113,7 @@ export function Header({
         aria-hidden
         className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
-          height: settings.height + 13,
+          height: headerHeight + 13,
           opacity: frosted ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
@@ -159,18 +161,22 @@ export function Header({
           // ≤680 the bar insets 20px, two below the sections' 22px.
           className="container-mg max-[680px]:!px-5 box-border flex items-center justify-between pt-[2px] border-b"
           style={{
-            height: settings.height,
+            height: headerHeight,
             background: frosted ? "rgba(13,13,13,0.55)" : "transparent",
             backdropFilter: frosted ? "blur(20px)" : "none",
             WebkitBackdropFilter: frosted ? "blur(20px)" : "none",
-            borderBottomColor: frosted ? "rgba(255,255,255,0.12)" : "transparent",
+            borderBottomColor:
+              frosted || settings.divider ? "rgba(255,255,255,0.12)" : "transparent",
             // Slide-away only — the bar keeps its 72px height (EXECUTION_PLAN §10).
             // The global prefers-reduced-motion rule zeroes the durations.
-            transition: `background ${MOTION}, backdrop-filter ${MOTION}, border-color ${MOTION}`,
+            transition: `height ${MOTION}, background ${MOTION}, backdrop-filter ${MOTION}, border-color ${MOTION}`,
           }}
         >
           {/* LEFT — burger (Sq thin pair) + monogram */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div
+            className="flex items-center gap-1 shrink-0 transition-transform"
+            style={{ transform: `scale(${settings.scale})` }}
+          >
             <button
               aria-label="Open menu"
               title="Menu"
@@ -207,6 +213,7 @@ export function Header({
           <nav
             className="hidden min-[821px]:flex flex-1 min-w-0 justify-center gap-6 px-4 whitespace-nowrap"
             aria-label="Primary"
+            style={{ transform: `scale(${settings.scale})` }}
           >
             {nav.map((n) => {
               const hasMenu = megaKeys.has(n.id);
@@ -235,13 +242,18 @@ export function Header({
           </nav>
 
           {/* RIGHT — icon cluster: search · bag · theme */}
-          <div className="flex items-center gap-[5px] min-[681px]:gap-3.5 shrink-0">
+          <div
+            className="flex items-center gap-[5px] min-[681px]:gap-3.5 shrink-0 transition-transform"
+            style={{ transform: `scale(${settings.scale})` }}
+          >
             {settings.showSearch && (
               <IconButton
                 label="Search"
                 title="Search"
                 expanded={search}
                 controls="mg-search-overlay"
+                bubbles={settings.iconBubbles}
+                hover={settings.iconHover}
                 onClick={() => setSearch(true)}
               >
                 <SearchIcon />
@@ -253,6 +265,8 @@ export function Header({
                 title="Bag"
                 expanded={bag}
                 controls="mg-bag-drawer"
+                bubbles={settings.iconBubbles}
+                hover={settings.iconHover}
                 onClick={() => setBag(true)}
               >
                 <BagIcon />
@@ -268,6 +282,8 @@ export function Header({
                 label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
                 title="Toggle light / dark"
                 className="overflow-hidden"
+                bubbles={settings.iconBubbles}
+                hover={settings.iconHover}
                 onClick={() => {
                   toggle();
                   setSpin((s) => s + 1);
@@ -318,6 +334,8 @@ function IconButton({
   className = "",
   expanded,
   controls,
+  bubbles = false,
+  hover = "scale",
   children,
 }: {
   label: string;
@@ -336,6 +354,8 @@ function IconButton({
   expanded?: boolean;
   /** The dialog this button opens, so the relationship is announced too. */
   controls?: string;
+  bubbles?: boolean;
+  hover?: ThemeHeader["iconHover"];
   children: React.ReactNode;
 }) {
   return (
@@ -346,7 +366,19 @@ function IconButton({
       aria-expanded={expanded}
       aria-controls={expanded === undefined ? undefined : controls}
       onClick={onClick}
-      className={`relative flex items-center justify-center h-[38px] w-[38px] rounded-full border border-transparent bg-transparent text-white transition-transform duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] hover:scale-[1.2] active:scale-95 ${className}`}
+      className={`relative flex items-center justify-center h-[38px] w-[38px] rounded-full border text-white transition-all duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] active:scale-95 ${
+        bubbles ? "border-white/15 bg-white/[0.08]" : "border-transparent bg-transparent"
+      } ${
+        hover === "scale"
+          ? "hover:scale-[1.2]"
+          : hover === "lift"
+            ? "hover:-translate-y-1"
+            : hover === "circle"
+              ? "hover:border-white/25 hover:bg-white/[0.12]"
+              : hover === "glow"
+                ? "hover:shadow-[0_0_22px_rgba(200,16,46,0.55)]"
+                : ""
+      } ${className}`}
     >
       {children}
     </button>

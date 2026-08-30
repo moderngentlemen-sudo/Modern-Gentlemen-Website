@@ -5,6 +5,7 @@ import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
 import type { BlockNode } from "@/lib/blocks/types";
 import { BlockDesignFrame } from "./BlockDesignFrame";
+import { VisualElementFrame } from "./VisualElementFrame";
 
 /**
  * The stored shape of a section. Aliased to `BlockNode` rather than redeclared,
@@ -49,16 +50,20 @@ export function SectionRenderer({ sections }: { sections?: Block[] }) {
         if (manifestFor(block._type)?.slot && children?.length) {
           return (
             <BlockDesignFrame key={block._key} design={block.design}>
-              <Component {...normalizeBlock(block)}>
-                <SectionRenderer sections={children} />
-              </Component>
+              <VisualElementFrame blockKey={block._key} visual={block.visual}>
+                <Component {...normalizeBlock(block)}>
+                  <SectionRenderer sections={children} />
+                </Component>
+              </VisualElementFrame>
             </BlockDesignFrame>
           );
         }
 
         return (
           <BlockDesignFrame key={block._key} design={block.design}>
-            <Component {...normalizeBlock(block)} />
+            <VisualElementFrame blockKey={block._key} visual={block.visual}>
+              <Component {...normalizeBlock(block)} />
+            </VisualElementFrame>
           </BlockDesignFrame>
         );
       })}

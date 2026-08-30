@@ -9,6 +9,27 @@ import { hasBindingShape } from "@/lib/blocks/bindingDescriptor";
 import type { BindingQuery } from "@/lib/blocks/binding";
 import type { BlockIssue } from "@/lib/blocks/validate";
 import { BLOCK_SPACING, type BlockNode, type BlockSpacing } from "@/lib/blocks/types";
+import {
+  VISUAL_ALIGNS,
+  VISUAL_BACKGROUNDS,
+  VISUAL_BORDERS,
+  VISUAL_COLORS,
+  VISUAL_DIRECTIONS,
+  VISUAL_DISPLAYS,
+  VISUAL_HOVERS,
+  VISUAL_JUSTIFIES,
+  VISUAL_MAX_WIDTHS,
+  VISUAL_MIN_HEIGHTS,
+  VISUAL_MOTIONS,
+  VISUAL_OPACITIES,
+  VISUAL_OVERFLOWS,
+  VISUAL_RADII,
+  VISUAL_SHADOWS,
+  VISUAL_SPACES,
+  VISUAL_WIDTHS,
+  type VisualEffects,
+  type VisualStyle,
+} from "@/lib/blocks/visual";
 
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
 import { Badge } from "@/components/admin/ui/Badge";
@@ -16,6 +37,7 @@ import { Toggle, Checkbox } from "@/components/admin/ui/Toggle";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { Select } from "@/components/admin/ui/Select";
 import { HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
+import { TextInput } from "@/components/admin/ui/Input";
 import { BindingEditor, BindingModeSwitch } from "@/components/admin/fields/BindingEditor";
 import { FieldControl, type ControlContext } from "@/components/admin/fields/FieldControl";
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
@@ -68,7 +90,11 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
   const listMove = useBuilder((s) => s.listMove);
   const setVisibility = useBuilder((s) => s.setVisibility);
   const setDesign = useBuilder((s) => s.setDesign);
+  const setVisualStyle = useBuilder((s) => s.setVisualStyle);
+  const setVisualEffects = useBuilder((s) => s.setVisualEffects);
+  const setVisualName = useBuilder((s) => s.setVisualName);
   const setLocked = useBuilder((s) => s.setLocked);
+  const device = useBuilder((s) => s.device);
 
   const manifest = manifestFor(node._type);
   const key = node._key;
@@ -77,6 +103,22 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
   const issues = useMemo(() => allIssues.filter((issue) => issue.key === key), [allIssues, key]);
 
   const props = useMemo(() => blockProps(node), [node]);
+  const visualStyle = node.visual?.styles?.[device] ?? {};
+
+  function setVisualProperty(property: keyof VisualStyle, value: string) {
+    const numeric = new Set<keyof VisualStyle>([
+      "columns",
+      "gap",
+      "paddingX",
+      "paddingY",
+      "marginTop",
+      "marginBottom",
+      "opacity",
+    ]);
+    setVisualStyle(key, device, {
+      [property]: value === "" ? undefined : numeric.has(property) ? Number(value) : value,
+    } as Partial<VisualStyle>);
+  }
 
   const read = useCallback(
     (path: (string | number)[]) => {
@@ -168,6 +210,69 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
         />
       </PanelSection>
 
+      <PanelSection title={`Visual layout — ${device}`} defaultOpen={false}>
+        <TextInput
+          label="Element name"
+          value={node.visual?.name ?? ""}
+          disabled={locked}
+          help="A private label for finding this element in the Navigator."
+          onChange={(name) => setVisualName(key, name || undefined)}
+        />
+        <p className={HELP_TEXT}>
+          Tablet and mobile values override larger screens. Leave a control unset to inherit.
+        </p>
+        {VISUAL_LAYOUT_FIELDS.map((field) => (
+          <Select
+            key={field.property}
+            label={field.label}
+            value={String(visualStyle[field.property] ?? "")}
+            disabled={locked}
+            placeholder="Inherit"
+            options={field.options}
+            help={field.help}
+            onChange={(value) => setVisualProperty(field.property, value)}
+          />
+        ))}
+      </PanelSection>
+
+      <PanelSection title={`Visual appearance — ${device}`} defaultOpen={false}>
+        {VISUAL_APPEARANCE_FIELDS.map((field) => (
+          <Select
+            key={field.property}
+            label={field.label}
+            value={String(visualStyle[field.property] ?? "")}
+            disabled={locked}
+            placeholder="Inherit"
+            options={field.options}
+            onChange={(value) => setVisualProperty(field.property, value)}
+          />
+        ))}
+        <Select
+          label="Hover effect"
+          value={node.visual?.effects?.hover ?? ""}
+          disabled={locked}
+          placeholder="None set"
+          options={optionsFor(VISUAL_HOVERS)}
+          onChange={(hover) =>
+            setVisualEffects(key, {
+              hover: hover === "" ? undefined : (hover as VisualEffects["hover"]),
+            })
+          }
+        />
+        <Select
+          label="Motion"
+          value={node.visual?.effects?.motion ?? ""}
+          disabled={locked}
+          placeholder="Default"
+          options={optionsFor(VISUAL_MOTIONS)}
+          onChange={(motion) =>
+            setVisualEffects(key, {
+              motion: motion === "" ? undefined : (motion as VisualEffects["motion"]),
+            })
+          }
+        />
+      </PanelSection>
+
       <PanelSection title="Display" defaultOpen={false}>
         <Toggle
           label="Hidden"
@@ -222,6 +327,52 @@ function spacingOptions() {
   };
   return BLOCK_SPACING.map((value) => ({ value, label: labels[value] }));
 }
+
+function titleCase(value: string | number): string {
+  return String(value)
+    .replaceAll("-", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function optionsFor(values: readonly (string | number)[], suffix = "") {
+  return values.map((value) => ({
+    value: String(value),
+    label: `${titleCase(value)}${suffix}`,
+  }));
+}
+
+interface VisualField {
+  property: keyof VisualStyle;
+  label: string;
+  options: ReturnType<typeof optionsFor>;
+  help?: string;
+}
+
+const VISUAL_LAYOUT_FIELDS: VisualField[] = [
+  { property: "display", label: "Layout mode", options: optionsFor(VISUAL_DISPLAYS) },
+  { property: "direction", label: "Direction", options: optionsFor(VISUAL_DIRECTIONS) },
+  { property: "columns", label: "Grid columns", options: optionsFor([1, 2, 3, 4, 5, 6]) },
+  { property: "align", label: "Align items", options: optionsFor(VISUAL_ALIGNS) },
+  { property: "justify", label: "Justify content", options: optionsFor(VISUAL_JUSTIFIES) },
+  { property: "gap", label: "Gap", options: optionsFor(VISUAL_SPACES, "px") },
+  { property: "width", label: "Width", options: optionsFor(VISUAL_WIDTHS) },
+  { property: "maxWidth", label: "Maximum width", options: optionsFor(VISUAL_MAX_WIDTHS) },
+  { property: "minHeight", label: "Minimum height", options: optionsFor(VISUAL_MIN_HEIGHTS) },
+  { property: "paddingX", label: "Horizontal padding", options: optionsFor(VISUAL_SPACES, "px") },
+  { property: "paddingY", label: "Vertical padding", options: optionsFor(VISUAL_SPACES, "px") },
+  { property: "marginTop", label: "Top margin", options: optionsFor(VISUAL_SPACES, "px") },
+  { property: "marginBottom", label: "Bottom margin", options: optionsFor(VISUAL_SPACES, "px") },
+];
+
+const VISUAL_APPEARANCE_FIELDS: VisualField[] = [
+  { property: "background", label: "Background", options: optionsFor(VISUAL_BACKGROUNDS) },
+  { property: "color", label: "Text color", options: optionsFor(VISUAL_COLORS) },
+  { property: "border", label: "Border", options: optionsFor(VISUAL_BORDERS) },
+  { property: "radius", label: "Corner style", options: optionsFor(VISUAL_RADII) },
+  { property: "shadow", label: "Shadow", options: optionsFor(VISUAL_SHADOWS) },
+  { property: "opacity", label: "Opacity", options: optionsFor(VISUAL_OPACITIES, "%") },
+  { property: "overflow", label: "Overflow", options: optionsFor(VISUAL_OVERFLOWS) },
+];
 
 /**
  * A field that may hold either a literal or a `$bind` descriptor.

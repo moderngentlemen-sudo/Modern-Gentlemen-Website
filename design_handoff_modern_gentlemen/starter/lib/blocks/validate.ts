@@ -19,6 +19,7 @@ import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
 import { walkBlocks } from "./traverse";
 import { BLOCK_SPACING, type BlockNode, type BlockSlot, type BlockTree } from "./types";
+import { validateVisualDesign } from "./visual";
 
 export interface BlockIssue {
   /** `_key` of the offending block, or `""` when the node has none. */
@@ -57,6 +58,10 @@ export function validateBlock(node: BlockNode): ValidationResult {
         message: "Choose a supported section spacing value.",
       });
     }
+  }
+
+  for (const issue of validateVisualDesign(node.visual)) {
+    issues.push({ key, type: node._type, ...issue });
   }
 
   const manifest = manifestFor(node._type);

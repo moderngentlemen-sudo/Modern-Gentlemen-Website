@@ -15,6 +15,7 @@
 
 import type { ZodObject, ZodRawShape } from "zod";
 import type { FieldSet } from "./fields";
+import type { VisualElementDesign } from "./visual";
 
 /** Per-block display rules. Reserved for the Phase 4 properties panel. */
 export interface BlockVisibility {
@@ -41,6 +42,8 @@ export interface BlockNode {
   children?: BlockNode[];
   visibility?: BlockVisibility;
   design?: BlockDesign;
+  /** New visual-engine data. Existing component props remain in `settings`. */
+  visual?: VisualElementDesign;
   locked?: boolean;
   /** Points at a pattern; expanded at render time (Phase 3). */
   _ref?: string;

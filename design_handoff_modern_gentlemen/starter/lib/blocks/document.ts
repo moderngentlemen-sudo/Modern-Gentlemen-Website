@@ -8,7 +8,7 @@
  * document shape arrived.
  */
 export const BUILDER_META_KEY = "_builder";
-export const CURRENT_BUILDER_SCHEMA_VERSION = 1;
+export const CURRENT_BUILDER_SCHEMA_VERSION = 2;
 
 export interface BuilderMetadata {
   schemaVersion: number;

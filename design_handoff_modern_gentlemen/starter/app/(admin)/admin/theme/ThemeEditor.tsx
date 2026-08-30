@@ -11,6 +11,7 @@ import {
   FONT_PRESET_OPTIONS,
   HEADER_BACKGROUNDS,
   HEADER_CART_VISIBILITY,
+  HEADER_ICON_HOVERS,
   HEADER_SCROLL_BEHAVIORS,
   THEME_CONTEXTS,
   THEME_CONTEXT_LABELS,
@@ -22,6 +23,7 @@ import {
   type FontSelection,
   type HeaderBackground,
   type HeaderCartVisibility,
+  type HeaderIconHover,
   type HeaderScrollBehavior,
   type ThemeHeader,
   type ThemeLayout,
@@ -536,6 +538,55 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               value={draft.header.height}
               disabled={!canWrite || pending}
               onChange={(value) => value !== undefined && setHeader("height", value)}
+            />
+            <NumberInput
+              label="Header scale"
+              help="0.8–1.4× scales the header content without changing its hit areas."
+              min={0.8}
+              max={1.4}
+              value={draft.header.scale}
+              disabled={!canWrite || pending}
+              onChange={(value) => value !== undefined && setHeader("scale", value)}
+            />
+            <Select
+              label="Icon hover"
+              value={draft.header.iconHover}
+              disabled={!canWrite || pending}
+              options={HEADER_ICON_HOVERS.map((value) => ({
+                value,
+                label: value.charAt(0).toUpperCase() + value.slice(1),
+              }))}
+              onChange={(value) => setHeader("iconHover", value as HeaderIconHover)}
+            />
+            <Toggle
+              label="Shrink on scroll"
+              checked={draft.header.shrinkOnScroll}
+              disabled={!canWrite || pending}
+              help="Compacts the header after scrolling; off reproduces the original fixed-height behavior."
+              onChange={(value) => setHeader("shrinkOnScroll", value)}
+            />
+            <NumberInput
+              label="Shrunk height"
+              help="44–90px. Used only when shrink on scroll is enabled."
+              min={44}
+              max={90}
+              integer
+              value={draft.header.shrunkHeight}
+              disabled={!canWrite || pending || !draft.header.shrinkOnScroll}
+              onChange={(value) => value !== undefined && setHeader("shrunkHeight", value)}
+            />
+            <Toggle
+              label="Header divider"
+              checked={draft.header.divider}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("divider", value)}
+            />
+            <Toggle
+              label="Icon bubbles"
+              checked={draft.header.iconBubbles}
+              disabled={!canWrite || pending}
+              help="Adds a subtle circular surface behind header actions."
+              onChange={(value) => setHeader("iconBubbles", value)}
             />
             <Toggle
               label="Show search"

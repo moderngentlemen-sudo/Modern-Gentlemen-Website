@@ -116,7 +116,7 @@ function TreeItem({
   const children = node.children ?? [];
   const isContainer = manifest?.slot !== undefined;
   const isCollapsed = collapsed.has(node._key);
-  const label = manifest?.label ?? node._type;
+  const label = node.visual?.name || manifest?.label || node._type;
 
   return (
     <li

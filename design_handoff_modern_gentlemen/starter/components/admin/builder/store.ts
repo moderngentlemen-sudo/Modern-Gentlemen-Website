@@ -42,6 +42,7 @@ import {
 } from "@/lib/blocks/areas";
 import type { BlockDesign, BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
 import { stampBuilderPayload } from "@/lib/blocks/document";
+import type { VisualBreakpoint, VisualEffects, VisualStyle } from "@/lib/blocks/visual";
 import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 
 import { moveIndex } from "./dnd";
@@ -191,6 +192,9 @@ export interface BuilderActions {
 
   setVisibility: (key: string, patch: Partial<BlockVisibility>) => void;
   setDesign: (key: string, patch: Partial<BlockDesign>) => void;
+  setVisualStyle: (key: string, breakpoint: VisualBreakpoint, patch: Partial<VisualStyle>) => void;
+  setVisualEffects: (key: string, patch: Partial<VisualEffects>) => void;
+  setVisualName: (key: string, name: string | undefined) => void;
   setLocked: (key: string, locked: boolean) => void;
 
   /**
@@ -567,6 +571,42 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           const node = findDraft(draft, key);
           if (!node) return;
           node.design = { ...node.design, ...patch };
+        }),
+
+      setVisualStyle: (key, breakpoint, patch) =>
+        commit(`visual:${key}:${breakpoint}`, (draft) => {
+          const node = findDraft(draft, key);
+          if (!node || node.locked) return;
+          if (!node.visual) node.visual = {};
+          if (!node.visual.styles) node.visual.styles = {};
+          const style = { ...(node.visual.styles[breakpoint] ?? {}) } as Record<string, unknown>;
+          for (const [property, value] of Object.entries(patch)) {
+            if (value === undefined) delete style[property];
+            else style[property] = value;
+          }
+          node.visual.styles[breakpoint] = style;
+        }),
+
+      setVisualEffects: (key, patch) =>
+        commit(`visual-effects:${key}`, (draft) => {
+          const node = findDraft(draft, key);
+          if (!node || node.locked) return;
+          if (!node.visual) node.visual = {};
+          const effects = { ...(node.visual.effects ?? {}) } as Record<string, unknown>;
+          for (const [property, value] of Object.entries(patch)) {
+            if (value === undefined) delete effects[property];
+            else effects[property] = value;
+          }
+          node.visual.effects = effects;
+        }),
+
+      setVisualName: (key, name) =>
+        commit(`visual-name:${key}`, (draft) => {
+          const node = findDraft(draft, key);
+          if (!node || node.locked) return;
+          if (!node.visual) node.visual = {};
+          if (name === undefined || name.trim() === "") delete node.visual.name;
+          else node.visual.name = name.slice(0, 80);
         }),
 
       // Deliberately not routed through `editSettings`: locking a block must
