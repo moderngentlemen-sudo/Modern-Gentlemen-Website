@@ -65,7 +65,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
     <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band">
       {/* ≤680 every footer row insets 22px, matching the sections. */}
       {/* Brand + nav */}
-      <div className="container-mg max-[680px]:!px-[22px] grid grid-cols-1 min-[681px]:grid-cols-[1fr_auto] gap-6 min-[681px]:gap-10 min-[681px]:items-center py-11 border-b border-white/10">
+      <div className="container-mg grid grid-cols-1 min-[681px]:grid-cols-[1fr_auto] gap-6 min-[681px]:gap-10 min-[681px]:items-center py-11 border-b border-white/10">
         <div className="flex flex-col gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -97,7 +97,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
       </div>
 
       {/* Follow + socials */}
-      <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row min-[681px]:items-center justify-between gap-3.5 min-[681px]:gap-5 py-[26px] border-b border-white/[0.06]">
+      <div className="container-mg flex flex-col min-[681px]:flex-row min-[681px]:items-center justify-between gap-3.5 min-[681px]:gap-5 py-[26px] border-b border-white/[0.06]">
         <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/50">
           Follow Modern Gentlemen
         </span>
@@ -119,7 +119,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
       {/* Legal. The prototype sets this line as plain text; the labels stay
           linked here, with literal " · " separators so the run measures the
           same as the design's single string. */}
-      <div className="container-mg max-[680px]:!px-[22px] flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/50">
+      <div className="container-mg flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/50">
         <span>© {new Date().getFullYear()} Modern Gentlemen — Est. 2026</span>
         <span className="whitespace-pre-wrap">
           {legal.map((link, i) => (

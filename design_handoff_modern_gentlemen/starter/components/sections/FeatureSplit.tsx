@@ -34,7 +34,7 @@ export function FeatureSplit({
         />
         {/* Caption: anchored to the content gutter, 48px up, and padded 32px
             top/bottom inside itself ('No panel' zeroes the panel's left pad). */}
-        <div className="absolute bottom-12 left-5 right-5 pl-0 pr-6 py-6 leading-[normal] pointer-events-none min-[681px]:left-[max(48px,calc((100%-1320px)/2))] min-[681px]:right-auto min-[681px]:max-w-[440px] min-[681px]:pr-[38px] min-[681px]:py-8">
+        <div className="absolute bottom-12 left-5 right-5 pl-0 pr-6 py-6 leading-[normal] pointer-events-none min-[681px]:left-[max(var(--layout-desktop-gutter),calc((100%-var(--layout-content-width))/2))] min-[681px]:right-auto min-[681px]:max-w-[440px] min-[681px]:pr-[38px] min-[681px]:py-8">
           {eyebrow && (
             <Eyebrow className="block mb-2 !text-[18px] !leading-[normal]">{eyebrow}</Eyebrow>
           )}

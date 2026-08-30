@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   DEFAULT_THEME_COLORS,
   DEFAULT_THEME_HEADER,
+  DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_TYPOGRAPHY,
   FONT_PRESET_OPTIONS,
   HEADER_BACKGROUNDS,
@@ -23,6 +24,7 @@ import {
   type HeaderCartVisibility,
   type HeaderScrollBehavior,
   type ThemeHeader,
+  type ThemeLayout,
   type ThemeContext,
   type ThemeSettings,
   type ThemeToken,
@@ -149,6 +151,12 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, header: { ...current.header, [key]: value } }));
+  }
+
+  function setLayout<K extends keyof ThemeLayout>(key: K, value: ThemeLayout[K]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, layout: { ...current.layout, [key]: value } }));
   }
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, success: string) {
@@ -403,6 +411,61 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
         </PanelSection>
 
         <PanelSection
+          title="Site layout"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDirty(true);
+                  setDraft((current) => ({
+                    ...current,
+                    layout: { ...DEFAULT_THEME_LAYOUT },
+                  }));
+                }}
+              >
+                Reset to defaults
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <NumberInput
+              label="Content width"
+              help="960–1600px. Controls the standard centered site column."
+              min={960}
+              max={1600}
+              integer
+              value={draft.layout.contentWidth}
+              disabled={!canWrite || pending}
+              onChange={(value) => value !== undefined && setLayout("contentWidth", value)}
+            />
+            <NumberInput
+              label="Desktop gutter"
+              help="24–96px. The minimum inset around the content column."
+              min={24}
+              max={96}
+              integer
+              value={draft.layout.desktopGutter}
+              disabled={!canWrite || pending}
+              onChange={(value) => value !== undefined && setLayout("desktopGutter", value)}
+            />
+            <NumberInput
+              label="Mobile gutter"
+              help="12–40px at 680px and below."
+              min={12}
+              max={40}
+              integer
+              value={draft.layout.mobileGutter}
+              disabled={!canWrite || pending}
+              onChange={(value) => value !== undefined && setLayout("mobileGutter", value)}
+            />
+          </div>
+        </PanelSection>
+
+        <PanelSection
           title="Header"
           actions={
             canWrite ? (
@@ -556,9 +619,9 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
           made here.
         </p>
         <p className="mt-2">
-          Typography and header behavior are role-based settings, so existing sections inherit them
-          without losing their individual layout. Spacing, radii and motion remain section-level
-          follow-up controls.
+          Typography, site width and header behavior are global settings. Additional spacing is
+          available per section in the builder, so an editor can change page rhythm without
+          rewriting that section&apos;s internal layout. Radii and motion remain follow-up controls.
         </p>
         {initial.published === null && (
           <p className="mt-2 text-mg-accentSerif">

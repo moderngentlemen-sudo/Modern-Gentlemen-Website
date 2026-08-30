@@ -36,6 +36,16 @@ describe("validateBlock", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("accepts bounded section spacing and reports unknown values", () => {
+    expect(validateBlock(quote({ design: { spaceBefore: "large" } })).ok).toBe(true);
+
+    const result = validateBlock(
+      quote({ design: { spaceAfter: "enormous" } as unknown as BlockNode["design"] })
+    );
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.path)).toContain("design.spaceAfter");
+  });
+
   it("reports an unknown block type without throwing", () => {
     const result = validateBlock({ _key: "x", _type: "notARealBlock" });
     expect(result.ok).toBe(false);

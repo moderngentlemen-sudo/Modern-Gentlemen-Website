@@ -40,7 +40,7 @@ import {
   withRenamedArea,
   withoutArea,
 } from "@/lib/blocks/areas";
-import type { BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
+import type { BlockDesign, BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
 import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 
 import { moveIndex } from "./dnd";
@@ -189,6 +189,7 @@ export interface BuilderActions {
   listMove: (key: string, path: (string | number)[], from: number, to: number) => void;
 
   setVisibility: (key: string, patch: Partial<BlockVisibility>) => void;
+  setDesign: (key: string, patch: Partial<BlockDesign>) => void;
   setLocked: (key: string, locked: boolean) => void;
 
   /**
@@ -558,6 +559,13 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           const node = findDraft(draft, key);
           if (!node) return;
           node.visibility = { ...node.visibility, ...patch };
+        }),
+
+      setDesign: (key, patch) =>
+        commit(null, (draft) => {
+          const node = findDraft(draft, key);
+          if (!node) return;
+          node.design = { ...node.design, ...patch };
         }),
 
       // Deliberately not routed through `editSettings`: locking a block must

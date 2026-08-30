@@ -35,6 +35,7 @@ describe("blockProps", () => {
         quote: "Q",
         children: [],
         visibility: { hidden: true },
+        design: { spaceBefore: "large" },
         locked: true,
         _ref: "pattern-1",
       })

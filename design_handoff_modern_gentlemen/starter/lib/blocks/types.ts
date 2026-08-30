@@ -22,6 +22,16 @@ export interface BlockVisibility {
   devices?: ("mobile" | "tablet" | "desktop")[];
 }
 
+export const BLOCK_SPACING = ["none", "small", "medium", "large", "xlarge"] as const;
+export type BlockSpacing = (typeof BLOCK_SPACING)[number];
+
+/** Universal presentation controls that sit outside a block's content contract. */
+export interface BlockDesign {
+  /** Additional space outside the section; the section keeps its own internal composition. */
+  spaceBefore?: BlockSpacing;
+  spaceAfter?: BlockSpacing;
+}
+
 export interface BlockNode {
   /** Stable identity within a tree. Drag-and-drop reorders nodes, so index is not identity. */
   _key: string;
@@ -30,6 +40,7 @@ export interface BlockNode {
   settings?: Record<string, unknown>;
   children?: BlockNode[];
   visibility?: BlockVisibility;
+  design?: BlockDesign;
   locked?: boolean;
   /** Points at a pattern; expanded at render time (Phase 3). */
   _ref?: string;

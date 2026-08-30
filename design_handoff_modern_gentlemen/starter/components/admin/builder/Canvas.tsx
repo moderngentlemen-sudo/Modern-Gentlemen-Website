@@ -19,6 +19,7 @@ import { Badge } from "@/components/admin/ui/Badge";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
 
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
+import { BlockDesignFrame } from "@/components/BlockDesignFrame";
 import { useBuilder } from "./StoreContext";
 import { usePattern } from "./PatternsContext";
 import { gapDropId, type DropLocation } from "./dnd";
@@ -473,47 +474,49 @@ function SortableBlock({
           hidden && "opacity-40"
         )}
       >
-        {isRef ? (
-          <PatternRefCard
-            name={pattern?.name}
-            blockCount={pattern?.blockCount ?? 0}
-            resolved={pattern !== undefined}
-            published={pattern?.published ?? false}
-            locked={locked}
-            onDetach={() => pattern && detachPatternRef(node._key, pattern.blocks)}
-          />
-        ) : Component ? (
-          <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
-            {slot ? (
-              <Component {...normalizeBlock(node)}>
-                {children.length === 0 ? (
-                  <EmptySlot
-                    parentKey={node._key}
-                    label={slot.label}
-                    over={isOver(drop, node._key, 0)}
-                  />
-                ) : (
-                  <BlockList
-                    nodes={children}
-                    parentKey={node._key}
-                    dragType={dragType}
-                    drop={drop}
-                    slot={slot}
-                    depth={depth + 1}
-                  />
-                )}
-              </Component>
-            ) : (
-              <Component {...normalizeBlock(node)} />
-            )}
-          </BlockErrorBoundary>
-        ) : (
-          <div className="border border-mg-accentSerif/40 bg-mg-accent/5 px-6 py-10 text-center">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mg-accentSerif">
-              Unknown block: {node._type}
-            </p>
-          </div>
-        )}
+        <BlockDesignFrame design={node.design}>
+          {isRef ? (
+            <PatternRefCard
+              name={pattern?.name}
+              blockCount={pattern?.blockCount ?? 0}
+              resolved={pattern !== undefined}
+              published={pattern?.published ?? false}
+              locked={locked}
+              onDetach={() => pattern && detachPatternRef(node._key, pattern.blocks)}
+            />
+          ) : Component ? (
+            <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
+              {slot ? (
+                <Component {...normalizeBlock(node)}>
+                  {children.length === 0 ? (
+                    <EmptySlot
+                      parentKey={node._key}
+                      label={slot.label}
+                      over={isOver(drop, node._key, 0)}
+                    />
+                  ) : (
+                    <BlockList
+                      nodes={children}
+                      parentKey={node._key}
+                      dragType={dragType}
+                      drop={drop}
+                      slot={slot}
+                      depth={depth + 1}
+                    />
+                  )}
+                </Component>
+              ) : (
+                <Component {...normalizeBlock(node)} />
+              )}
+            </BlockErrorBoundary>
+          ) : (
+            <div className="border border-mg-accentSerif/40 bg-mg-accent/5 px-6 py-10 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mg-accentSerif">
+                Unknown block: {node._type}
+              </p>
+            </div>
+          )}
+        </BlockDesignFrame>
       </div>
 
       <div

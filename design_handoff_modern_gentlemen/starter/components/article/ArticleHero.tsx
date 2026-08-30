@@ -112,7 +112,9 @@ function HeroCover({ kicker, title, dek, byline, image }: HeroProps) {
       </div>
       <div
         className="absolute inset-x-0 bottom-0 pb-[56px]"
-        style={{ paddingInline: "max(24px, calc((100% - 1320px) / 2))" }}
+        style={{
+          paddingInline: "max(24px, calc((100% - var(--layout-content-width)) / 2))",
+        }}
       >
         <ArticleKicker className="mb-4">{kicker}</ArticleKicker>
         <h1
@@ -183,8 +185,10 @@ function HeroSplit({ kicker, title, dek, byline, image }: HeroProps) {
   return (
     <section
       data-split
-      className="mx-auto grid max-w-[1320px] grid-cols-1 items-center gap-[48px] pt-[48px] pb-5 min-[821px]:grid-cols-2"
-      style={{ paddingInline: "max(24px, calc((100% - 1320px) / 2))" }}
+      className="mx-auto grid max-w-[var(--layout-content-width)] grid-cols-1 items-center gap-[48px] pt-[48px] pb-5 min-[821px]:grid-cols-2"
+      style={{
+        paddingInline: "max(24px, calc((100% - var(--layout-content-width)) / 2))",
+      }}
     >
       <div>
         <ArticleKicker className="mb-4">{kicker}</ArticleKicker>

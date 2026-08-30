@@ -65,6 +65,9 @@
   --font-navigation: Futura, "Futura PT", "Century Gothic", sans-serif;
   --font-base-size: 16px;
   --header-height: 72px;
+  --layout-content-width: 1320px;
+  --layout-desktop-gutter: 48px;
+  --layout-mobile-gutter: 22px;
 }
 html[data-mgtheme="light"] {
   --mg-bg: #f4f4f4;
@@ -162,17 +165,17 @@ body {
   text-rendering: geometricPrecision;
 }
 
-/* Centered 1320px content column. Full-bleed bands opt out with .bleed. */
+/* Centered site content column. Full-bleed bands opt out with .bleed. */
 .container-mg {
   width: 100%;
-  padding-inline: max(48px, calc((100% - 1320px) / 2));
+  padding-inline: max(var(--layout-desktop-gutter), calc((100% - var(--layout-content-width)) / 2));
 }
 /* Phones: tighten the flat 48px gutter so content isn't over-inset (~264px at
    360px). 22px is the prototype's `@media (max-width:680px)` section inset;
    desktop unchanged. */
 @media (max-width: 680px) {
   .container-mg {
-    padding-inline: 22px;
+    padding-inline: var(--layout-mobile-gutter);
   }
 }
 

@@ -79,7 +79,9 @@ export function CtaBand({
     <section
       data-darkband
       className="pt-20 pb-24"
-      style={{ paddingInline: `max(${gutter}px, calc((100% - 1320px) / 2))` }}
+      style={{
+        paddingInline: `max(${gutter}px, calc((100% - var(--layout-content-width)) / 2))`,
+      }}
     >
       <div
         className={clsx(

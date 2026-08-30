@@ -365,20 +365,37 @@ export const DEFAULT_THEME_HEADER: ThemeHeader = {
   height: 72,
 };
 
+export interface ThemeLayout {
+  /** Maximum width of the site's standard content column. */
+  contentWidth: number;
+  /** Minimum page inset above the mobile breakpoint. */
+  desktopGutter: number;
+  /** Page inset at 680px and below. */
+  mobileGutter: number;
+}
+
+export const DEFAULT_THEME_LAYOUT: ThemeLayout = {
+  contentWidth: 1320,
+  desktopGutter: 48,
+  mobileGutter: 22,
+};
+
 export interface ThemeSettings {
   colors: ThemeColors;
   typography: ThemeTypography;
   header: ThemeHeader;
+  layout: ThemeLayout;
 }
 
 export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   colors: DEFAULT_THEME_COLORS,
   typography: DEFAULT_THEME_TYPOGRAPHY,
   header: DEFAULT_THEME_HEADER,
+  layout: DEFAULT_THEME_LAYOUT,
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 3;
+export const THEME_PAYLOAD_VERSION = 4;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -628,10 +645,17 @@ export const themeHeaderSchema = z.object({
   height: z.number().int().min(56).max(96),
 });
 
+export const themeLayoutSchema = z.object({
+  contentWidth: z.number().int().min(960).max(1600),
+  desktopGutter: z.number().int().min(24).max(96),
+  mobileGutter: z.number().int().min(12).max(40),
+});
+
 export const themeSettingsSchema = z.object({
   colors: themeColorsSchema,
   typography: themeTypographySchema,
   header: themeHeaderSchema,
+  layout: themeLayoutSchema,
 });
 
 export const themePayloadSchema = z.object({
@@ -639,6 +663,7 @@ export const themePayloadSchema = z.object({
   colors: themeColorsSchema.optional(),
   typography: themeTypographySchema.optional(),
   header: themeHeaderSchema.optional(),
+  layout: themeLayoutSchema.optional(),
 });
 export type ThemePayload = z.infer<typeof themePayloadSchema>;
 
@@ -756,11 +781,38 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   return out;
 }
 
+/** Forgiving public read for site-wide content width and page gutters. */
+export function parseThemeLayout(value: unknown): ThemeLayout {
+  const incoming = asRecord(asRecord(value)?.layout);
+  if (!incoming) return { ...DEFAULT_THEME_LAYOUT };
+
+  const out = { ...DEFAULT_THEME_LAYOUT };
+  const ranges = {
+    contentWidth: [960, 1600],
+    desktopGutter: [24, 96],
+    mobileGutter: [12, 40],
+  } as const;
+  for (const key of Object.keys(ranges) as (keyof ThemeLayout)[]) {
+    const candidate = incoming[key];
+    const [min, max] = ranges[key];
+    if (
+      typeof candidate === "number" &&
+      Number.isInteger(candidate) &&
+      candidate >= min &&
+      candidate <= max
+    ) {
+      out[key] = candidate;
+    }
+  }
+  return out;
+}
+
 export function parseThemeSettings(value: unknown): ThemeSettings {
   return {
     colors: parseThemeColors(value),
     typography: parseThemeTypography(value),
     header: parseThemeHeader(value),
+    layout: parseThemeLayout(value),
   };
 }
 
@@ -897,5 +949,8 @@ export function themeDesignCssText(settings: ThemeSettings): string {
   );
   declarations.push(`--font-base-size:${settings.typography.baseSize}px`);
   declarations.push(`--header-height:${settings.header.height}px`);
+  declarations.push(`--layout-content-width:${settings.layout.contentWidth}px`);
+  declarations.push(`--layout-desktop-gutter:${settings.layout.desktopGutter}px`);
+  declarations.push(`--layout-mobile-gutter:${settings.layout.mobileGutter}px`);
   return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}`;
 }

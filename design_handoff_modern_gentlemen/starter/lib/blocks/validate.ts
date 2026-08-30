@@ -18,7 +18,7 @@ import { bindingQuerySchema, hasBindingShape } from "./bindingDescriptor";
 import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
 import { walkBlocks } from "./traverse";
-import type { BlockNode, BlockSlot, BlockTree } from "./types";
+import { BLOCK_SPACING, type BlockNode, type BlockSlot, type BlockTree } from "./types";
 
 export interface BlockIssue {
   /** `_key` of the offending block, or `""` when the node has none. */
@@ -45,6 +45,18 @@ export function validateBlock(node: BlockNode): ValidationResult {
       path: "_key",
       message: "Block has no _key. Keys are how reordering keeps identity.",
     });
+  }
+
+  for (const field of ["spaceBefore", "spaceAfter"] as const) {
+    const value = node.design?.[field];
+    if (value !== undefined && !(BLOCK_SPACING as readonly unknown[]).includes(value)) {
+      issues.push({
+        key,
+        type: node._type,
+        path: `design.${field}`,
+        message: "Choose a supported section spacing value.",
+      });
+    }
   }
 
   const manifest = manifestFor(node._type);

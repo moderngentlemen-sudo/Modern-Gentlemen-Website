@@ -8,12 +8,13 @@ import { blockProps } from "@/lib/blocks/normalize";
 import { hasBindingShape } from "@/lib/blocks/bindingDescriptor";
 import type { BindingQuery } from "@/lib/blocks/binding";
 import type { BlockIssue } from "@/lib/blocks/validate";
-import type { BlockNode } from "@/lib/blocks/types";
+import { BLOCK_SPACING, type BlockNode, type BlockSpacing } from "@/lib/blocks/types";
 
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
 import { Badge } from "@/components/admin/ui/Badge";
 import { Toggle, Checkbox } from "@/components/admin/ui/Toggle";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
+import { Select } from "@/components/admin/ui/Select";
 import { HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
 import { BindingEditor, BindingModeSwitch } from "@/components/admin/fields/BindingEditor";
 import { FieldControl, type ControlContext } from "@/components/admin/fields/FieldControl";
@@ -66,6 +67,7 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
   const listRemove = useBuilder((s) => s.listRemove);
   const listMove = useBuilder((s) => s.listMove);
   const setVisibility = useBuilder((s) => s.setVisibility);
+  const setDesign = useBuilder((s) => s.setDesign);
   const setLocked = useBuilder((s) => s.setLocked);
 
   const manifest = manifestFor(node._type);
@@ -148,6 +150,24 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
         )}
       </PanelSection>
 
+      <PanelSection title="Spacing" defaultOpen={false}>
+        <Select
+          label="Extra space before"
+          value={node.design?.spaceBefore ?? "none"}
+          disabled={locked}
+          options={spacingOptions()}
+          help="Adds space outside the section without changing its internal layout."
+          onChange={(value) => setDesign(key, { spaceBefore: value as BlockSpacing })}
+        />
+        <Select
+          label="Extra space after"
+          value={node.design?.spaceAfter ?? "none"}
+          disabled={locked}
+          options={spacingOptions()}
+          onChange={(value) => setDesign(key, { spaceAfter: value as BlockSpacing })}
+        />
+      </PanelSection>
+
       <PanelSection title="Display" defaultOpen={false}>
         <Toggle
           label="Hidden"
@@ -190,6 +210,17 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
       </PanelSection>
     </Panel>
   );
+}
+
+function spacingOptions() {
+  const labels: Record<BlockSpacing, string> = {
+    none: "None",
+    small: "Small — 24px",
+    medium: "Medium — 48px",
+    large: "Large — 80px",
+    xlarge: "Extra large — 120px",
+  };
+  return BLOCK_SPACING.map((value) => ({ value, label: labels[value] }));
 }
 
 /**

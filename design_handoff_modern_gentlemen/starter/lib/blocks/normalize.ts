@@ -26,6 +26,7 @@ const STRUCTURAL_KEYS = new Set([
   "settings",
   "children",
   "visibility",
+  "design",
   "locked",
 ]);
 

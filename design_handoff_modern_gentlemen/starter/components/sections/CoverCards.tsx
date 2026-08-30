@@ -11,7 +11,13 @@ interface Card {
  *  redden their border on hover. Collapses to a single column ≤820px. */
 export function CoverCards({ label, cards }: { label: string; cards: Card[] }) {
   return (
-    <section className="pt-20" style={{ paddingInline: "max(22px, calc((100% - 1320px) / 2))" }}>
+    <section
+      className="pt-20"
+      style={{
+        paddingInline:
+          "max(var(--layout-mobile-gutter), calc((100% - var(--layout-content-width)) / 2))",
+      }}
+    >
       <RailLabel className="mb-[30px]">{label}</RailLabel>
       <div className="grid grid-cols-1 gap-[20px] min-[821px]:grid-cols-3">
         {cards.map((c) => (

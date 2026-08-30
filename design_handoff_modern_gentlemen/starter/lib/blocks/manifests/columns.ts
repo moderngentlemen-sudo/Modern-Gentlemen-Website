@@ -78,7 +78,7 @@ export const columns = defineBlock({
       label: "Width",
       default: "contained",
       options: [
-        { value: "contained", label: "Contained — 1320px column" },
+        { value: "contained", label: "Contained — site content column" },
         { value: "full", label: "Full bleed" },
       ],
     }),

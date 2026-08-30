@@ -11,20 +11,22 @@ interface Props {
 
 /**
  * Lightweight editorial page hero — a text headline (with an optional accent
- * clause) over a serif dek. `left` = About (1320 column, big left headline);
+ * clause) over a serif dek. `left` = About (site column, big left headline);
  * `center` = Membership (900 column, centered, slots its billing toggle into
  * `children`). Sits inside the fixed-header reserve (no bleed).
  */
 export function EditorialHero({ eyebrow, headline, accent, dek, align = "left", children }: Props) {
   const centered = align === "center";
-  const width = centered ? 900 : 1320;
+  const width = centered ? "900px" : "var(--layout-content-width)";
   return (
     <section
       className={clsx(
         "pt-[78px]",
         centered ? "pb-[40px] text-center" : "border-b border-mg-bd/[0.09] pb-[72px]"
       )}
-      style={{ paddingInline: `max(22px, calc((100% - ${width}px) / 2))` }}
+      style={{
+        paddingInline: `max(var(--layout-mobile-gutter), calc((100% - ${width}) / 2))`,
+      }}
     >
       <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-mg-accentSerif">
         {eyebrow}

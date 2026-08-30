@@ -19,7 +19,12 @@ export function StatsBand({
 }) {
   if (variant === "cards") {
     return (
-      <section style={{ paddingInline: "max(22px, calc((100% - 1320px) / 2))" }}>
+      <section
+        style={{
+          paddingInline:
+            "max(var(--layout-mobile-gutter), calc((100% - var(--layout-content-width)) / 2))",
+        }}
+      >
         <HairlineGrid className="grid-cols-2 min-[821px]:grid-cols-4">
           {stats?.map((s, i) => (
             <div key={i} className="bg-mg-surface p-[40px_30px]">

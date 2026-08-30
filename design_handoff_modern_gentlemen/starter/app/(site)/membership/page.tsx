@@ -230,7 +230,10 @@ export default function MembershipPage() {
       {/* Benefits */}
       <section
         className="pt-[88px]"
-        style={{ paddingInline: "max(22px, calc((100% - 1320px) / 2))" }}
+        style={{
+          paddingInline:
+            "max(var(--layout-mobile-gutter), calc((100% - var(--layout-content-width)) / 2))",
+        }}
       >
         <RailLabel className="mb-[30px]">WHAT MEMBERS GET</RailLabel>
         <HairlineGrid className="grid-cols-1 min-[681px]:grid-cols-2 min-[821px]:grid-cols-4">

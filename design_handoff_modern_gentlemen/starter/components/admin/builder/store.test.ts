@@ -539,6 +539,17 @@ describe("settings", () => {
 
     expect(store.getState().tree[0].visibility).toEqual({ hidden: true, devices: ["mobile"] });
   });
+
+  it("writes universal section spacing outside manifest settings", () => {
+    store.getState().setDesign(key, { spaceBefore: "medium" });
+    store.getState().setDesign(key, { spaceAfter: "xlarge" });
+
+    expect(store.getState().tree[0].design).toEqual({
+      spaceBefore: "medium",
+      spaceAfter: "xlarge",
+    });
+    expect(store.getState().tree[0].settings).not.toHaveProperty("design");
+  });
 });
 
 describe("undo and redo", () => {

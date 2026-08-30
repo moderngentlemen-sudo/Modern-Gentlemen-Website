@@ -1,8 +1,10 @@
+import type { ComponentType } from "react";
 import { registry, type BlockType } from "./sections/registry";
 import { MissingBlock } from "./sections/MissingBlock";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
 import type { BlockNode } from "@/lib/blocks/types";
+import { BlockDesignFrame } from "./BlockDesignFrame";
 
 /**
  * The stored shape of a section. Aliased to `BlockNode` rather than redeclared,
@@ -41,21 +43,24 @@ export function SectionRenderer({ sections }: { sections?: Block[] }) {
             <MissingBlock key={block._key} type={String(block._type)} />
           ) : null;
         }
+        const Component = Cmp as ComponentType<Record<string, unknown>>;
 
         const children = block.children;
         if (manifestFor(block._type)?.slot && children?.length) {
           return (
-            // @ts-expect-error — see below; a container is typed no better than
-            // a leaf by a lookup on a heterogeneous map.
-            <Cmp key={block._key} {...normalizeBlock(block)}>
-              <SectionRenderer sections={children} />
-            </Cmp>
+            <BlockDesignFrame key={block._key} design={block.design}>
+              <Component {...normalizeBlock(block)}>
+                <SectionRenderer sections={children} />
+              </Component>
+            </BlockDesignFrame>
           );
         }
 
-        // @ts-expect-error — a lookup by string cannot narrow to one component's
-        // props; the manifest's Zod schema is what validates them.
-        return <Cmp key={block._key} {...normalizeBlock(block)} />;
+        return (
+          <BlockDesignFrame key={block._key} design={block.design}>
+            <Component {...normalizeBlock(block)} />
+          </BlockDesignFrame>
+        );
       })}
     </>
   );

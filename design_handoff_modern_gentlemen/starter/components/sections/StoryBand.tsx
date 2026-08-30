@@ -18,7 +18,7 @@ export function StoryBand({ eyebrow, quote, body, attribution, backgroundImage, 
     <section>
       {/* ≤680 the band pulls in to a flat 16px margin (with 52/24 padding of its
           own) rather than sitting inside the section gutter. */}
-      <div className="mx-4 min-[681px]:mx-[max(48px,calc((100%-1320px)/2))]">
+      <div className="mx-4 min-[681px]:mx-[max(var(--layout-desktop-gutter),calc((100%-var(--layout-content-width))/2))]">
         <div
           data-darkband
           className="relative overflow-hidden bg-[#0d0d0d] text-[#f4f4f4] text-center px-6 py-[52px] min-[681px]:px-[60px] min-[681px]:py-20 border border-mg-band"

@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THEME_COLORS,
   DEFAULT_THEME_HEADER,
+  DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_SETTINGS,
   DEFAULT_THEME_TYPOGRAPHY,
   THEME_CONTEXTS,
@@ -23,6 +24,7 @@ import {
   TOKENS_BY_CONTEXT,
   accentChannels,
   parseThemeHeader,
+  parseThemeLayout,
   parseThemeColors,
   parseThemeSettings,
   parseThemeTypography,
@@ -151,6 +153,7 @@ describe("editable typography and header settings", () => {
     expect(parsed.colors).toEqual(DEFAULT_THEME_COLORS);
     expect(parsed.typography).toEqual(DEFAULT_THEME_TYPOGRAPHY);
     expect(parsed.header).toEqual(DEFAULT_THEME_HEADER);
+    expect(parsed.layout).toEqual(DEFAULT_THEME_LAYOUT);
   });
 
   it("keeps valid stored choices and falls back field by field", () => {
@@ -193,6 +196,21 @@ describe("editable typography and header settings", () => {
     expect(css).toContain("--font-body:var(--font-space-grotesk),sans-serif");
     expect(css).toContain("--font-base-size:16px");
     expect(css).toContain("--header-height:80px");
+    expect(css).toContain("--layout-content-width:1320px");
+    expect(css).toContain("--layout-desktop-gutter:48px");
+    expect(css).toContain("--layout-mobile-gutter:22px");
+  });
+
+  it("keeps valid layout settings and falls back field by field", () => {
+    expect(
+      parseThemeLayout({
+        layout: { contentWidth: 1440, desktopGutter: 4, mobileGutter: 28 },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_LAYOUT,
+      contentWidth: 1440,
+      mobileGutter: 28,
+    });
   });
 
   it("loads provider stylesheets once and maps their family to any role", () => {

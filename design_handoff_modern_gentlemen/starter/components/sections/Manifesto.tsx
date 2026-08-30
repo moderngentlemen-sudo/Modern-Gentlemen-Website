@@ -4,7 +4,10 @@ export function Manifesto({ label, paragraphs }: { label: string; paragraphs: st
   return (
     <section
       className="py-[72px]"
-      style={{ paddingInline: "max(22px, calc((100% - 1320px) / 2))" }}
+      style={{
+        paddingInline:
+          "max(var(--layout-mobile-gutter), calc((100% - var(--layout-content-width)) / 2))",
+      }}
     >
       <div className="grid grid-cols-1 gap-[20px] min-[821px]:grid-cols-[0.7fr_1.3fr] min-[821px]:gap-[48px]">
         <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-mg-fg/60">
