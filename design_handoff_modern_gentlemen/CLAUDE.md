@@ -51,7 +51,6 @@ Modern Gentlemen — a men's editorial + lifestyle brand (style, grooming, watch
 > for red.
 >
 > **The colour tokens are editable data since Phase 6b.** `/admin/theme` writes them to `theme_settings` and `app/layout.tsx` emits them as a `<style>` block over the defaults above. The values in this table remain the baseline and the fallback — they are what a fresh database is seeded with and what the site serves when nothing is published — so this table is still authoritative about what the design *is*. Three additions it now needs: `--mg-accent-rgb` (`200 16 46`), the same red in channels, because Tailwind cannot compute an alpha from a bare `var()`; **`--mg-accent-serif-rgb`, the same twin for the serif accent** (`255 77 94` dark and in a dark band, `200 16 46` light) — added because `mg.accentSerif` was a bare `var()` and all fifteen of its alpha utilities compiled to **no CSS at all**; and `--mg-band-border` / `--mg-muted` / `--mg-faint`, which were always in `globals.css` and never in this table. ✅ ~~`fg`, `bd` and `bg` are still bare `var()` and still broken the same way, across 417 usages~~ — **fixed.** All four of `bg`, `fg`, `surface` and `bd` now carry `--mg-*-rgb` twins in every context, so their ~413 alpha utilities emit CSS at last. `muted` and `faint` stay bare `var()` **deliberately and permanently**: they are `rgba()` in dark, a channel twin can only be derived from a hex, and nothing uses them with an alpha (asserted, not assumed). See `02_DESIGN_TOKENS.md`.
-
 >
 > **Typography, layout roles and header behavior are editable in the same document since 2026-08-30.** The default role map is still the table below — Space Grotesk for body/headings, Instrument Serif for editorial accents, IBM Plex Mono for labels and the Futura stack for navigation — so publishing an untouched theme is a visual no-op. The built-in library is a curated set of bundled and platform-safe stacks. Theme payload v4 permits up to twelve named webfonts, plus the standard content width and desktop/mobile gutters. A webfont is either an HTTPS provider stylesheet or a direct WOFF/WOFF2/TTF/OTF file, with an explicit fallback category, weight and style. Roles reference a font by its stable id; raw CSS is never accepted. Header defaults remain the verified 72px transparent-to-frosted, hide-on-scroll design; the editor may change height, scroll/background behavior, search/theme controls and bag visibility. Existing v1–v3 payloads acquire the new defaults on read without a migration. Individual builder sections may also carry bounded extra space before/after; absent settings add no wrapper and therefore preserve the verified DOM.
 
@@ -101,11 +100,25 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
 > ✅ **`ACCEPTED_CONTRAST_GAPS` is gone and so is the `KNOWN GAP` test that watched it** — that was the retirement condition written into the test itself. `color-contrast` is now enforced on every route with **no exceptions**. ⚠️ **If a pair ever has to be excepted again, reinstate a named list rather than reaching for `disableRules`**: a blanket exclusion makes a *new* contrast bug invisible, which this codebase learned once already. See the decisions log in `/PROGRESS.md`.
 
 ## Rules for changes
+- **Builder-platform compatibility is a governing rule.** The admin editor,
+  stored document model and renderer may be changed extensively to gain more
+  creative control, better design tools or better performance, but the result
+  must still reproduce every existing site design, block, responsive behaviour
+  and public function. Existing high-fidelity sections remain supported as
+  reusable components even as lower-level layout elements are added. A removal
+  requires an explicit content migration, a compatibility renderer and visual
+  proof; deleting both a manifest and its component is not a migration.
 - No resizing, merging, simplifying, or cleaning up elements/spacing/components — implement as designed even if non-standard.
 - Infer breakpoints only from the prototypes/screenshots — do not invent your own.
   > ⚠️ **One scoped exception, decided deliberately and recorded here rather than only in `PROGRESS.md`.** A **layout/columns block** for the page builder — nesting, column widths and their responsive behaviour — **may define its own breakpoints**, because the handoff bundle contains no layout primitive to infer them from. `05_SECTION_BUILDER.md` says the renderer "just stacks" blocks, so there is nothing to copy; building it means inventing, and that has been accepted as the cost of an arbitrary-nesting layout engine.
   >
-  > **The exception is narrow.** It covers a new layout block and nothing else. The tokens, the type scale, the 1320px column, the motion timings and every existing component stay exactly as specified — and the sixteen baselines in `handoff/screenshots/` remain the gate, so anything already rendering must still render byte-identically.
+  > **The exception is narrow.** It covers builder layout primitives (`columns`,
+  > `container`, `stack` and future equivalents) and nothing else, and those
+  > primitives reuse the site's 680/820/1024 breakpoints rather than inventing
+  > another responsive vocabulary. The tokens, the type scale, the 1320px
+  > column, the motion timings and every existing component stay exactly as
+  > specified — and the sixteen baselines in `handoff/screenshots/` remain the
+  > gate, so anything already rendering must still render byte-identically.
   >
   > This note lives beside the rule it modifies on purpose: an override recorded somewhere else is not an override, it is a contradiction the next session has to adjudicate. See the decisions log in `/PROGRESS.md` for the reasoning.
 - After building each screen, screenshot your output and diff against `handoff/screenshots/`; fix pixel differences before moving on.

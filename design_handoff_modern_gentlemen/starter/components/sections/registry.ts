@@ -28,6 +28,8 @@ import { PatternRef } from "./PatternRef";
 import { DocumentContent } from "./DocumentContent";
 import { DocumentContentGap } from "./DocumentContentGap";
 import { Columns } from "./Columns";
+import { LayoutContainer } from "./LayoutContainer";
+import { Stack } from "./Stack";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
@@ -68,6 +70,8 @@ export const registry = {
   masthead: Masthead,
   columns: Columns,
   column: Column,
+  layoutContainer: LayoutContainer,
+  stack: Stack,
   patternRef: PatternRef,
   documentContent: DocumentContent,
   documentContentGap: DocumentContentGap,

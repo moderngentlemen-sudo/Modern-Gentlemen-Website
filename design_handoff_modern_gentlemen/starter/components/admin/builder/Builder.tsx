@@ -28,6 +28,7 @@ import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
 import { Canvas } from "./Canvas";
 import { InsertMenu } from "./InsertMenu";
+import { Navigator } from "./Navigator";
 import { blockCatalogFor } from "@/components/sections/registry";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PublishBar } from "./PublishBar";
@@ -173,6 +174,7 @@ function BuilderLayout({
   patterns: BuilderPattern[];
 }) {
   useAutosave(callbacks.saveDraft);
+  const [leftPanel, setLeftPanel] = useState<"add" | "navigator">("add");
 
   // `documentContent` is offered in a template and nowhere else — see
   // `blockCatalogFor`. Read from the store rather than threaded through props,
@@ -278,48 +280,73 @@ function BuilderLayout({
         }}
       >
         <div className="flex min-h-0 flex-1">
-          <aside className={clsx("w-[230px] shrink-0 overflow-hidden border-r", HAIRLINE)}>
-            <InsertMenu
-              catalog={catalog}
-              onInsert={(type) => {
-                // Insert after whatever is selected, so building a page reads
-                // top-to-bottom rather than always appending to the end — and
-                // `locate`, not a root `findIndex`, so clicking with a block
-                // inside a container selected adds the next one beside it
-                // rather than silently at the end of the page.
-                const at = selectedKey ? locate(tree, selectedKey) : null;
-                insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
-              }}
-              patterns={patterns}
-              onInsertPattern={(patternId) => {
-                const pattern = patterns.find((entry) => entry.id === patternId);
-                if (!pattern) return;
+          <aside
+            className={clsx("flex w-[230px] shrink-0 flex-col overflow-hidden border-r", HAIRLINE)}
+          >
+            <div className={clsx("grid grid-cols-2 border-b p-1", HAIRLINE)}>
+              {(["add", "navigator"] as const).map((panel) => (
+                <button
+                  key={panel}
+                  type="button"
+                  aria-pressed={leftPanel === panel}
+                  onClick={() => setLeftPanel(panel)}
+                  className={clsx(
+                    "px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em]",
+                    leftPanel === panel ? "bg-mg-fg text-mg-bg" : "text-mg-fg/60 hover:bg-mg-fg/5"
+                  )}
+                >
+                  {panel === "add" ? "Add" : "Navigator"}
+                </button>
+              ))}
+            </div>
 
-                // Same placement rule as a section: after the selection, so a
-                // pattern lands where the editor is working rather than at the
-                // end of the page.
-                const at = selectedKey ? locate(tree, selectedKey) : null;
-                const index = at ? at.index + 1 : undefined;
-                const parentKey = at?.parentKey ?? null;
+            <div className="min-h-0 flex-1 overflow-hidden">
+              {leftPanel === "add" ? (
+                <InsertMenu
+                  catalog={catalog}
+                  onInsert={(type) => {
+                    // Insert after whatever is selected, so building a page reads
+                    // top-to-bottom rather than always appending to the end — and
+                    // `locate`, not a root `findIndex`, so clicking with a block
+                    // inside a container selected adds the next one beside it
+                    // rather than silently at the end of the page.
+                    const at = selectedKey ? locate(tree, selectedKey) : null;
+                    insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
+                  }}
+                  patterns={patterns}
+                  onInsertPattern={(patternId) => {
+                    const pattern = patterns.find((entry) => entry.id === patternId);
+                    if (!pattern) return;
 
-                /**
-                 * **The pattern's own `sync_mode` decides which of these two
-                 * very different things "insert" means**, and the editor is not
-                 * asked. A synced pattern stores a pointer, so editing it later
-                 * updates every page using it; a detachable one copies its
-                 * blocks in and forgets where they came from.
-                 *
-                 * Deciding per-insertion instead would make that promise true
-                 * of some usages of a pattern and false of others, which is
-                 * precisely the thing nobody could reason about afterwards.
-                 */
-                if (pattern.syncMode === "synced") {
-                  insertPatternRef(pattern.id, index, parentKey);
-                } else {
-                  insertMany(pattern.blocks, index, parentKey);
-                }
-              }}
-            />
+                    // Same placement rule as a section: after the selection, so a
+                    // pattern lands where the editor is working rather than at the
+                    // end of the page.
+                    const at = selectedKey ? locate(tree, selectedKey) : null;
+                    const index = at ? at.index + 1 : undefined;
+                    const parentKey = at?.parentKey ?? null;
+
+                    /**
+                     * **The pattern's own `sync_mode` decides which of these two
+                     * very different things "insert" means**, and the editor is not
+                     * asked. A synced pattern stores a pointer, so editing it later
+                     * updates every page using it; a detachable one copies its
+                     * blocks in and forgets where they came from.
+                     *
+                     * Deciding per-insertion instead would make that promise true
+                     * of some usages of a pattern and false of others, which is
+                     * precisely the thing nobody could reason about afterwards.
+                     */
+                    if (pattern.syncMode === "synced") {
+                      insertPatternRef(pattern.id, index, parentKey);
+                    } else {
+                      insertMany(pattern.blocks, index, parentKey);
+                    }
+                  }}
+                />
+              ) : (
+                <Navigator />
+              )}
+            </div>
           </aside>
 
           <main className="min-w-0 flex-1 overflow-y-auto bg-mg-bg">

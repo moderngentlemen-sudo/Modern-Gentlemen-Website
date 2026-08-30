@@ -41,6 +41,7 @@ import {
   withoutArea,
 } from "@/lib/blocks/areas";
 import type { BlockDesign, BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
+import { stampBuilderPayload } from "@/lib/blocks/document";
 import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 
 import { moveIndex } from "./dnd";
@@ -789,8 +790,9 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       payload: () => {
         const { doc, tree } = get();
         const area = areaNameOf(doc.treeKey);
-        if (area === null) return { ...doc.rest, [doc.treeKey]: tree };
-        return withArea(doc.rest, area, tree);
+        const payload =
+          area === null ? { ...doc.rest, [doc.treeKey]: tree } : withArea(doc.rest, area, tree);
+        return stampBuilderPayload(payload);
       },
 
       markSaving: () => set({ save: { kind: "saving" } }),

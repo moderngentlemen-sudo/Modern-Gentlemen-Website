@@ -25,6 +25,7 @@ import { filmStills } from "./filmStills";
 import { heroCoverStar } from "./heroCoverStar";
 import { interview } from "./interview";
 import { latestGrid } from "./latestGrid";
+import { layoutContainer } from "./layoutContainer";
 import { manifesto } from "./manifesto";
 import { masthead } from "./masthead";
 import { newsletter } from "./newsletter";
@@ -36,6 +37,7 @@ import { productRow } from "./productRow";
 import { pullQuote } from "./pullQuote";
 import { statsBand } from "./statsBand";
 import { storyBand } from "./storyBand";
+import { stack } from "./stack";
 import { testimonials } from "./testimonials";
 import { timeline } from "./timeline";
 import { twoUpCategory } from "./twoUpCategory";
@@ -65,6 +67,8 @@ export const blockManifests = {
   masthead,
   columns,
   column,
+  layoutContainer,
+  stack,
   patternRef,
   documentContent,
   documentContentGap,

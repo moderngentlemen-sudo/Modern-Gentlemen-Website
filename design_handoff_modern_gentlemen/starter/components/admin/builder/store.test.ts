@@ -661,6 +661,7 @@ describe("save lifecycle", () => {
     store.getState().insert("pullQuote");
 
     expect(store.getState().payload()).toEqual({
+      _builder: { schemaVersion: 1 },
       seo: { title: "Home" },
       sections: store.getState().tree,
     });
@@ -801,7 +802,7 @@ describe("areas", () => {
 
     // The bug this forecloses: `{ ...rest, ["areas.main"]: tree }` produces a
     // literal dotted key, which reads back as no area at all.
-    expect(Object.keys(payload)).toEqual(["areas"]);
+    expect(Object.keys(payload)).toEqual(["areas", "_builder"]);
     expect(payload.areas.main).toEqual(store.getState().tree);
     expect(payload.areas.header).toEqual([]);
   });
@@ -811,6 +812,7 @@ describe("areas", () => {
     store.getState().insert("pullQuote");
 
     expect(store.getState().payload()).toEqual({
+      _builder: { schemaVersion: 1 },
       seo: { title: "Home" },
       sections: store.getState().tree,
     });
