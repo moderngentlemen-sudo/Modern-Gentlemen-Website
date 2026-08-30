@@ -11,10 +11,10 @@
  * `theme.test.ts` compares the emitted text against a literal so the drift fails
  * a unit test rather than sixteen screenshots.
  *
- * Scope is colours only. Typography, spacing, radii and motion are not CSS
- * variables in this codebase — they are Tailwind classes and two media queries
- * of `!important` overrides — so they cannot be made editable without first
- * being made variable, which is a separate and much larger change.
+ * Colors, typography roles and header behavior live here. Typography is mapped
+ * through curated font identifiers rather than arbitrary CSS; the existing
+ * Tailwind role classes consume the emitted variables. Spacing, radii and motion
+ * remain component/block concerns and are intentionally outside this document.
  *
  * NOT a `DocumentType`. `theme_settings` carries every column a document has and
  * `0017` puts it on the SQL `document_table()` allowlist, so the publishing
@@ -230,8 +230,108 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Typography and site chrome
+// ---------------------------------------------------------------------------
+
+/**
+ * Curated font stacks available to editors.
+ *
+ * These are identifiers rather than free-form CSS. A theme is emitted through
+ * a style element on every page, so an allowlist keeps the setting both
+ * predictable and safe. The three branded faces are already loaded by
+ * `next/font`; the remaining stacks are local fallbacks with no network cost.
+ */
+export const FONT_PRESETS = [
+  "spaceGrotesk",
+  "instrumentSerif",
+  "ibmPlexMono",
+  "futura",
+  "systemSans",
+  "systemSerif",
+] as const;
+export type FontPreset = (typeof FONT_PRESETS)[number];
+
+export const FONT_PRESET_OPTIONS: readonly { value: FontPreset; label: string }[] = [
+  { value: "spaceGrotesk", label: "Space Grotesk" },
+  { value: "instrumentSerif", label: "Instrument Serif" },
+  { value: "ibmPlexMono", label: "IBM Plex Mono" },
+  { value: "futura", label: "Futura stack" },
+  { value: "systemSans", label: "System sans" },
+  { value: "systemSerif", label: "System serif" },
+];
+
+const FONT_STACK: Record<FontPreset, string> = {
+  spaceGrotesk: "var(--font-space-grotesk),sans-serif",
+  instrumentSerif: "var(--font-instrument-serif),Georgia,serif",
+  ibmPlexMono: "var(--font-ibm-plex-mono),monospace",
+  futura: 'Futura,"Futura PT","Century Gothic",sans-serif',
+  systemSans: 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif',
+  systemSerif: 'ui-serif,Georgia,"Times New Roman",serif',
+};
+
+export const TYPOGRAPHY_ROLES = ["body", "heading", "editorial", "label", "navigation"] as const;
+export type TypographyRole = (typeof TYPOGRAPHY_ROLES)[number];
+
+export interface ThemeTypography {
+  body: FontPreset;
+  heading: FontPreset;
+  editorial: FontPreset;
+  label: FontPreset;
+  navigation: FontPreset;
+  /** Root body size. Components with an explicit size remain intentionally explicit. */
+  baseSize: number;
+}
+
+export const DEFAULT_THEME_TYPOGRAPHY: ThemeTypography = {
+  body: "spaceGrotesk",
+  heading: "spaceGrotesk",
+  editorial: "instrumentSerif",
+  label: "ibmPlexMono",
+  navigation: "futura",
+  baseSize: 16,
+};
+
+export const HEADER_SCROLL_BEHAVIORS = ["hide-on-scroll", "always-visible"] as const;
+export type HeaderScrollBehavior = (typeof HEADER_SCROLL_BEHAVIORS)[number];
+export const HEADER_BACKGROUNDS = ["dynamic", "solid", "transparent"] as const;
+export type HeaderBackground = (typeof HEADER_BACKGROUNDS)[number];
+export const HEADER_CART_VISIBILITY = ["store-only", "always", "hidden"] as const;
+export type HeaderCartVisibility = (typeof HEADER_CART_VISIBILITY)[number];
+
+export interface ThemeHeader {
+  scrollBehavior: HeaderScrollBehavior;
+  background: HeaderBackground;
+  showSearch: boolean;
+  showThemeToggle: boolean;
+  cartVisibility: HeaderCartVisibility;
+  /** Header and page offset, in pixels. */
+  height: number;
+}
+
+export const DEFAULT_THEME_HEADER: ThemeHeader = {
+  scrollBehavior: "hide-on-scroll",
+  background: "dynamic",
+  showSearch: true,
+  showThemeToggle: true,
+  cartVisibility: "store-only",
+  height: 72,
+};
+
+export interface ThemeSettings {
+  colors: ThemeColors;
+  typography: ThemeTypography;
+  header: ThemeHeader;
+}
+
+export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
+  colors: DEFAULT_THEME_COLORS,
+  typography: DEFAULT_THEME_TYPOGRAPHY,
+  header: DEFAULT_THEME_HEADER,
+};
+
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 1;
+export const THEME_PAYLOAD_VERSION = 2;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -382,9 +482,35 @@ export const themeColorsSchema = z.object({
   darkBand: contextSchema("darkBand").optional(),
 });
 
+export const themeTypographySchema = z.object({
+  body: z.enum(FONT_PRESETS),
+  heading: z.enum(FONT_PRESETS),
+  editorial: z.enum(FONT_PRESETS),
+  label: z.enum(FONT_PRESETS),
+  navigation: z.enum(FONT_PRESETS),
+  baseSize: z.number().int().min(14).max(20),
+});
+
+export const themeHeaderSchema = z.object({
+  scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
+  background: z.enum(HEADER_BACKGROUNDS),
+  showSearch: z.boolean(),
+  showThemeToggle: z.boolean(),
+  cartVisibility: z.enum(HEADER_CART_VISIBILITY),
+  height: z.number().int().min(56).max(96),
+});
+
+export const themeSettingsSchema = z.object({
+  colors: themeColorsSchema,
+  typography: themeTypographySchema,
+  header: themeHeaderSchema,
+});
+
 export const themePayloadSchema = z.object({
   version: z.number().int().optional(),
   colors: themeColorsSchema.optional(),
+  typography: themeTypographySchema.optional(),
+  header: themeHeaderSchema.optional(),
 });
 export type ThemePayload = z.infer<typeof themePayloadSchema>;
 
@@ -427,6 +553,68 @@ export function parseThemeColors(value: unknown): ThemeColors {
   }
 
   return Object.keys(out).length > 0 ? out : DEFAULT_THEME_COLORS;
+}
+
+/**
+ * Read typography field-by-field so one bad stored value falls back without
+ * discarding the editor's other choices. This is the same forgiving read / strict
+ * write split used by colours above.
+ */
+export function parseThemeTypography(value: unknown): ThemeTypography {
+  const incoming = asRecord(asRecord(value)?.typography);
+  if (!incoming) return { ...DEFAULT_THEME_TYPOGRAPHY };
+
+  const out = { ...DEFAULT_THEME_TYPOGRAPHY };
+  for (const role of TYPOGRAPHY_ROLES) {
+    const preset = incoming[role];
+    if ((FONT_PRESETS as readonly unknown[]).includes(preset)) {
+      out[role] = preset as FontPreset;
+    }
+  }
+  const baseSize = incoming.baseSize;
+  if (
+    typeof baseSize === "number" &&
+    Number.isInteger(baseSize) &&
+    baseSize >= 14 &&
+    baseSize <= 20
+  ) {
+    out.baseSize = baseSize;
+  }
+  return out;
+}
+
+/** Forgiving public read for the header portion of a stored theme payload. */
+export function parseThemeHeader(value: unknown): ThemeHeader {
+  const incoming = asRecord(asRecord(value)?.header);
+  if (!incoming) return { ...DEFAULT_THEME_HEADER };
+
+  const out = { ...DEFAULT_THEME_HEADER };
+  if ((HEADER_SCROLL_BEHAVIORS as readonly unknown[]).includes(incoming.scrollBehavior)) {
+    out.scrollBehavior = incoming.scrollBehavior as HeaderScrollBehavior;
+  }
+  if ((HEADER_BACKGROUNDS as readonly unknown[]).includes(incoming.background)) {
+    out.background = incoming.background as HeaderBackground;
+  }
+  if (typeof incoming.showSearch === "boolean") out.showSearch = incoming.showSearch;
+  if (typeof incoming.showThemeToggle === "boolean") {
+    out.showThemeToggle = incoming.showThemeToggle;
+  }
+  if ((HEADER_CART_VISIBILITY as readonly unknown[]).includes(incoming.cartVisibility)) {
+    out.cartVisibility = incoming.cartVisibility as HeaderCartVisibility;
+  }
+  const height = incoming.height;
+  if (typeof height === "number" && Number.isInteger(height) && height >= 56 && height <= 96) {
+    out.height = height;
+  }
+  return out;
+}
+
+export function parseThemeSettings(value: unknown): ThemeSettings {
+  return {
+    colors: parseThemeColors(value),
+    typography: parseThemeTypography(value),
+    header: parseThemeHeader(value),
+  };
 }
 
 /** A plain object, or nothing. Arrays and null are not objects for this purpose. */
@@ -484,3 +672,25 @@ export function themeCssText(colors: ThemeColors): string {
 
   return blocks.join("");
 }
+
+const FONT_ROLE_VAR: Record<TypographyRole, string> = {
+  body: "--font-body",
+  heading: "--font-heading",
+  editorial: "--font-editorial",
+  label: "--font-label",
+  navigation: "--font-navigation",
+};
+
+/**
+ * Typography and dimensional design settings. Every value is selected from a
+ * closed preset or a bounded integer before it reaches this string.
+ */
+export function themeDesignCssText(settings: ThemeSettings): string {
+  const declarations = TYPOGRAPHY_ROLES.map(
+    (role) => `${FONT_ROLE_VAR[role]}:${FONT_STACK[settings.typography[role]]}`
+  );
+  declarations.push(`--font-base-size:${settings.typography.baseSize}px`);
+  declarations.push(`--header-height:${settings.header.height}px`);
+  return `${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}`;
+}
+

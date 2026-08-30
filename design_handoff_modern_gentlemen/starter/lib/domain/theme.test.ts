@@ -15,13 +15,20 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_HEADER,
+  DEFAULT_THEME_SETTINGS,
+  DEFAULT_THEME_TYPOGRAPHY,
   THEME_CONTEXTS,
   THEME_TOKENS,
   TOKENS_BY_CONTEXT,
   accentChannels,
+  parseThemeHeader,
   parseThemeColors,
+  parseThemeSettings,
+  parseThemeTypography,
   safeCssColor,
   themeCssText,
+  themeDesignCssText,
   toThemeStatus,
 } from "./theme";
 
@@ -131,6 +138,58 @@ describe("DEFAULT_THEME_COLORS mirrors app/globals.css", () => {
     expect(declarationsIn("[data-darkband]")["--mg-accent-serif-rgb"]).toBe(
       accentChannels(DEFAULT_THEME_COLORS.darkBand?.accentSerif)
     );
+  });
+});
+
+describe("editable typography and header settings", () => {
+  it("upgrades a legacy color-only payload with design-preserving defaults", () => {
+    const parsed = parseThemeSettings({ version: 1, colors: DEFAULT_THEME_COLORS });
+
+    expect(parsed.colors).toEqual(DEFAULT_THEME_COLORS);
+    expect(parsed.typography).toEqual(DEFAULT_THEME_TYPOGRAPHY);
+    expect(parsed.header).toEqual(DEFAULT_THEME_HEADER);
+  });
+
+  it("keeps valid stored choices and falls back field by field", () => {
+    expect(
+      parseThemeTypography({
+        typography: { heading: "systemSerif", body: "not-a-font", baseSize: 18 },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_TYPOGRAPHY,
+      heading: "systemSerif",
+      baseSize: 18,
+    });
+
+    expect(
+      parseThemeHeader({
+        header: {
+          scrollBehavior: "always-visible",
+          background: "not-a-background",
+          showSearch: false,
+          height: 80,
+        },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_HEADER,
+      scrollBehavior: "always-visible",
+      showSearch: false,
+      height: 80,
+    });
+  });
+
+  it("emits role variables from presets rather than arbitrary CSS", () => {
+    const css = themeDesignCssText({
+      ...DEFAULT_THEME_SETTINGS,
+      typography: { ...DEFAULT_THEME_TYPOGRAPHY, heading: "systemSerif" },
+      header: { ...DEFAULT_THEME_HEADER, height: 80 },
+    });
+
+    expect(css.startsWith(themeCssText(DEFAULT_THEME_COLORS))).toBe(true);
+    expect(css).toContain('--font-heading:ui-serif,Georgia,"Times New Roman",serif');
+    expect(css).toContain("--font-body:var(--font-space-grotesk),sans-serif");
+    expect(css).toContain("--font-base-size:16px");
+    expect(css).toContain("--header-height:80px");
   });
 });
 
@@ -396,3 +455,4 @@ describe("toThemeStatus", () => {
     expect(toThemeStatus(undefined)).toBe("draft");
   });
 });
+

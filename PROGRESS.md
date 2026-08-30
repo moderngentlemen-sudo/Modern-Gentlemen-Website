@@ -545,6 +545,14 @@ Compare the rendered `<body>` with `<script>` bodies emptied and runs of them co
 ## Deviations & decisions log
 _Record anything you could not reproduce exactly, ambiguities, or choices made (e.g. which article templates were built, SHOP vs STORE route naming). One line each._
 
+
+### The builder grows a design system instead of a second renderer
+
+- **Started 2026-08-30 from an explicit owner request for WordPress/Shopify-style customization.** The first vertical slice extends the existing versioned `theme_settings` document with typography roles and header behavior rather than creating a parallel `site_settings` path. `/admin/theme` now edits colors, five font roles, the base text size, header height, scroll behavior, background behavior, search/theme controls and bag visibility. Draft/publish/history/rollback remain the same operations and the existing color-only payload upgrades on read with design-preserving defaults; no migration is required because the document already stores JSONB.
+- **The default output is deliberately the verified design.** Existing `font-grotesk`, `font-serif`, `font-mono` and `font-nav` classes now resolve through role variables, so changing a role reaches the whole component system without rewriting sections. The default role map resolves to the same Space Grotesk / Instrument Serif / IBM Plex Mono / Futura stacks, and the header defaults remain 72px, transparent-to-frosted, hide-on-scroll, store-only bag, search and theme toggle on.
+- **Font choices are curated identifiers, not free-form CSS.** The published theme is emitted through a `<style>` element on every page. Mapping a closed preset to a known stack is both the injection boundary and the first step toward a future font-library adapter; arbitrary font URLs and arbitrary CSS stay out until uploads, licensing, loading strategy and preview behavior are designed together.
+- **Prediction vs. cost.** Predicted: one domain expansion, one admin form expansion and two runtime consumers. Actual: that shape held; the only extra was preserving `getPublishedThemeColors()` as a narrow compatibility API for the integration suite. The existing document/publishing architecture absorbed the feature with no schema migration and no new permission surface.
+
 ### Four hardening slices, three of which reversed something this file had written down
 
 Grouped because they share one shape: **each was deferred by a paragraph that was right about the danger and wrong about a number.** None of the reversals came from new information — the facts were all checkable when the original decision was taken, and nobody checked them.

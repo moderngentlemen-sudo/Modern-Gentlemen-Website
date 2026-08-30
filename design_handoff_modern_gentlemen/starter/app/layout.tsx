@@ -4,8 +4,8 @@ import "./globals.css";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { BRAND } from "@/lib/domain/seo";
-import { getPublishedThemeColors } from "@/lib/services/publicTheme";
-import { themeCssText } from "@/lib/domain/theme";
+import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
+import { themeDesignCssText } from "@/lib/domain/theme";
 
 // Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
 // variable file with a 300–700 axis range. Pinning discrete weights made 300
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
  * takes the opposite stance to the homepage's.
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const themeCss = themeCssText(await getPublishedThemeColors());
+  const themeCss = themeDesignCssText(await getPublishedThemeSettings());
 
   return (
     <html
@@ -102,3 +102,4 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
+

@@ -71,11 +71,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        grotesk: ["var(--font-space-grotesk)", "sans-serif"],
-        serif: ["var(--font-instrument-serif)", "serif"],
-        mono: ["var(--font-ibm-plex-mono)", "monospace"],
-        // Prototype's exact nav stack (adds "Futura PT" ahead of the fallbacks).
-        nav: ["Futura", '"Futura PT"', '"Century Gothic"', "sans-serif"],
+        grotesk: ["var(--font-heading)"],
+        serif: ["var(--font-editorial)"],
+        mono: ["var(--font-label)"],
+        nav: ["var(--font-navigation)"],
       },
       maxWidth: { content: "1320px" },
     },
@@ -84,3 +83,4 @@ const config: Config = {
 };
 
 export default config;
+

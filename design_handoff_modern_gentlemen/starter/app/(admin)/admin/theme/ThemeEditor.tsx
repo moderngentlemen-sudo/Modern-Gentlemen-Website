@@ -5,17 +5,32 @@ import { useRouter } from "next/navigation";
 
 import {
   DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_HEADER,
+  DEFAULT_THEME_TYPOGRAPHY,
+  FONT_PRESET_OPTIONS,
+  HEADER_BACKGROUNDS,
+  HEADER_CART_VISIBILITY,
+  HEADER_SCROLL_BEHAVIORS,
   THEME_CONTEXTS,
   THEME_CONTEXT_LABELS,
   THEME_TOKEN_LABELS,
   TOKENS_BY_CONTEXT,
-  type ThemeColors,
+  type FontPreset,
+  type HeaderBackground,
+  type HeaderCartVisibility,
+  type HeaderScrollBehavior,
+  type ThemeHeader,
   type ThemeContext,
+  type ThemeSettings,
   type ThemeToken,
+  type ThemeTypography,
 } from "@/lib/domain/theme";
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
 import { ColorInput } from "@/components/admin/ui/Input";
 import { Button } from "@/components/admin/ui/Button";
+import { Select } from "@/components/admin/ui/Select";
+import { NumberInput } from "@/components/admin/ui/NumberInput";
+import { Toggle } from "@/components/admin/ui/Toggle";
 import { useToast } from "@/components/admin/ui/Toast";
 import { publishThemeAction, saveThemeDraftAction, unpublishThemeAction } from "./actions";
 
@@ -23,8 +38,8 @@ interface ThemeEditorProps {
   initial: {
     status: string;
     version: number;
-    draft: ThemeColors;
-    published: ThemeColors | null;
+    draft: ThemeSettings;
+    published: ThemeSettings | null;
   };
   canWrite: boolean;
   canPublish: boolean;
@@ -45,7 +60,7 @@ interface ThemeEditorProps {
  * one place.
  */
 export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps) {
-  const [draft, setDraft] = useState<ThemeColors>(initial.draft);
+  const [draft, setDraft] = useState<ThemeSettings>(initial.draft);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -57,14 +72,38 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setError(null);
     setDraft((current) => ({
       ...current,
-      [context]: { ...current[context], [token]: value },
+      colors: {
+        ...current.colors,
+        [context]: { ...current.colors[context], [token]: value },
+      },
     }));
   }
 
   function resetContext(context: ThemeContext) {
     setDirty(true);
     setError(null);
-    setDraft((current) => ({ ...current, [context]: { ...DEFAULT_THEME_COLORS[context] } }));
+    setDraft((current) => ({
+      ...current,
+      colors: {
+        ...current.colors,
+        [context]: { ...DEFAULT_THEME_COLORS[context] },
+      },
+    }));
+  }
+
+  function setTypography<K extends keyof ThemeTypography>(key: K, value: ThemeTypography[K]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({
+      ...current,
+      typography: { ...current.typography, [key]: value },
+    }));
+  }
+
+  function setHeader<K extends keyof ThemeHeader>(key: K, value: ThemeHeader[K]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, header: { ...current.header, [key]: value } }));
   }
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, success: string) {
@@ -106,7 +145,7 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                 <ColorInput
                   key={token}
                   label={THEME_TOKEN_LABELS[token]}
-                  value={draft[context]?.[token] ?? ""}
+                  value={draft.colors[context]?.[token] ?? ""}
                   fallback={DEFAULT_THEME_COLORS[context]?.[token]}
                   disabled={!canWrite || pending}
                   onChange={(value) => setToken(context, token, value)}
@@ -118,6 +157,158 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
             </div>
           </PanelSection>
         ))}
+
+        <PanelSection
+          title="Typography"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDirty(true);
+                  setDraft((current) => ({
+                    ...current,
+                    typography: { ...DEFAULT_THEME_TYPOGRAPHY },
+                  }));
+                }}
+              >
+                Reset to defaults
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <FontSelect
+              label="Body"
+              value={draft.typography.body}
+              disabled={!canWrite || pending}
+              onChange={(value) => setTypography("body", value)}
+            />
+            <FontSelect
+              label="Headings"
+              value={draft.typography.heading}
+              disabled={!canWrite || pending}
+              onChange={(value) => setTypography("heading", value)}
+            />
+            <FontSelect
+              label="Editorial accents"
+              value={draft.typography.editorial}
+              disabled={!canWrite || pending}
+              onChange={(value) => setTypography("editorial", value)}
+            />
+            <FontSelect
+              label="Labels and metadata"
+              value={draft.typography.label}
+              disabled={!canWrite || pending}
+              onChange={(value) => setTypography("label", value)}
+            />
+            <FontSelect
+              label="Navigation"
+              value={draft.typography.navigation}
+              disabled={!canWrite || pending}
+              onChange={(value) => setTypography("navigation", value)}
+            />
+            <NumberInput
+              label="Base text size"
+              help="14–20px. Explicit component sizes remain unchanged."
+              min={14}
+              max={20}
+              integer
+              value={draft.typography.baseSize}
+              disabled={!canWrite || pending}
+              onChange={(value) => value !== undefined && setTypography("baseSize", value)}
+            />
+          </div>
+        </PanelSection>
+
+        <PanelSection
+          title="Header"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDirty(true);
+                  setDraft((current) => ({
+                    ...current,
+                    header: { ...DEFAULT_THEME_HEADER },
+                  }));
+                }}
+              >
+                Reset to defaults
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Select
+              label="Scroll behavior"
+              value={draft.header.scrollBehavior}
+              disabled={!canWrite || pending}
+              options={HEADER_SCROLL_BEHAVIORS.map((value) => ({
+                value,
+                label: value === "hide-on-scroll" ? "Hide on scroll" : "Always visible",
+              }))}
+              onChange={(value) => setHeader("scrollBehavior", value as HeaderScrollBehavior)}
+            />
+            <Select
+              label="Background"
+              value={draft.header.background}
+              disabled={!canWrite || pending}
+              options={HEADER_BACKGROUNDS.map((value) => ({
+                value,
+                label:
+                  value === "dynamic"
+                    ? "Transparent → frosted"
+                    : value === "solid"
+                      ? "Always frosted"
+                      : "Always transparent",
+              }))}
+              onChange={(value) => setHeader("background", value as HeaderBackground)}
+            />
+            <Select
+              label="Bag icon"
+              value={draft.header.cartVisibility}
+              disabled={!canWrite || pending}
+              options={HEADER_CART_VISIBILITY.map((value) => ({
+                value,
+                label:
+                  value === "store-only"
+                    ? "Store pages only"
+                    : value === "always"
+                      ? "All pages"
+                      : "Hidden",
+              }))}
+              onChange={(value) => setHeader("cartVisibility", value as HeaderCartVisibility)}
+            />
+            <NumberInput
+              label="Header height"
+              help="56–96px. The page offset follows automatically."
+              min={56}
+              max={96}
+              integer
+              value={draft.header.height}
+              disabled={!canWrite || pending}
+              onChange={(value) => value !== undefined && setHeader("height", value)}
+            />
+            <Toggle
+              label="Show search"
+              checked={draft.header.showSearch}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("showSearch", value)}
+            />
+            <Toggle
+              label="Show theme toggle"
+              checked={draft.header.showThemeToggle}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("showThemeToggle", value)}
+            />
+          </div>
+        </PanelSection>
       </Panel>
 
       {/*
@@ -141,7 +332,7 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
         <Button
           disabled={!canWrite || pending || !dirty}
           loading={pending}
-          onClick={() => run(() => saveThemeDraftAction({ colors: draft }), "Draft saved")}
+          onClick={() => run(() => saveThemeDraftAction(draft), "Draft saved")}
         >
           Save draft
         </Button>
@@ -186,8 +377,9 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
           made here.
         </p>
         <p className="mt-2">
-          Type, spacing, radii and motion are not editable yet — they are not CSS variables in this
-          codebase, so they have to be made variable before they can be made editable.
+          Typography and header behavior are role-based settings, so existing sections inherit them
+          without losing their individual layout. Spacing, radii and motion remain section-level
+          follow-up controls.
         </p>
         {initial.published === null && (
           <p className="mt-2 text-mg-accentSerif">
@@ -198,3 +390,26 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     </div>
   );
 }
+
+function FontSelect({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: FontPreset;
+  disabled: boolean;
+  onChange: (value: FontPreset) => void;
+}) {
+  return (
+    <Select
+      label={label}
+      value={value}
+      disabled={disabled}
+      options={FONT_PRESET_OPTIONS}
+      onChange={(next) => onChange(next as FontPreset)}
+    />
+  );
+}
+

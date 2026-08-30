@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { publishTheme, rollbackTheme, saveThemeDraft, unpublishTheme } from "@/lib/services/theme";
-import { themeColorsSchema } from "@/lib/domain/theme";
+import { themeSettingsSchema } from "@/lib/domain/theme";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 
@@ -37,7 +37,7 @@ const Note = z.object({ note: z.string().trim().max(500).optional() }).optional(
  * describe: unlike a product, where `MetaInput` exists because a form field is
  * not a product fact, a theme *is* its colours.
  */
-const SaveDraft = z.object({ colors: themeColorsSchema });
+const SaveDraft = themeSettingsSchema;
 
 function invalid(error: z.ZodError): ActionResult<never> {
   const issue = error.issues[0];
@@ -60,7 +60,7 @@ export async function saveThemeDraftAction(input: unknown): Promise<ActionResult
   if (!parsed.success) return invalid(parsed.error);
 
   try {
-    await saveThemeDraft(parsed.data.colors);
+    await saveThemeDraft(parsed.data);
     // Deliberately still revalidates. Saving a draft changes nothing the public
     // can see — but it changes what /admin/theme must show on the next load, and
     // that page is force-dynamic anyway, so the cost is a cache hint nobody
@@ -131,3 +131,4 @@ export async function rollbackThemeAction(
     return toActionResult(error);
   }
 }
+

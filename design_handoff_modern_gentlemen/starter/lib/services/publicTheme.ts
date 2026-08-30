@@ -40,12 +40,14 @@ import { createPublicClient } from "@/lib/db/public";
 import * as repo from "@/lib/db/repositories/theme";
 import {
   DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_SETTINGS,
   THEME_KEY,
-  parseThemeColors,
+  parseThemeSettings,
   type ThemeColors,
+  type ThemeSettings,
 } from "@/lib/domain/theme";
 
-export async function getPublishedThemeColors(): Promise<ThemeColors> {
+export async function getPublishedThemeSettings(): Promise<ThemeSettings> {
   try {
     const db = createPublicClient();
     // `getPublishedThemeByKey`, not `getThemeByKey`: `0020` revoked
@@ -55,11 +57,17 @@ export async function getPublishedThemeColors(): Promise<ThemeColors> {
 
     // Absent, still a draft, or published with nothing in it — all the same
     // answer from out here, and `parseThemeColors` gives it for the third case.
-    if (!row?.published_data) return DEFAULT_THEME_COLORS;
+    if (!row?.published_data) return DEFAULT_THEME_SETTINGS;
 
-    return parseThemeColors(row.published_data);
+    return parseThemeSettings(row.published_data);
   } catch (error) {
     console.error("[publicTheme] falling back to the built-in tokens:", error);
-    return DEFAULT_THEME_COLORS;
+    return DEFAULT_THEME_SETTINGS;
   }
 }
+
+/** Kept as the narrow public API used by the existing integration suite. */
+export async function getPublishedThemeColors(): Promise<ThemeColors> {
+  return (await getPublishedThemeSettings()).colors ?? DEFAULT_THEME_COLORS;
+}
+

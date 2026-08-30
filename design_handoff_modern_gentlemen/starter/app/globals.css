@@ -56,6 +56,15 @@
      #818181 and 4.99. See the note in [data-darkband] below. */
   --mg-faint: rgba(244, 244, 244, 0.5);
   --mg-band-border: rgba(255, 255, 255, 0.12);
+  /* Editable role-based typography. Defaults preserve the verified design;
+     the Theme editor may remap roles without rewriting component classes. */
+  --font-body: var(--font-space-grotesk), sans-serif;
+  --font-heading: var(--font-space-grotesk), sans-serif;
+  --font-editorial: var(--font-instrument-serif), Georgia, serif;
+  --font-label: var(--font-ibm-plex-mono), monospace;
+  --font-navigation: Futura, "Futura PT", "Century Gothic", sans-serif;
+  --font-base-size: 16px;
+  --header-height: 72px;
 }
 html[data-mgtheme="light"] {
   --mg-bg: #f4f4f4;
@@ -142,7 +151,8 @@ body {
   overflow-x: clip;
   overscroll-behavior: none;
   max-width: 100vw;
-  font-family: var(--font-space-grotesk), sans-serif;
+  font-family: var(--font-body);
+  font-size: var(--font-base-size);
   /* Use the fonts' true fractional advances instead of hinted, integer-snapped
      ones. Hinted advances inflate small text by ~1px per glyph here (~8% on
      12px body copy), which re-wraps the deks and pull-paragraphs away from the
@@ -478,3 +488,4 @@ a:hover {
     overflow-x: auto;
   }
 }
+

@@ -22,12 +22,13 @@ import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/theme";
 import {
   DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_SETTINGS,
   THEME_KEY,
   THEME_PAYLOAD_VERSION,
-  parseThemeColors,
-  themeColorsSchema,
+  parseThemeSettings,
+  themeSettingsSchema,
   toThemeStatus,
-  type ThemeColors,
+  type ThemeSettings,
   type ThemeStatus,
 } from "@/lib/domain/theme";
 import * as revisionsRepo from "@/lib/db/repositories/revisions";
@@ -41,9 +42,9 @@ export interface ThemeView {
   version: number;
   publishedAt: string | null;
   /** The draft an editor is working on — the defaults when the row is empty. */
-  draft: ThemeColors;
+  draft: ThemeSettings;
   /** What the public site is serving, or `null` when nothing is published yet. */
-  published: ThemeColors | null;
+  published: ThemeSettings | null;
 }
 
 /**
@@ -77,8 +78,8 @@ export async function getTheme(): Promise<ThemeView> {
     // `{}` is what 0007 seeds, and it parses to the defaults — so an editor
     // opens the form populated with what the site is actually rendering rather
     // than with nine empty fields.
-    draft: parseThemeColors(row.draft_data ?? {}),
-    published: row.published_data ? parseThemeColors(row.published_data) : null,
+    draft: parseThemeSettings(row.draft_data ?? {}),
+    published: row.published_data ? parseThemeSettings(row.published_data) : null,
   };
 }
 
@@ -90,10 +91,10 @@ export async function getTheme(): Promise<ThemeView> {
  * naming the field is the useful behaviour. `parseThemeColors` does the opposite
  * for exactly the same reason, on the other side.
  */
-export async function saveThemeDraft(colors: unknown): Promise<ThemeColors> {
+export async function saveThemeDraft(settings: unknown): Promise<ThemeSettings> {
   await requirePermission("theme.write");
 
-  const parsed = themeColorsSchema.safeParse(colors);
+  const parsed = themeSettingsSchema.safeParse(settings);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const path = issue?.path.join(".");
@@ -105,10 +106,10 @@ export async function saveThemeDraft(colors: unknown): Promise<ThemeColors> {
 
   await repo.saveThemeDraft(db, row.id, {
     version: THEME_PAYLOAD_VERSION,
-    colors: parsed.data,
+    ...parsed.data,
   });
 
-  return parseThemeColors({ version: THEME_PAYLOAD_VERSION, colors: parsed.data });
+  return parseThemeSettings({ version: THEME_PAYLOAD_VERSION, ...parsed.data });
 }
 
 /** Promote the draft. Returns the new version. */
@@ -158,7 +159,7 @@ export async function unpublishTheme(note?: string): Promise<number> {
 }
 
 /** Re-exported so the admin can offer "reset to the design baseline". */
-export { DEFAULT_THEME_COLORS };
+export { DEFAULT_THEME_COLORS, DEFAULT_THEME_SETTINGS };
 
 // ---------------------------------------------------------------------------
 // History
@@ -218,3 +219,4 @@ export async function rollbackTheme(version: number, note?: string): Promise<num
   if (error) throw rpcError("rollback_document", "revision.restore", error);
   return data as number;
 }
+

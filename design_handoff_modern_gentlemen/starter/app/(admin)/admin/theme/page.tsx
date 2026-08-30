@@ -37,8 +37,8 @@ export default async function ThemePage() {
         }
       >
         <p className="mt-2 text-[13px] text-mg-fg/60">
-          The colour tokens every page renders with. Edits are saved as a draft; the site keeps
-          showing the published palette until you publish.
+          Global colors, typography and header behavior. Edits are saved as a draft; the site keeps
+          showing the published design until you publish.
         </p>
       </AdminPageHeader>
 
@@ -52,3 +52,4 @@ export default async function ThemePage() {
     </>
   );
 }
+

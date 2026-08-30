@@ -2,6 +2,7 @@ import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
 import { getChromeNavigation } from "@/lib/services/publicNavigation";
+import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
 import { CHROME_MENU_KEYS } from "@/lib/domain/navigation";
 import { Header } from "@/components/chrome/Header";
 import { Footer } from "@/components/chrome/Footer";
@@ -31,9 +32,10 @@ import { Footer } from "@/components/chrome/Footer";
 export const revalidate = 3600;
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [products, nav] = await Promise.all([
+  const [products, nav, design] = await Promise.all([
     listPublishedProducts(),
     getChromeNavigation(CHROME_MENU_KEYS),
+    getPublishedThemeSettings(),
   ]);
 
   // Thrown, not rendered empty — the same stance the homepage takes towards a
@@ -50,10 +52,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <CatalogProvider products={products}>
       <CartProvider>
-        <Header nav={nav.header} drawerSecondary={nav.drawerSecondary} />
-        <main className="pt-[72px]">{children}</main>
+        <Header nav={nav.header} drawerSecondary={nav.drawerSecondary} settings={design.header} />
+        <main style={{ paddingTop: design.header.height }}>{children}</main>
         <Footer nav={nav.footer} legal={nav.footerLegal} />
       </CartProvider>
     </CatalogProvider>
   );
 }
+

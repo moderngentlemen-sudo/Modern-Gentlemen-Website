@@ -11,6 +11,7 @@ import { SearchOverlay } from "./SearchOverlay";
 import { BagDrawer } from "./BagDrawer";
 import { MegaMenu } from "./MegaMenu";
 import type { NavLink } from "@/lib/domain/navigation";
+import { DEFAULT_THEME_HEADER, type ThemeHeader } from "@/lib/domain/theme";
 
 /** Routes that show the bag button. The editorial prototypes' header carries
  *  search + theme only (see `Modern Gentlemen Homepage.dc.html` and
@@ -38,13 +39,18 @@ const isStoreRoute = (path: string | null) =>
 export function Header({
   nav = [],
   drawerSecondary = [],
+  settings = DEFAULT_THEME_HEADER,
 }: {
   nav?: NavLink[];
   drawerSecondary?: NavLink[];
+  settings?: ThemeHeader;
 }) {
   const { theme, toggle } = useTheme();
   const cart = useCart();
-  const showBag = isStoreRoute(usePathname());
+  const storeRoute = isStoreRoute(usePathname());
+  const showBag =
+    settings.cartVisibility === "always" ||
+    (settings.cartVisibility === "store-only" && storeRoute);
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [bag, setBag] = useState(false);
@@ -71,12 +77,20 @@ export function Header({
   // An open overlay or mega-menu pins the bar: the overlays lock the body (which
   // fires non-gesture scroll events) and a menu must never slide out from under
   // the pointer. Hovering the bar pins it too (prototype `navHover`).
-  const { scrolled, hidden, reveal } = useHideOnScroll({
+  const {
+    scrolled,
+    hidden: scrollHidden,
+    reveal,
+  } = useHideOnScroll({
     pinned: drawer || search || (bag && showBag) || !!menuKey || navHover,
   });
+  const hidden = settings.scrollBehavior === "hide-on-scroll" && scrollHidden;
 
-  // Prototype: `on = scrolled || megaOpen || navHover` drives the frost.
-  const frosted = scrolled || !!menuKey || navHover;
+  // Dynamic is the verified prototype behavior; the other two are explicit
+  // editor choices and leave menu/overlay behavior unchanged.
+  const frosted =
+    settings.background === "solid" ||
+    (settings.background === "dynamic" && (scrolled || !!menuKey || navHover));
 
   // An entry opens the mega-menu if it has children. `menuKey` is that entry's
   // id — the allowlist it replaced was a constant that had to be kept in step
@@ -95,8 +109,9 @@ export function Header({
           with the bar so no band is left hanging at the top edge. */}
       <div
         aria-hidden
-        className="fixed inset-x-0 top-0 z-40 h-[85px] pointer-events-none will-change-[opacity,transform]"
+        className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
+          height: settings.height + 13,
           opacity: frosted ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
@@ -142,8 +157,9 @@ export function Header({
       >
         <header
           // ≤680 the bar insets 20px, two below the sections' 22px.
-          className="container-mg max-[680px]:!px-5 box-border flex items-center justify-between h-[72px] pt-[2px] border-b"
+          className="container-mg max-[680px]:!px-5 box-border flex items-center justify-between pt-[2px] border-b"
           style={{
+            height: settings.height,
             background: frosted ? "rgba(13,13,13,0.55)" : "transparent",
             backdropFilter: frosted ? "blur(20px)" : "none",
             WebkitBackdropFilter: frosted ? "blur(20px)" : "none",
@@ -220,15 +236,17 @@ export function Header({
 
           {/* RIGHT — icon cluster: search · bag · theme */}
           <div className="flex items-center gap-[5px] min-[681px]:gap-3.5 shrink-0">
-            <IconButton
-              label="Search"
-              title="Search"
-              expanded={search}
-              controls="mg-search-overlay"
-              onClick={() => setSearch(true)}
-            >
-              <SearchIcon />
-            </IconButton>
+            {settings.showSearch && (
+              <IconButton
+                label="Search"
+                title="Search"
+                expanded={search}
+                controls="mg-search-overlay"
+                onClick={() => setSearch(true)}
+              >
+                <SearchIcon />
+              </IconButton>
+            )}
             {showBag && (
               <IconButton
                 label="Bag"
@@ -245,29 +263,31 @@ export function Header({
                 )}
               </IconButton>
             )}
-            <IconButton
-              label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-              title="Toggle light / dark"
-              className="overflow-hidden"
-              onClick={() => {
-                toggle();
-                setSpin((s) => s + 1);
-              }}
-            >
-              {/* Alternating spin direction, matching mgSpin / mgSpinB. */}
-              <span
-                key={spin}
-                className={`flex ${
-                  spin === 0
-                    ? ""
-                    : spin % 2 === 1
-                      ? "motion-safe:animate-[mgSpin_.5s_cubic-bezier(.34,1.4,.5,1)]"
-                      : "motion-safe:animate-[mgSpinB_.5s_cubic-bezier(.34,1.4,.5,1)]"
-                }`}
+            {settings.showThemeToggle && (
+              <IconButton
+                label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+                title="Toggle light / dark"
+                className="overflow-hidden"
+                onClick={() => {
+                  toggle();
+                  setSpin((s) => s + 1);
+                }}
               >
-                <ThemeIcon dark={theme === "dark"} />
-              </span>
-            </IconButton>
+                {/* Alternating spin direction, matching mgSpin / mgSpinB. */}
+                <span
+                  key={spin}
+                  className={`flex ${
+                    spin === 0
+                      ? ""
+                      : spin % 2 === 1
+                        ? "motion-safe:animate-[mgSpin_.5s_cubic-bezier(.34,1.4,.5,1)]"
+                        : "motion-safe:animate-[mgSpinB_.5s_cubic-bezier(.34,1.4,.5,1)]"
+                  }`}
+                >
+                  <ThemeIcon dark={theme === "dark"} />
+                </span>
+              </IconButton>
+            )}
           </div>
         </header>
 
@@ -280,7 +300,7 @@ export function Header({
         groups={nav}
         secondary={drawerSecondary}
       />
-      <SearchOverlay open={search} onClose={() => setSearch(false)} />
+      <SearchOverlay open={settings.showSearch && search} onClose={() => setSearch(false)} />
       {/* Gated on `showBag` too, so navigating off the store journey with the
           drawer open can't leave it hanging with no trigger to close it. */}
       <BagDrawer open={bag && showBag} onClose={() => setBag(false)} />
@@ -391,3 +411,4 @@ function ThemeIcon({ dark }: { dark: boolean }) {
     </svg>
   );
 }
+

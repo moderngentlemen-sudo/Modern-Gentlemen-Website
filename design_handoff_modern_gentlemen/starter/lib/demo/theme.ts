@@ -21,9 +21,18 @@
  * key that `theme_settings.draft_data` actually stores.
  */
 
-import { DEFAULT_THEME_COLORS, THEME_PAYLOAD_VERSION, type ThemePayload } from "@/lib/domain/theme";
+import {
+  DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_HEADER,
+  DEFAULT_THEME_TYPOGRAPHY,
+  THEME_PAYLOAD_VERSION,
+  type ThemePayload,
+} from "@/lib/domain/theme";
 
 export const DEMO_THEME: ThemePayload = {
   version: THEME_PAYLOAD_VERSION,
   colors: DEFAULT_THEME_COLORS,
+  typography: DEFAULT_THEME_TYPOGRAPHY,
+  header: DEFAULT_THEME_HEADER,
 };
+
