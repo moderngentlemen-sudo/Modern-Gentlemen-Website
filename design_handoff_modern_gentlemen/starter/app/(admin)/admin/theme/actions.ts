@@ -131,4 +131,3 @@ export async function rollbackThemeAction(
     return toActionResult(error);
   }
 }
-

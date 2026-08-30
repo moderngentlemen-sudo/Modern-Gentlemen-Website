@@ -219,4 +219,3 @@ export async function rollbackTheme(version: number, note?: string): Promise<num
   if (error) throw rpcError("rollback_document", "revision.restore", error);
   return data as number;
 }
-

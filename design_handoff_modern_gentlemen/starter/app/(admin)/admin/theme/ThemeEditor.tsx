@@ -412,4 +412,3 @@ function FontSelect({
     />
   );
 }
-

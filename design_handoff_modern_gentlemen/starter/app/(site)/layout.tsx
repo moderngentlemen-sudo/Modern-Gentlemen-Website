@@ -59,4 +59,3 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     </CatalogProvider>
   );
 }
-

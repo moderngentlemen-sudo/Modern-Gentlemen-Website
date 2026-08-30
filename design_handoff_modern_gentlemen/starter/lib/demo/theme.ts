@@ -35,4 +35,3 @@ export const DEMO_THEME: ThemePayload = {
   typography: DEFAULT_THEME_TYPOGRAPHY,
   header: DEFAULT_THEME_HEADER,
 };
-

@@ -70,4 +70,3 @@ export async function getPublishedThemeSettings(): Promise<ThemeSettings> {
 export async function getPublishedThemeColors(): Promise<ThemeColors> {
   return (await getPublishedThemeSettings()).colors ?? DEFAULT_THEME_COLORS;
 }
-

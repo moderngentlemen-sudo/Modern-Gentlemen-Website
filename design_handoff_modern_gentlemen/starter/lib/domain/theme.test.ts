@@ -455,4 +455,3 @@ describe("toThemeStatus", () => {
     expect(toThemeStatus(undefined)).toBe("draft");
   });
 });
-

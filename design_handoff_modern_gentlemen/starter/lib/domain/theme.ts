@@ -693,4 +693,3 @@ export function themeDesignCssText(settings: ThemeSettings): string {
   declarations.push(`--header-height:${settings.header.height}px`);
   return `${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}`;
 }
-

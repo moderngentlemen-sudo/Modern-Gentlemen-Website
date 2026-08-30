@@ -411,4 +411,3 @@ function ThemeIcon({ dark }: { dark: boolean }) {
     </svg>
   );
 }
-
