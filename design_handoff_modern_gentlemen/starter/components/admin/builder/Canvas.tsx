@@ -58,6 +58,12 @@ export function Canvas({
   const selectedKeys = useBuilder((s) => s.selectedKeys);
   const duplicateSelected = useBuilder((s) => s.duplicateSelected);
   const removeSelected = useBuilder((s) => s.removeSelected);
+  const canvasZoom = useBuilder((s) => s.canvasZoom);
+  const setCanvasZoom = useBuilder((s) => s.setCanvasZoom);
+  const showRulers = useBuilder((s) => s.showRulers);
+  const toggleRulers = useBuilder((s) => s.toggleRulers);
+  const snapToGrid = useBuilder((s) => s.snapToGrid);
+  const toggleSnapToGrid = useBuilder((s) => s.toggleSnapToGrid);
 
   const dragging = libraryDragType !== null;
 
@@ -77,6 +83,41 @@ export function Canvas({
      */
     <CatalogProvider products={DEMO_PRODUCTS}>
       <CartProvider>
+        <div className="sticky top-0 z-50 flex items-center justify-end gap-2 border-b border-mg-bd/15 bg-mg-bg/95 px-6 py-2 backdrop-blur">
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em]">Canvas</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCanvasZoom(canvasZoom - 0.1)}
+            aria-label="Zoom out"
+          >
+            <span aria-hidden="true">−</span>
+            <span className="sr-only">Zoom out</span>
+          </Button>
+          <button
+            type="button"
+            onClick={() => setCanvasZoom(1)}
+            className="w-12 font-mono text-[10px]"
+            aria-label="Reset canvas zoom"
+          >
+            {Math.round(canvasZoom * 100)}%
+          </button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCanvasZoom(canvasZoom + 0.1)}
+            aria-label="Zoom in"
+          >
+            <span aria-hidden="true">+</span>
+            <span className="sr-only">Zoom in</span>
+          </Button>
+          <Button size="sm" variant={showRulers ? "solid" : "outline"} onClick={toggleRulers}>
+            Rulers
+          </Button>
+          <Button size="sm" variant={snapToGrid ? "solid" : "outline"} onClick={toggleSnapToGrid}>
+            Snap 5%
+          </Button>
+        </div>
         {selectedKeys.length > 1 && (
           <div className="sticky top-0 z-40 flex items-center justify-between border-b border-mg-bd/15 bg-mg-bg/95 px-6 py-2 backdrop-blur">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
@@ -92,8 +133,31 @@ export function Canvas({
             </div>
           </div>
         )}
-        <div className="flex justify-center px-6 py-6">
-          <div className={clsx("transition-[width]", DEVICE_WIDTH[device])}>
+        <div className="relative flex justify-center overflow-auto px-6 py-6">
+          {showRulers && (
+            <>
+              <div
+                data-canvas-ruler="horizontal"
+                className="pointer-events-none absolute inset-x-6 top-0 h-4 opacity-40"
+                style={{
+                  background:
+                    "repeating-linear-gradient(90deg,currentColor 0 1px,transparent 1px 20px)",
+                }}
+              />
+              <div
+                data-canvas-ruler="vertical"
+                className="pointer-events-none absolute bottom-6 left-0 top-6 w-4 opacity-40"
+                style={{
+                  background:
+                    "repeating-linear-gradient(180deg,currentColor 0 1px,transparent 1px 20px)",
+                }}
+              />
+            </>
+          )}
+          <div
+            className={clsx("transition-[width,transform]", DEVICE_WIDTH[device])}
+            style={{ transform: `scale(${canvasZoom})`, transformOrigin: "top center" }}
+          >
             {tree.length === 0 ? (
               <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
             ) : (
@@ -389,6 +453,7 @@ function SortableBlock({
   const setLocked = useBuilder((s) => s.setLocked);
   const setVisibility = useBuilder((s) => s.setVisibility);
   const setVisualStyle = useBuilder((s) => s.setVisualStyle);
+  const snapToGrid = useBuilder((s) => s.snapToGrid);
   const device = useBuilder((s) => s.device);
   const issueCount = useBuilder(
     (s) =>
@@ -414,9 +479,11 @@ function SortableBlock({
 
     const move = (next: PointerEvent) => {
       if (!Number.isFinite(next.clientX)) return;
-      const widthPercent = Math.round(
-        Math.min(100, Math.max(5, startWidth + ((next.clientX - startX) / available) * 100))
+      const raw = Math.min(
+        100,
+        Math.max(5, startWidth + ((next.clientX - startX) / available) * 100)
       );
+      const widthPercent = snapToGrid ? Math.round(raw / 5) * 5 : Math.round(raw);
       setVisualStyle(node._key, device, {
         widthPercent,
         width: undefined,
@@ -585,13 +652,20 @@ function SortableBlock({
       />
 
       {selected && selectedKeys.length === 1 && !locked && (
-        <button
-          type="button"
-          aria-label={`Resize ${label}`}
-          onPointerDown={startResize}
-          className="absolute top-1/2 z-30 h-12 w-3 -translate-y-1/2 translate-x-1/2 cursor-ew-resize rounded-full border border-mg-accent bg-mg-bg shadow-sm"
-          style={{ right: `${100 - visualWidth}%` }}
-        />
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-0 top-0 z-20 border-r border-dashed border-mg-accent/60"
+            style={{ right: `${100 - visualWidth}%` }}
+          />
+          <button
+            type="button"
+            aria-label={`Resize ${label}`}
+            onPointerDown={startResize}
+            className="absolute top-1/2 z-30 h-12 w-3 -translate-y-1/2 translate-x-1/2 cursor-ew-resize rounded-full border border-mg-accent bg-mg-bg shadow-sm"
+            style={{ right: `${100 - visualWidth}%` }}
+          />
+        </>
       )}
 
       {/*

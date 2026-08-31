@@ -125,6 +125,9 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   sizes and offsets are finite bounded numbers in `VisualStyle`, never CSS
   strings. Unset values must emit nothing so the compatibility renderer remains
   a literal no-op for existing content.
+- **Canvas viewport preferences never publish.** Zoom, rulers and resize-snap
+  state live beside `device` in the editor store, not on `BlockNode` and not in
+  `payload()`. They must not create undo entries or mark the document dirty.
 - **Rich editorial text remains string-compatible and safe by construction.**
   The manifest rich-text control writes a bounded Markdown subset and previews
   the same semantic React renderer used publicly. Existing plain strings retain

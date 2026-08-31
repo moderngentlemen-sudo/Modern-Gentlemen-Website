@@ -61,6 +61,10 @@ the same undoable store and bounded visual model used by the properties panel.
 Selecting a container and one of its descendants never duplicates or deletes
 the descendant twice, and locked elements remain protected.
 
+The canvas viewport supplies bounded zoom, optional rulers, a live resize guide
+and toggleable five-percent snapping. These controls are editing aids only: they
+do not dirty a document, enter undo history or serialize into its payload.
+
 ## Claude Design tweak migration
 
 The supplied tweak transcript is treated as a requirements inventory. Its
@@ -90,7 +94,7 @@ public site silently ignores.
 
 ## Next engine layers
 
-1. Add snapping, rulers, alignment guides and zoom/pan to direct manipulation.
+1. Add alignment guides and a drag-to-pan hand tool to direct manipulation.
 2. Add class/style tokens, reusable symbols, component states and named
    responsive breakpoints without permitting arbitrary stored CSS.
 3. Implement the transcript's named hero, header, navigation, Latest, Style

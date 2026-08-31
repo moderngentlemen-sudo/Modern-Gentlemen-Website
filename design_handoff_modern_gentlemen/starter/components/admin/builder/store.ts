@@ -111,6 +111,9 @@ export interface BuilderState {
   selectedKeys: string[];
   hoveredKey: string | null;
   device: "desktop" | "tablet" | "mobile";
+  canvasZoom: number;
+  showRulers: boolean;
+  snapToGrid: boolean;
   /** Local validation, recomputed on every structural or field change. */
   issues: BlockIssue[];
   /**
@@ -147,6 +150,9 @@ export interface BuilderActions {
   select: (key: string | null, additive?: boolean) => void;
   hover: (key: string | null) => void;
   setDevice: (device: BuilderState["device"]) => void;
+  setCanvasZoom: (zoom: number) => void;
+  toggleRulers: () => void;
+  toggleSnapToGrid: () => void;
 
   /**
    * `parentKey` names the container to insert into; the root when omitted.
@@ -463,6 +469,9 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       selectedKeys: [],
       hoveredKey: null,
       device: "desktop",
+      canvasZoom: 1,
+      showRulers: false,
+      snapToGrid: true,
       issues: validateTree(init.tree).issues,
       areaIssues: countAreaIssues(init.doc, init.tree),
       serverIssues: [],
@@ -483,6 +492,9 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         }),
       hover: (key) => set({ hoveredKey: key }),
       setDevice: (device) => set({ device }),
+      setCanvasZoom: (zoom) => set({ canvasZoom: Math.min(1.5, Math.max(0.5, zoom)) }),
+      toggleRulers: () => set((state) => ({ showRulers: !state.showRulers })),
+      toggleSnapToGrid: () => set((state) => ({ snapToGrid: !state.snapToGrid })),
 
       insert: (type, at, parentKey = null) => {
         const node = newBlockNode(type, keysOf(get().tree));

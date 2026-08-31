@@ -45,7 +45,7 @@ or function impossible to reproduce.
 | Save current selection as a new pattern | Open | Patterns can be created and composed in their own editor, but the page canvas cannot yet turn a selected subtree into a pattern in one action. |
 | Native low-level elements | Complete | Heading, Text, Image, Video, Embed, Icon, Product, Form, Button, Divider and responsive Spacer are available alongside every legacy section. Product resolves the live catalogue and shared bag; Form captures configurable bounded fields through an RLS-protected public path. |
 | Responsive visual styling | Complete | Per-device layout, grid/flex, sizing, spacing, surface, border, corner, shadow, opacity, overflow, hover and motion controls use the shared visual renderer. |
-| Direct manipulation | Partial | Canvas/Navigator multi-select, group operations, drag/drop, a direct width handle, exact responsive dimensions and bounded relative/absolute/sticky positioning work. Snapping, rulers, alignment guides and zoom/pan remain. |
+| Direct manipulation | Partial | Canvas/Navigator multi-select, group operations, drag/drop, direct resize with optional 5% snapping, rulers, 50–150% zoom, exact responsive dimensions and bounded positioning work. Alignment guides and a drag-to-pan hand tool remain. |
 | Shared classes/design tokens/symbol states | Partial | Global theme roles and reusable patterns exist; reusable style classes, component states and shared local style tokens remain. |
 
 ## Templates, binding and preview
@@ -137,7 +137,7 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Add snapping, rulers, alignment guides and zoom/pan.
+1. Add alignment guides and a drag-to-pan hand tool.
 2. Complete the global design system for buttons, cards, forms, borders,
    shadows, animation presets and reusable style classes.
 3. Add one-click “save selection as pattern,” document duplication and the

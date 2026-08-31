@@ -323,6 +323,14 @@ describe("selecting inside a container", () => {
 });
 
 describe("direct canvas manipulation", () => {
+  it("zooms the viewport and toggles editor-only rulers", async () => {
+    renderCanvas([{ _key: "a", _type: "pullQuote" }]);
+    await userEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(screen.getByRole("button", { name: "Reset canvas zoom" })).toHaveTextContent("90%");
+    await userEvent.click(screen.getByRole("button", { name: "Rulers" }));
+    expect(document.querySelectorAll("[data-canvas-ruler]")).toHaveLength(2);
+  });
+
   it("selects several elements with a modifier and exposes group actions", () => {
     renderCanvas([
       { _key: "a", _type: "pullQuote" },

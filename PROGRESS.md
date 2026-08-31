@@ -98,6 +98,8 @@ Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **
 
 **Multi-select and direct manipulation — implemented 2026-08-31.** Shift/Ctrl/Command selection now works on both canvas and Navigator, with one-undo group duplicate, delete and style operations; selected ancestors suppress duplicate child operations, and locked elements remain protected. The visual model adds bounded per-device percentage/pixel width, exact height/minimum/maximum sizing, relative/absolute/sticky positioning, four offsets and stack order. A right-edge canvas handle writes the same validated percentage width used by the properties panel and public renderer. Unset values emit no CSS and preserve every existing composition. Verified locally: format, lint, typecheck and **1,583/1,583 unit tests**.
 
+**Canvas viewport tools — implemented 2026-08-31.** The builder canvas now has bounded 50–150% zoom, reset, optional horizontal/vertical rulers, a visible resize guide and toggleable 5% width snapping. These are editor-only store preferences: they create no undo history, never dirty a document and cannot enter published payloads. Resize snapping still writes the same bounded responsive width property, while disabling it restores one-percent precision. Focused verification raises the suite to **1,585 tests**; format, lint and typecheck are clean.
+
 Live state (branch, commits, migrations, test counts) is printed automatically at session start by a hook. Run it any time:
 `node design_handoff_modern_gentlemen/starter/scripts/status.mjs`
 
