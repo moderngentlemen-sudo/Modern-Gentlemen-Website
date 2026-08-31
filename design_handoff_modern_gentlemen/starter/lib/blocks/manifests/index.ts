@@ -33,9 +33,12 @@ import {
   nativeButton,
   nativeDivider,
   nativeHeading,
+  nativeIcon,
   nativeImage,
+  nativeEmbed,
   nativeSpacer,
   nativeText,
+  nativeVideo,
 } from "./nativeElements";
 import { numberedIndex } from "./numberedIndex";
 import { patternRef } from "./patternRef";
@@ -80,6 +83,9 @@ export const blockManifests = {
   nativeHeading,
   nativeText,
   nativeImage,
+  nativeVideo,
+  nativeEmbed,
+  nativeIcon,
   nativeButton,
   nativeDivider,
   nativeSpacer,

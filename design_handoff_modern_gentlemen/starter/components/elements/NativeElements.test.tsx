@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   NativeButton,
+  NativeEmbed,
   NativeHeading,
   NativeImage,
+  NativeIcon,
   NativeSpacer,
   NativeText,
 } from "./NativeElements";
+import { NativeVideo } from "./NativeVideo";
 
 describe("native builder elements", () => {
   it("keeps heading semantics separate from visual size", () => {
@@ -53,5 +56,33 @@ describe("native builder elements", () => {
     expect(html).toContain("--mg-spacer-tablet:64px");
     expect(html).toContain("--mg-spacer-mobile:32px");
     expect(html).toContain('aria-hidden="true"');
+  });
+
+  it("normalizes a supported embed and rejects an arbitrary iframe host", () => {
+    expect(renderToStaticMarkup(<NativeEmbed url="https://youtu.be/abc" title="Film" />)).toContain(
+      'src="https://www.youtube-nocookie.com/embed/abc"'
+    );
+    expect(renderToStaticMarkup(<NativeEmbed url="https://example.com/embed" title="No" />)).toBe(
+      ""
+    );
+  });
+
+  it("keeps decorative icons out of the accessibility tree", () => {
+    const decorative = renderToStaticMarkup(<NativeIcon icon="star" />);
+    const labelled = renderToStaticMarkup(<NativeIcon icon="star" label="Featured" />);
+    expect(decorative).toContain('aria-hidden="true"');
+    expect(labelled).toContain('aria-label="Featured"');
+    expect(labelled).toContain('role="img"');
+  });
+
+  it("renders video playback choices without forcing a download", () => {
+    const html = renderToStaticMarkup(
+      <NativeVideo src="/film.mp4" poster="/poster.jpg" aspect="cinema" controls loop />
+    );
+    expect(html).toContain('preload="metadata"');
+    expect(html).toContain('poster="/poster.jpg"');
+    expect(html).toContain("aspect-[21/9]");
+    expect(html).toContain("controls");
+    expect(html).toContain("loop");
   });
 });

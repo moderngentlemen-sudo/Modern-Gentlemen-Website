@@ -109,7 +109,7 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   requires an explicit content migration, a compatibility renderer and visual
   proof; deleting both a manifest and its component is not a migration.
 - **Native elements and responsive visibility are additive platform features.**
-  Heading, Text, Image, Button, Divider and Spacer are available as low-level
+  Heading, Text, Image, Video, Embed, Icon, Button, Divider and Spacer are available as low-level
   blocks beside the existing high-fidelity sections. Global hide removes a
   block from public output; device visibility uses the accepted 680/1024
   builder breakpoints and must not introduce layout geometry of its own.

@@ -34,10 +34,13 @@ import {
   NativeButton,
   NativeDivider,
   NativeHeading,
+  NativeIcon,
   NativeImage,
+  NativeEmbed,
   NativeSpacer,
   NativeText,
 } from "../elements/NativeElements";
+import { NativeVideo } from "../elements/NativeVideo";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
@@ -83,6 +86,9 @@ export const registry = {
   nativeHeading: NativeHeading,
   nativeText: NativeText,
   nativeImage: NativeImage,
+  nativeVideo: NativeVideo,
+  nativeEmbed: NativeEmbed,
+  nativeIcon: NativeIcon,
   nativeButton: NativeButton,
   nativeDivider: NativeDivider,
   nativeSpacer: NativeSpacer,

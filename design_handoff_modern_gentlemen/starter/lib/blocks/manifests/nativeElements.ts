@@ -229,3 +229,99 @@ export const nativeSpacer = defineBlock({
     mobile: field.number({ label: "Mobile height", default: 32, min: 0, max: 320, integer: true }),
   },
 });
+
+export const nativeVideo = defineBlock({
+  type: "nativeVideo",
+  label: "Video",
+  category: "layout",
+  description: "Library or hosted video with poster, playback, crop and aspect controls.",
+  fields: {
+    src: field.video({ label: "Video", required: true }),
+    poster: field.image({ label: "Poster image" }),
+    caption: field.text({ label: "Caption" }),
+    aspect: field.select({
+      label: "Aspect ratio",
+      default: "wide",
+      options: [
+        { value: "auto", label: "Original" },
+        { value: "square", label: "Square — 1:1" },
+        { value: "portrait", label: "Portrait — 3:4" },
+        { value: "landscape", label: "Landscape — 4:3" },
+        { value: "wide", label: "Wide — 16:9" },
+        { value: "cinema", label: "Cinema — 21:9" },
+      ],
+    }),
+    fit: field.select({
+      label: "Video fit",
+      default: "cover",
+      options: [
+        { value: "cover", label: "Cover" },
+        { value: "contain", label: "Contain" },
+      ],
+    }),
+    controls: field.boolean({ label: "Show controls", default: true }),
+    autoplay: field.boolean({ label: "Autoplay when motion is allowed", default: false }),
+    loop: field.boolean({ label: "Loop", default: false }),
+    muted: field.boolean({ label: "Muted", default: true }),
+  },
+  insertDefaults: { src: "/videos/hero-cover.mp4" },
+});
+
+export const nativeEmbed = defineBlock({
+  type: "nativeEmbed",
+  label: "Embed",
+  category: "layout",
+  description: "A privacy-bounded YouTube or Vimeo player with responsive sizing.",
+  fields: {
+    url: field.url({ label: "YouTube or Vimeo URL", required: true }),
+    title: field.text({ label: "Accessible title", required: true }),
+    aspect: field.select({
+      label: "Aspect ratio",
+      default: "wide",
+      options: [
+        { value: "square", label: "Square — 1:1" },
+        { value: "wide", label: "Wide — 16:9" },
+        { value: "cinema", label: "Cinema — 21:9" },
+      ],
+    }),
+  },
+  insertDefaults: { url: "https://www.youtube.com/watch?v=", title: "Embedded video" },
+});
+
+export const nativeIcon = defineBlock({
+  type: "nativeIcon",
+  label: "Icon",
+  category: "layout",
+  description: "A dependency-free editorial icon with bounded size, weight and colour roles.",
+  fields: {
+    icon: field.select({
+      label: "Icon",
+      default: "spark",
+      options: [
+        "arrowRight",
+        "arrowUpRight",
+        "check",
+        "plus",
+        "star",
+        "heart",
+        "play",
+        "quote",
+        "spark",
+        "menu",
+      ].map((value) => ({ value, label: value.replace(/([A-Z])/g, " $1") })),
+    }),
+    size: field.number({ label: "Size", default: 32, min: 12, max: 240, integer: true }),
+    strokeWidth: field.number({ label: "Stroke weight", default: 1.5, min: 0.5, max: 4 }),
+    color: field.select({
+      label: "Colour",
+      default: "foreground",
+      options: [
+        { value: "foreground", label: "Foreground" },
+        { value: "accent", label: "Accent" },
+        { value: "muted", label: "Muted" },
+        { value: "white", label: "White" },
+      ],
+    }),
+    label: field.text({ label: "Accessible label", help: "Leave blank when decorative." }),
+  },
+});

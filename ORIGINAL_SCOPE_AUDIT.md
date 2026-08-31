@@ -43,7 +43,7 @@ or function impossible to reproduce.
 | Locked global elements | Complete | Locked blocks cannot be edited, moved, duplicated or deleted until unlocked. |
 | Reusable sections/patterns | Complete | Detachable and synced patterns, categories, insertion, reference expansion, detach behavior, publishing and E2E coverage. |
 | Save current selection as a new pattern | Open | Patterns can be created and composed in their own editor, but the page canvas cannot yet turn a selected subtree into a pattern in one action. |
-| Native low-level elements | Partial | Heading, Text, Image, Button, Divider and responsive Spacer are available alongside legacy sections; video, icon, embed, form and commerce primitives remain. |
+| Native low-level elements | Partial | Heading, Text, Image, Video, Embed, Icon, Button, Divider and responsive Spacer are available alongside legacy sections; form and commerce primitives remain. |
 | Responsive visual styling | Complete | Per-device layout, grid/flex, sizing, spacing, surface, border, corner, shadow, opacity, overflow, hover and motion controls use the shared visual renderer. |
 | Direct manipulation | Partial | Canvas selection, hierarchy, drag/drop and responsive widths work; resize handles, snapping, rulers, multi-select, zoom/pan and absolute positioning remain. |
 | Shared classes/design tokens/symbol states | Partial | Global theme roles and reusable patterns exist; reusable style classes, component states and shared local style tokens remain. |
@@ -137,7 +137,7 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Finish native builder primitives (video, embed, icon, form and commerce),
+1. Finish native builder primitives (form and commerce),
    then add multi-select, direct sizing and richer positioning.
 2. Complete the global design system for buttons, cards, forms, borders,
    shadows, animation presets and reusable style classes.
