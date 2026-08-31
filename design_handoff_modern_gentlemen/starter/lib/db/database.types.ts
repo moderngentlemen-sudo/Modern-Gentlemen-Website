@@ -820,6 +820,36 @@ export type Database = {
         }
         Relationships: []
       }
+      form_submissions: {
+        Row: {
+          created_at: string
+          form_key: string
+          id: string
+          page_path: string | null
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          form_key: string
+          id?: string
+          page_path?: string | null
+          payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          form_key?: string
+          id?: string
+          page_path?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           confirmed_at: string | null

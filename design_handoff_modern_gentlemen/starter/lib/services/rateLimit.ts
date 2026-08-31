@@ -36,6 +36,8 @@ import { createPublicClient } from "@/lib/db/public";
  */
 export const NEWSLETTER_PER_CALLER = { limit: 10, windowSeconds: 600 } as const;
 export const NEWSLETTER_GLOBAL = { limit: 300, windowSeconds: 3600 } as const;
+export const FORM_PER_CALLER = { limit: 20, windowSeconds: 600 } as const;
+export const FORM_GLOBAL = { limit: 1_000, windowSeconds: 3600 } as const;
 
 /**
  * Who is calling, as far as anything behind a proxy can tell.

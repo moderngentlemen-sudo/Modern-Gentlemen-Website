@@ -109,10 +109,16 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   requires an explicit content migration, a compatibility renderer and visual
   proof; deleting both a manifest and its component is not a migration.
 - **Native elements and responsive visibility are additive platform features.**
-  Heading, Text, Image, Video, Embed, Icon, Button, Divider and Spacer are available as low-level
+  Heading, Text, Image, Video, Embed, Icon, Product, Form, Button, Divider and Spacer are available as low-level
   blocks beside the existing high-fidelity sections. Global hide removes a
   block from public output; device visibility uses the accepted 680/1024
   builder breakpoints and must not introduce layout geometry of its own.
+- **Public forms are an anonymous write boundary, not a demo interaction.** The
+  Form element posts only bounded scalar fields to `/api/forms`; the service
+  consumes both caller and global database rate limits, treats its honeypot as
+  indistinguishable success, and writes through the anonymous Supabase client.
+  `form_submissions` grants anonymous INSERT without SELECT. Do not replace this
+  path with a service-role client or return storage details to the browser.
 - **Rich editorial text remains string-compatible and safe by construction.**
   The manifest rich-text control writes a bounded Markdown subset and previews
   the same semantic React renderer used publicly. Existing plain strings retain

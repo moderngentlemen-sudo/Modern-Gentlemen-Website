@@ -41,6 +41,8 @@ import {
   NativeText,
 } from "../elements/NativeElements";
 import { NativeVideo } from "../elements/NativeVideo";
+import { NativeProduct } from "../elements/NativeProduct";
+import { NativeForm } from "../elements/NativeForm";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
@@ -89,6 +91,8 @@ export const registry = {
   nativeVideo: NativeVideo,
   nativeEmbed: NativeEmbed,
   nativeIcon: NativeIcon,
+  nativeForm: NativeForm,
+  nativeProduct: NativeProduct,
   nativeButton: NativeButton,
   nativeDivider: NativeDivider,
   nativeSpacer: NativeSpacer,

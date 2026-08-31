@@ -325,3 +325,81 @@ export const nativeIcon = defineBlock({
     label: field.text({ label: "Accessible label", help: "Leave blank when decorative." }),
   },
 });
+
+export const nativeProduct = defineBlock({
+  type: "nativeProduct",
+  label: "Product",
+  category: "commerce",
+  description: "One live-catalog product with optional price, category and add-to-bag behavior.",
+  fields: {
+    slug: field.text({ label: "Product slug", required: true }),
+    layout: field.select({
+      label: "Layout",
+      default: "card",
+      options: [
+        { value: "card", label: "Card" },
+        { value: "compact", label: "Compact row" },
+      ],
+    }),
+    showCategory: field.boolean({ label: "Show category", default: true }),
+    showPrice: field.boolean({ label: "Show price", default: true }),
+    showAdd: field.boolean({ label: "Show add to bag", default: true }),
+  },
+  bindable: ["slug"],
+  insertDefaults: { slug: "travel-watch-roll" },
+});
+
+export const nativeForm = defineBlock({
+  type: "nativeForm",
+  label: "Form",
+  category: "layout",
+  description: "A secure, reusable form with configurable fields and persisted submissions.",
+  fields: {
+    formKey: field.text({
+      label: "Form key",
+      required: true,
+      help: "Lowercase letters, numbers and hyphens.",
+    }),
+    heading: field.text({ label: "Heading" }),
+    description: field.textarea({ label: "Description" }),
+    fields: field.list({
+      label: "Fields",
+      required: true,
+      min: 1,
+      max: 20,
+      itemLabel: "field",
+      of: {
+        name: field.text({ label: "Machine name", required: true }),
+        label: field.text({ label: "Label", required: true }),
+        type: field.select({
+          label: "Type",
+          default: "text",
+          options: ["text", "email", "tel", "textarea", "select", "checkbox"].map((value) => ({
+            value,
+            label: value,
+          })),
+        }),
+        placeholder: field.text({ label: "Placeholder" }),
+        required: field.boolean({ label: "Required", default: false }),
+        options: field.textarea({
+          label: "Select options",
+          help: "One per line or comma-separated.",
+        }),
+      },
+    }),
+    buttonLabel: field.text({ label: "Button label", default: "Submit" }),
+    successMessage: field.text({
+      label: "Success message",
+      default: "Thank you — your response has been received.",
+    }),
+  },
+  insertDefaults: {
+    formKey: "contact-form",
+    heading: "Get in touch",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true },
+      { name: "email", label: "Email", type: "email", required: true },
+      { name: "message", label: "Message", type: "textarea", required: true },
+    ],
+  },
+});
