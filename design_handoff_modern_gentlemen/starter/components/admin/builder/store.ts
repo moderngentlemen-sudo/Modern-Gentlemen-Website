@@ -107,6 +107,8 @@ export interface BuilderState {
   savedTree: BlockTree;
   dirty: boolean;
   selectedKey: string | null;
+  /** Ordered selection; `selectedKey` remains the active/last-selected block. */
+  selectedKeys: string[];
   hoveredKey: string | null;
   device: "desktop" | "tablet" | "mobile";
   /** Local validation, recomputed on every structural or field change. */
@@ -142,7 +144,7 @@ export interface BuilderState {
 }
 
 export interface BuilderActions {
-  select: (key: string | null) => void;
+  select: (key: string | null, additive?: boolean) => void;
   hover: (key: string | null) => void;
   setDevice: (device: BuilderState["device"]) => void;
 
@@ -180,6 +182,8 @@ export interface BuilderActions {
   detachPatternRef: (key: string, blocks: BlockTree) => void;
   duplicate: (key: string) => void;
   remove: (key: string) => void;
+  duplicateSelected: () => void;
+  removeSelected: () => void;
   move: (activeKey: string, overKey: string) => void;
   /** The drop-into-a-gap case: a position rather than another block. */
   moveTo: (activeKey: string, parentKey: string | null, index: number) => void;
@@ -193,6 +197,10 @@ export interface BuilderActions {
   setVisibility: (key: string, patch: Partial<BlockVisibility>) => void;
   setDesign: (key: string, patch: Partial<BlockDesign>) => void;
   setVisualStyle: (key: string, breakpoint: VisualBreakpoint, patch: Partial<VisualStyle>) => void;
+  setSelectedVisibility: (patch: Partial<BlockVisibility>) => void;
+  setSelectedDesign: (patch: Partial<BlockDesign>) => void;
+  setSelectedVisualStyle: (breakpoint: VisualBreakpoint, patch: Partial<VisualStyle>) => void;
+  setSelectedLocked: (locked: boolean) => void;
   setVisualEffects: (key: string, patch: Partial<VisualEffects>) => void;
   setVisualName: (key: string, name: string | undefined) => void;
   setLocked: (key: string, locked: boolean) => void;
@@ -256,6 +264,31 @@ function readIn(root: Record<string, unknown>, path: (string | number)[]): unkno
     current = (current as Record<string | number, unknown>)[segment];
   }
   return current;
+}
+
+/** Tree-order selection with descendants suppressed when their ancestor is selected. */
+function topmostSelection(
+  tree: BlockTree,
+  selected: ReadonlySet<string>,
+  ancestorSelected = false
+): string[] {
+  const out: string[] = [];
+  for (const node of tree) {
+    const currentSelected = selected.has(node._key);
+    if (currentSelected && !ancestorSelected) out.push(node._key);
+    if (node.children) {
+      out.push(...topmostSelection(node.children, selected, ancestorSelected || currentSelected));
+    }
+  }
+  return out;
+}
+
+function selectionForTree(tree: BlockTree, keys: readonly string[], active: string | null) {
+  const selectedKeys = keys.filter((key) => findBlock(tree, key));
+  return {
+    selectedKeys,
+    selectedKey: active && selectedKeys.includes(active) ? active : (selectedKeys.at(-1) ?? null),
+  };
 }
 
 /**
@@ -427,6 +460,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       dirty: false,
       dirtyElsewhere: false,
       selectedKey: null,
+      selectedKeys: [],
       hoveredKey: null,
       device: "desktop",
       issues: validateTree(init.tree).issues,
@@ -438,14 +472,22 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       historyAt: 0,
       save: { kind: "idle" },
 
-      select: (key) => set({ selectedKey: key }),
+      select: (key, additive = false) =>
+        set((state) => {
+          if (key === null) return { selectedKey: null, selectedKeys: [] };
+          if (!additive) return { selectedKey: key, selectedKeys: [key] };
+          const selectedKeys = state.selectedKeys.includes(key)
+            ? state.selectedKeys.filter((entry) => entry !== key)
+            : [...state.selectedKeys, key];
+          return { selectedKey: selectedKeys.at(-1) ?? null, selectedKeys };
+        }),
       hover: (key) => set({ hoveredKey: key }),
       setDevice: (device) => set({ device }),
 
       insert: (type, at, parentKey = null) => {
         const node = newBlockNode(type, keysOf(get().tree));
         replaceWith(insertAt(get().tree, node, parentKey, at));
-        set({ selectedKey: node._key });
+        set({ selectedKey: node._key, selectedKeys: [node._key] });
       },
 
       insertMany: (nodes, at, parentKey = null) => {
@@ -473,7 +515,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         });
 
         replaceWith(tree);
-        set({ selectedKey: clones[0]._key });
+        set({ selectedKey: clones[0]._key, selectedKeys: clones.map((clone) => clone._key) });
       },
 
       insertPatternRef: (patternId, at, parentKey = null) => {
@@ -481,7 +523,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         // `_ref` sits beside `_key` and `_type`, not in `settings` — see the
         // `patternRef` manifest for why it has no fields at all.
         replaceWith(insertAt(get().tree, { ...node, _ref: patternId }, parentKey, at));
-        set({ selectedKey: node._key });
+        set({ selectedKey: node._key, selectedKeys: [node._key] });
       },
 
       detachPatternRef: (key, blocks) => {
@@ -506,7 +548,10 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         });
 
         replaceWith(tree);
-        set({ selectedKey: clones[0]?._key ?? null });
+        set({
+          selectedKey: clones[0]?._key ?? null,
+          selectedKeys: clones.map((clone) => clone._key),
+        });
       },
 
       duplicate: (key) => {
@@ -518,14 +563,51 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
 
         const copy = cloneWithNewKeys(source, keysOf(state.tree));
         replaceWith(insertAfter(state.tree, key, copy));
-        set({ selectedKey: copy._key });
+        set({ selectedKey: copy._key, selectedKeys: [copy._key] });
       },
 
       remove: (key) => {
-        replaceWith(removeByKey(get().tree, key));
-        // A panel pointed at a block that no longer exists renders nothing and
-        // reads as a bug, so drop the selection with the block.
-        if (get().selectedKey === key) set({ selectedKey: null });
+        const next = removeByKey(get().tree, key);
+        replaceWith(next);
+        const alive = new Set(keysOf(next));
+        const selectedKeys = get().selectedKeys.filter((entry) => alive.has(entry));
+        set({ selectedKey: selectedKeys.at(-1) ?? null, selectedKeys });
+      },
+
+      duplicateSelected: () => {
+        const state = get();
+        const selected = topmostSelection(state.tree, new Set(state.selectedKeys)).filter(
+          (key) => !findBlock(state.tree, key)?.locked
+        );
+        if (selected.length === 0) return;
+        let tree = state.tree;
+        const taken = new Set(keysOf(tree));
+        const copies: BlockNode[] = [];
+        for (const key of selected) {
+          const source = findBlock(tree, key);
+          if (!source) continue;
+          const copy = cloneWithNewKeys(source, taken);
+          for (const copyKey of keysOf([copy])) taken.add(copyKey);
+          tree = insertAfter(tree, key, copy);
+          copies.push(copy);
+        }
+        replaceWith(tree);
+        set({
+          selectedKey: copies.at(-1)?._key ?? null,
+          selectedKeys: copies.map((copy) => copy._key),
+        });
+      },
+
+      removeSelected: () => {
+        const state = get();
+        const selected = topmostSelection(state.tree, new Set(state.selectedKeys)).filter(
+          (key) => !findBlock(state.tree, key)?.locked
+        );
+        if (selected.length === 0) return;
+        let tree = state.tree;
+        for (const key of selected) tree = removeByKey(tree, key);
+        replaceWith(tree);
+        set({ selectedKey: null, selectedKeys: [] });
       },
 
       move: (activeKey, overKey) => replaceWith(moveByKey(get().tree, activeKey, overKey)),
@@ -585,6 +667,46 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
             else style[property] = value;
           }
           node.visual.styles[breakpoint] = style;
+        }),
+
+      setSelectedVisibility: (patch) =>
+        commit(null, (draft) => {
+          for (const key of get().selectedKeys) {
+            const node = findDraft(draft, key);
+            if (node && !node.locked) node.visibility = { ...node.visibility, ...patch };
+          }
+        }),
+
+      setSelectedDesign: (patch) =>
+        commit(null, (draft) => {
+          for (const key of get().selectedKeys) {
+            const node = findDraft(draft, key);
+            if (node && !node.locked) node.design = { ...node.design, ...patch };
+          }
+        }),
+
+      setSelectedVisualStyle: (breakpoint, patch) =>
+        commit(null, (draft) => {
+          for (const key of get().selectedKeys) {
+            const node = findDraft(draft, key);
+            if (!node || node.locked) continue;
+            if (!node.visual) node.visual = {};
+            if (!node.visual.styles) node.visual.styles = {};
+            const style = { ...(node.visual.styles[breakpoint] ?? {}) } as Record<string, unknown>;
+            for (const [property, value] of Object.entries(patch)) {
+              if (value === undefined) delete style[property];
+              else style[property] = value;
+            }
+            node.visual.styles[breakpoint] = style;
+          }
+        }),
+
+      setSelectedLocked: (locked) =>
+        commit(null, (draft) => {
+          for (const key of get().selectedKeys) {
+            const node = findDraft(draft, key);
+            if (node) node.locked = locked;
+          }
         }),
 
       setVisualEffects: (key, patch) =>
@@ -655,6 +777,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           // A selection in the area being closed would leave the properties
           // panel editing a block the canvas no longer shows.
           selectedKey: null,
+          selectedKeys: [],
           hoveredKey: null,
         });
       },
@@ -697,6 +820,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           future: [],
           historyTag: null,
           selectedKey: null,
+          selectedKeys: [],
           hoveredKey: null,
         });
         return null;
@@ -776,6 +900,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           future: [],
           historyTag: null,
           selectedKey: null,
+          selectedKeys: [],
           hoveredKey: null,
         });
         return null;
@@ -795,7 +920,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           areaIssues: areaIssuesWith(state, validateTree(previous).issues.length),
           serverIssues: [],
           historyTag: null,
-          selectedKey: findBlock(previous, state.selectedKey ?? "") ? state.selectedKey : null,
+          ...selectionForTree(previous, state.selectedKeys, state.selectedKey),
           save: { kind: "dirty" },
         });
       },
@@ -814,7 +939,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           areaIssues: areaIssuesWith(state, validateTree(next).issues.length),
           serverIssues: [],
           historyTag: null,
-          selectedKey: findBlock(next, state.selectedKey ?? "") ? state.selectedKey : null,
+          ...selectionForTree(next, state.selectedKeys, state.selectedKey),
           save: { kind: "dirty" },
         });
       },
@@ -881,7 +1006,7 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           issues: validateTree(tree).issues,
           areaIssues: countAreaIssues(doc ? { ...state.doc, ...doc } : state.doc, tree),
           serverIssues: [],
-          selectedKey: findBlock(tree, state.selectedKey ?? "") ? state.selectedKey : null,
+          ...selectionForTree(tree, state.selectedKeys, state.selectedKey),
           save: { kind: "idle" },
           doc: doc ? { ...state.doc, ...doc } : state.doc,
         })),

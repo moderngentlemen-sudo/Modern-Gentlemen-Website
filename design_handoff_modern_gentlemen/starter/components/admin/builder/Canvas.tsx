@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ComponentType } from "react";
+import { Fragment, type ComponentType, type PointerEvent as ReactPointerEvent } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -55,6 +55,9 @@ export function Canvas({
 } = {}) {
   const tree = useBuilder(useShallow((s) => s.tree));
   const device = useBuilder((s) => s.device);
+  const selectedKeys = useBuilder((s) => s.selectedKeys);
+  const duplicateSelected = useBuilder((s) => s.duplicateSelected);
+  const removeSelected = useBuilder((s) => s.removeSelected);
 
   const dragging = libraryDragType !== null;
 
@@ -74,6 +77,21 @@ export function Canvas({
      */
     <CatalogProvider products={DEMO_PRODUCTS}>
       <CartProvider>
+        {selectedKeys.length > 1 && (
+          <div className="sticky top-0 z-40 flex items-center justify-between border-b border-mg-bd/15 bg-mg-bg/95 px-6 py-2 backdrop-blur">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
+              {selectedKeys.length} elements selected
+            </span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={duplicateSelected}>
+                Duplicate
+              </Button>
+              <Button size="sm" variant="outline" onClick={removeSelected}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="flex justify-center px-6 py-6">
           <div className={clsx("transition-[width]", DEVICE_WIDTH[device])}>
             {tree.length === 0 ? (
@@ -364,12 +382,13 @@ function SortableBlock({
   drop: DropLocation | null;
   depth: number;
 }) {
-  const selectedKey = useBuilder((s) => s.selectedKey);
+  const selectedKeys = useBuilder((s) => s.selectedKeys);
   const select = useBuilder((s) => s.select);
   const duplicate = useBuilder((s) => s.duplicate);
   const remove = useBuilder((s) => s.remove);
   const setLocked = useBuilder((s) => s.setLocked);
   const setVisibility = useBuilder((s) => s.setVisibility);
+  const setVisualStyle = useBuilder((s) => s.setVisualStyle);
   const device = useBuilder((s) => s.device);
   const issueCount = useBuilder(
     (s) =>
@@ -381,7 +400,38 @@ function SortableBlock({
   const hidden = node.visibility?.hidden === true;
   const hiddenOnDevice =
     node.visibility?.devices !== undefined && !node.visibility.devices.includes(device);
-  const selected = selectedKey === node._key;
+  const selected = selectedKeys.includes(node._key);
+  const visualWidth = node.visual?.styles?.[device]?.widthPercent ?? 100;
+
+  function startResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const frame = event.currentTarget.closest<HTMLElement>("[data-block-key]");
+    if (!frame) return;
+    const startX = Number.isFinite(event.clientX) ? event.clientX : 0;
+    const startWidth = visualWidth;
+    const available = Math.max(frame.getBoundingClientRect().width, 1);
+
+    const move = (next: PointerEvent) => {
+      if (!Number.isFinite(next.clientX)) return;
+      const widthPercent = Math.round(
+        Math.min(100, Math.max(5, startWidth + ((next.clientX - startX) / available) * 100))
+      );
+      setVisualStyle(node._key, device, {
+        widthPercent,
+        width: undefined,
+        widthPx: undefined,
+      });
+    };
+    const finish = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish, { once: true });
+    window.addEventListener("pointercancel", finish, { once: true });
+  }
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: node._key,
@@ -434,7 +484,7 @@ function SortableBlock({
       */
       onMouseDown={(event) => {
         event.stopPropagation();
-        select(node._key);
+        select(node._key, event.shiftKey || event.metaKey || event.ctrlKey);
       }}
     >
       {/*
@@ -533,6 +583,16 @@ function SortableBlock({
           selected ? "ring-mg-accent" : "ring-transparent group-hover:ring-mg-accent/30"
         )}
       />
+
+      {selected && selectedKeys.length === 1 && !locked && (
+        <button
+          type="button"
+          aria-label={`Resize ${label}`}
+          onPointerDown={startResize}
+          className="absolute top-1/2 z-30 h-12 w-3 -translate-y-1/2 translate-x-1/2 cursor-ew-resize rounded-full border border-mg-accent bg-mg-bg shadow-sm"
+          style={{ right: `${100 - visualWidth}%` }}
+        />
+      )}
 
       {/*
         ⚠️ Deeper chrome sits above shallower chrome, and this is not polish.

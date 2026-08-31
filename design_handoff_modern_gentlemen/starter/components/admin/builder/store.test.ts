@@ -281,6 +281,86 @@ describe("remove and move", () => {
   });
 });
 
+describe("multi-selection", () => {
+  it("adds and toggles blocks while keeping the last selected block active", () => {
+    const tree: BlockTree = [
+      { _key: "a", _type: "pullQuote" },
+      { _key: "b", _type: "pullQuote" },
+    ];
+    const store = makeStore(tree);
+    store.getState().select("a");
+    store.getState().select("b", true);
+    expect(store.getState().selectedKeys).toEqual(["a", "b"]);
+    expect(store.getState().selectedKey).toBe("b");
+
+    store.getState().select("b", true);
+    expect(store.getState().selectedKeys).toEqual(["a"]);
+    expect(store.getState().selectedKey).toBe("a");
+  });
+
+  it("duplicates a selected group as one undoable edit", () => {
+    const store = makeStore([
+      { _key: "a", _type: "pullQuote" },
+      { _key: "b", _type: "masthead" },
+    ]);
+    store.getState().select("a");
+    store.getState().select("b", true);
+    store.getState().duplicateSelected();
+
+    expect(store.getState().tree.map((node) => node._type)).toEqual([
+      "pullQuote",
+      "pullQuote",
+      "masthead",
+      "masthead",
+    ]);
+    expect(store.getState().selectedKeys).toHaveLength(2);
+    store.getState().undo();
+    expect(store.getState().tree).toHaveLength(2);
+  });
+
+  it("does not duplicate a child twice when its selected ancestor is copied", () => {
+    const store = makeStore([
+      {
+        _key: "parent",
+        _type: "layoutContainer",
+        children: [{ _key: "child", _type: "pullQuote" }],
+      },
+    ]);
+    store.getState().select("parent");
+    store.getState().select("child", true);
+    store.getState().duplicateSelected();
+    expect(store.getState().tree).toHaveLength(2);
+    expect(store.getState().tree[1].children).toHaveLength(1);
+  });
+
+  it("removes unlocked selections together and preserves locked blocks", () => {
+    const store = makeStore([
+      { _key: "a", _type: "pullQuote" },
+      { _key: "b", _type: "masthead", locked: true },
+      { _key: "c", _type: "newsletter" },
+    ]);
+    store.getState().select("a");
+    store.getState().select("b", true);
+    store.getState().select("c", true);
+    store.getState().removeSelected();
+    expect(store.getState().tree.map((node) => node._key)).toEqual(["b"]);
+  });
+
+  it("applies a visual change to the group as one undo and skips locked elements", () => {
+    const store = makeStore([
+      { _key: "a", _type: "pullQuote" },
+      { _key: "b", _type: "masthead", locked: true },
+    ]);
+    store.getState().select("a");
+    store.getState().select("b", true);
+    store.getState().setSelectedVisualStyle("desktop", { widthPercent: 60 });
+    expect(store.getState().tree[0].visual?.styles?.desktop?.widthPercent).toBe(60);
+    expect(store.getState().tree[1].visual).toBeUndefined();
+    store.getState().undo();
+    expect(store.getState().tree[0].visual).toBeUndefined();
+  });
+});
+
 describe("containers", () => {
   /**
    * A store holding one empty container, plus its key.

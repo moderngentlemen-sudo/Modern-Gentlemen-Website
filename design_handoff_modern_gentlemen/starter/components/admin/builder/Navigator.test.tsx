@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -59,6 +59,16 @@ describe("Navigator", () => {
     await userEvent.click(quote);
 
     expect(quote).toHaveAttribute("aria-current", "true");
+  });
+
+  it("adds a second selection with the platform modifier", async () => {
+    renderNavigator(nested);
+    const container = screen.getByRole("button", { name: "Container" });
+    const quote = screen.getByRole("button", { name: "Pull quote" });
+    await userEvent.click(container);
+    fireEvent.click(quote, { shiftKey: true });
+    expect(container.closest("li")).toHaveAttribute("aria-selected", "true");
+    expect(quote.closest("li")).toHaveAttribute("aria-selected", "true");
   });
 
   it("collapses and expands a container without changing the document", async () => {

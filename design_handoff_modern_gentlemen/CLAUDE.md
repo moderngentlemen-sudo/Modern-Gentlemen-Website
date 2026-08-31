@@ -119,6 +119,12 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   indistinguishable success, and writes through the anonymous Supabase client.
   `form_submissions` grants anonymous INSERT without SELECT. Do not replace this
   path with a service-role client or return storage details to the browser.
+- **Multi-selection and precise positioning remain bounded data.** The
+  store keeps `selectedKey` as the active element and `selectedKeys` as the ordered
+  group; group mutations are one undo entry and skip locked elements. Exact
+  sizes and offsets are finite bounded numbers in `VisualStyle`, never CSS
+  strings. Unset values must emit nothing so the compatibility renderer remains
+  a literal no-op for existing content.
 - **Rich editorial text remains string-compatible and safe by construction.**
   The manifest rich-text control writes a bounded Markdown subset and previews
   the same semantic React renderer used publicly. Existing plain strings retain

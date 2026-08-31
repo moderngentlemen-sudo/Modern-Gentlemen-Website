@@ -23,7 +23,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DndContext } from "@dnd-kit/core";
 
@@ -319,6 +319,49 @@ describe("selecting inside a container", () => {
     // container's own ring — its direct child, not the nested one — does not.
     expect(inner.querySelector(".ring-mg-accent")).not.toBeNull();
     expect(outer.querySelector(":scope > .ring-mg-accent")).toBeNull();
+  });
+});
+
+describe("direct canvas manipulation", () => {
+  it("selects several elements with a modifier and exposes group actions", () => {
+    renderCanvas([
+      { _key: "a", _type: "pullQuote" },
+      { _key: "b", _type: "pullQuote" },
+    ]);
+    const [first, second] = document.querySelectorAll<HTMLElement>("[data-block-key]");
+    fireEvent.mouseDown(first);
+    fireEvent.mouseDown(second, { shiftKey: true });
+    expect(screen.getByText("2 elements selected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Duplicate" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("resizes the selected element from its canvas edge", () => {
+    renderCanvas([{ _key: "a", _type: "pullQuote" }]);
+    const frame = document.querySelector<HTMLElement>("[data-block-key='a']")!;
+    vi.spyOn(frame, "getBoundingClientRect").mockReturnValue({
+      width: 1000,
+      height: 400,
+      top: 0,
+      right: 1000,
+      bottom: 400,
+      left: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    fireEvent.mouseDown(frame);
+    const handle = screen.getByRole("button", { name: "Resize Pull quote" });
+    const down = new Event("pointerdown", { bubbles: true });
+    Object.defineProperty(down, "clientX", { value: 1000 });
+    fireEvent(handle, down);
+    const move = new Event("pointermove", { bubbles: true });
+    Object.defineProperty(move, "clientX", { value: 600 });
+    fireEvent(window, move);
+    fireEvent.pointerUp(window);
+    expect(document.querySelector("style[data-mg-visual-style]")?.textContent).toContain(
+      "width:60%"
+    );
   });
 });
 

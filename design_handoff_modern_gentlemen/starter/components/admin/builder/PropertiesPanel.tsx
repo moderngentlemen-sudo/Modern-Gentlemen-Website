@@ -23,6 +23,7 @@ import {
   VISUAL_MOTIONS,
   VISUAL_OPACITIES,
   VISUAL_OVERFLOWS,
+  VISUAL_POSITIONS,
   VISUAL_RADII,
   VISUAL_SHADOWS,
   VISUAL_SPACES,
@@ -36,8 +37,8 @@ import { Badge } from "@/components/admin/ui/Badge";
 import { Toggle, Checkbox } from "@/components/admin/ui/Toggle";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { Select } from "@/components/admin/ui/Select";
-import { HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
-import { TextInput } from "@/components/admin/ui/Input";
+import { CONTROL, HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
+import { FieldShell, TextInput } from "@/components/admin/ui/Input";
 import { BindingEditor, BindingModeSwitch } from "@/components/admin/fields/BindingEditor";
 import { FieldControl, type ControlContext } from "@/components/admin/fields/FieldControl";
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
@@ -59,6 +60,8 @@ const DEVICES = ["mobile", "tablet", "desktop"] as const;
  */
 export function PropertiesPanel() {
   const selectedKey = useBuilder((s) => s.selectedKey);
+  const selectedKeys = useBuilder((s) => s.selectedKeys);
+  const tree = useBuilder((s) => s.tree);
   /**
    * `findBlock`, not `tree.find`: a nested block could otherwise be selected on
    * the canvas and then show the panel's empty state, since the selection is a
@@ -68,6 +71,13 @@ export function PropertiesPanel() {
    */
   const node = useBuilder((s) => findBlock(s.tree, selectedKey ?? "") ?? null);
   const issues = useBuilder(useShallow((s) => [...s.issues, ...s.serverIssues]));
+
+  if (selectedKeys.length > 1) {
+    const nodes = selectedKeys
+      .map((key) => findBlock(tree, key))
+      .filter((entry): entry is BlockNode => entry !== undefined);
+    return <MultiProperties nodes={nodes} />;
+  }
 
   if (!node) {
     return (
@@ -80,6 +90,99 @@ export function PropertiesPanel() {
   }
 
   return <BlockProperties key={node._key} node={node} allIssues={issues} />;
+}
+
+function commonValue<T>(values: readonly (T | undefined)[]): T | undefined {
+  const first = values[0];
+  return values.every((value) => value === first) ? first : undefined;
+}
+
+function MultiProperties({ nodes }: { nodes: BlockNode[] }) {
+  const device = useBuilder((s) => s.device);
+  const setSelectedVisibility = useBuilder((s) => s.setSelectedVisibility);
+  const setSelectedDesign = useBuilder((s) => s.setSelectedDesign);
+  const setSelectedVisualStyle = useBuilder((s) => s.setSelectedVisualStyle);
+  const setSelectedLocked = useBuilder((s) => s.setSelectedLocked);
+  const styles = nodes.map((node) => node.visual?.styles?.[device]);
+  const allLocked = nodes.every((node) => node.locked === true);
+
+  return (
+    <Panel className="h-full overflow-y-auto">
+      <header className="border-b border-mg-bd/15 px-4 py-3">
+        <span className={LABEL_SM}>Selection</span>
+        <h2 className="mt-1 font-grotesk text-[15px] font-semibold tracking-[-0.02em]">
+          {nodes.length} elements
+        </h2>
+        <p className={HELP_TEXT}>Changes here apply to every unlocked element in the selection.</p>
+      </header>
+
+      <PanelSection title="Group layout">
+        <Select
+          label="Width preset"
+          value={commonValue(styles.map((style) => style?.width)) ?? ""}
+          placeholder="Mixed or inherit"
+          options={optionsFor(VISUAL_WIDTHS)}
+          onChange={(width) =>
+            setSelectedVisualStyle(device, {
+              width: width === "" ? undefined : (width as VisualStyle["width"]),
+              widthPercent: undefined,
+              widthPx: undefined,
+            })
+          }
+        />
+        <BoundedNumberControl
+          label="Width"
+          suffix="%"
+          value={commonValue(styles.map((style) => style?.widthPercent))}
+          min={5}
+          max={100}
+          disabled={allLocked}
+          onChange={(widthPercent) =>
+            setSelectedVisualStyle(device, {
+              widthPercent,
+              width: undefined,
+              widthPx: undefined,
+            })
+          }
+        />
+        <Select
+          label="Background"
+          value={commonValue(styles.map((style) => style?.background)) ?? ""}
+          placeholder="Mixed or inherit"
+          options={optionsFor(VISUAL_BACKGROUNDS)}
+          onChange={(background) =>
+            setSelectedVisualStyle(device, {
+              background: background === "" ? undefined : (background as VisualStyle["background"]),
+            })
+          }
+        />
+        <Select
+          label="Extra space before"
+          value={commonValue(nodes.map((node) => node.design?.spaceBefore)) ?? "none"}
+          options={spacingOptions()}
+          onChange={(spaceBefore) =>
+            setSelectedDesign({ spaceBefore: spaceBefore as BlockSpacing })
+          }
+        />
+        <Select
+          label="Extra space after"
+          value={commonValue(nodes.map((node) => node.design?.spaceAfter)) ?? "none"}
+          options={spacingOptions()}
+          onChange={(spaceAfter) => setSelectedDesign({ spaceAfter: spaceAfter as BlockSpacing })}
+        />
+      </PanelSection>
+
+      <PanelSection title="Group display" defaultOpen={false}>
+        <Toggle
+          label="Hidden"
+          checked={nodes.every((node) => node.visibility?.hidden === true)}
+          disabled={allLocked}
+          onChange={(hidden) => setSelectedVisibility({ hidden })}
+        />
+        <Toggle label="Locked" checked={allLocked} onChange={setSelectedLocked} />
+      </PanelSection>
+    </Panel>
+  );
 }
 
 function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: BlockIssue[] }) {
@@ -118,6 +221,19 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
     setVisualStyle(key, device, {
       [property]: value === "" ? undefined : numeric.has(property) ? Number(value) : value,
     } as Partial<VisualStyle>);
+  }
+
+  function setPrecise(
+    property: keyof VisualStyle,
+    value: number | undefined,
+    conflicts: (keyof VisualStyle)[] = []
+  ) {
+    setVisualStyle(key, device, {
+      [property]: value,
+      ...(value === undefined
+        ? {}
+        : Object.fromEntries(conflicts.map((conflict) => [conflict, undefined]))),
+    });
   }
 
   const read = useCallback(
@@ -273,6 +389,90 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
         />
       </PanelSection>
 
+      <PanelSection title={`Precise size — ${device}`} defaultOpen={false}>
+        <p className={HELP_TEXT}>
+          Drag the selected element’s right edge on the canvas, or enter an exact value here.
+          Precise values override the preset width controls for this device.
+        </p>
+        <BoundedNumberControl
+          label="Width"
+          suffix="%"
+          value={visualStyle.widthPercent}
+          min={5}
+          max={100}
+          disabled={locked}
+          onChange={(value) => setPrecise("widthPercent", value, ["widthPx", "width"])}
+        />
+        <BoundedNumberControl
+          label="Width"
+          suffix="px"
+          value={visualStyle.widthPx}
+          min={24}
+          max={4000}
+          disabled={locked}
+          onChange={(value) => setPrecise("widthPx", value, ["widthPercent", "width"])}
+        />
+        <BoundedNumberControl
+          label="Height"
+          suffix="px"
+          value={visualStyle.heightPx}
+          min={0}
+          max={4000}
+          disabled={locked}
+          onChange={(value) => setPrecise("heightPx", value)}
+        />
+        <BoundedNumberControl
+          label="Maximum width"
+          suffix="px"
+          value={visualStyle.maxWidthPx}
+          min={24}
+          max={4000}
+          disabled={locked}
+          onChange={(value) => setPrecise("maxWidthPx", value, ["maxWidth"])}
+        />
+        <BoundedNumberControl
+          label="Minimum height"
+          suffix="px"
+          value={visualStyle.minHeightPx}
+          min={0}
+          max={4000}
+          disabled={locked}
+          onChange={(value) => setPrecise("minHeightPx", value, ["minHeight"])}
+        />
+      </PanelSection>
+
+      <PanelSection title={`Position — ${device}`} defaultOpen={false}>
+        <Select
+          label="Positioning"
+          value={visualStyle.position ?? ""}
+          disabled={locked}
+          placeholder="Normal flow"
+          options={optionsFor(VISUAL_POSITIONS)}
+          help="Absolute positioning is relative to the nearest positioned ancestor."
+          onChange={(value) => setVisualProperty("position", value)}
+        />
+        {(["top", "right", "bottom", "left"] as const).map((property) => (
+          <BoundedNumberControl
+            key={property}
+            label={titleCase(property)}
+            suffix="px"
+            value={visualStyle[property]}
+            min={-4000}
+            max={4000}
+            disabled={locked}
+            onChange={(value) => setPrecise(property, value)}
+          />
+        ))}
+        <BoundedNumberControl
+          label="Stack order"
+          value={visualStyle.zIndex}
+          min={-10}
+          max={100}
+          disabled={locked}
+          onChange={(value) => setPrecise("zIndex", value)}
+        />
+      </PanelSection>
+
       <PanelSection title="Display" defaultOpen={false}>
         <Toggle
           label="Hidden"
@@ -314,6 +514,47 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
         />
       </PanelSection>
     </Panel>
+  );
+}
+
+function BoundedNumberControl({
+  label,
+  suffix,
+  value,
+  min,
+  max,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  suffix?: string;
+  value: number | undefined;
+  min: number;
+  max: number;
+  disabled: boolean;
+  onChange: (value: number | undefined) => void;
+}) {
+  const id = `${label}-${suffix ?? "number"}`.toLowerCase().replaceAll(" ", "-");
+  return (
+    <FieldShell label={`${label}${suffix ? ` (${suffix})` : ""}`} htmlFor={id}>
+      <input
+        id={id}
+        type="number"
+        value={value ?? ""}
+        min={min}
+        max={max}
+        disabled={disabled}
+        placeholder="Inherit"
+        onChange={(event) => {
+          if (event.target.value === "") onChange(undefined);
+          else {
+            const next = Number(event.target.value);
+            if (Number.isFinite(next)) onChange(Math.min(max, Math.max(min, next)));
+          }
+        }}
+        className={CONTROL}
+      />
+    </FieldShell>
   );
 }
 

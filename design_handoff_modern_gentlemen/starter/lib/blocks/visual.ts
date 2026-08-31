@@ -13,6 +13,7 @@ export const VISUAL_DIRECTIONS = ["row", "column"] as const;
 export const VISUAL_ALIGNS = ["start", "center", "end", "stretch"] as const;
 export const VISUAL_JUSTIFIES = ["start", "center", "end", "between", "around"] as const;
 export const VISUAL_WIDTHS = ["auto", "full", "fit"] as const;
+export const VISUAL_POSITIONS = ["relative", "absolute", "sticky"] as const;
 export const VISUAL_MAX_WIDTHS = ["none", "reading", "content", "wide"] as const;
 export const VISUAL_MIN_HEIGHTS = ["auto", "half-screen", "screen"] as const;
 export const VISUAL_SPACES = [0, 8, 16, 24, 32, 48, 64, 80, 120] as const;
@@ -33,6 +34,12 @@ export interface VisualStyle {
   align?: (typeof VISUAL_ALIGNS)[number];
   justify?: (typeof VISUAL_JUSTIFIES)[number];
   width?: (typeof VISUAL_WIDTHS)[number];
+  /** Precise dimensions, bounded and emitted only when explicitly set. */
+  widthPercent?: number;
+  widthPx?: number;
+  heightPx?: number;
+  maxWidthPx?: number;
+  minHeightPx?: number;
   maxWidth?: (typeof VISUAL_MAX_WIDTHS)[number];
   minHeight?: (typeof VISUAL_MIN_HEIGHTS)[number];
   gap?: (typeof VISUAL_SPACES)[number];
@@ -47,6 +54,12 @@ export interface VisualStyle {
   shadow?: (typeof VISUAL_SHADOWS)[number];
   opacity?: (typeof VISUAL_OPACITIES)[number];
   overflow?: (typeof VISUAL_OVERFLOWS)[number];
+  position?: (typeof VISUAL_POSITIONS)[number];
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+  zIndex?: number;
 }
 
 export interface VisualEffects {
@@ -63,13 +76,14 @@ export interface VisualElementDesign {
 
 type Vocabulary = readonly (string | number)[];
 
-const STYLE_VOCABULARY: Record<keyof VisualStyle, Vocabulary> = {
+const STYLE_VOCABULARY: Partial<Record<keyof VisualStyle, Vocabulary>> = {
   display: VISUAL_DISPLAYS,
   direction: VISUAL_DIRECTIONS,
   columns: [1, 2, 3, 4, 5, 6],
   align: VISUAL_ALIGNS,
   justify: VISUAL_JUSTIFIES,
   width: VISUAL_WIDTHS,
+  position: VISUAL_POSITIONS,
   maxWidth: VISUAL_MAX_WIDTHS,
   minHeight: VISUAL_MIN_HEIGHTS,
   gap: VISUAL_SPACES,
@@ -84,6 +98,19 @@ const STYLE_VOCABULARY: Record<keyof VisualStyle, Vocabulary> = {
   shadow: VISUAL_SHADOWS,
   opacity: VISUAL_OPACITIES,
   overflow: VISUAL_OVERFLOWS,
+};
+
+const NUMERIC_STYLE_BOUNDS: Partial<Record<keyof VisualStyle, readonly [number, number]>> = {
+  widthPercent: [5, 100],
+  widthPx: [24, 4000],
+  heightPx: [0, 4000],
+  maxWidthPx: [24, 4000],
+  minHeightPx: [0, 4000],
+  top: [-4000, 4000],
+  right: [-4000, 4000],
+  bottom: [-4000, 4000],
+  left: [-4000, 4000],
+  zIndex: [-10, 100],
 };
 
 export interface VisualDesignIssue {
@@ -133,8 +160,19 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
           continue;
         }
         for (const [property, propertyValue] of Object.entries(rawStyle)) {
-          const allowed = STYLE_VOCABULARY[property as keyof VisualStyle];
-          if (!allowed || !allowed.includes(propertyValue as never)) {
+          const key = property as keyof VisualStyle;
+          const bounds = NUMERIC_STYLE_BOUNDS[key];
+          const allowed = STYLE_VOCABULARY[key];
+          const invalidNumber =
+            bounds !== undefined &&
+            (typeof propertyValue !== "number" ||
+              !Number.isFinite(propertyValue) ||
+              propertyValue < bounds[0] ||
+              propertyValue > bounds[1]);
+          if (
+            (bounds && invalidNumber) ||
+            (!bounds && (!allowed || !allowed.includes(propertyValue as never)))
+          ) {
             issues.push({
               path: `visual.styles.${breakpoint}.${property}`,
               message: `Choose a supported ${property} value.`,
@@ -229,6 +267,9 @@ export function visualDeclarations(style: VisualStyle | undefined): string {
     out.push(
       `width:${style.width === "full" ? "100%" : style.width === "fit" ? "fit-content" : "auto"}`
     );
+  if (style.widthPercent !== undefined) out.push(`width:${style.widthPercent}%`);
+  if (style.widthPx !== undefined) out.push(`width:${style.widthPx}px`);
+  if (style.heightPx !== undefined) out.push(`height:${style.heightPx}px`);
   if (style.maxWidth) {
     const value =
       style.maxWidth === "reading"
@@ -240,10 +281,12 @@ export function visualDeclarations(style: VisualStyle | undefined): string {
             : "none";
     out.push(`max-width:${value}`, "margin-inline:auto");
   }
+  if (style.maxWidthPx !== undefined) out.push(`max-width:${style.maxWidthPx}px`);
   if (style.minHeight)
     out.push(
       `min-height:${style.minHeight === "screen" ? "100svh" : style.minHeight === "half-screen" ? "50svh" : "auto"}`
     );
+  if (style.minHeightPx !== undefined) out.push(`min-height:${style.minHeightPx}px`);
   if (style.gap !== undefined) out.push(`gap:${style.gap}px`);
   if (style.paddingX !== undefined)
     out.push(`padding-left:${style.paddingX}px`, `padding-right:${style.paddingX}px`);
@@ -288,6 +331,12 @@ export function visualDeclarations(style: VisualStyle | undefined): string {
   }
   if (style.opacity !== undefined) out.push(`opacity:${style.opacity / 100}`);
   if (style.overflow) out.push(`overflow:${style.overflow}`);
+  if (style.position) out.push(`position:${style.position}`);
+  if (style.top !== undefined) out.push(`top:${style.top}px`);
+  if (style.right !== undefined) out.push(`right:${style.right}px`);
+  if (style.bottom !== undefined) out.push(`bottom:${style.bottom}px`);
+  if (style.left !== undefined) out.push(`left:${style.left}px`);
+  if (style.zIndex !== undefined) out.push(`z-index:${style.zIndex}`);
   return out.join(";");
 }
 

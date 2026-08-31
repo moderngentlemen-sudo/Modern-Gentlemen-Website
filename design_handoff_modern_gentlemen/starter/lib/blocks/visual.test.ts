@@ -49,4 +49,26 @@ describe("visual element design", () => {
       })
     ).toBe("width:100%;max-width:760px;margin-inline:auto;border-radius:999px;opacity:0.75");
   });
+
+  it("emits bounded precise dimensions and positioning", () => {
+    expect(
+      visualDeclarations({
+        widthPercent: 62,
+        minHeightPx: 320,
+        position: "absolute",
+        top: -12,
+        right: 24,
+        zIndex: 4,
+      })
+    ).toContain("width:62%;min-height:320px;position:absolute;top:-12px;right:24px;z-index:4");
+    expect(
+      validateVisualDesign({
+        styles: { desktop: { widthPercent: 101, top: 5000, zIndex: 101 } },
+      }).map((issue) => issue.path)
+    ).toEqual([
+      "visual.styles.desktop.widthPercent",
+      "visual.styles.desktop.top",
+      "visual.styles.desktop.zIndex",
+    ]);
+  });
 });

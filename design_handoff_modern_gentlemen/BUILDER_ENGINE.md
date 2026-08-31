@@ -23,7 +23,9 @@ Every component element can now carry:
   screens until overridden);
 - block, flex and grid layout, direction, 1–6 columns, alignment and
   distribution;
-- width, maximum width, minimum height, gap, padding and margins;
+- preset or exact percentage/pixel width, exact height/minimum/maximum sizing,
+  gap, padding and margins;
+- bounded relative, absolute and sticky positioning, offsets and stack order;
 - bounded theme backgrounds and text colors, borders, corner styles, shadows,
   opacity and overflow;
 - hover and motion presets; and
@@ -36,8 +38,8 @@ device targeting, and uses `display: contents` so visibility does not disturb
 an existing flex or grid composition. The canvas keeps excluded content
 selectable and visibly dims it while previewing that device.
 
-The first native element set is also live: Heading, Text, Image, Button,
-Divider and Spacer. They are ordinary registered blocks with manifests, strict
+The native element set is also live: Heading, Text, Image, Video, Embed, Icon,
+Product, Form, Button, Divider and Spacer. They are ordinary registered blocks with manifests, strict
 settings and responsive behavior, so they can be composed with Container,
 Stack, Columns and every existing high-fidelity section. They extend the
 component library; they do not replace or weaken compatibility with the legacy
@@ -52,6 +54,12 @@ assignment, each route follows its original fixed path byte-for-byte.
 
 Uncustomized components receive no additional DOM wrapper. Values are selected
 from closed vocabularies rather than injected as raw CSS.
+
+The canvas and Navigator now share ordered multi-selection. Modifier selection,
+group duplicate/delete/style changes and a direct width handle all write through
+the same undoable store and bounded visual model used by the properties panel.
+Selecting a container and one of its descendants never duplicates or deletes
+the descendant twice, and locked elements remain protected.
 
 ## Claude Design tweak migration
 
@@ -82,12 +90,10 @@ public site silently ignores.
 
 ## Next engine layers
 
-1. Complete the native set with video, icon, embed, form and commerce elements.
-2. Expand direct manipulation for nesting,
-   sizing and reordering inside Container/Stack/Grid.
-3. Add class/style tokens, reusable symbols, component states and named
+1. Add snapping, rulers, alignment guides and zoom/pan to direct manipulation.
+2. Add class/style tokens, reusable symbols, component states and named
    responsive breakpoints without permitting arbitrary stored CSS.
-4. Implement the transcript's named hero, header, navigation, Latest, Style
+3. Implement the transcript's named hero, header, navigation, Latest, Style
    and article presets in small renderer-backed groups.
-5. Add migration fixtures and visual baselines for every current page before a
+4. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.

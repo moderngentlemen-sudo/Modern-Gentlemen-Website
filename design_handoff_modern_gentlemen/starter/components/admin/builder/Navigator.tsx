@@ -20,7 +20,7 @@ import { useBuilder } from "./StoreContext";
  */
 export function Navigator() {
   const tree = useBuilder((state) => state.tree);
-  const selectedKey = useBuilder((state) => state.selectedKey);
+  const selectedKeys = useBuilder((state) => state.selectedKeys);
   const select = useBuilder((state) => state.select);
   const hover = useBuilder((state) => state.hover);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
@@ -47,7 +47,7 @@ export function Navigator() {
       <TreeList
         nodes={tree}
         depth={0}
-        selectedKey={selectedKey}
+        selectedKeys={selectedKeys}
         collapsed={collapsed}
         onSelect={select}
         onHover={hover}
@@ -60,7 +60,7 @@ export function Navigator() {
 function TreeList({
   nodes,
   depth,
-  selectedKey,
+  selectedKeys,
   collapsed,
   onSelect,
   onHover,
@@ -68,9 +68,9 @@ function TreeList({
 }: {
   nodes: BlockTree;
   depth: number;
-  selectedKey: string | null;
+  selectedKeys: readonly string[];
   collapsed: ReadonlySet<string>;
-  onSelect: (key: string) => void;
+  onSelect: (key: string, additive?: boolean) => void;
   onHover: (key: string | null) => void;
   onToggle: (key: string) => void;
 }) {
@@ -81,12 +81,12 @@ function TreeList({
           key={node._key}
           node={node}
           depth={depth}
-          selected={selectedKey === node._key}
+          selected={selectedKeys.includes(node._key)}
           collapsed={collapsed}
           onSelect={onSelect}
           onHover={onHover}
           onToggle={onToggle}
-          selectedKey={selectedKey}
+          selectedKeys={selectedKeys}
         />
       ))}
     </ul>
@@ -101,16 +101,16 @@ function TreeItem({
   onSelect,
   onHover,
   onToggle,
-  selectedKey,
+  selectedKeys,
 }: {
   node: BlockNode;
   depth: number;
   selected: boolean;
   collapsed: ReadonlySet<string>;
-  onSelect: (key: string) => void;
+  onSelect: (key: string, additive?: boolean) => void;
   onHover: (key: string | null) => void;
   onToggle: (key: string) => void;
-  selectedKey: string | null;
+  selectedKeys: readonly string[];
 }) {
   const manifest = manifestFor(node._type);
   const children = node.children ?? [];
@@ -150,7 +150,7 @@ function TreeItem({
 
         <button
           type="button"
-          onClick={() => onSelect(node._key)}
+          onClick={(event) => onSelect(node._key, event.shiftKey || event.metaKey || event.ctrlKey)}
           aria-current={selected ? "true" : undefined}
           className={clsx("min-w-0 flex-1 truncate py-2 text-left text-[12px]", FOCUS_RING)}
         >
@@ -171,7 +171,7 @@ function TreeItem({
         <TreeList
           nodes={children}
           depth={depth + 1}
-          selectedKey={selectedKey}
+          selectedKeys={selectedKeys}
           collapsed={collapsed}
           onSelect={onSelect}
           onHover={onHover}
