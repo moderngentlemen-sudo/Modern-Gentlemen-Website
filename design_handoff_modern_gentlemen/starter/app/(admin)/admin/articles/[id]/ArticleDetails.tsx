@@ -14,7 +14,12 @@ import {
   RelatedArticles,
   type RelatedCandidate,
 } from "@/components/admin/articles/RelatedArticles";
-import { ARTICLE_TEMPLATE_NAMES } from "@/lib/domain/articles";
+import {
+  ARTICLE_FEATURED_MEDIA_KINDS,
+  ARTICLE_TEMPLATE_NAMES,
+  type ArticleFeaturedMedia,
+  type ArticleMediaAsset,
+} from "@/lib/domain/articles";
 import type { AssetView } from "@/lib/services/media";
 
 import { updateArticleMetaAction } from "../actions";
@@ -35,6 +40,7 @@ export interface ArticleMetaForm {
   authorId: string | null;
   featuredAssetId: string | null;
   featuredAssetUrl: string | null;
+  featuredMedia: ArticleFeaturedMedia;
   readingMinutes: number | null;
   issueNo: string | null;
   tagIds: string[];
@@ -74,7 +80,7 @@ export function ArticleDetails({
 
   const [form, setForm] = useState(initial);
   const [featuredUrl, setFeaturedUrl] = useState(initial.featuredAssetUrl);
-  const [picking, setPicking] = useState(false);
+  const [picking, setPicking] = useState<"cover" | "video" | "gallery" | null>(null);
   const [error, setError] = useState<string>();
 
   function set<K extends keyof ArticleMetaForm>(key: K, value: ArticleMetaForm[K]) {
@@ -100,6 +106,7 @@ export function ArticleDetails({
         issueNo: form.issueNo?.trim() || null,
         tagIds: form.tagIds,
         relatedIds: form.relatedIds,
+        featuredMedia: form.featuredMedia,
       });
 
       if (!result.ok) {
@@ -120,6 +127,18 @@ export function ArticleDetails({
         ? form.tagIds.filter((id) => id !== tagId)
         : [...form.tagIds, tagId]
     );
+  }
+
+  function setMedia(patch: Partial<ArticleFeaturedMedia>) {
+    set("featuredMedia", { ...form.featuredMedia, ...patch });
+  }
+
+  function moveGallery(index: number, delta: -1 | 1) {
+    const gallery = [...(form.featuredMedia.gallery ?? [])];
+    const target = index + delta;
+    if (target < 0 || target >= gallery.length) return;
+    [gallery[index], gallery[target]] = [gallery[target], gallery[index]];
+    setMedia({ gallery });
   }
 
   return (
@@ -248,7 +267,17 @@ export function ArticleDetails({
       </Panel>
 
       <Panel className="h-fit">
-        <PanelSection title="Featured image">
+        <PanelSection title="Featured media">
+          <Select
+            label="Media type"
+            value={form.featuredMedia.kind}
+            onChange={(value) => setMedia({ kind: value as ArticleFeaturedMedia["kind"] })}
+            options={ARTICLE_FEATURED_MEDIA_KINDS.map((value) => ({
+              value,
+              label: value[0].toUpperCase() + value.slice(1),
+            }))}
+            disabled={!canWrite}
+          />
           {featuredUrl ? (
             <div className="border border-mg-bd/15 bg-mg-bg/40 p-1">
               {/* eslint-disable-next-line @next/next/no-img-element -- external_url assets are not on an allowed remote host */}
@@ -256,14 +285,15 @@ export function ArticleDetails({
             </div>
           ) : (
             <p className="text-[12px] text-mg-fg/60">
-              None chosen. Card listings fall back to the article&rsquo;s first image.
+              No cover chosen. Card listings use the site fallback; this image also acts as a video
+              poster.
             </p>
           )}
 
           {canWrite && (
             <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
-                Choose
+              <Button size="sm" variant="ghost" onClick={() => setPicking("cover")}>
+                Choose cover
               </Button>
               {form.featuredAssetId && (
                 <Button
@@ -272,9 +302,93 @@ export function ArticleDetails({
                   onClick={() => {
                     set("featuredAssetId", null);
                     setFeaturedUrl(null);
+                    setMedia({ cover: undefined });
                   }}
                 >
                   Clear
+                </Button>
+              )}
+            </div>
+          )}
+
+          {form.featuredMedia.kind === "video" && (
+            <div className="space-y-2 border-t border-mg-bd/15 pt-3">
+              <TextInput
+                label="Video URL"
+                value={form.featuredMedia.video?.url ?? ""}
+                onChange={(url) =>
+                  setMedia({
+                    // A typed URL no longer refers to the previously selected
+                    // library asset, so its id must leave with the old URL.
+                    video: url ? { kind: "video", url } : undefined,
+                  })
+                }
+                disabled={!canWrite}
+                help="Choose a library video or enter an HTTPS/CDN URL."
+              />
+              {canWrite && (
+                <Button size="sm" variant="ghost" onClick={() => setPicking("video")}>
+                  Choose video
+                </Button>
+              )}
+            </div>
+          )}
+
+          {form.featuredMedia.kind === "embed" && (
+            <TextInput
+              label="YouTube or Vimeo URL"
+              value={form.featuredMedia.embedUrl ?? ""}
+              onChange={(embedUrl) => setMedia({ embedUrl })}
+              disabled={!canWrite}
+              help="HTTPS YouTube and Vimeo share/player URLs are supported."
+            />
+          )}
+
+          {form.featuredMedia.kind === "gallery" && (
+            <div className="space-y-2 border-t border-mg-bd/15 pt-3">
+              {(form.featuredMedia.gallery ?? []).map((item, index, gallery) => (
+                <div
+                  key={`${item.assetId ?? item.url}-${index}`}
+                  className="flex items-center gap-2 border border-mg-bd/15 p-1.5"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- picker supports external assets */}
+                  <img src={item.url} alt="" className="h-12 w-16 object-cover" />
+                  <span className="min-w-0 flex-1 truncate text-[11px]">
+                    {item.alt || item.url}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={index === 0}
+                    aria-label={`Move gallery item ${index + 1} up`}
+                    onClick={() => moveGallery(index, -1)}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={index === gallery.length - 1}
+                    aria-label={`Move gallery item ${index + 1} down`}
+                    onClick={() => moveGallery(index, 1)}
+                  >
+                    ↓
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Remove gallery item ${index + 1}`}
+                    onClick={() =>
+                      setMedia({ gallery: gallery.filter((_, itemIndex) => itemIndex !== index) })
+                    }
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+              {canWrite && (form.featuredMedia.gallery?.length ?? 0) < 12 && (
+                <Button size="sm" variant="ghost" onClick={() => setPicking("gallery")}>
+                  Add image
                 </Button>
               )}
             </div>
@@ -299,13 +413,32 @@ export function ArticleDetails({
       </Panel>
 
       <MediaPickerDialog
-        open={picking}
-        onClose={() => setPicking(false)}
-        kind="image"
+        open={picking !== null}
+        onClose={() => setPicking(null)}
+        kind={picking === "video" ? "video" : "image"}
         onPick={(asset: AssetView) => {
-          // The id, not the URL — this column is a foreign key.
-          set("featuredAssetId", asset.id);
-          setFeaturedUrl(asset.url);
+          const mediaAsset: ArticleMediaAsset = {
+            assetId: asset.id,
+            url: asset.url,
+            kind: asset.kind === "gif" ? "gif" : asset.kind === "video" ? "video" : "image",
+            ...(asset.altText ? { alt: asset.altText } : {}),
+          };
+          if (picking === "video") setMedia({ video: { ...mediaAsset, kind: "video" } });
+          else if (picking === "gallery") {
+            const gallery = form.featuredMedia.gallery ?? [];
+            if (!gallery.some((item) => item.assetId === mediaAsset.assetId))
+              setMedia({ gallery: [...gallery, mediaAsset] });
+          } else {
+            // The id, not the URL — this column is a foreign key.
+            set("featuredAssetId", asset.id);
+            setFeaturedUrl(asset.url);
+            setMedia({
+              cover: mediaAsset,
+              ...(form.featuredMedia.kind === "image" || form.featuredMedia.kind === "gif"
+                ? { kind: mediaAsset.kind === "gif" ? "gif" : "image" }
+                : {}),
+            });
+          }
         }}
       />
     </div>

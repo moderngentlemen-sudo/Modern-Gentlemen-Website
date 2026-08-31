@@ -84,7 +84,7 @@ or function impossible to reproduce.
 | Twenty modern article layouts | Complete | The original 20 hero/body combinations remain renderable and selectable. |
 | Rich editorial body editor | Complete | Article builder text and interview answers use the manifest-driven rich-text control: bold, italic, links, headings, quotes, lists and live preview render through the same safe semantic renderer. Existing string content is backward-compatible. |
 | Featured image | Complete | Media foreign key, picker, public use and usage protection are connected. |
-| Featured video, GIF, embeds and galleries | Partial | Video/GIF/gallery section components and media fields render them, but the article details screen lacks a unified featured-media/gallery/embed editor. |
+| Featured video, GIF, embeds and galleries | Complete | Article details offers one versioned workflow for cover/poster images, GIF, library/direct video, safe YouTube/Vimeo embeds and ordered galleries; the fixed public route renders every mode and asset-backed choices participate in usage protection. |
 | Media upload, search, type filters and folders | Complete | Images, video, GIF, audio and PDF documents are catalogued in Supabase Storage with search and nested folder filtering. |
 | Media tags | Partial | Tables and policies exist; tag creation, assignment and filtering are not exposed in the media UI. |
 | Media metadata and reusable picker | Complete | Title, alt, caption, credit, focal point, folders and media pickers are wired to builder/article/product consumers. |
@@ -137,16 +137,14 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Add a unified featured image/video/GIF/gallery/embed workflow; the structured
-   rich editorial editor is complete.
-2. Finish native builder primitives (video, embed, icon, form and commerce),
+1. Finish native builder primitives (video, embed, icon, form and commerce),
    then add multi-select, direct sizing and richer positioning.
-3. Complete the global design system for buttons, cards, forms, borders,
+2. Complete the global design system for buttons, cards, forms, borders,
    shadows, animation presets and reusable style classes.
-4. Add one-click “save selection as pattern,” document duplication and the
+3. Add one-click “save selection as pattern,” document duplication and the
    global command palette.
-5. Expose media tagging and conditional navigation rules.
-6. Add Shopify collection mapping and the remaining explicit E2E acceptance
+4. Expose media tagging and conditional navigation rules.
+5. Add Shopify collection mapping and the remaining explicit E2E acceptance
    scenarios.
 
 This backlog is additive. Existing high-fidelity sections and the fixed article

@@ -11,6 +11,9 @@ import {
 } from "@/lib/services/articles";
 import { deleteDocument } from "@/lib/services/documents";
 import { ARTICLE_TEMPLATE_NAMES } from "@/lib/domain/articles";
+import { ARTICLE_FEATURED_MEDIA_KINDS, withArticleFeaturedMedia } from "@/lib/domain/articles";
+import { getDocument, saveDraft } from "@/lib/services/documents";
+import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 import { publicPathsForArticle, revalidatePublicPaths } from "./revalidate";
@@ -91,6 +94,39 @@ const MetaInput = z.object({
   // normalizes, so a list that is too long is trimmed rather than refused, and
   // the cap lives in one place. This bound only stops an absurd payload.
   relatedIds: z.array(z.string().uuid()).max(50).optional(),
+  featuredMedia: z
+    .object({
+      kind: z.enum(ARTICLE_FEATURED_MEDIA_KINDS),
+      cover: z
+        .object({
+          assetId: z.string().uuid().optional(),
+          url: z.string().min(1).max(2048),
+          kind: z.enum(["image", "gif"]),
+          alt: z.string().max(500).optional(),
+        })
+        .optional(),
+      video: z
+        .object({
+          assetId: z.string().uuid().optional(),
+          url: z.string().min(1).max(2048),
+          kind: z.literal("video"),
+          alt: z.string().max(500).optional(),
+        })
+        .optional(),
+      embedUrl: z.string().trim().max(2048).optional(),
+      gallery: z
+        .array(
+          z.object({
+            assetId: z.string().uuid().optional(),
+            url: z.string().min(1).max(2048),
+            kind: z.enum(["image", "gif"]),
+            alt: z.string().max(500).optional(),
+          })
+        )
+        .max(12)
+        .optional(),
+    })
+    .optional(),
 });
 
 export async function updateArticleMetaAction(input: unknown): Promise<ActionResult> {
@@ -99,7 +135,7 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { id, tagIds, relatedIds, ...patch } = parsed.data;
+  const { id, tagIds, relatedIds, featuredMedia, ...patch } = parsed.data;
 
   try {
     // Both sides of the write. Re-filing an article from Watches to Culture
@@ -108,6 +144,15 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     const before = await publicPathsForArticle(id);
 
     await updateArticleMeta(id, patch);
+    if (featuredMedia) {
+      const document = await getDocument("article", id);
+      if (!document) throw new Error(`No such article: ${id}`);
+      await saveDraft(
+        "article",
+        id,
+        withArticleFeaturedMedia(document.draft_data, featuredMedia) as Json
+      );
+    }
     if (tagIds) await setArticleTags(id, tagIds);
     // KEEP READING is rendered on this article's own page and nowhere else, so
     // unlike a re-filing it moves no other page's content. The shared

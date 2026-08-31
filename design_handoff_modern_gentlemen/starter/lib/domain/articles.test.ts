@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { ARTICLE_TEMPLATES } from "@/lib/demo/articles";
 import {
+  articleEmbedUrl,
+  articleFeaturedMediaOf,
+  articleFeaturedMediaUsages,
   ARTICLE_TEMPLATE_LAYOUTS,
   ARTICLE_TEMPLATE_NAMES,
   DEFAULT_ARTICLE_TEMPLATE,
@@ -15,6 +18,7 @@ import {
   normalizeRelatedIds,
   readingTimes,
   readingUnitFor,
+  withArticleFeaturedMedia,
 } from "./articles";
 
 /**
@@ -50,6 +54,54 @@ describe("article templates", () => {
     // "Feature — Standard" uses an em dash, not a hyphen. A silent substitution
     // here would not match the library key and the article would fall back.
     expect(ARTICLE_TEMPLATE_NAMES).toContain("Feature — Standard");
+  });
+});
+
+describe("article featured media", () => {
+  const media = {
+    kind: "gallery" as const,
+    cover: { assetId: "cover-id", url: "/cover.jpg", kind: "image" as const },
+    gallery: [
+      { assetId: "one-id", url: "/one.jpg", kind: "image" as const, alt: "One" },
+      { assetId: "two-id", url: "/two.gif", kind: "gif" as const },
+    ],
+  };
+
+  it("merges into hero without losing unrelated draft content", () => {
+    const payload = withArticleFeaturedMedia(
+      { hero: { category: "Style", videoUrl: "/old.mp4" }, sections: [{ _type: "x" }] },
+      media
+    );
+
+    expect((payload.hero as Record<string, unknown>).category).toBe("Style");
+    expect((payload.hero as Record<string, unknown>).videoUrl).toBeUndefined();
+    expect(payload.sections).toEqual([{ _type: "x" }]);
+    expect(articleFeaturedMediaOf(payload)).toEqual(media);
+  });
+
+  it("mirrors a selected video to the legacy field", () => {
+    const payload = withArticleFeaturedMedia(
+      { hero: {} },
+      { kind: "video", video: { url: "/film.mp4", kind: "video" } }
+    );
+    expect((payload.hero as Record<string, unknown>).videoUrl).toBe("/film.mp4");
+  });
+
+  it("reports direct asset ids for usage protection", () => {
+    expect(articleFeaturedMediaUsages(withArticleFeaturedMedia({}, media))).toEqual([
+      { assetId: "cover-id", fieldPath: "hero.featuredMedia.cover", url: "/cover.jpg" },
+      { assetId: "one-id", fieldPath: "hero.featuredMedia.gallery.0", url: "/one.jpg" },
+      { assetId: "two-id", fieldPath: "hero.featuredMedia.gallery.1", url: "/two.gif" },
+    ]);
+  });
+
+  it("allows only HTTPS YouTube and Vimeo embeds", () => {
+    expect(articleEmbedUrl("https://youtu.be/abc123")).toBe(
+      "https://www.youtube-nocookie.com/embed/abc123"
+    );
+    expect(articleEmbedUrl("https://vimeo.com/12345")).toBe("https://player.vimeo.com/video/12345");
+    expect(articleEmbedUrl("http://youtube.com/watch?v=nope")).toBeUndefined();
+    expect(articleEmbedUrl("https://example.com/video")).toBeUndefined();
   });
 });
 

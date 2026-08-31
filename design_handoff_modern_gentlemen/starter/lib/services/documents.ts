@@ -35,6 +35,7 @@ import {
 import type { Permission } from "@/lib/domain/permissions";
 import { requirePermission } from "./auth";
 import { clearEntityMedia, reconcileEntityMedia } from "./media";
+import { articleFeaturedMediaUsages } from "@/lib/domain/articles";
 
 export type DocumentAction = "read" | "write" | "publish" | "delete";
 
@@ -228,7 +229,12 @@ export async function saveDraft(
   // insert-before-delete ordering in the repository — every failure mode here
   // is arranged to leave a stale reference rather than a missing one.
   try {
-    await reconcileEntityMedia(type, id, blockTreesOf(type, payload));
+    await reconcileEntityMedia(
+      type,
+      id,
+      blockTreesOf(type, payload),
+      type === "article" ? articleFeaturedMediaUsages(payload) : []
+    );
   } catch (error) {
     console.error(`Media usage reconciliation failed for ${type} ${id}:`, error);
   }

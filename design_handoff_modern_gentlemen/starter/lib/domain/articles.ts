@@ -163,6 +163,149 @@ export interface ArticleDoc {
   dek?: string;
   heroImage?: string;
   videoUrl?: string;
+  featuredMedia?: ArticleFeaturedMedia;
+}
+
+export const ARTICLE_FEATURED_MEDIA_KINDS = ["image", "video", "gif", "embed", "gallery"] as const;
+export type ArticleFeaturedMediaKind = (typeof ARTICLE_FEATURED_MEDIA_KINDS)[number];
+
+export interface ArticleMediaAsset {
+  assetId?: string;
+  url: string;
+  kind: "image" | "gif" | "video";
+  alt?: string;
+}
+
+export interface ArticleFeaturedMedia {
+  kind: ArticleFeaturedMediaKind;
+  cover?: ArticleMediaAsset;
+  video?: ArticleMediaAsset;
+  embedUrl?: string;
+  gallery?: ArticleMediaAsset[];
+}
+
+const mediaAssetOf = (value: unknown): ArticleMediaAsset | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const item = value as Record<string, unknown>;
+  if (typeof item.url !== "string" || !item.url) return undefined;
+  if (item.kind !== "image" && item.kind !== "gif" && item.kind !== "video") return undefined;
+  return {
+    url: item.url,
+    kind: item.kind,
+    ...(typeof item.assetId === "string" ? { assetId: item.assetId } : {}),
+    ...(typeof item.alt === "string" && item.alt ? { alt: item.alt } : {}),
+  };
+};
+
+/** Read the optional v2 media record without making legacy hero payloads invalid. */
+export function articleFeaturedMediaOf(
+  payload: unknown,
+  includeLegacyVideo = false
+): ArticleFeaturedMedia | undefined {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return undefined;
+  const hero = (payload as Record<string, unknown>).hero;
+  if (!hero || typeof hero !== "object" || Array.isArray(hero)) return undefined;
+  const heroRecord = hero as Record<string, unknown>;
+  const value = heroRecord.featuredMedia;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return includeLegacyVideo && typeof heroRecord.videoUrl === "string" && heroRecord.videoUrl
+      ? { kind: "video", video: { kind: "video", url: heroRecord.videoUrl } }
+      : undefined;
+  }
+  const media = value as Record<string, unknown>;
+  if (!(ARTICLE_FEATURED_MEDIA_KINDS as readonly unknown[]).includes(media.kind)) return undefined;
+
+  const gallery = Array.isArray(media.gallery)
+    ? media.gallery
+        .flatMap((item) => {
+          const asset = mediaAssetOf(item);
+          return asset && asset.kind !== "video" ? [asset] : [];
+        })
+        .slice(0, 12)
+    : undefined;
+
+  const cover = mediaAssetOf(media.cover);
+  const video = mediaAssetOf(media.video);
+  return {
+    kind: media.kind as ArticleFeaturedMediaKind,
+    ...(cover && cover.kind !== "video" ? { cover } : {}),
+    ...(video?.kind === "video" ? { video } : {}),
+    ...(typeof media.embedUrl === "string" && media.embedUrl ? { embedUrl: media.embedUrl } : {}),
+    ...(gallery?.length ? { gallery } : {}),
+  };
+}
+
+/** Merge presentation media while preserving every unrelated legacy hero key. */
+export function withArticleFeaturedMedia(
+  payload: unknown,
+  featuredMedia: ArticleFeaturedMedia
+): Record<string, unknown> {
+  const root =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? { ...(payload as Record<string, unknown>) }
+      : {};
+  const currentHero =
+    root.hero && typeof root.hero === "object" && !Array.isArray(root.hero)
+      ? (root.hero as Record<string, unknown>)
+      : {};
+  const hero: Record<string, unknown> = { ...currentHero, featuredMedia };
+
+  if (featuredMedia.kind === "video" && featuredMedia.video?.url) {
+    hero.videoUrl = featuredMedia.video.url;
+  } else {
+    delete hero.videoUrl;
+  }
+
+  return { ...root, hero };
+}
+
+/** Direct asset references carried outside the block tree, for usage protection. */
+export function articleFeaturedMediaUsages(
+  payload: unknown
+): { assetId: string; fieldPath: string; url: string }[] {
+  const media = articleFeaturedMediaOf(payload);
+  if (!media) return [];
+  const items = [
+    ...(media.cover ? [{ asset: media.cover, path: "hero.featuredMedia.cover" }] : []),
+    ...(media.video ? [{ asset: media.video, path: "hero.featuredMedia.video" }] : []),
+    ...(media.gallery ?? []).map((asset, index) => ({
+      asset,
+      path: `hero.featuredMedia.gallery.${index}`,
+    })),
+  ];
+  return items.flatMap(({ asset, path }) =>
+    asset.assetId ? [{ assetId: asset.assetId, fieldPath: path, url: asset.url }] : []
+  );
+}
+
+/** Convert supported YouTube/Vimeo share URLs to a privacy-bounded player URL. */
+export function articleEmbedUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return undefined;
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : undefined;
+    }
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
+      const id = url.pathname.startsWith("/embed/")
+        ? url.pathname.split("/")[2]
+        : url.searchParams.get("v");
+      return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : undefined;
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = url.pathname
+        .split("/")
+        .filter(Boolean)
+        .find((part) => /^\d+$/.test(part));
+      return id ? `https://player.vimeo.com/video/${id}` : undefined;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }
 
 export interface ResolvedArticle extends ArticleDoc, ArticleLayout {

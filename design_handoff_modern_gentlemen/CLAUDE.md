@@ -118,6 +118,12 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   the same semantic React renderer used publicly. Existing plain strings retain
   their paragraph and line-break behavior; raw HTML is never interpreted, and
   user-authored links must pass the renderer's explicit safe-scheme allowlist.
+- **Article featured media is versioned presentation data.** Cover/poster images
+  retain the article column foreign key; the selected image/GIF/video/embed or
+  ordered gallery lives under `hero.featuredMedia`, with the legacy `videoUrl`
+  mirrored for old Film Feature rendering. Public embeds are restricted to
+  HTTPS YouTube/Vimeo player URLs. Asset ids and URLs must agree with the media
+  catalogue before a usage record is accepted.
 - **Public template assignments preserve a fixed compatibility path.** Page,
   category, article and product templates compose builder trees; shop, header
   and footer templates insert their existing interactive composition at the

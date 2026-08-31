@@ -10,6 +10,7 @@ import { SectionRenderer } from "@/components/SectionRenderer";
 import { ReadingProgress } from "@/components/article/ReadingProgress";
 import { ArticleHero } from "@/components/article/ArticleHero";
 import { ArticleBody } from "@/components/article/ArticleBody";
+import { ArticleFeaturedMedia } from "@/components/article/ArticleFeaturedMedia";
 import { RelatedGrid } from "@/components/article/RelatedGrid";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { canonicalSiteUrl } from "@/lib/db/env";
@@ -119,6 +120,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             image={a.heroImage}
             videoUrl={a.videoUrl}
           />
+          {a.featuredMedia &&
+            (a.featuredMedia.kind === "gallery" ||
+              a.featuredMedia.kind === "embed" ||
+              (a.featuredMedia.kind === "video" && a.hero !== "video")) && (
+              <ArticleFeaturedMedia media={a.featuredMedia} />
+            )}
           <ArticleBody
             variant={a.body}
             author={a.author}

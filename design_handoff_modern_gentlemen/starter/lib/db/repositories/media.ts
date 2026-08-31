@@ -168,6 +168,12 @@ export async function getAsset(db: Db, id: string): Promise<AssetRow | null> {
   );
 }
 
+export async function findAssetsByIds(db: Db, ids: string[]): Promise<AssetRow[]> {
+  if (ids.length === 0) return [];
+  return (unwrap("findAssetsByIds", await db.from("media_assets").select("*").in("id", ids)) ??
+    []) as AssetRow[];
+}
+
 /** Deduplication: identical bytes resolve to the asset already in the library. */
 export async function findAssetByChecksum(db: Db, checksum: string): Promise<AssetRow | null> {
   return (

@@ -448,7 +448,8 @@ export async function deleteAsset(id: string): Promise<void> {
 export async function reconcileEntityMedia(
   entityType: string,
   entityId: string,
-  trees: { path: string; tree: BlockNode[] }[]
+  trees: { path: string; tree: BlockNode[] }[],
+  directUsages: { assetId: string; fieldPath: string; url: string }[] = []
 ): Promise<void> {
   const db = await createClient();
 
@@ -477,7 +478,18 @@ export async function reconcileEntityMedia(
     return assetId ? [{ assetId, fieldPath: reference.fieldPath }] : [];
   });
 
-  await repo.replaceUsagesForEntity(db, entityType, entityId, usages);
+  // Payload ids are editor input. Verify both the id and its resolved URL so a
+  // stale or hand-written pair cannot protect the wrong library asset.
+  const directAssets = await repo.findAssetsByIds(
+    db,
+    directUsages.map((usage) => usage.assetId)
+  );
+  const directUrlById = new Map(directAssets.map((asset) => [asset.id, toAssetView(asset).url]));
+  const verifiedDirect = directUsages
+    .filter((usage) => directUrlById.get(usage.assetId) === usage.url)
+    .map(({ assetId, fieldPath }) => ({ assetId, fieldPath }));
+
+  await repo.replaceUsagesForEntity(db, entityType, entityId, [...usages, ...verifiedDirect]);
 }
 
 /**

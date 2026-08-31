@@ -28,6 +28,7 @@ import type { BlockTree } from "@/lib/blocks/types";
 import type { Json } from "@/lib/db/database.types";
 import {
   authorInitial,
+  articleFeaturedMediaOf,
   composeByline,
   composeCardTag,
   composeKicker,
@@ -206,6 +207,7 @@ function categoryLabel(row: {
 
 function docOf(row: ArticleRow): ArticleDoc {
   const hero = payloadObject(row.published_data, "hero");
+  const featuredMedia = articleFeaturedMediaOf(row.published_data);
 
   return {
     slug: row.slug,
@@ -217,7 +219,8 @@ function docOf(row: ArticleRow): ArticleDoc {
     read: row.reading_minutes === null ? "" : `${row.reading_minutes} MIN`,
     dek: row.excerpt ?? undefined,
     heroImage: assetUrl(row.media_assets),
-    videoUrl: optionalString(hero.videoUrl),
+    videoUrl: featuredMedia?.video?.url ?? optionalString(hero.videoUrl),
+    ...(featuredMedia ? { featuredMedia } : {}),
   };
 }
 

@@ -10,6 +10,7 @@ import { Button } from "@/components/admin/ui/Button";
 import { StatusPill } from "@/components/admin/ui/Badge";
 
 import { ArticleDetails } from "./ArticleDetails";
+import { articleFeaturedMediaOf, type ArticleFeaturedMedia } from "@/lib/domain/articles";
 
 /**
  * An article's details screen.
@@ -46,6 +47,19 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
   // when a featured image is set, and keeping `getArticleMeta` a plain column
   // read leaves it usable from anywhere.
   const featured = meta.featured_asset_id ? await getAsset(meta.featured_asset_id) : null;
+  const storedMedia = articleFeaturedMediaOf(document.draft_data, true);
+  const cover = featured
+    ? {
+        assetId: featured.id,
+        url: featured.url,
+        kind: (featured.kind === "gif" ? "gif" : "image") as "gif" | "image",
+        ...(featured.altText ? { alt: featured.altText } : {}),
+      }
+    : storedMedia?.cover;
+  const featuredMedia: ArticleFeaturedMedia = {
+    ...(storedMedia ?? { kind: cover?.kind ?? "image" }),
+    ...(cover ? { cover } : {}),
+  };
 
   const canWrite = user.permissions.has("article.write");
 
@@ -82,8 +96,9 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
           template: meta.template,
           categoryId: meta.category_id,
           authorId: meta.author_id,
-          featuredAssetId: meta.featured_asset_id,
-          featuredAssetUrl: featured?.url ?? null,
+          featuredAssetId: meta.featured_asset_id ?? cover?.assetId ?? null,
+          featuredAssetUrl: featured?.url ?? cover?.url ?? null,
+          featuredMedia,
           readingMinutes: meta.reading_minutes,
           issueNo: meta.issue_no,
           tagIds,
