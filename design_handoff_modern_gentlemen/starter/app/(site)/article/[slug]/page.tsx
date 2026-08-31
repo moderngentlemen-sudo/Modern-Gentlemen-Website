@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPublishedArticle, listPublishedArticleSlugs } from "@/lib/services/publicEditorial";
+import {
+  getPublishedArticle,
+  getPublishedArticleBuilder,
+  listPublishedArticleSlugs,
+} from "@/lib/services/publicEditorial";
+import { composePublishedDocument } from "@/lib/services/publicContent";
+import { SectionRenderer } from "@/components/SectionRenderer";
 import { ReadingProgress } from "@/components/article/ReadingProgress";
 import { ArticleHero } from "@/components/article/ArticleHero";
 import { ArticleBody } from "@/components/article/ArticleBody";
@@ -71,8 +77,12 @@ export async function generateMetadata({
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const a = await getPublishedArticle(slug);
-  if (!a) notFound();
+  const [a, builder] = await Promise.all([
+    getPublishedArticle(slug),
+    getPublishedArticleBuilder(slug),
+  ]);
+  if (!a || !builder) notFound();
+  const composed = await composePublishedDocument("article", builder.id, builder.sections);
 
   return (
     <>
@@ -96,22 +106,28 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         })}
       />
       <ReadingProgress />
-      <ArticleHero
-        variant={a.hero}
-        kicker={a.kicker}
-        title={a.title}
-        dek={a.dek}
-        byline={a.byline}
-        image={a.heroImage}
-        videoUrl={a.videoUrl}
-      />
-      <ArticleBody
-        variant={a.body}
-        author={a.author}
-        authorInitial={a.authorInitial}
-        issue={a.issue}
-      />
-      <RelatedGrid items={a.related} />
+      {composed ? (
+        <SectionRenderer sections={composed} />
+      ) : (
+        <>
+          <ArticleHero
+            variant={a.hero}
+            kicker={a.kicker}
+            title={a.title}
+            dek={a.dek}
+            byline={a.byline}
+            image={a.heroImage}
+            videoUrl={a.videoUrl}
+          />
+          <ArticleBody
+            variant={a.body}
+            author={a.author}
+            authorInitial={a.authorInitial}
+            issue={a.issue}
+          />
+          <RelatedGrid items={a.related} />
+        </>
+      )}
     </>
   );
 }

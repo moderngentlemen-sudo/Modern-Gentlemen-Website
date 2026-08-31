@@ -43,6 +43,13 @@ Stack, Columns and every existing high-fidelity section. They extend the
 component library; they do not replace or weaken compatibility with the legacy
 sections.
 
+Published template assignments now reach every public composition they model.
+Page and category trees continue to splice structurally; article and product
+assignments opt their detail routes into the document's builder tree; the shop,
+header and footer use runtime marker insertion so the existing client store,
+menus, search, bag and theme controls remain reproducible. With no published
+assignment, each route follows its original fixed path byte-for-byte.
+
 Uncustomized components receive no additional DOM wrapper. Values are selected
 from closed vocabularies rather than injected as raw CSS.
 

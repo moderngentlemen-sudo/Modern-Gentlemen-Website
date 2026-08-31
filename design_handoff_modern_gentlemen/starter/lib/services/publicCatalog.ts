@@ -27,6 +27,8 @@ import {
 } from "@/lib/domain/products";
 import type { PublicVariant } from "@/lib/domain/variants";
 import type { Product, Tag } from "@/lib/cart/types";
+import type { BlockTree } from "@/lib/blocks/types";
+import type { Json } from "@/lib/db/database.types";
 
 /**
  * The gallery arrives as an embedded array. PostgREST can order an embedded
@@ -232,4 +234,26 @@ export async function getPublishedProductSeo(slug: string): Promise<PublishedPro
     // large costs £159.99 told a crawler £145.
     variants: variantsOf(data.product_variants as VariantRow[] | null),
   };
+}
+
+function productSections(payload: Json | null): BlockTree {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+  const sections = (payload as Record<string, unknown>).sections;
+  return Array.isArray(sections) ? (sections as BlockTree) : [];
+}
+
+/** Product identity and builder tree without widening the established store contract. */
+export async function getPublishedProductBuilder(
+  slug: string
+): Promise<{ id: string; sections: BlockTree } | null> {
+  const db = createPublicClient();
+  const { data, error } = await db
+    .from("products")
+    .select("id, published_data")
+    .eq("status", "published")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not read the product builder content: ${error.message}`);
+  return data ? { id: data.id, sections: productSections(data.published_data) } : null;
 }

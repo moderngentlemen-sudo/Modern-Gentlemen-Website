@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { saveDraft } from "@/lib/services/documents";
-import { publicPathsForTemplate } from "@/lib/services/templates";
+import { getTemplate, publicPathsForTemplate } from "@/lib/services/templates";
 import { createPreview } from "@/lib/services/preview";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
 import { AREA_NAME_PATTERN, AREAS_KEY } from "@/lib/blocks/areas";
@@ -86,6 +86,10 @@ function revalidateTemplate(id: string): void {
 async function revalidatePublicTemplate(id: string): Promise<void> {
   try {
     for (const path of await publicPathsForTemplate(id)) revalidatePath(path);
+    const template = await getTemplate(id);
+    if (template?.kind === "header" || template?.kind === "footer") {
+      revalidatePath("/", "layout");
+    }
   } catch (error) {
     console.error(`Published template ${id} but could not revalidate its pages:`, error);
   }

@@ -38,3 +38,26 @@ describe("SectionRenderer visibility", () => {
     expect(html).toContain("A visible idea");
   });
 });
+
+describe("SectionRenderer template content", () => {
+  it("inserts runtime content at a nested marker without adding a marker wrapper", () => {
+    const html = renderToStaticMarkup(
+      <SectionRenderer
+        sections={[
+          {
+            _key: "frame",
+            _type: "stack",
+            settings: {},
+            children: [{ _key: "content", _type: "documentContent", settings: {} }],
+          },
+        ]}
+        documentContent={<aside data-runtime-content>Fixed public chrome</aside>}
+      />
+    );
+
+    expect(html).toContain("data-runtime-content");
+    expect(html).toContain("Fixed public chrome");
+    expect(html.match(/<aside/g)).toHaveLength(1);
+    expect(html).not.toContain("documentContent");
+  });
+});

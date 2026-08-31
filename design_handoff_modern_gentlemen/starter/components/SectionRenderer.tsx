@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { Fragment, type ComponentType, type ReactNode } from "react";
 import { registry, type BlockType } from "./sections/registry";
 import { MissingBlock } from "./sections/MissingBlock";
 import { normalizeBlock } from "@/lib/blocks/normalize";
@@ -7,6 +7,7 @@ import type { BlockNode } from "@/lib/blocks/types";
 import { BlockDesignFrame } from "./BlockDesignFrame";
 import { VisualElementFrame } from "./VisualElementFrame";
 import { BlockVisibilityFrame } from "./BlockVisibilityFrame";
+import { DOCUMENT_CONTENT_TYPE } from "@/lib/blocks/templateContent";
 
 /**
  * The stored shape of a section. Aliased to `BlockNode` rather than redeclared,
@@ -34,11 +35,22 @@ export type Block = BlockNode;
  *  `children` never arrives as a prop, either. `normalizeBlock` strips it as a
  *  structural key, so a component receives React nodes and knows nothing about
  *  `BlockNode` — the same separation the block/component split rests on. */
-export function SectionRenderer({ sections }: { sections?: Block[] }) {
+export function SectionRenderer({
+  sections,
+  documentContent,
+}: {
+  sections?: Block[];
+  /** Runtime content inserted at a template marker. */
+  documentContent?: ReactNode;
+}) {
   if (!sections?.length) return null;
   return (
     <>
       {sections.map((block) => {
+        if (block._type === DOCUMENT_CONTENT_TYPE && documentContent !== undefined) {
+          return <Fragment key={block._key}>{documentContent}</Fragment>;
+        }
+
         const Cmp = registry[block._type as BlockType];
         if (!Cmp) {
           return process.env.NODE_ENV === "development" ? (
@@ -58,7 +70,7 @@ export function SectionRenderer({ sections }: { sections?: Block[] }) {
               <BlockDesignFrame design={block.design}>
                 <VisualElementFrame blockKey={block._key} visual={block.visual}>
                   <Component {...normalizeBlock(block)}>
-                    <SectionRenderer sections={children} />
+                    <SectionRenderer sections={children} documentContent={documentContent} />
                   </Component>
                 </VisualElementFrame>
               </BlockDesignFrame>

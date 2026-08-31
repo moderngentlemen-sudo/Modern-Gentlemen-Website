@@ -6,6 +6,8 @@ import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
 import { CHROME_MENU_KEYS } from "@/lib/domain/navigation";
 import { Header } from "@/components/chrome/Header";
 import { Footer } from "@/components/chrome/Footer";
+import { SectionRenderer } from "@/components/SectionRenderer";
+import { getPublishedGlobalTemplate } from "@/lib/services/publicContent";
 
 /**
  * The public site's chrome, lifted verbatim out of the root layout so that
@@ -32,10 +34,12 @@ import { Footer } from "@/components/chrome/Footer";
 export const revalidate = 3600;
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [products, nav, design] = await Promise.all([
+  const [products, nav, design, headerTemplate, footerTemplate] = await Promise.all([
     listPublishedProducts(),
     getChromeNavigation(CHROME_MENU_KEYS),
     getPublishedThemeSettings(),
+    getPublishedGlobalTemplate("header"),
+    getPublishedGlobalTemplate("footer"),
   ]);
 
   // Thrown, not rendered empty — the same stance the homepage takes towards a
@@ -52,9 +56,29 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <CatalogProvider products={products}>
       <CartProvider>
-        <Header nav={nav.header} drawerSecondary={nav.drawerSecondary} settings={design.header} />
+        {headerTemplate ? (
+          <SectionRenderer
+            sections={headerTemplate}
+            documentContent={
+              <Header
+                nav={nav.header}
+                drawerSecondary={nav.drawerSecondary}
+                settings={design.header}
+              />
+            }
+          />
+        ) : (
+          <Header nav={nav.header} drawerSecondary={nav.drawerSecondary} settings={design.header} />
+        )}
         <main style={{ paddingTop: design.header.height }}>{children}</main>
-        <Footer nav={nav.footer} legal={nav.footerLegal} />
+        {footerTemplate ? (
+          <SectionRenderer
+            sections={footerTemplate}
+            documentContent={<Footer nav={nav.footer} legal={nav.footerLegal} />}
+          />
+        ) : (
+          <Footer nav={nav.footer} legal={nav.footerLegal} />
+        )}
       </CartProvider>
     </CatalogProvider>
   );

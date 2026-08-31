@@ -191,15 +191,18 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   original request, which is exactly why this hid for so long. Nothing in the
   test suite can catch it: everything runs single-host with no proxy. `curl -o
   /dev/null -w '%{redirect_url}'` against the live URL finds it in one request.
-- **A template frames the page it is assigned to, and the marker decides where.**
+- **A template frames the public composition it is assigned to, and the marker decides where.**
   A `documentContent` block in a template marks where the assigned document's own
   sections are spliced in (`lib/blocks/templateContent.ts`), and **the area holding
   that marker is the area that renders** — not one called `main`. That indirection
   is load-bearing: an earlier version keyed the renderer on the name, and renaming
   an area silently unhooked the template from every page using it. Publish
   validation refuses zero markers (the page's sections would vanish) and two (they
-  would render twice). Only `page` templates render today — `/article/[slug]` and
-  the PDP are fixed components, not block trees.
+  would render twice). Page/category/article/product templates splice block
+  trees. Shop/header/footer templates insert their existing runtime composition
+  at the same marker, preserving client filtering, navigation, search, bag and
+  theme behavior. An absent or unpublished assignment always uses the original
+  fixed composition; this is the compatibility fallback, not demo data.
 - **A public image goes through `MediaImage` or `imageUrl.ts`, and it needs a
   `slot`.** `components/ui/MediaImage.tsx` is the public site's `<img>`;
   `optimizedImageUrl`/`backgroundImageUrl` cover the two places `next/image`

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  FRAMED_CONTENT_TYPE,
+  FRAMED_CONTENT_TYPES,
   framedContentTypeFor,
+  framedContentTypesFor,
   isTemplateKind,
   TEMPLATE_KIND_DESCRIPTION,
   TEMPLATE_KINDS,
@@ -49,13 +50,13 @@ describe("framedContentTypeFor", () => {
     expect(framedContentTypeFor("archive")).toBe("category");
   });
 
-  it("frames nothing from the five kinds no route renders", () => {
-    // `article` and `product` resolve and publish and change no path, because
-    // `/article/[slug]` and the PDP are fixed components rather than block
-    // trees. `header`/`footer`/`section` have no route of their own at all.
-    for (const kind of ["article", "product", "header", "footer", "section"] as const) {
-      expect(framedContentTypeFor(kind), kind).toBeNull();
-    }
+  it("maps detail routes and global parts, leaving only section unassigned", () => {
+    expect(framedContentTypeFor("article")).toBe("article");
+    expect(framedContentTypeFor("product")).toBe("product");
+    expect(framedContentTypeFor("header")).toBe("header");
+    expect(framedContentTypeFor("footer")).toBe("footer");
+    expect(framedContentTypeFor("section")).toBeNull();
+    expect(framedContentTypesFor("archive")).toEqual(["category", "shop"]);
   });
 
   it("decides for every kind, so a new one cannot default to framing nothing", () => {
@@ -64,9 +65,9 @@ describe("framedContentTypeFor", () => {
     // a type error at the declaration and a failure here if someone widens the
     // type without widening the map.
     for (const kind of TEMPLATE_KINDS) {
-      expect(Object.hasOwn(FRAMED_CONTENT_TYPE, kind), kind).toBe(true);
+      expect(Object.hasOwn(FRAMED_CONTENT_TYPES, kind), kind).toBe(true);
     }
-    expect(Object.keys(FRAMED_CONTENT_TYPE).sort()).toEqual([...TEMPLATE_KINDS].sort());
+    expect(Object.keys(FRAMED_CONTENT_TYPES).sort()).toEqual([...TEMPLATE_KINDS].sort());
   });
 
   it("only ever names a content type something can actually frame", () => {
@@ -75,7 +76,9 @@ describe("framedContentTypeFor", () => {
     // not exist, which is the pairing this test exists to keep honest.
     for (const kind of TEMPLATE_KINDS) {
       const framed = framedContentTypeFor(kind);
-      if (framed !== null) expect(["page", "category"]).toContain(framed);
+      if (framed !== null) {
+        expect(["page", "category", "article", "product", "header", "footer"]).toContain(framed);
+      }
     }
   });
 });

@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 
-import { getPublishedProductSeo, listPublishedProducts } from "@/lib/services/publicCatalog";
+import {
+  getPublishedProductBuilder,
+  getPublishedProductSeo,
+  listPublishedProducts,
+} from "@/lib/services/publicCatalog";
+import { composePublishedDocument } from "@/lib/services/publicContent";
+import { SectionRenderer } from "@/components/SectionRenderer";
 
 import { ProductView } from "./ProductView";
 
@@ -42,8 +48,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // fetches one row and is scoped to `status = 'published'` by the same policy
   // the rest of the public catalogue reads under, so a draft product is a 404
   // here rather than a page nobody meant to publish.
-  const product = await getPublishedProductSeo(slug);
-  if (!product) notFound();
+  const [product, builder] = await Promise.all([
+    getPublishedProductSeo(slug),
+    getPublishedProductBuilder(slug),
+  ]);
+  if (!product || !builder) notFound();
+  const composed = await composePublishedDocument("product", builder.id, builder.sections);
 
-  return <ProductView slug={slug} />;
+  return composed ? <SectionRenderer sections={composed} /> : <ProductView slug={slug} />;
 }

@@ -155,9 +155,9 @@ export async function expandPublicPatterns(tree: BlockTree): Promise<BlockTree> 
  * back to a draft would ship an editor's half-finished layout to every page
  * assigned to the template at once.
  */
-async function publishedTemplateArea(
+export async function publishedTemplateArea(
   contentType: string,
-  entryId: string
+  entryId?: string | null
 ): Promise<BlockTree | null> {
   const db = createPublicClient();
 
@@ -167,13 +167,16 @@ async function publishedTemplateArea(
   // row today, which is exactly the reasoning that stops being true the day
   // somebody passes a slug. Two indexed lookups on a table with single-digit
   // rows cost nothing worth protecting.
+  const entryPromise = entryId
+    ? db
+        .from("template_assignments")
+        .select("template_id")
+        .eq("scope", "entry")
+        .eq("entry_id", entryId)
+        .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
   const [entryScoped, typeScoped] = await Promise.all([
-    db
-      .from("template_assignments")
-      .select("template_id")
-      .eq("scope", "entry")
-      .eq("entry_id", entryId)
-      .maybeSingle(),
+    entryPromise,
     db
       .from("template_assignments")
       .select("template_id")
@@ -211,6 +214,29 @@ async function publishedTemplateArea(
   // rather than on a name so that renaming an area cannot unhook the template
   // — see `findContentArea`.
   return findContentArea(readAreas(template.published_data));
+}
+
+/**
+ * Opt-in composition for routes whose existing fixed layout remains the
+ * compatibility fallback. `null` means no published template applies.
+ */
+export async function composePublishedDocument(
+  contentType: "article" | "product",
+  entryId: string,
+  sections: BlockTree
+): Promise<BlockTree | null> {
+  const area = await publishedTemplateArea(contentType, entryId);
+  if (!area) return null;
+  const own = await expandPublicPatterns(sections);
+  return expandPublicPatterns(applyTemplate(area, own));
+}
+
+/** A singleton archive or global-part template, ready for runtime marker insertion. */
+export async function getPublishedGlobalTemplate(
+  contentType: "shop" | "header" | "footer"
+): Promise<BlockTree | null> {
+  const area = await publishedTemplateArea(contentType);
+  return area ? expandPublicPatterns(area) : null;
 }
 
 /**

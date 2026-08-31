@@ -8,8 +8,17 @@ import { DEFAULT_AREA_NAME } from "@/lib/blocks/areas";
 import type { BlockNode, BlockTree } from "@/lib/blocks/types";
 import { DOCUMENT_CONTENT_TYPE } from "@/lib/blocks/templateContent";
 import type { Json } from "@/lib/db/database.types";
-import { publicPathForCategory, publicPathForPage } from "@/lib/domain/routes";
-import { framedContentTypeFor } from "@/lib/domain/templates";
+import {
+  publicPathForArticle,
+  publicPathForCategory,
+  publicPathForPage,
+  publicPathForProduct,
+} from "@/lib/domain/routes";
+import {
+  framedContentTypeFor,
+  framedContentTypesFor,
+  type FramedContentType,
+} from "@/lib/domain/templates";
 import { requirePermission } from "./auth";
 
 export type { TemplateRow } from "@/lib/db/repositories/templates";
@@ -137,61 +146,62 @@ export async function publicPathsForTemplate(id: string): Promise<string[]> {
   const template = await repo.getTemplate(db, id);
   if (!template) return [];
 
-  // `kind` decides the table and the path shape together, so the two cannot be
-  // paired wrongly the way two separate switches eventually would be. Which
-  // kinds frame anything is `lib/domain`'s call — `FRAMED_CONTENT_TYPE` is a
-  // Record over the kind vocabulary, so a new kind is a type error here rather
-  // than a silent "frames nothing".
-  const contentType = framedContentTypeFor(template.kind);
-  const framed =
-    contentType === "page"
-      ? ({ table: "pages", path: publicPathForPage } as const)
-      : contentType === "category"
-        ? ({ table: "categories", path: publicPathForCategory } as const)
-        : null;
-
-  if (!framed) return [];
-
   const { data: assignments, error } = await db
     .from("template_assignments")
-    .select("scope, entry_id")
+    .select("scope, content_type, entry_id")
     .eq("template_id", id);
 
   if (error) throw new Error(`Could not read this template's assignments: ${error.message}`);
   if (!assignments?.length) return [];
 
-  const wholeType = assignments.some((row) => row.scope === "content_type");
-  const entryIds = assignments
-    .filter((row) => row.scope === "entry" && row.entry_id)
-    .map((row) => row.entry_id as string);
+  const paths: string[] = [];
+  const primary = framedContentTypeFor(template.kind);
 
-  if (!wholeType && entryIds.length === 0) return [];
+  for (const contentType of framedContentTypesFor(template.kind)) {
+    const wholeType = assignments.some(
+      (row) => row.scope === "content_type" && row.content_type === contentType
+    );
+    const entryIds = assignments
+      .filter(
+        (row) =>
+          row.scope === "entry" &&
+          row.entry_id &&
+          (row.content_type === contentType || (!row.content_type && contentType === primary))
+      )
+      .map((row) => row.entry_id as string);
 
-  // Branched rather than parameterised, for the reason `readFramed` records in
-  // `publicContent.ts`: a `db.from(table)` over a union cross-products the
-  // tables with the columns, and `tsc` then objects to a call that never
-  // happens. Four duplicated lines beat a generic over `PostgrestFilterBuilder`.
-  let slugs: string[];
+    if (contentType === "shop" && wholeType) paths.push("/shop");
+    if ((contentType === "header" || contentType === "footer") && wholeType) paths.push("/");
+    if (!wholeType && entryIds.length === 0) continue;
 
-  if (framed.table === "pages") {
-    let query = db.from("pages").select("slug").eq("status", "published");
-    if (!wholeType) query = query.in("id", entryIds);
-    const { data, error: readError } = await query;
-    if (readError) {
-      throw new Error(`Could not read the pages this template frames: ${readError.message}`);
+    if (contentType === "page") {
+      let query = db.from("pages").select("slug").eq("status", "published");
+      if (!wholeType) query = query.in("id", entryIds);
+      const { data, error: readError } = await query;
+      if (readError) throw new Error(`Could not read framed pages: ${readError.message}`);
+      paths.push(...(data ?? []).map((row) => publicPathForPage(row.slug)));
+    } else if (contentType === "category") {
+      let query = db.from("categories").select("slug").eq("status", "published");
+      if (!wholeType) query = query.in("id", entryIds);
+      const { data, error: readError } = await query;
+      if (readError) throw new Error(`Could not read framed categories: ${readError.message}`);
+      paths.push(...(data ?? []).map((row) => publicPathForCategory(row.slug)));
+    } else if (contentType === "article") {
+      let query = db.from("articles").select("slug").eq("status", "published");
+      if (!wholeType) query = query.in("id", entryIds);
+      const { data, error: readError } = await query;
+      if (readError) throw new Error(`Could not read framed articles: ${readError.message}`);
+      paths.push(...(data ?? []).map((row) => publicPathForArticle(row.slug)));
+    } else if (contentType === "product") {
+      let query = db.from("products").select("slug").eq("status", "published");
+      if (!wholeType) query = query.in("id", entryIds);
+      const { data, error: readError } = await query;
+      if (readError) throw new Error(`Could not read framed products: ${readError.message}`);
+      paths.push(...(data ?? []).map((row) => publicPathForProduct(row.slug)));
     }
-    slugs = (data ?? []).map((row) => row.slug);
-  } else {
-    let query = db.from("categories").select("slug").eq("status", "published");
-    if (!wholeType) query = query.in("id", entryIds);
-    const { data, error: readError } = await query;
-    if (readError) {
-      throw new Error(`Could not read the categories this template frames: ${readError.message}`);
-    }
-    slugs = (data ?? []).map((row) => row.slug);
   }
 
-  return slugs.map(framed.path);
+  return [...new Set(paths)];
 }
 
 // ---------------------------------------------------------------------------
@@ -243,33 +253,47 @@ export async function assignmentBoard(
 
   // Only the content types this list actually needs — a project with no archive
   // templates never reads `categories`.
-  const needed = new Set(
-    templates.map((template) => framedContentTypeFor(template.kind)).filter((type) => type !== null)
-  );
+  const needed = new Set(templates.flatMap((template) => framedContentTypesFor(template.kind)));
 
   const entriesByType = new Map<string, { id: string; label: string }[]>();
   for (const contentType of needed) {
-    entriesByType.set(contentType, await readAssignableEntries(db, contentType));
+    if (
+      contentType === "page" ||
+      contentType === "category" ||
+      contentType === "article" ||
+      contentType === "product"
+    ) {
+      entriesByType.set(contentType, await readAssignableEntries(db, contentType));
+    }
   }
 
-  const targetsFor = (contentType: "page" | "category"): AssignmentTarget[] => [
+  const labels: Record<FramedContentType, { all: string; entry: string }> = {
+    page: { all: "Every page", entry: "Page" },
+    category: { all: "Every category", entry: "Category" },
+    article: { all: "Every article", entry: "Article" },
+    product: { all: "Every product", entry: "Product" },
+    shop: { all: "The shop archive", entry: "Shop" },
+    header: { all: "The site header", entry: "Header" },
+    footer: { all: "The site footer", entry: "Footer" },
+  };
+  const targetsFor = (contentType: FramedContentType): AssignmentTarget[] => [
     {
       value: `content_type:${contentType}`,
-      label: contentType === "page" ? "Every page" : "Every category",
+      label: labels[contentType].all,
       heldBy: holder((row) => row.scope === "content_type" && row.content_type === contentType),
     },
     ...(entriesByType.get(contentType) ?? []).map((entry) => ({
       value: `entry:${entry.id}`,
-      label: `${contentType === "page" ? "Page" : "Category"}: ${entry.label}`,
+      label: `${labels[contentType].entry}: ${entry.label}`,
       heldBy: holder((row) => row.scope === "entry" && row.entry_id === entry.id),
     })),
   ];
 
   return templates.map((template) => {
-    const contentType = framedContentTypeFor(template.kind);
+    const contentTypes = framedContentTypesFor(template.kind);
     return {
       id: template.id,
-      targets: contentType ? targetsFor(contentType) : [],
+      targets: contentTypes.flatMap(targetsFor),
       current: assignments
         .filter((row) => row.template_id === template.id)
         .map((row) =>
@@ -288,7 +312,7 @@ export async function assignmentBoard(
  */
 async function readAssignableEntries(
   db: Awaited<ReturnType<typeof createClient>>,
-  contentType: "page" | "category"
+  contentType: "page" | "category" | "article" | "product"
 ): Promise<{ id: string; label: string }[]> {
   if (contentType === "page") {
     const { data, error } = await db
@@ -300,13 +324,32 @@ async function readAssignableEntries(
     return (data ?? []).map((row) => ({ id: row.id, label: row.title }));
   }
 
+  if (contentType === "category") {
+    const { data, error } = await db
+      .from("categories")
+      .select("id, name")
+      .eq("status", "published")
+      .order("name");
+    if (error) throw new Error(`Could not read assignable categories: ${error.message}`);
+    return (data ?? []).map((row) => ({ id: row.id, label: row.name }));
+  }
+
+  if (contentType === "article") {
+    const { data, error } = await db
+      .from("articles")
+      .select("id, title")
+      .eq("status", "published")
+      .order("title");
+    if (error) throw new Error(`Could not read assignable articles: ${error.message}`);
+    return (data ?? []).map((row) => ({ id: row.id, label: row.title }));
+  }
+
   const { data, error } = await db
-    .from("categories")
+    .from("products")
     .select("id, name")
     .eq("status", "published")
     .order("name");
-  if (error)
-    throw new Error(`Could not read the categories a template can frame: ${error.message}`);
+  if (error) throw new Error(`Could not read assignable products: ${error.message}`);
   return (data ?? []).map((row) => ({ id: row.id, label: row.name }));
 }
 
@@ -324,26 +367,28 @@ async function readAssignableEntries(
 export async function assignTemplateTo(
   templateId: string,
   target: string | null
-): Promise<{ paths: string[] }> {
+): Promise<{ paths: string[]; revalidateLayout: boolean }> {
   await requirePermission("template.write");
   const db = await createClient();
 
   const before = await publicPathsForTemplate(templateId);
+  const template = await repo.getTemplate(db, templateId);
+  if (!template) throw new Error("That template no longer exists.");
+  const revalidateLayout = template.kind === "header" || template.kind === "footer";
 
   if (target === null) {
     await repo.unassignTemplate(db, templateId);
-    return { paths: before };
+    return { paths: before, revalidateLayout };
   }
 
-  const template = await repo.getTemplate(db, templateId);
-  if (!template) throw new Error("That template no longer exists.");
-
-  const contentType = framedContentTypeFor(template.kind);
-  if (!contentType) {
+  const contentTypes = framedContentTypesFor(template.kind);
+  if (contentTypes.length === 0) {
     throw new Error(`Nothing renders a ${template.kind} template yet, so it cannot be assigned.`);
   }
 
-  const parsed = parseAssignmentTarget(target, contentType);
+  const parsed = contentTypes
+    .map((contentType) => parseAssignmentTarget(target, contentType))
+    .find((value) => value !== null);
   if (!parsed) throw new Error("That is not a target this template can be assigned to.");
 
   // Whoever held the target loses it, so their paths change too — collected
@@ -357,7 +402,7 @@ export async function assignTemplateTo(
   });
 
   const after = await publicPathsForTemplate(templateId);
-  return { paths: [...new Set([...before, ...displaced, ...after])] };
+  return { paths: [...new Set([...before, ...displaced, ...after])], revalidateLayout };
 }
 
 interface ParsedTarget {

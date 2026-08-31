@@ -34,10 +34,10 @@ or function impossible to reproduce.
 | Requirement | Status | Evidence / remaining work |
 |---|---|---|
 | Home and landing-page builder | Complete | Section/component tree, canvas, manifests, autosave, preview and publishing are connected to page documents. |
-| Article and product builder | Partial | Both document types open in the shared builder and can carry sections, but their public detail routes still use the fixed article/PDP composition rather than fully resolving assigned builder templates. |
+| Article and product builder | Complete | Both document types open in the shared builder; a published assignment opts the public detail route into the composed builder tree while an unassigned record retains its fixed compatibility composition. |
 | Category/archive builder | Complete | Category documents and archive templates frame the public category routes. |
-| Shop/archive templates | Partial | Archive kind exists and category archives render it; the main `/shop` archive does not yet resolve an assigned template. |
-| Header/footer/global-part builder | Partial | Template kinds and navigation/theme editors exist, but header/footer template block trees do not yet replace the fixed public chrome components. |
+| Shop/archive templates | Complete | Archive templates may target every category, one category, or the singleton `/shop` archive; the shop frame preserves its static client-filtering path. |
+| Header/footer/global-part builder | Complete | Published header/footer assignments render site-wide template trees around the existing data-driven chrome marker. The marker may be hidden inside a parent when a fully custom block composition replaces the compatibility chrome. |
 | Drag, reorder, duplicate, delete and nested blocks | Complete | DnD library insertion, tree moves, Container, Stack, Columns and Navigator are implemented and covered in component/E2E tests. |
 | Hide and responsive visibility | Complete | Global hide and desktop/tablet/mobile targeting now affect the canvas and public renderer, with strict publish validation. |
 | Locked global elements | Complete | Locked blocks cannot be edited, moved, duplicated or deleted until unlocked. |
@@ -54,7 +54,7 @@ or function impossible to reproduce.
 |---|---|---|
 | Template kinds: page/article/product/archive/header/footer/section | Complete | All kinds are modeled, editable, publishable and revisioned. |
 | Named template areas | Complete | Create, rename, switch, validate, preview and delete area workflows are covered end to end. |
-| Template assignment | Partial | Assignments exist and page/category framing is public; article, product, shop, header and footer consumption remains. |
+| Template assignment | Complete | Page, category, article, product, shop, header and footer targets are assignable, publicly consumed and revalidated; entry assignments override content-type defaults. |
 | Dynamic data binding | Partial | Field selection, filtering, sorting, limit/offset, mapping, plucking and real DB sources work. Explicit runtime fallback values and conditional expressions remain. |
 | Local template overrides | Partial | Document sections and the `documentContent` marker allow local content composition for framed types; a formal per-field override/inheritance UI remains. |
 | Live unsaved canvas preview | Complete | The canvas renders real production components from the in-memory undoable tree at desktop/tablet/mobile widths. |
@@ -137,18 +137,16 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Make article, product, shop, header and footer template assignments affect
-   their public render paths.
-2. Add a structured rich editorial editor and unified featured
+1. Add a structured rich editorial editor and unified featured
    image/video/GIF/gallery/embed workflow.
-3. Finish native builder primitives (video, embed, icon, form and commerce),
+2. Finish native builder primitives (video, embed, icon, form and commerce),
    then add multi-select, direct sizing and richer positioning.
-4. Complete the global design system for buttons, cards, forms, borders,
+3. Complete the global design system for buttons, cards, forms, borders,
    shadows, animation presets and reusable style classes.
-5. Add one-click “save selection as pattern,” document duplication and the
+4. Add one-click “save selection as pattern,” document duplication and the
    global command palette.
-6. Expose media tagging and conditional navigation rules.
-7. Add Shopify collection mapping and the remaining explicit E2E acceptance
+5. Expose media tagging and conditional navigation rules.
+6. Add Shopify collection mapping and the remaining explicit E2E acceptance
    scenarios.
 
 This backlog is additive. Existing high-fidelity sections and the fixed article

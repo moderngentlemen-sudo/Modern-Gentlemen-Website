@@ -64,16 +64,23 @@ export const TEMPLATE_KIND_DESCRIPTION: Record<TemplateKind, string> = {
  * vocabularies and nothing else. `lib/services/publicContent.ts` holds the other
  * half — content type to *table* — because that one names database objects.
  */
-export const FRAMED_CONTENT_TYPE: Record<TemplateKind, "page" | "category" | null> = {
-  page: "page",
-  archive: "category",
-  article: null,
-  product: null,
-  header: null,
-  footer: null,
-  section: null,
-};
+export const FRAMED_CONTENT_TYPES = {
+  page: ["page"],
+  archive: ["category", "shop"],
+  article: ["article"],
+  product: ["product"],
+  header: ["header"],
+  footer: ["footer"],
+  section: [],
+} as const satisfies Record<TemplateKind, readonly string[]>;
 
-export function framedContentTypeFor(kind: TemplateKind): "page" | "category" | null {
-  return FRAMED_CONTENT_TYPE[kind];
+export type FramedContentType = (typeof FRAMED_CONTENT_TYPES)[TemplateKind][number];
+
+export function framedContentTypesFor(kind: TemplateKind): readonly FramedContentType[] {
+  return FRAMED_CONTENT_TYPES[kind];
+}
+
+/** Primary document target; archive additionally supports the singleton shop. */
+export function framedContentTypeFor(kind: TemplateKind): FramedContentType | null {
+  return framedContentTypesFor(kind)[0] ?? null;
 }

@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { assignTemplateTo, createTemplate, publicPathsForTemplate } from "@/lib/services/templates";
+import {
+  assignTemplateTo,
+  createTemplate,
+  getTemplate,
+  publicPathsForTemplate,
+} from "@/lib/services/templates";
 import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
 import { TEMPLATE_KINDS } from "@/lib/domain/templates";
@@ -66,10 +71,14 @@ export async function deleteTemplateAction(input: unknown): Promise<ActionResult
     // hinting at it. After the row is gone the paths are unknowable, which is
     // why this runs first.
     const framed = await publicPathsForTemplate(parsed.data.id);
+    const template = await getTemplate(parsed.data.id);
 
     await deleteDocument("template", parsed.data.id);
 
     for (const path of framed) revalidatePath(path);
+    if (template?.kind === "header" || template?.kind === "footer") {
+      revalidatePath("/", "layout");
+    }
     revalidatePath("/admin/templates");
     return ok(undefined);
   } catch (error) {
@@ -155,8 +164,9 @@ export async function assignTemplateAction(
   if (!parsed.success) return { ok: false, error: "Invalid input" };
 
   try {
-    const { paths } = await assignTemplateTo(parsed.data.id, parsed.data.target);
+    const { paths, revalidateLayout } = await assignTemplateTo(parsed.data.id, parsed.data.target);
     for (const path of paths) revalidatePath(path);
+    if (revalidateLayout) revalidatePath("/", "layout");
     revalidatePath("/admin/templates");
     return ok({ paths: paths.length });
   } catch (error) {

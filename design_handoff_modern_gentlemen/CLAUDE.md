@@ -113,6 +113,11 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   blocks beside the existing high-fidelity sections. Global hide removes a
   block from public output; device visibility uses the accepted 680/1024
   builder breakpoints and must not introduce layout geometry of its own.
+- **Public template assignments preserve a fixed compatibility path.** Page,
+  category, article and product templates compose builder trees; shop, header
+  and footer templates insert their existing interactive composition at the
+  marker. With no published assignment the verified original route and chrome
+  render unchanged.
 - No resizing, merging, simplifying, or cleaning up elements/spacing/components — implement as designed even if non-standard.
 - Infer breakpoints only from the prototypes/screenshots — do not invent your own.
   > ⚠️ **One scoped exception, decided deliberately and recorded here rather than only in `PROGRESS.md`.** A **layout/columns block** for the page builder — nesting, column widths and their responsive behaviour — **may define its own breakpoints**, because the handoff bundle contains no layout primitive to infer them from. `05_SECTION_BUILDER.md` says the renderer "just stacks" blocks, so there is nothing to copy; building it means inventing, and that has been accepted as the cost of an arbitrary-nesting layout engine.

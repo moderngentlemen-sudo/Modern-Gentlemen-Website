@@ -330,3 +330,19 @@ export async function getPublishedArticle(slug: string): Promise<ResolvedArticle
     related: await relatedFor(row),
   };
 }
+
+/** Article identity and builder tree, separate from the legacy deep-equal view model. */
+export async function getPublishedArticleBuilder(
+  slug: string
+): Promise<{ id: string; sections: BlockTree } | null> {
+  const db = createPublicClient();
+  const { data, error } = await db
+    .from("articles")
+    .select("id, published_data")
+    .eq("slug", slug.toLowerCase())
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not read the article builder content: ${error.message}`);
+  return data ? { id: data.id, sections: sectionsOf(data.published_data) } : null;
+}
