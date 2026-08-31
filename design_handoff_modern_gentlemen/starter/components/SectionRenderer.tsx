@@ -6,6 +6,7 @@ import { manifestFor } from "@/lib/blocks/manifests";
 import type { BlockNode } from "@/lib/blocks/types";
 import { BlockDesignFrame } from "./BlockDesignFrame";
 import { VisualElementFrame } from "./VisualElementFrame";
+import { BlockVisibilityFrame } from "./BlockVisibilityFrame";
 
 /**
  * The stored shape of a section. Aliased to `BlockNode` rather than redeclared,
@@ -49,22 +50,34 @@ export function SectionRenderer({ sections }: { sections?: Block[] }) {
         const children = block.children;
         if (manifestFor(block._type)?.slot && children?.length) {
           return (
-            <BlockDesignFrame key={block._key} design={block.design}>
-              <VisualElementFrame blockKey={block._key} visual={block.visual}>
-                <Component {...normalizeBlock(block)}>
-                  <SectionRenderer sections={children} />
-                </Component>
-              </VisualElementFrame>
-            </BlockDesignFrame>
+            <BlockVisibilityFrame
+              key={block._key}
+              blockKey={block._key}
+              visibility={block.visibility}
+            >
+              <BlockDesignFrame design={block.design}>
+                <VisualElementFrame blockKey={block._key} visual={block.visual}>
+                  <Component {...normalizeBlock(block)}>
+                    <SectionRenderer sections={children} />
+                  </Component>
+                </VisualElementFrame>
+              </BlockDesignFrame>
+            </BlockVisibilityFrame>
           );
         }
 
         return (
-          <BlockDesignFrame key={block._key} design={block.design}>
-            <VisualElementFrame blockKey={block._key} visual={block.visual}>
-              <Component {...normalizeBlock(block)} />
-            </VisualElementFrame>
-          </BlockDesignFrame>
+          <BlockVisibilityFrame
+            key={block._key}
+            blockKey={block._key}
+            visibility={block.visibility}
+          >
+            <BlockDesignFrame design={block.design}>
+              <VisualElementFrame blockKey={block._key} visual={block.visual}>
+                <Component {...normalizeBlock(block)} />
+              </VisualElementFrame>
+            </BlockDesignFrame>
+          </BlockVisibilityFrame>
         );
       })}
     </>

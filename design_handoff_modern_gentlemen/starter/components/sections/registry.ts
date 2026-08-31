@@ -30,6 +30,14 @@ import { DocumentContentGap } from "./DocumentContentGap";
 import { Columns } from "./Columns";
 import { LayoutContainer } from "./LayoutContainer";
 import { Stack } from "./Stack";
+import {
+  NativeButton,
+  NativeDivider,
+  NativeHeading,
+  NativeImage,
+  NativeSpacer,
+  NativeText,
+} from "../elements/NativeElements";
 
 /**
  * blockType -> React component. To add a section from the prototype's Section
@@ -72,6 +80,12 @@ export const registry = {
   column: Column,
   layoutContainer: LayoutContainer,
   stack: Stack,
+  nativeHeading: NativeHeading,
+  nativeText: NativeText,
+  nativeImage: NativeImage,
+  nativeButton: NativeButton,
+  nativeDivider: NativeDivider,
+  nativeSpacer: NativeSpacer,
   patternRef: PatternRef,
   documentContent: DocumentContent,
   documentContentGap: DocumentContentGap,

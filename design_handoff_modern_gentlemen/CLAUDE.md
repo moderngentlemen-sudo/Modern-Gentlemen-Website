@@ -108,6 +108,11 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   reusable components even as lower-level layout elements are added. A removal
   requires an explicit content migration, a compatibility renderer and visual
   proof; deleting both a manifest and its component is not a migration.
+- **Native elements and responsive visibility are additive platform features.**
+  Heading, Text, Image, Button, Divider and Spacer are available as low-level
+  blocks beside the existing high-fidelity sections. Global hide removes a
+  block from public output; device visibility uses the accepted 680/1024
+  builder breakpoints and must not introduce layout geometry of its own.
 - No resizing, merging, simplifying, or cleaning up elements/spacing/components — implement as designed even if non-standard.
 - Infer breakpoints only from the prototypes/screenshots — do not invent your own.
   > ⚠️ **One scoped exception, decided deliberately and recorded here rather than only in `PROGRESS.md`.** A **layout/columns block** for the page builder — nesting, column widths and their responsive behaviour — **may define its own breakpoints**, because the handoff bundle contains no layout primitive to infer them from. `05_SECTION_BUILDER.md` says the renderer "just stacks" blocks, so there is nothing to copy; building it means inventing, and that has been accepted as the cost of an arbitrary-nesting layout engine.

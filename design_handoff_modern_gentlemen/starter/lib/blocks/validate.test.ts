@@ -46,6 +46,26 @@ describe("validateBlock", () => {
     expect(result.issues.map((issue) => issue.path)).toContain("design.spaceAfter");
   });
 
+  it("accepts responsive visibility and rejects malformed device rules", () => {
+    expect(
+      validateBlock(quote({ visibility: { hidden: false, devices: ["mobile", "tablet"] } })).ok
+    ).toBe(true);
+
+    const result = validateBlock(
+      quote({
+        visibility: {
+          devices: ["mobile", "mobile", "watch"],
+          surprise: true,
+        } as unknown as BlockNode["visibility"],
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.path)).toEqual(
+      expect.arrayContaining(["visibility.surprise", "visibility.devices.2", "visibility.devices"])
+    );
+  });
+
   it("reports an unknown block type without throwing", () => {
     const result = validateBlock({ _key: "x", _type: "notARealBlock" });
     expect(result.ok).toBe(false);

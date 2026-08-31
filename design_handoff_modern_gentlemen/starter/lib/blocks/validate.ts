@@ -60,6 +60,59 @@ export function validateBlock(node: BlockNode): ValidationResult {
     }
   }
 
+  if (node.visibility !== undefined) {
+    const visibility = node.visibility as Record<string, unknown>;
+    for (const property of Object.keys(visibility)) {
+      if (!["hidden", "devices"].includes(property)) {
+        issues.push({
+          key,
+          type: node._type,
+          path: `visibility.${property}`,
+          message: "Unknown visibility setting.",
+        });
+      }
+    }
+    if (visibility.hidden !== undefined && typeof visibility.hidden !== "boolean") {
+      issues.push({
+        key,
+        type: node._type,
+        path: "visibility.hidden",
+        message: "Hidden must be on or off.",
+      });
+    }
+    if (visibility.devices !== undefined) {
+      const devices = visibility.devices;
+      const allowed = ["desktop", "tablet", "mobile"];
+      if (!Array.isArray(devices)) {
+        issues.push({
+          key,
+          type: node._type,
+          path: "visibility.devices",
+          message: "Show-on devices must be a list.",
+        });
+      } else {
+        devices.forEach((device, index) => {
+          if (!allowed.includes(String(device))) {
+            issues.push({
+              key,
+              type: node._type,
+              path: `visibility.devices.${index}`,
+              message: "Choose desktop, tablet or mobile.",
+            });
+          }
+        });
+        if (new Set(devices).size !== devices.length) {
+          issues.push({
+            key,
+            type: node._type,
+            path: "visibility.devices",
+            message: "Each device may appear only once.",
+          });
+        }
+      }
+    }
+  }
+
   for (const issue of validateVisualDesign(node.visual)) {
     issues.push({ key, type: node._type, ...issue });
   }

@@ -132,6 +132,16 @@ describe("block frames", () => {
     renderCanvas([{ _key: "k1", _type: "noSuchBlock" }]);
     expect(screen.getByText(/unknown block/i)).toBeInTheDocument();
   });
+
+  it("dims but keeps a block editable when it is excluded from the preview device", () => {
+    const node = newBlockNode("pullQuote");
+    node.visibility = { devices: ["mobile"] };
+    renderCanvas([node]);
+
+    const frame = document.querySelector(`[data-block-key="${node._key}"]`)!;
+    expect(frame.querySelector("[data-preview-hidden='true']")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /^Duplicate/ })).toBeEnabled();
+  });
 });
 
 describe("drop targets for a library drag", () => {

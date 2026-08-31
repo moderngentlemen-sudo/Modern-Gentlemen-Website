@@ -29,6 +29,20 @@ Every component element can now carry:
 - hover and motion presets; and
 - a private Navigator name.
 
+Visibility is renderer-backed rather than metadata-only. A component may be
+hidden everywhere or limited to desktop, tablet and/or mobile. The public
+renderer removes globally hidden content, emits bounded media-query CSS for
+device targeting, and uses `display: contents` so visibility does not disturb
+an existing flex or grid composition. The canvas keeps excluded content
+selectable and visibly dims it while previewing that device.
+
+The first native element set is also live: Heading, Text, Image, Button,
+Divider and Spacer. They are ordinary registered blocks with manifests, strict
+settings and responsive behavior, so they can be composed with Container,
+Stack, Columns and every existing high-fidelity section. They extend the
+component library; they do not replace or weaken compatibility with the legacy
+sections.
+
 Uncustomized components receive no additional DOM wrapper. Values are selected
 from closed vocabularies rather than injected as raw CSS.
 
@@ -61,9 +75,8 @@ public site silently ignores.
 
 ## Next engine layers
 
-1. Promote text, image, link/button and divider into native selectable child
-   elements while retaining component-level editing.
-2. Add an element insertion palette and direct manipulation for nesting,
+1. Complete the native set with video, icon, embed, form and commerce elements.
+2. Expand direct manipulation for nesting,
    sizing and reordering inside Container/Stack/Grid.
 3. Add class/style tokens, reusable symbols, component states and named
    responsive breakpoints without permitting arbitrary stored CSS.

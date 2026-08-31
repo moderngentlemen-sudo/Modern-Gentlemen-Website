@@ -278,7 +278,7 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
           label="Hidden"
           checked={node.visibility?.hidden === true}
           disabled={locked}
-          help="Excluded from the canvas preview. Device targeting is not yet applied at render."
+          help="Excluded from the public page on every device; kept dimmed and editable in the canvas."
           onChange={(hidden) => setVisibility(key, { hidden })}
         />
 

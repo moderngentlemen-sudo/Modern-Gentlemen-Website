@@ -370,6 +370,7 @@ function SortableBlock({
   const remove = useBuilder((s) => s.remove);
   const setLocked = useBuilder((s) => s.setLocked);
   const setVisibility = useBuilder((s) => s.setVisibility);
+  const device = useBuilder((s) => s.device);
   const issueCount = useBuilder(
     (s) =>
       s.issues.filter((i) => i.key === node._key).length +
@@ -378,6 +379,8 @@ function SortableBlock({
 
   const locked = node.locked === true;
   const hidden = node.visibility?.hidden === true;
+  const hiddenOnDevice =
+    node.visibility?.devices !== undefined && !node.visibility.devices.includes(device);
   const selected = selectedKey === node._key;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -472,8 +475,9 @@ function SortableBlock({
             section has no such links to kill.
           */
           !slot && !isRef && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
-          hidden && "opacity-40"
+          (hidden || hiddenOnDevice) && "opacity-40"
         )}
+        data-preview-hidden={hidden || hiddenOnDevice || undefined}
       >
         <BlockDesignFrame design={node.design}>
           <VisualElementFrame blockKey={node._key} visual={node.visual}>

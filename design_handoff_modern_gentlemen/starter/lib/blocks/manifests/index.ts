@@ -29,6 +29,14 @@ import { layoutContainer } from "./layoutContainer";
 import { manifesto } from "./manifesto";
 import { masthead } from "./masthead";
 import { newsletter } from "./newsletter";
+import {
+  nativeButton,
+  nativeDivider,
+  nativeHeading,
+  nativeImage,
+  nativeSpacer,
+  nativeText,
+} from "./nativeElements";
 import { numberedIndex } from "./numberedIndex";
 import { patternRef } from "./patternRef";
 import { documentContent } from "./documentContent";
@@ -69,6 +77,12 @@ export const blockManifests = {
   column,
   layoutContainer,
   stack,
+  nativeHeading,
+  nativeText,
+  nativeImage,
+  nativeButton,
+  nativeDivider,
+  nativeSpacer,
   patternRef,
   documentContent,
   documentContentGap,
