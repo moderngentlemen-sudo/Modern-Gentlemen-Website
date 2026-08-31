@@ -74,7 +74,11 @@ export const nativeText = defineBlock({
   category: "layout",
   description: "A free text element for body copy, introductions, small print or labels.",
   fields: {
-    content: field.textarea({ label: "Content", required: true }),
+    content: field.richText({
+      label: "Content",
+      required: true,
+      help: "Format headings, emphasis, links, quotations and lists without leaving the builder.",
+    }),
     style: field.select({
       label: "Text style",
       default: "body",

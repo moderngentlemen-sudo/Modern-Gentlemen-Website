@@ -2,6 +2,7 @@ import type { CSSProperties, ElementType } from "react";
 import Link from "next/link";
 
 import { clsx } from "@/components/ui/clsx";
+import { RichTextContent } from "@/components/ui/RichTextContent";
 
 const HEADING_SIZE = {
   small: "text-[22px] leading-[1.2]",
@@ -91,18 +92,16 @@ export function NativeText({
   maxWidth?: keyof typeof MAX_WIDTH;
 }) {
   return (
-    <p
+    <RichTextContent
+      value={content}
       className={clsx(
-        "whitespace-pre-line text-pretty",
         TEXT_STYLE[style],
         ALIGN[align],
         MAX_WIDTH[maxWidth],
         maxWidth !== "none" && align === "center" && "mx-auto",
         maxWidth !== "none" && align === "end" && "ml-auto"
       )}
-    >
-      {content}
-    </p>
+    />
   );
 }
 

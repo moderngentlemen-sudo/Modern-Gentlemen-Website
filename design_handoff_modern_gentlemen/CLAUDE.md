@@ -113,6 +113,11 @@ Focus traps in drawer/search/bag overlays; `aria-expanded` on menu triggers; Esc
   blocks beside the existing high-fidelity sections. Global hide removes a
   block from public output; device visibility uses the accepted 680/1024
   builder breakpoints and must not introduce layout geometry of its own.
+- **Rich editorial text remains string-compatible and safe by construction.**
+  The manifest rich-text control writes a bounded Markdown subset and previews
+  the same semantic React renderer used publicly. Existing plain strings retain
+  their paragraph and line-break behavior; raw HTML is never interpreted, and
+  user-authored links must pass the renderer's explicit safe-scheme allowlist.
 - **Public template assignments preserve a fixed compatibility path.** Page,
   category, article and product templates compose builder trees; shop, header
   and footer templates insert their existing interactive composition at the

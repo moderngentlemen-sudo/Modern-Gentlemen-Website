@@ -1,3 +1,5 @@
+import { RichTextContent } from "@/components/ui/RichTextContent";
+
 interface QA {
   q: string;
   a: string;
@@ -31,7 +33,7 @@ export function Interview({
         {qa?.map((item, i) => (
           <div key={i}>
             <p className="font-grotesk text-lg text-mg-accentInk text-pretty">{item.q}</p>
-            <p className="mt-2 text-mg-fg/80 leading-relaxed text-pretty">{item.a}</p>
+            <RichTextContent value={item.a} className="mt-2 text-mg-fg/80 leading-relaxed" />
           </div>
         ))}
       </div>

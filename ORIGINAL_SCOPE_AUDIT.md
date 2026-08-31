@@ -82,7 +82,7 @@ or function impossible to reproduce.
 | SEO, slugs, schedules and publish dates | Complete | SEO payloads, routing, scheduled publishing and background due-publish workflow are connected. |
 | Related-content curation | Complete | Ordered manual “Keep reading” selection with automatic fallback and integration/E2E coverage. |
 | Twenty modern article layouts | Complete | The original 20 hero/body combinations remain renderable and selectable. |
-| Rich editorial body editor | Open | Article details and section builder are real, but `richText` is still a plain textarea and there is no structured inline/block formatting editor. |
+| Rich editorial body editor | Complete | Article builder text and interview answers use the manifest-driven rich-text control: bold, italic, links, headings, quotes, lists and live preview render through the same safe semantic renderer. Existing string content is backward-compatible. |
 | Featured image | Complete | Media foreign key, picker, public use and usage protection are connected. |
 | Featured video, GIF, embeds and galleries | Partial | Video/GIF/gallery section components and media fields render them, but the article details screen lacks a unified featured-media/gallery/embed editor. |
 | Media upload, search, type filters and folders | Complete | Images, video, GIF, audio and PDF documents are catalogued in Supabase Storage with search and nested folder filtering. |
@@ -137,8 +137,8 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Add a structured rich editorial editor and unified featured
-   image/video/GIF/gallery/embed workflow.
+1. Add a unified featured image/video/GIF/gallery/embed workflow; the structured
+   rich editorial editor is complete.
 2. Finish native builder primitives (video, embed, icon, form and commerce),
    then add multi-select, direct sizing and richer positioning.
 3. Complete the global design system for buttons, cards, forms, borders,

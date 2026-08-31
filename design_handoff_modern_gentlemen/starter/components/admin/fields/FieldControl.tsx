@@ -11,6 +11,7 @@ import { Toggle } from "@/components/admin/ui/Toggle";
 import { countIssuesAtOrBelow, issuesFor } from "./issues";
 import { ListControl } from "./ListControl";
 import { MediaUrlControl } from "./MediaUrlControl";
+import { RichTextEditor } from "./RichTextEditor";
 
 /**
  * The field → control mapping.
@@ -92,13 +93,8 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
 
     case "richText":
       return (
-        <TextArea
+        <RichTextEditor
           {...common}
-          // Deferred to Phase 5 along with the media library — a formatting
-          // toolbar would need an editor dependency for the single richText
-          // field in the whole manifest set.
-          help={field.help ?? "Plain text for now; rich formatting arrives with the media work."}
-          rows={8}
           value={asString(value)}
           placeholder={field.placeholder}
           onChange={writeString}

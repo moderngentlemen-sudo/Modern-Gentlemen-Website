@@ -136,6 +136,16 @@ describe("writing values", () => {
     expect(ctx.writes).toContainEqual(["target.label", "G"]);
   });
 
+  it("formats a rich-text selection without changing its storage type", async () => {
+    const ctx = renderField(field.richText({ label: "Body" }), "Rich");
+    const editor = screen.getByLabelText("Body") as HTMLTextAreaElement;
+    editor.setSelectionRange(0, 4);
+
+    await userEvent.click(screen.getByRole("button", { name: "Bold" }));
+
+    expect(ctx.writes).toContainEqual(["target", "**Rich**"]);
+  });
+
   it("addresses a list item by index", async () => {
     const f = field.list({
       label: "Stories",
