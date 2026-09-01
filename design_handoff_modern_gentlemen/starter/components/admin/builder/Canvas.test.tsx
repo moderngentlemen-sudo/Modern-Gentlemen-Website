@@ -331,6 +331,63 @@ describe("direct canvas manipulation", () => {
     expect(document.querySelectorAll("[data-canvas-ruler]")).toHaveLength(2);
   });
 
+  it("pans the scrollable workspace with the hand tool without selecting content", async () => {
+    renderCanvas([{ _key: "a", _type: "pullQuote" }]);
+    await userEvent.click(screen.getByRole("button", { name: "Hand" }));
+    const viewport = document.querySelector<HTMLElement>("[data-canvas-viewport]")!;
+    viewport.scrollLeft = 120;
+    viewport.scrollTop = 80;
+
+    const down = new Event("pointerdown", { bubbles: true });
+    Object.defineProperties(down, {
+      button: { value: 0 },
+      pointerId: { value: 4 },
+      clientX: { value: 300 },
+      clientY: { value: 200 },
+    });
+    fireEvent(viewport, down);
+    const move = new Event("pointermove", { bubbles: true });
+    Object.defineProperties(move, {
+      pointerId: { value: 4 },
+      clientX: { value: 240 },
+      clientY: { value: 150 },
+    });
+    fireEvent(viewport, move);
+
+    expect(viewport.scrollLeft).toBe(180);
+    expect(viewport.scrollTop).toBe(130);
+    expect(viewport.className).toContain("cursor-grabbing");
+
+    const up = new Event("pointerup", { bubbles: true });
+    Object.defineProperty(up, "pointerId", { value: 4 });
+    fireEvent(viewport, up);
+    expect(viewport.className).toContain("cursor-grab");
+    expect(document.querySelector("[data-block-key='a'] > .ring-mg-accent")).toBeNull();
+  });
+
+  it("temporarily activates the hand while Space is held", () => {
+    renderCanvas([{ _key: "a", _type: "pullQuote" }]);
+    const viewport = document.querySelector<HTMLElement>("[data-canvas-viewport]")!;
+    const frame = document.querySelector<HTMLElement>("[data-block-key='a']")!;
+
+    fireEvent.keyDown(window, { code: "Space" });
+    expect(viewport.className).toContain("cursor-grab");
+    fireEvent.mouseDown(frame);
+    expect(frame.querySelector(":scope > .ring-mg-accent")).toBeNull();
+
+    fireEvent.keyUp(window, { code: "Space" });
+    expect(viewport.className).not.toContain("cursor-grab");
+  });
+
+  it("leaves Space available to a focused control", () => {
+    renderCanvas([{ _key: "a", _type: "pullQuote" }]);
+    const viewport = document.querySelector<HTMLElement>("[data-canvas-viewport]")!;
+    const selectTool = screen.getByRole("button", { name: "Select" });
+
+    fireEvent.keyDown(selectTool, { code: "Space" });
+    expect(viewport.className).not.toContain("cursor-grab");
+  });
+
   it("selects several elements with a modifier and exposes group actions", () => {
     renderCanvas([
       { _key: "a", _type: "pullQuote" },
@@ -370,6 +427,52 @@ describe("direct canvas manipulation", () => {
     expect(document.querySelector("style[data-mg-visual-style]")?.textContent).toContain(
       "width:60%"
     );
+  });
+
+  it("snaps a resized edge to peer geometry and clears its alignment guide on release", () => {
+    renderCanvas([
+      { _key: "a", _type: "pullQuote" },
+      { ...newBlockNode("masthead"), _key: "b" },
+    ]);
+    const frame = document.querySelector<HTMLElement>("[data-block-key='a']")!;
+    const peer = document.querySelector<HTMLElement>("[data-block-key='b']")!;
+    const sheet = document.querySelector<HTMLElement>("[data-canvas-sheet]")!;
+    const viewport = document.querySelector<HTMLElement>("[data-canvas-viewport]")!;
+    const rect = (left: number, width: number, height = 400) =>
+      ({
+        width,
+        height,
+        top: 0,
+        right: left + width,
+        bottom: height,
+        left,
+        x: left,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    vi.spyOn(frame, "getBoundingClientRect").mockReturnValue(rect(0, 1000));
+    vi.spyOn(peer, "getBoundingClientRect").mockReturnValue(rect(602, 100));
+    vi.spyOn(sheet, "getBoundingClientRect").mockReturnValue(rect(0, 1400));
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(rect(0, 1200));
+
+    fireEvent.mouseDown(frame);
+    const handle = screen.getByRole("button", { name: "Resize Pull quote" });
+    const down = new Event("pointerdown", { bubbles: true });
+    Object.defineProperty(down, "clientX", { value: 1000 });
+    fireEvent(handle, down);
+    const move = new Event("pointermove", { bubbles: true });
+    Object.defineProperty(move, "clientX", { value: 600 });
+    fireEvent(window, move);
+
+    expect(document.querySelector("style[data-mg-visual-style]")?.textContent).toContain(
+      "width:60.2%"
+    );
+    expect(
+      document.querySelector<HTMLElement>("[data-alignment-guide='vertical']")?.style.left
+    ).toBe("602px");
+
+    fireEvent.pointerUp(window);
+    expect(document.querySelector("[data-alignment-guide]")).toBeNull();
   });
 });
 

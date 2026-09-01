@@ -61,9 +61,13 @@ the same undoable store and bounded visual model used by the properties panel.
 Selecting a container and one of its descendants never duplicates or deletes
 the descendant twice, and locked elements remain protected.
 
-The canvas viewport supplies bounded zoom, optional rulers, a live resize guide
-and toggleable five-percent snapping. These controls are editing aids only: they
-do not dirty a document, enter undo history or serialize into its payload.
+The canvas viewport supplies bounded zoom, optional rulers, toggleable
+five-percent snapping, a persistent Hand tool and temporary Space-key panning.
+Direct resizing snaps within six screen pixels of the canvas or a peer's left,
+centre or right geometry and draws the matching live alignment guide. Nested
+ancestors and descendants are excluded from peer candidates so a container does
+not snap to itself. These controls are editing aids only: they do not dirty a
+document, enter undo history or serialize into its payload.
 
 ## Claude Design tweak migration
 
@@ -94,10 +98,9 @@ public site silently ignores.
 
 ## Next engine layers
 
-1. Add alignment guides and a drag-to-pan hand tool to direct manipulation.
-2. Add class/style tokens, reusable symbols, component states and named
+1. Add class/style tokens, reusable symbols, component states and named
    responsive breakpoints without permitting arbitrary stored CSS.
-3. Implement the transcript's named hero, header, navigation, Latest, Style
+2. Implement the transcript's named hero, header, navigation, Latest, Style
    and article presets in small renderer-backed groups.
-4. Add migration fixtures and visual baselines for every current page before a
+3. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.

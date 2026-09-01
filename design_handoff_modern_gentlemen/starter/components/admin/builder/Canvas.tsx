@@ -1,6 +1,15 @@
 "use client";
 
-import { Fragment, type ComponentType, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  Fragment,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -12,6 +21,8 @@ import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
+import { findBlock } from "@/lib/blocks/traverse";
+import { visualCss } from "@/lib/blocks/visual";
 import type { BlockNode, BlockSlot } from "@/lib/blocks/types";
 import { clsx } from "@/components/ui/clsx";
 import { Button, IconButton } from "@/components/admin/ui/Button";
@@ -31,6 +42,32 @@ const DEVICE_WIDTH = {
   tablet: "w-[834px]",
   mobile: "w-[390px]",
 } as const;
+
+const ALIGNMENT_THRESHOLD_PX = 6;
+
+interface ResizeAlignment {
+  widthPercent: number;
+  guideX: number;
+}
+
+interface CanvasGeometry {
+  alignResize: (frame: HTMLElement, widthPercent: number) => ResizeAlignment | null;
+  handActive: boolean;
+  setGuideX: (guideX: number | null) => void;
+}
+
+const CanvasGeometryContext = createContext<CanvasGeometry | null>(null);
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+  );
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("button,a,[role='button']") !== null;
+}
 
 /**
  * The page preview, and the drop surface for the library rail.
@@ -60,12 +97,140 @@ export function Canvas({
   const removeSelected = useBuilder((s) => s.removeSelected);
   const canvasZoom = useBuilder((s) => s.canvasZoom);
   const setCanvasZoom = useBuilder((s) => s.setCanvasZoom);
+  const canvasTool = useBuilder((s) => s.canvasTool);
+  const setCanvasTool = useBuilder((s) => s.setCanvasTool);
   const showRulers = useBuilder((s) => s.showRulers);
   const toggleRulers = useBuilder((s) => s.toggleRulers);
   const snapToGrid = useBuilder((s) => s.snapToGrid);
   const toggleSnapToGrid = useBuilder((s) => s.toggleSnapToGrid);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
+  const [spaceHand, setSpaceHand] = useState(false);
+  const [panning, setPanning] = useState(false);
+  const [guideX, setGuideX] = useState<number | null>(null);
 
   const dragging = libraryDragType !== null;
+  const handActive = canvasTool === "hand" || spaceHand;
+
+  useEffect(() => {
+    const down = (event: KeyboardEvent) => {
+      if (
+        event.code !== "Space" ||
+        event.repeat ||
+        event.defaultPrevented ||
+        isEditableTarget(event.target) ||
+        isInteractiveTarget(event.target)
+      )
+        return;
+      event.preventDefault();
+      setSpaceHand(true);
+    };
+    const up = (event: KeyboardEvent) => {
+      if (event.code === "Space") setSpaceHand(false);
+    };
+    const blur = () => {
+      setSpaceHand(false);
+      setPanning(false);
+      panRef.current = null;
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+    };
+  }, []);
+
+  function alignResize(frame: HTMLElement, widthPercent: number): ResizeAlignment | null {
+    const viewport = viewportRef.current;
+    const sheet = viewport?.querySelector<HTMLElement>("[data-canvas-sheet]");
+    if (!viewport || !sheet) return null;
+
+    const frameRect = frame.getBoundingClientRect();
+    const rawX = frameRect.left + (frameRect.width * widthPercent) / 100;
+    const candidates = new Set<number>();
+    const addRect = (rect: DOMRect) => {
+      candidates.add(rect.left);
+      candidates.add(rect.left + rect.width / 2);
+      candidates.add(rect.right);
+    };
+
+    addRect(sheet.getBoundingClientRect());
+    for (const peer of sheet.querySelectorAll<HTMLElement>("[data-block-key]")) {
+      if (peer === frame || frame.contains(peer) || peer.contains(frame)) continue;
+      const key = peer.dataset.blockKey;
+      const visual = key ? findBlock(tree, key)?.visual : undefined;
+      const scope = key && visual ? visualCss(key, visual).scope : null;
+      const rendered = scope
+        ? peer.querySelector<HTMLElement>(`[data-mg-visual="${scope}"]`)
+        : null;
+      addRect((rendered ?? peer).getBoundingClientRect());
+    }
+
+    let closest: number | null = null;
+    let distance = ALIGNMENT_THRESHOLD_PX + 1;
+    for (const candidate of candidates) {
+      const nextDistance = Math.abs(candidate - rawX);
+      if (nextDistance <= ALIGNMENT_THRESHOLD_PX && nextDistance < distance) {
+        closest = candidate;
+        distance = nextDistance;
+      }
+    }
+    if (closest === null) return null;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    return {
+      widthPercent: Math.min(
+        100,
+        Math.max(5, Math.round(((closest - frameRect.left) / frameRect.width) * 1000) / 10)
+      ),
+      guideX: closest - viewportRect.left + viewport.scrollLeft,
+    };
+  }
+
+  function startPan(event: ReactPointerEvent<HTMLDivElement>) {
+    if (
+      !handActive ||
+      event.button !== 0 ||
+      isEditableTarget(event.target) ||
+      isInteractiveTarget(event.target)
+    )
+      return;
+    event.preventDefault();
+    const viewport = event.currentTarget;
+    panRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scrollLeft: viewport.scrollLeft,
+      scrollTop: viewport.scrollTop,
+    };
+    viewport.setPointerCapture?.(event.pointerId);
+    setPanning(true);
+  }
+
+  function movePan(event: ReactPointerEvent<HTMLDivElement>) {
+    const pan = panRef.current;
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    event.currentTarget.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
+    event.currentTarget.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+  }
+
+  function finishPan(event: ReactPointerEvent<HTMLDivElement>) {
+    const pan = panRef.current;
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    panRef.current = null;
+    setPanning(false);
+  }
 
   return (
     /**
@@ -85,6 +250,23 @@ export function Canvas({
       <CartProvider>
         <div className="sticky top-0 z-50 flex items-center justify-end gap-2 border-b border-mg-bd/15 bg-mg-bg/95 px-6 py-2 backdrop-blur">
           <span className="font-mono text-[9px] uppercase tracking-[0.12em]">Canvas</span>
+          <Button
+            size="sm"
+            variant={canvasTool === "select" ? "solid" : "outline"}
+            onClick={() => setCanvasTool("select")}
+            aria-label="Select tool"
+          >
+            Select
+          </Button>
+          <Button
+            size="sm"
+            variant={canvasTool === "hand" ? "solid" : "outline"}
+            onClick={() => setCanvasTool("hand")}
+            aria-label="Hand tool"
+            title="Drag the canvas to pan, or hold Space"
+          >
+            Hand
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -133,38 +315,60 @@ export function Canvas({
             </div>
           </div>
         )}
-        <div className="relative flex justify-center overflow-auto px-6 py-6">
-          {showRulers && (
-            <>
-              <div
-                data-canvas-ruler="horizontal"
-                className="pointer-events-none absolute inset-x-6 top-0 h-4 opacity-40"
-                style={{
-                  background:
-                    "repeating-linear-gradient(90deg,currentColor 0 1px,transparent 1px 20px)",
-                }}
-              />
-              <div
-                data-canvas-ruler="vertical"
-                className="pointer-events-none absolute bottom-6 left-0 top-6 w-4 opacity-40"
-                style={{
-                  background:
-                    "repeating-linear-gradient(180deg,currentColor 0 1px,transparent 1px 20px)",
-                }}
-              />
-            </>
-          )}
+        <CanvasGeometryContext.Provider value={{ alignResize, handActive, setGuideX }}>
           <div
-            className={clsx("transition-[width,transform]", DEVICE_WIDTH[device])}
-            style={{ transform: `scale(${canvasZoom})`, transformOrigin: "top center" }}
-          >
-            {tree.length === 0 ? (
-              <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
-            ) : (
-              <BlockList nodes={tree} parentKey={null} dragType={libraryDragType} drop={drop} />
+            ref={viewportRef}
+            data-canvas-viewport
+            className={clsx(
+              "relative flex justify-center overflow-auto px-6 py-6",
+              handActive && (panning ? "cursor-grabbing select-none" : "cursor-grab")
             )}
+            onPointerDown={startPan}
+            onPointerMove={movePan}
+            onPointerUp={finishPan}
+            onPointerCancel={finishPan}
+          >
+            {showRulers && (
+              <>
+                <div
+                  data-canvas-ruler="horizontal"
+                  className="pointer-events-none absolute inset-x-6 top-0 h-4 opacity-40"
+                  style={{
+                    background:
+                      "repeating-linear-gradient(90deg,currentColor 0 1px,transparent 1px 20px)",
+                  }}
+                />
+                <div
+                  data-canvas-ruler="vertical"
+                  className="pointer-events-none absolute bottom-6 left-0 top-6 w-4 opacity-40"
+                  style={{
+                    background:
+                      "repeating-linear-gradient(180deg,currentColor 0 1px,transparent 1px 20px)",
+                  }}
+                />
+              </>
+            )}
+            {guideX !== null && (
+              <div
+                data-alignment-guide="vertical"
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-0 top-0 z-[60] border-l border-mg-accent"
+                style={{ left: guideX }}
+              />
+            )}
+            <div
+              data-canvas-sheet
+              className={clsx("transition-[width,transform]", DEVICE_WIDTH[device])}
+              style={{ transform: `scale(${canvasZoom})`, transformOrigin: "top center" }}
+            >
+              {tree.length === 0 ? (
+                <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
+              ) : (
+                <BlockList nodes={tree} parentKey={null} dragType={libraryDragType} drop={drop} />
+              )}
+            </div>
           </div>
-        </div>
+        </CanvasGeometryContext.Provider>
       </CartProvider>
     </CatalogProvider>
   );
@@ -455,6 +659,7 @@ function SortableBlock({
   const setVisualStyle = useBuilder((s) => s.setVisualStyle);
   const snapToGrid = useBuilder((s) => s.snapToGrid);
   const device = useBuilder((s) => s.device);
+  const geometry = useContext(CanvasGeometryContext);
   const issueCount = useBuilder(
     (s) =>
       s.issues.filter((i) => i.key === node._key).length +
@@ -483,7 +688,10 @@ function SortableBlock({
         100,
         Math.max(5, startWidth + ((next.clientX - startX) / available) * 100)
       );
-      const widthPercent = snapToGrid ? Math.round(raw / 5) * 5 : Math.round(raw);
+      const aligned = geometry?.alignResize(frame, raw) ?? null;
+      geometry?.setGuideX(aligned?.guideX ?? null);
+      const widthPercent =
+        aligned?.widthPercent ?? (snapToGrid ? Math.round(raw / 5) * 5 : Math.round(raw));
       setVisualStyle(node._key, device, {
         widthPercent,
         width: undefined,
@@ -491,6 +699,7 @@ function SortableBlock({
       });
     };
     const finish = () => {
+      geometry?.setGuideX(null);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", finish);
       window.removeEventListener("pointercancel", finish);
@@ -551,6 +760,7 @@ function SortableBlock({
       */
       onMouseDown={(event) => {
         event.stopPropagation();
+        if (geometry?.handActive) return;
         select(node._key, event.shiftKey || event.metaKey || event.ctrlKey);
       }}
     >

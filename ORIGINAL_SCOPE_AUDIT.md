@@ -45,7 +45,7 @@ or function impossible to reproduce.
 | Save current selection as a new pattern | Open | Patterns can be created and composed in their own editor, but the page canvas cannot yet turn a selected subtree into a pattern in one action. |
 | Native low-level elements | Complete | Heading, Text, Image, Video, Embed, Icon, Product, Form, Button, Divider and responsive Spacer are available alongside every legacy section. Product resolves the live catalogue and shared bag; Form captures configurable bounded fields through an RLS-protected public path. |
 | Responsive visual styling | Complete | Per-device layout, grid/flex, sizing, spacing, surface, border, corner, shadow, opacity, overflow, hover and motion controls use the shared visual renderer. |
-| Direct manipulation | Partial | Canvas/Navigator multi-select, group operations, drag/drop, direct resize with optional 5% snapping, rulers, 50–150% zoom, exact responsive dimensions and bounded positioning work. Alignment guides and a drag-to-pan hand tool remain. |
+| Direct manipulation | Complete | Canvas/Navigator multi-select, group operations, drag/drop, direct resize with optional 5% grid snapping and smart canvas/peer alignment, persistent and Space-key hand panning, rulers, 50–150% zoom, exact responsive dimensions and bounded positioning work. All viewport aids remain editor-only. |
 | Shared classes/design tokens/symbol states | Partial | Global theme roles and reusable patterns exist; reusable style classes, component states and shared local style tokens remain. |
 
 ## Templates, binding and preview
@@ -137,13 +137,12 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Add alignment guides and a drag-to-pan hand tool.
-2. Complete the global design system for buttons, cards, forms, borders,
+1. Complete the global design system for buttons, cards, forms, borders,
    shadows, animation presets and reusable style classes.
-3. Add one-click “save selection as pattern,” document duplication and the
+2. Add one-click “save selection as pattern,” document duplication and the
    global command palette.
-4. Expose media tagging and conditional navigation rules.
-5. Add Shopify collection mapping and the remaining explicit E2E acceptance
+3. Expose media tagging and conditional navigation rules.
+4. Add Shopify collection mapping and the remaining explicit E2E acceptance
    scenarios.
 
 This backlog is additive. Existing high-fidelity sections and the fixed article

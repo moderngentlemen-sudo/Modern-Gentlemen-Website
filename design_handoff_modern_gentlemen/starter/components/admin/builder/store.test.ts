@@ -365,9 +365,11 @@ describe("canvas preferences", () => {
   it("bounds zoom and keeps editor-only tooling out of document history", () => {
     const store = makeStore([{ _key: "a", _type: "pullQuote" }]);
     store.getState().setCanvasZoom(9);
+    store.getState().setCanvasTool("hand");
     store.getState().toggleRulers();
     store.getState().toggleSnapToGrid();
     expect(store.getState().canvasZoom).toBe(1.5);
+    expect(store.getState().canvasTool).toBe("hand");
     expect(store.getState().showRulers).toBe(true);
     expect(store.getState().snapToGrid).toBe(false);
     expect(store.getState().dirty).toBe(false);
