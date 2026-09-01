@@ -41,4 +41,12 @@ describe("NativeForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("could not send");
     expect(screen.getByRole("button", { name: "Submit" })).toBeEnabled();
   });
+
+  it("exposes semantic theme hooks on fields and actions", () => {
+    render(<NativeForm formKey="contact-form" fields={fields} />);
+
+    expect(screen.getByLabelText(/Name/)).toHaveClass("mg-form-field");
+    expect(screen.getByLabelText("Message")).toHaveClass("mg-form-field");
+    expect(screen.getByRole("button", { name: "Submit" })).toHaveClass("mg-button");
+  });
 });

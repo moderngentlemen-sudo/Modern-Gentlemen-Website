@@ -25,7 +25,7 @@ export function ProductCard({
   const cardPrice = cardPricePence(poundsToPence(product.price), product.variants);
 
   return (
-    <article className="group flex flex-col border border-mg-bd/15 bg-mg-surface">
+    <article className="mg-card group flex flex-col border border-mg-bd/15 bg-mg-surface">
       <Link
         href={`/product/${product.slug}`}
         className="relative block aspect-[4/5] overflow-hidden"
@@ -37,7 +37,7 @@ export function ProductCard({
           src={product.images[0]}
           alt={product.name}
           slot="quarter"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+          className="mg-card-media object-cover"
         />
         {product.tag && (
           <span className="absolute top-3 left-3 bg-mg-accent text-white font-mono uppercase text-[10px] tracking-[0.18em] px-2 py-1">
@@ -68,7 +68,7 @@ export function ProductCard({
             <button
               type="button"
               onClick={() => onAdd(product.slug)}
-              className={`font-mono uppercase text-[11px] tracking-[0.15em] px-4 py-2 border transition-colors ${
+              className={`mg-button font-mono uppercase text-[11px] tracking-[0.15em] px-4 py-2 border transition-colors ${
                 added
                   ? "border-mg-accent text-mg-accentInk"
                   : "border-mg-bd/25 hover:bg-mg-accent hover:text-white hover:border-mg-accent"

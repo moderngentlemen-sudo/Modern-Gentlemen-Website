@@ -91,7 +91,7 @@ export function NativeForm({
             );
           }
           const base =
-            "mt-2 w-full border border-mg-bd/25 bg-transparent px-3 py-3 outline-none focus:border-mg-accent";
+            "mg-form-field mt-2 w-full border border-mg-bd/25 bg-transparent px-3 py-3 outline-none focus:border-mg-accent";
           return (
             <label
               key={field.name}
@@ -158,7 +158,7 @@ export function NativeForm({
       <button
         type="submit"
         disabled={state === "submitting"}
-        className="bg-mg-fg px-6 py-3 font-mono text-[11px] uppercase tracking-[0.14em] text-mg-bg disabled:opacity-50"
+        className="mg-button bg-mg-fg px-6 py-3 font-mono text-[11px] uppercase tracking-[0.14em] text-mg-bg disabled:opacity-50"
       >
         {state === "submitting" ? "Sending…" : buttonLabel}
       </button>

@@ -187,7 +187,7 @@ export function NativeButton({
         target={newTab ? "_blank" : undefined}
         rel={newTab ? "noopener noreferrer" : undefined}
         className={clsx(
-          "inline-flex items-center justify-center border font-mono font-medium uppercase tracking-[0.14em] transition-colors",
+          "mg-button inline-flex items-center justify-center border font-mono font-medium uppercase tracking-[0.14em] transition-colors",
           BUTTON_VARIANT[variant],
           BUTTON_SIZE[size]
         )}

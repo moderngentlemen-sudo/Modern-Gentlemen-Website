@@ -37,6 +37,13 @@ describe("NativeProduct", () => {
     expect(screen.getByRole("button", { name: /Added/ })).toBeInTheDocument();
   });
 
+  it("exposes semantic theme hooks in the shared product card", () => {
+    const { container } = renderProduct();
+    expect(container.querySelector("article")).toHaveClass("mg-card");
+    expect(container.querySelector("img")).toHaveClass("mg-card-media");
+    expect(screen.getByRole("button", { name: /Add/ })).toHaveClass("mg-button");
+  });
+
   it("renders nothing for a retired or misspelled slug", () => {
     const { container } = renderProduct({ slug: "not-in-the-catalog" });
     expect(container).toBeEmptyDOMElement();

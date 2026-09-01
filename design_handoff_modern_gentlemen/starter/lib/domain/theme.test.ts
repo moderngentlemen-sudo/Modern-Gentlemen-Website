@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_COMPONENTS,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_SETTINGS,
@@ -26,11 +27,14 @@ import {
   parseThemeHeader,
   parseThemeLayout,
   parseThemeColors,
+  parseThemeComponentDefaults,
   parseThemeSettings,
   parseThemeStyleClasses,
   parseThemeTypography,
   safeCssColor,
   themeCssText,
+  themeComponentCssText,
+  themeComponentDefaultsSchema,
   themeDesignCssText,
   themeSettingsSchema,
   themeWebfontFaceCssText,
@@ -156,6 +160,58 @@ describe("editable typography and header settings", () => {
     expect(parsed.header).toEqual(DEFAULT_THEME_HEADER);
     expect(parsed.layout).toEqual(DEFAULT_THEME_LAYOUT);
     expect(parsed.styleClasses).toEqual([]);
+    expect(parsed.components).toEqual(DEFAULT_THEME_COMPONENTS);
+  });
+
+  it("parses semantic component defaults field by field", () => {
+    expect(
+      parseThemeComponentDefaults({
+        components: {
+          button: { shape: "pill", casing: "invalid", shadow: "elevated", interaction: "lift" },
+          card: { shape: "rounded", border: "strong", shadow: "invalid", mediaHover: "none" },
+          form: { shape: "subtle", border: "none", fill: "surface", focus: "foreground" },
+        },
+      })
+    ).toEqual({
+      button: { shape: "pill", casing: "uppercase", shadow: "elevated", interaction: "lift" },
+      card: { shape: "rounded", border: "strong", shadow: "none", mediaHover: "none" },
+      form: { shape: "subtle", border: "none", fill: "surface", focus: "foreground" },
+    });
+
+    expect(parseThemeComponentDefaults({})).toEqual(DEFAULT_THEME_COMPONENTS);
+    expect(themeComponentDefaultsSchema.safeParse(DEFAULT_THEME_COMPONENTS).success).toBe(true);
+    expect(
+      themeComponentDefaultsSchema.safeParse({
+        ...DEFAULT_THEME_COMPONENTS,
+        button: { ...DEFAULT_THEME_COMPONENTS.button, shape: "blob" },
+      }).success
+    ).toBe(false);
+  });
+
+  it("emits design-preserving semantic defaults and bounded creative variants", () => {
+    const defaults = themeComponentCssText(DEFAULT_THEME_COMPONENTS);
+    expect(defaults).toContain(
+      ".mg-button.mg-button{border-radius:0;text-transform:uppercase;box-shadow:none}"
+    );
+    expect(defaults).toContain(
+      ".mg-card.mg-card{border-radius:0;border-width:1px;box-shadow:none}"
+    );
+    expect(defaults).toContain(".mg-card:hover .mg-card-media{transform:scale(1.06)}");
+    expect(defaults).toContain(
+      ".mg-form-field.mg-form-field{border-radius:0;border-width:1px;background:transparent}"
+    );
+
+    const custom = themeComponentCssText({
+      button: { shape: "pill", casing: "natural", shadow: "subtle", interaction: "scale" },
+      card: { shape: "rounded", border: "strong", shadow: "dramatic", mediaHover: "none" },
+      form: { shape: "subtle", border: "none", fill: "surface", focus: "foreground" },
+    });
+    expect(custom).toContain("border-radius:999px;text-transform:none");
+    expect(custom).toContain(".mg-button.mg-button:hover{transform:scale(1.025)}");
+    expect(custom).toContain("border-radius:12px;border-width:2px");
+    expect(custom).toContain("background:var(--mg-surface)");
+    expect(custom).toContain("border-color:var(--mg-fg)");
+    expect(custom).toContain("@media(prefers-reduced-motion:reduce)");
   });
 
   it("validates, parses and emits reusable responsive style classes", () => {

@@ -33,7 +33,7 @@ export function Field({
         autoComplete={autoComplete}
         data-invalid={error ? "" : undefined}
         aria-invalid={!!error}
-        className="mt-1.5 w-full border border-mg-bd/30 bg-transparent px-4 py-3 outline-none transition-colors focus:border-mg-accent data-[invalid]:border-mg-accentSerif data-[invalid]:bg-mg-accent/5"
+        className="mg-form-field mt-1.5 w-full border border-mg-bd/30 bg-transparent px-4 py-3 outline-none transition-colors focus:border-mg-accent data-[invalid]:border-mg-accentSerif data-[invalid]:bg-mg-accent/5"
       />
       {error && (
         <span className="mt-1 block font-mono text-[10px] text-mg-accentSerif">{error}</span>
@@ -61,7 +61,7 @@ export function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full border border-mg-bd/30 bg-transparent px-4 py-3 outline-none transition-colors focus:border-mg-accent"
+        className="mg-form-field mt-1.5 w-full border border-mg-bd/30 bg-transparent px-4 py-3 outline-none transition-colors focus:border-mg-accent"
       >
         {options.map((o) => (
           <option key={o} value={o} className="bg-mg-bg text-mg-fg">

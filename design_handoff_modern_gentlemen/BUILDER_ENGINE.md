@@ -119,10 +119,30 @@ There is no migration. Payloads from theme v1-v5 parse with an empty class
 library, unstyled legacy blocks still return their child directly, and a
 class-only block gets one wrapper but no redundant local `<style>` element.
 
+## Semantic component defaults (v1.3)
+
+Theme payload v7 adds a bounded semantic layer for public buttons, cards and
+form fields. Shared renderers opt in through additive `mg-button`, `mg-card`,
+`mg-card-media` and `mg-form-field` hooks; publishing emits their shape, case,
+border, fill, focus, shadow and interaction rules from closed vocabularies.
+Reduced-motion preferences disable transforms and transitions.
+
+The original sharp button/card/field geometry, uppercase buttons, hairline
+card/field borders, transparent field fill and product-card image zoom are the
+defaults. Older payloads acquire those values field by field, so this layer is
+design-preserving until an operator changes and publishes it. The cascade is:
+
+1. global theme variables and semantic component defaults;
+2. a published reusable style class;
+3. local responsive element overrides.
+
+No database migration is required because the versioned settings live in the
+existing theme JSONB document.
+
 ## Next engine layers
 
-1. Add semantic component defaults, reusable symbols, component states and
-   named responsive breakpoints without permitting arbitrary stored CSS.
+1. Add reusable symbols, component states and named responsive breakpoints
+   without permitting arbitrary stored CSS.
 2. Implement the transcript's named hero, header, navigation, Latest, Style
    and article presets in small renderer-backed groups.
 3. Add migration fixtures and visual baselines for every current page before a

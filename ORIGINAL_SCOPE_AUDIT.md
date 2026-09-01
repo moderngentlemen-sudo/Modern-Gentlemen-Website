@@ -68,11 +68,11 @@ or function impossible to reproduce.
 |---|---|---|
 | Colors, fonts and webfonts | Complete | Context-aware color tokens, five font roles, curated stacks and bounded provider/direct-file webfonts are editable and published. |
 | Layout widths and gutters | Complete | Global content width and desktop/mobile gutters cascade through shared CSS variables. |
-| Global spacing, borders, shadows, buttons, cards and forms | Partial | Reusable classes now provide named global responsive spacing/border/shadow recipes; semantic button/card/form component defaults remain. |
+| Global spacing, borders, shadows, buttons, cards and forms | Complete | Reusable responsive recipes cover spacing/borders/shadows, while published semantic defaults control button shape/case/shadow/interaction, card shape/border/shadow/media hover and form shape/border/fill/focus. |
 | Animation presets | Partial | Element hover/motion and advanced header behavior exist; a reusable global animation library with entrance/scroll states remains. |
 | Header customization | Partial | Height, scale, scroll/background behavior, compact state, divider, search/theme/bag visibility, icon bubbles and hover styles work. Announcement bars, arbitrary element layout, account/social/CTA controls and the remaining Claude presets remain. |
 | Footer customization | Partial | Menus are data-driven, but tagline, social destinations and arbitrary footer composition remain fixed in the component. |
-| Site-wide cascading defaults with local overrides | Partial | Published reusable classes now cascade between theme variables and higher-specificity per-element overrides; semantic component-default inheritance remains. |
+| Site-wide cascading defaults with local overrides | Complete | Published theme variables and semantic component defaults feed public component hooks, reusable classes sit above them, and higher-specificity per-element settings remain local overrides. |
 
 ## Editorial CMS and media
 
@@ -137,8 +137,8 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Complete semantic global defaults for buttons, cards and forms, plus entrance
-   and scroll animation states. Reusable responsive style classes are complete.
+1. Add reusable entrance and scroll animation states. Semantic button/card/form
+   defaults and reusable responsive style classes are complete.
 2. Add one-click “save selection as pattern,” document duplication and the
    global command palette.
 3. Expose media tagging and conditional navigation rules.

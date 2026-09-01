@@ -29,7 +29,7 @@ export function ArticleGrid({
           <Link
             key={c.href + c.title}
             href={c.href}
-            className="group block overflow-hidden border border-mg-bd/[0.09] bg-mg-surface text-mg-fg"
+            className="mg-card group block overflow-hidden border border-mg-bd/[0.09] bg-mg-surface text-mg-fg"
           >
             <div className="relative h-[230px] overflow-hidden">
               <div

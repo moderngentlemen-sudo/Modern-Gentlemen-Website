@@ -17,7 +17,7 @@ export function Button({
   type?: "button" | "submit";
 }) {
   const base =
-    "inline-flex items-center justify-center px-8 py-3 font-mono text-xs uppercase tracking-[0.15em] transition-colors";
+    "mg-button inline-flex items-center justify-center px-8 py-3 font-mono text-xs uppercase tracking-[0.15em] transition-colors";
   const styles =
     variant === "solid"
       ? "bg-mg-accent text-white hover:bg-mg-fg hover:text-mg-bg"

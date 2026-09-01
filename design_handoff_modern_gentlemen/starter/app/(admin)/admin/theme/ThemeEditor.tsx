@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import {
   DEFAULT_THEME_COLORS,
+  DEFAULT_THEME_COMPONENTS,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_TYPOGRAPHY,
@@ -13,10 +14,22 @@ import {
   HEADER_CART_VISIBILITY,
   HEADER_ICON_HOVERS,
   HEADER_SCROLL_BEHAVIORS,
+  THEME_BUTTON_CASES,
+  THEME_BUTTON_INTERACTIONS,
+  THEME_BUTTON_SHADOWS,
+  THEME_BUTTON_SHAPES,
+  THEME_CARD_BORDERS,
+  THEME_CARD_MEDIA_HOVERS,
+  THEME_CARD_SHADOWS,
+  THEME_CARD_SHAPES,
   THEME_CONTEXTS,
   THEME_CONTEXT_LABELS,
   THEME_TOKEN_LABELS,
   TOKENS_BY_CONTEXT,
+  THEME_FORM_BORDERS,
+  THEME_FORM_FILLS,
+  THEME_FORM_FOCUS,
+  THEME_FORM_SHAPES,
   WEBFONT_FALLBACKS,
   WEBFONT_SOURCES,
   WEBFONT_STYLES,
@@ -28,6 +41,7 @@ import {
   type ThemeHeader,
   type ThemeLayout,
   type ThemeContext,
+  type ThemeComponentDefaults,
   type ThemeSettings,
   type ThemeStyleClass,
   type ThemeToken,
@@ -53,6 +67,13 @@ interface ThemeEditorProps {
   };
   canWrite: boolean;
   canPublish: boolean;
+}
+
+function optionLabel(value: string): string {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/-/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 /**
@@ -161,6 +182,51 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, layout: { ...current.layout, [key]: value } }));
+  }
+
+  function setButtonDefault<K extends keyof ThemeComponentDefaults["button"]>(
+    key: K,
+    value: ThemeComponentDefaults["button"][K]
+  ) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({
+      ...current,
+      components: {
+        ...current.components,
+        button: { ...current.components.button, [key]: value },
+      },
+    }));
+  }
+
+  function setCardDefault<K extends keyof ThemeComponentDefaults["card"]>(
+    key: K,
+    value: ThemeComponentDefaults["card"][K]
+  ) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({
+      ...current,
+      components: {
+        ...current.components,
+        card: { ...current.components.card, [key]: value },
+      },
+    }));
+  }
+
+  function setFormDefault<K extends keyof ThemeComponentDefaults["form"]>(
+    key: K,
+    value: ThemeComponentDefaults["form"][K]
+  ) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({
+      ...current,
+      components: {
+        ...current.components,
+        form: { ...current.components.form, [key]: value },
+      },
+    }));
   }
 
   function setStyleClasses(styleClasses: ThemeStyleClass[]) {
@@ -440,6 +506,214 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                 </div>
               ))
             )}
+          </div>
+        </PanelSection>
+
+        <PanelSection
+          title="Component defaults"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDirty(true);
+                  setError(null);
+                  setDraft((current) => ({
+                    ...current,
+                    components: {
+                      button: { ...DEFAULT_THEME_COMPONENTS.button },
+                      card: { ...DEFAULT_THEME_COMPONENTS.card },
+                      form: { ...DEFAULT_THEME_COMPONENTS.form },
+                    },
+                  }));
+                }}
+              >
+                Reset to defaults
+              </Button>
+            ) : undefined
+          }
+        >
+          <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-mg-fg/60">
+            Set the site-wide character of public buttons, cards and form fields. These semantic
+            defaults cascade across existing storefront components; reusable style classes and
+            element-level builder settings remain available for intentional exceptions.
+          </p>
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-mg-fg/70">
+                Buttons
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <Select
+                  label="Shape"
+                  value={draft.components.button.shape}
+                  options={THEME_BUTTON_SHAPES.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setButtonDefault("shape", value as ThemeComponentDefaults["button"]["shape"])
+                  }
+                />
+                <Select
+                  label="Letter case"
+                  value={draft.components.button.casing}
+                  options={THEME_BUTTON_CASES.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setButtonDefault("casing", value as ThemeComponentDefaults["button"]["casing"])
+                  }
+                />
+                <Select
+                  label="Shadow"
+                  value={draft.components.button.shadow}
+                  options={THEME_BUTTON_SHADOWS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setButtonDefault("shadow", value as ThemeComponentDefaults["button"]["shadow"])
+                  }
+                />
+                <Select
+                  label="Hover interaction"
+                  value={draft.components.button.interaction}
+                  options={THEME_BUTTON_INTERACTIONS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setButtonDefault(
+                      "interaction",
+                      value as ThemeComponentDefaults["button"]["interaction"]
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-mg-fg/70">
+                Cards
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <Select
+                  label="Shape"
+                  value={draft.components.card.shape}
+                  options={THEME_CARD_SHAPES.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setCardDefault("shape", value as ThemeComponentDefaults["card"]["shape"])
+                  }
+                />
+                <Select
+                  label="Border"
+                  value={draft.components.card.border}
+                  options={THEME_CARD_BORDERS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setCardDefault("border", value as ThemeComponentDefaults["card"]["border"])
+                  }
+                />
+                <Select
+                  label="Shadow"
+                  value={draft.components.card.shadow}
+                  options={THEME_CARD_SHADOWS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setCardDefault("shadow", value as ThemeComponentDefaults["card"]["shadow"])
+                  }
+                />
+                <Select
+                  label="Media hover"
+                  value={draft.components.card.mediaHover}
+                  options={THEME_CARD_MEDIA_HOVERS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setCardDefault(
+                      "mediaHover",
+                      value as ThemeComponentDefaults["card"]["mediaHover"]
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-mg-fg/70">
+                Form fields
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <Select
+                  label="Shape"
+                  value={draft.components.form.shape}
+                  options={THEME_FORM_SHAPES.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setFormDefault("shape", value as ThemeComponentDefaults["form"]["shape"])
+                  }
+                />
+                <Select
+                  label="Border"
+                  value={draft.components.form.border}
+                  options={THEME_FORM_BORDERS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setFormDefault("border", value as ThemeComponentDefaults["form"]["border"])
+                  }
+                />
+                <Select
+                  label="Fill"
+                  value={draft.components.form.fill}
+                  options={THEME_FORM_FILLS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setFormDefault("fill", value as ThemeComponentDefaults["form"]["fill"])
+                  }
+                />
+                <Select
+                  label="Focus color"
+                  value={draft.components.form.focus}
+                  options={THEME_FORM_FOCUS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  disabled={!canWrite || pending}
+                  onChange={(value) =>
+                    setFormDefault("focus", value as ThemeComponentDefaults["form"]["focus"])
+                  }
+                />
+              </div>
+            </div>
           </div>
         </PanelSection>
 

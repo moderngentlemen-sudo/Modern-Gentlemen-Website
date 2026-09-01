@@ -37,8 +37,8 @@ export default async function ThemePage() {
         }
       >
         <p className="mt-2 text-[13px] text-mg-fg/60">
-          Global colors, typography, layout and header behavior. Edits are saved as a draft; the
-          site keeps showing the published design until you publish.
+          Global colors, typography, component styling, layout and header behavior. Edits are saved
+          as a draft; the site keeps showing the published design until you publish.
         </p>
       </AdminPageHeader>
 

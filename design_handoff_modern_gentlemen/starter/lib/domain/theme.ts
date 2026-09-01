@@ -401,6 +401,46 @@ export const DEFAULT_THEME_LAYOUT: ThemeLayout = {
   mobileGutter: 22,
 };
 
+export const THEME_BUTTON_SHAPES = ["sharp", "subtle", "rounded", "pill"] as const;
+export const THEME_BUTTON_CASES = ["uppercase", "natural", "title"] as const;
+export const THEME_BUTTON_SHADOWS = ["none", "subtle", "elevated"] as const;
+export const THEME_BUTTON_INTERACTIONS = ["none", "lift", "scale", "glow"] as const;
+export const THEME_CARD_SHAPES = ["sharp", "subtle", "rounded"] as const;
+export const THEME_CARD_BORDERS = ["none", "hairline", "strong"] as const;
+export const THEME_CARD_SHADOWS = ["none", "subtle", "elevated", "dramatic"] as const;
+export const THEME_CARD_MEDIA_HOVERS = ["none", "zoom"] as const;
+export const THEME_FORM_SHAPES = ["sharp", "subtle", "rounded", "pill"] as const;
+export const THEME_FORM_BORDERS = ["none", "hairline", "strong"] as const;
+export const THEME_FORM_FILLS = ["transparent", "surface", "page"] as const;
+export const THEME_FORM_FOCUS = ["accent", "foreground"] as const;
+
+export interface ThemeComponentDefaults {
+  button: {
+    shape: (typeof THEME_BUTTON_SHAPES)[number];
+    casing: (typeof THEME_BUTTON_CASES)[number];
+    shadow: (typeof THEME_BUTTON_SHADOWS)[number];
+    interaction: (typeof THEME_BUTTON_INTERACTIONS)[number];
+  };
+  card: {
+    shape: (typeof THEME_CARD_SHAPES)[number];
+    border: (typeof THEME_CARD_BORDERS)[number];
+    shadow: (typeof THEME_CARD_SHADOWS)[number];
+    mediaHover: (typeof THEME_CARD_MEDIA_HOVERS)[number];
+  };
+  form: {
+    shape: (typeof THEME_FORM_SHAPES)[number];
+    border: (typeof THEME_FORM_BORDERS)[number];
+    fill: (typeof THEME_FORM_FILLS)[number];
+    focus: (typeof THEME_FORM_FOCUS)[number];
+  };
+}
+
+export const DEFAULT_THEME_COMPONENTS: ThemeComponentDefaults = {
+  button: { shape: "sharp", casing: "uppercase", shadow: "none", interaction: "none" },
+  card: { shape: "sharp", border: "hairline", shadow: "none", mediaHover: "zoom" },
+  form: { shape: "sharp", border: "hairline", fill: "transparent", focus: "accent" },
+};
+
 export interface ThemeSettings {
   colors: ThemeColors;
   typography: ThemeTypography;
@@ -408,6 +448,8 @@ export interface ThemeSettings {
   layout: ThemeLayout;
   /** Reusable, responsive visual recipes applied by builder elements. */
   styleClasses: ThemeStyleClass[];
+  /** Semantic defaults consumed by public buttons, cards and form fields. */
+  components: ThemeComponentDefaults;
 }
 
 export interface ThemeStyleClass {
@@ -422,10 +464,11 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   header: DEFAULT_THEME_HEADER,
   layout: DEFAULT_THEME_LAYOUT,
   styleClasses: [],
+  components: DEFAULT_THEME_COMPONENTS,
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 6;
+export const THEME_PAYLOAD_VERSION = 7;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -687,6 +730,27 @@ export const themeLayoutSchema = z.object({
   mobileGutter: z.number().int().min(12).max(40),
 });
 
+export const themeComponentDefaultsSchema = z.object({
+  button: z.object({
+    shape: z.enum(THEME_BUTTON_SHAPES),
+    casing: z.enum(THEME_BUTTON_CASES),
+    shadow: z.enum(THEME_BUTTON_SHADOWS),
+    interaction: z.enum(THEME_BUTTON_INTERACTIONS),
+  }),
+  card: z.object({
+    shape: z.enum(THEME_CARD_SHAPES),
+    border: z.enum(THEME_CARD_BORDERS),
+    shadow: z.enum(THEME_CARD_SHADOWS),
+    mediaHover: z.enum(THEME_CARD_MEDIA_HOVERS),
+  }),
+  form: z.object({
+    shape: z.enum(THEME_FORM_SHAPES),
+    border: z.enum(THEME_FORM_BORDERS),
+    fill: z.enum(THEME_FORM_FILLS),
+    focus: z.enum(THEME_FORM_FOCUS),
+  }),
+});
+
 const themeStyleVisualSchema = z.custom<VisualElementDesign>((value) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   if (validateVisualDesign(value).length > 0) return false;
@@ -735,6 +799,7 @@ export const themeSettingsSchema = z.object({
   header: themeHeaderSchema,
   layout: themeLayoutSchema,
   styleClasses: themeStyleClassesSchema,
+  components: themeComponentDefaultsSchema,
 });
 
 export const themePayloadSchema = z.object({
@@ -744,6 +809,7 @@ export const themePayloadSchema = z.object({
   header: themeHeaderSchema.optional(),
   layout: themeLayoutSchema.optional(),
   styleClasses: themeStyleClassesSchema.optional(),
+  components: themeComponentDefaultsSchema.optional(),
 });
 export type ThemePayload = z.infer<typeof themePayloadSchema>;
 
@@ -925,6 +991,47 @@ export function parseThemeStyleClasses(value: unknown): ThemeStyleClass[] {
   });
 }
 
+/** Forgiving field-by-field read for semantic public-component defaults. */
+export function parseThemeComponentDefaults(value: unknown): ThemeComponentDefaults {
+  const incoming = asRecord(asRecord(value)?.components);
+  const defaults = {
+    button: { ...DEFAULT_THEME_COMPONENTS.button },
+    card: { ...DEFAULT_THEME_COMPONENTS.card },
+    form: { ...DEFAULT_THEME_COMPONENTS.form },
+  };
+  if (!incoming) return defaults;
+  const button = asRecord(incoming.button);
+  const card = asRecord(incoming.card);
+  const form = asRecord(incoming.form);
+  const out = defaults;
+
+  if ((THEME_BUTTON_SHAPES as readonly unknown[]).includes(button?.shape))
+    out.button.shape = button?.shape as ThemeComponentDefaults["button"]["shape"];
+  if ((THEME_BUTTON_CASES as readonly unknown[]).includes(button?.casing))
+    out.button.casing = button?.casing as ThemeComponentDefaults["button"]["casing"];
+  if ((THEME_BUTTON_SHADOWS as readonly unknown[]).includes(button?.shadow))
+    out.button.shadow = button?.shadow as ThemeComponentDefaults["button"]["shadow"];
+  if ((THEME_BUTTON_INTERACTIONS as readonly unknown[]).includes(button?.interaction))
+    out.button.interaction = button?.interaction as ThemeComponentDefaults["button"]["interaction"];
+  if ((THEME_CARD_SHAPES as readonly unknown[]).includes(card?.shape))
+    out.card.shape = card?.shape as ThemeComponentDefaults["card"]["shape"];
+  if ((THEME_CARD_BORDERS as readonly unknown[]).includes(card?.border))
+    out.card.border = card?.border as ThemeComponentDefaults["card"]["border"];
+  if ((THEME_CARD_SHADOWS as readonly unknown[]).includes(card?.shadow))
+    out.card.shadow = card?.shadow as ThemeComponentDefaults["card"]["shadow"];
+  if ((THEME_CARD_MEDIA_HOVERS as readonly unknown[]).includes(card?.mediaHover))
+    out.card.mediaHover = card?.mediaHover as ThemeComponentDefaults["card"]["mediaHover"];
+  if ((THEME_FORM_SHAPES as readonly unknown[]).includes(form?.shape))
+    out.form.shape = form?.shape as ThemeComponentDefaults["form"]["shape"];
+  if ((THEME_FORM_BORDERS as readonly unknown[]).includes(form?.border))
+    out.form.border = form?.border as ThemeComponentDefaults["form"]["border"];
+  if ((THEME_FORM_FILLS as readonly unknown[]).includes(form?.fill))
+    out.form.fill = form?.fill as ThemeComponentDefaults["form"]["fill"];
+  if ((THEME_FORM_FOCUS as readonly unknown[]).includes(form?.focus))
+    out.form.focus = form?.focus as ThemeComponentDefaults["form"]["focus"];
+  return out;
+}
+
 export function parseThemeSettings(value: unknown): ThemeSettings {
   return {
     colors: parseThemeColors(value),
@@ -932,6 +1039,7 @@ export function parseThemeSettings(value: unknown): ThemeSettings {
     header: parseThemeHeader(value),
     layout: parseThemeLayout(value),
     styleClasses: parseThemeStyleClasses(value),
+    components: parseThemeComponentDefaults(value),
   };
 }
 
@@ -1057,6 +1165,66 @@ export function themeWebfontFaceCssText(typography: ThemeTypography): string {
     .join("");
 }
 
+const COMPONENT_RADIUS = {
+  sharp: "0",
+  subtle: "4px",
+  rounded: "12px",
+  pill: "999px",
+} as const;
+
+const COMPONENT_SHADOW = {
+  none: "none",
+  subtle: "0 8px 24px rgba(0,0,0,.08)",
+  elevated: "0 18px 48px rgba(0,0,0,.16)",
+  dramatic: "0 28px 80px rgba(0,0,0,.28)",
+} as const;
+
+/** Bounded semantic rules shared by public buttons, cards and form fields. */
+export function themeComponentCssText(components: ThemeComponentDefaults): string {
+  const buttonCase =
+    components.button.casing === "natural"
+      ? "none"
+      : components.button.casing === "title"
+        ? "capitalize"
+        : "uppercase";
+  const buttonBase = `.mg-button.mg-button{border-radius:${COMPONENT_RADIUS[components.button.shape]};text-transform:${buttonCase};box-shadow:${COMPONENT_SHADOW[components.button.shadow]}}`;
+  const buttonInteraction =
+    components.button.interaction === "lift"
+      ? "transform:translateY(-3px)"
+      : components.button.interaction === "scale"
+        ? "transform:scale(1.025)"
+        : "box-shadow:0 18px 55px rgba(200,16,46,.24)";
+  const buttonHover =
+    components.button.interaction === "none"
+      ? ""
+      : `.mg-button.mg-button{transition-property:color,background-color,border-color,transform,box-shadow}.mg-button.mg-button:hover{${buttonInteraction}}`;
+  const cardOverflow = components.card.shape === "sharp" ? "" : ";overflow:hidden";
+  const cardBorder =
+    components.card.border === "none" ? "0" : components.card.border === "strong" ? "2px" : "1px";
+  const cardBase = `.mg-card.mg-card{border-radius:${COMPONENT_RADIUS[components.card.shape]};border-width:${cardBorder};box-shadow:${COMPONENT_SHADOW[components.card.shadow]}${cardOverflow}}`;
+  const cardMedia =
+    components.card.mediaHover === "zoom"
+      ? ".mg-card .mg-card-media{transition:transform .5s}.mg-card:hover .mg-card-media{transform:scale(1.06)}"
+      : ".mg-card .mg-card-media{transform:none}";
+  const formFill =
+    components.form.fill === "surface"
+      ? "var(--mg-surface)"
+      : components.form.fill === "page"
+        ? "var(--mg-bg)"
+        : "transparent";
+  const formBorder =
+    components.form.border === "none" ? "0" : components.form.border === "strong" ? "2px" : "1px";
+  const formBase = `.mg-form-field.mg-form-field{border-radius:${COMPONENT_RADIUS[components.form.shape]};border-width:${formBorder};background:${formFill}}`;
+  const formFocus = `.mg-form-field.mg-form-field:focus{border-color:${
+    components.form.focus === "accent" ? "var(--mg-accent)" : "var(--mg-fg)"
+  }}`;
+  const reducedMotion =
+    buttonHover || components.card.mediaHover === "zoom"
+      ? "@media(prefers-reduced-motion:reduce){.mg-button.mg-button,.mg-card .mg-card-media{transition:none}.mg-button.mg-button:hover,.mg-card:hover .mg-card-media{transform:none}}"
+      : "";
+  return `${buttonBase}${buttonHover}${cardBase}${cardMedia}${formBase}${formFocus}${reducedMotion}`;
+}
+
 /**
  * Typography and dimensional design settings. Every value is selected from a
  * closed preset or a bounded integer before it reaches this string.
@@ -1074,5 +1242,5 @@ export function themeDesignCssText(settings: ThemeSettings): string {
   const styleClasses = settings.styleClasses
     .map((styleClass) => visualStyleClassCss(styleClass.id, styleClass.visual))
     .join("");
-  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${styleClasses}`;
+  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${themeComponentCssText(settings.components)}${styleClasses}`;
 }

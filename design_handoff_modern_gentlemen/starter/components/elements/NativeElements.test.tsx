@@ -37,6 +37,7 @@ describe("native builder elements", () => {
 
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain("mg-button");
   });
 
   it("keeps author-supplied alternative text on lazy images", () => {
