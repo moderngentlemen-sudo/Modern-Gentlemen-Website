@@ -150,16 +150,29 @@ limit and offset, or switch back to a literal ordered card list.
 One component and one manifest reproduce the eleven discovered Posts renderer
 families: Horizontal 1–5, Standard 1–4 and Tile 1–2. Layout is independent from
 content and exposes image, tag, excerpt, author and reading-time visibility,
-three image ratios, three card treatments, three title scales and an optional
-more-stories action. Existing editorial sections remain registered unchanged;
-the new feed is an additive high-flexibility option rather than a migration.
+six image ratios, three card treatments, three title scales and an optional
+view-all action. Existing editorial sections remain registered unchanged; the
+new feed is an additive high-flexibility option rather than a migration.
+
+### Archive and responsive controls (v1.5)
+
+The feed can behave as a complete archive: show all stories, paginate with
+accessible numbered controls, progressively reveal fixed batches, or use an
+Intersection Observer for infinite reveal while retaining a keyboard-operable
+manual fallback. Batch size, pager labels, fallback copy and the empty state
+are all authored in the manifest. A view-all link remains a separate action.
+
+Layout settings independently override mobile, tablet and desktop columns,
+row and column gaps, horizontal image width and placement, optional separators
+and per-card read-more copy. Preset values preserve every original composition;
+an editor can always return each override to “Use layout preset.”
 
 ## Next engine layers
 
 1. Add reusable symbols, component states and named responsive breakpoints
    without permitting arbitrary stored CSS.
-2. Continue the transcript and Schematic extraction with archive/feed controls,
-   article hero modes, header/navigation presets and footer composition in
-   small renderer-backed groups.
+2. Continue the transcript and Schematic extraction with article hero modes,
+   header/navigation presets and footer composition in small renderer-backed
+   groups.
 3. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.

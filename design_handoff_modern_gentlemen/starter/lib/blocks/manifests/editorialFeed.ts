@@ -31,7 +31,7 @@ export const editorialFeed = defineBlock({
   label: "Editorial feed",
   category: "editorial",
   description:
-    "A dynamic article feed with eleven horizontal, standard, and tile compositions plus independent content and card controls.",
+    "A dynamic article archive with eleven compositions, responsive layout controls, and accessible pagination.",
   fields: {
     eyebrow: field.text({ label: "Eyebrow" }),
     heading: field.text({ label: "Heading", default: "Latest stories" }),
@@ -61,11 +61,33 @@ export const editorialFeed = defineBlock({
     imageRatio: select(
       "Image ratio",
       [
+        ["wide", "Wide · 16:9"],
         ["landscape", "Landscape"],
         ["portrait", "Portrait"],
         ["square", "Square"],
+        ["tall", "Tall · 2:3"],
+        ["cinema", "Cinema · 21:9"],
       ],
       "landscape"
+    ),
+    imageWidth: select(
+      "Horizontal image width",
+      [
+        ["oneThird", "One third"],
+        ["half", "Half"],
+        ["twoThird", "Two thirds"],
+      ],
+      "half"
+    ),
+    imagePosition: select(
+      "Horizontal image position",
+      [
+        ["preset", "Use layout preset"],
+        ["left", "Left"],
+        ["right", "Right"],
+        ["alternate", "Alternate"],
+      ],
+      "preset"
     ),
     cardStyle: select(
       "Card treatment",
@@ -85,9 +107,101 @@ export const editorialFeed = defineBlock({
       ],
       "standard"
     ),
-    loadMoreLabel: field.text({ label: "More-stories label" }),
+    columnsDesktop: select(
+      "Desktop columns",
+      [
+        ["auto", "Use layout preset"],
+        ["1", "1"],
+        ["2", "2"],
+        ["3", "3"],
+        ["4", "4"],
+      ],
+      "auto"
+    ),
+    columnsTablet: select(
+      "Tablet columns",
+      [
+        ["auto", "Use layout preset"],
+        ["1", "1"],
+        ["2", "2"],
+        ["3", "3"],
+      ],
+      "auto"
+    ),
+    columnsMobile: select(
+      "Mobile columns",
+      [
+        ["auto", "Use layout preset"],
+        ["1", "1"],
+        ["2", "2"],
+      ],
+      "auto"
+    ),
+    rowGap: select(
+      "Row gap",
+      [
+        ["preset", "Use layout preset"],
+        ["0", "0 px"],
+        ["8", "8 px"],
+        ["16", "16 px"],
+        ["24", "24 px"],
+        ["32", "32 px"],
+        ["48", "48 px"],
+        ["64", "64 px"],
+      ],
+      "preset"
+    ),
+    columnGap: select(
+      "Column gap",
+      [
+        ["preset", "Use layout preset"],
+        ["0", "0 px"],
+        ["8", "8 px"],
+        ["16", "16 px"],
+        ["24", "24 px"],
+        ["32", "32 px"],
+        ["48", "48 px"],
+        ["64", "64 px"],
+      ],
+      "preset"
+    ),
+    showSeparators: field.boolean({ label: "Show row separators", default: false }),
+    readMoreLabel: field.text({ label: "Per-story read-more label" }),
+    emptyMessage: field.text({
+      label: "Empty-feed message",
+      default: "No stories match this feed yet.",
+    }),
+    pagination: select(
+      "Pagination",
+      [
+        ["none", "Show all"],
+        ["pages", "Numbered pages"],
+        ["loadMore", "Load more"],
+        ["infinite", "Infinite reveal + fallback"],
+      ],
+      "none"
+    ),
+    pageSize: field.number({
+      label: "Stories per page",
+      default: 6,
+      min: 1,
+      max: 12,
+      integer: true,
+    }),
+    paginationLabel: field.text({
+      label: "Pagination accessibility label",
+      default: "Stories pagination",
+    }),
+    previousLabel: field.text({ label: "Previous-page label", default: "Previous" }),
+    nextLabel: field.text({ label: "Next-page label", default: "Next" }),
+    paginationButtonLabel: field.text({ label: "Load-more button label", default: "Load more" }),
+    infiniteFallbackLabel: field.text({
+      label: "Infinite-scroll fallback label",
+      default: "Show more now",
+    }),
+    loadMoreLabel: field.text({ label: "View-all label" }),
     loadMoreHref: field.url({
-      label: "More-stories link",
+      label: "View-all link",
       help: "The button appears only when both label and link are set.",
     }),
   },
