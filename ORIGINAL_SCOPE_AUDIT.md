@@ -82,6 +82,7 @@ or function impossible to reproduce.
 | SEO, slugs, schedules and publish dates | Complete | SEO payloads, routing, scheduled publishing and background due-publish workflow are connected. |
 | Related-content curation | Complete | Ordered manual “Keep reading” selection with automatic fallback and integration/E2E coverage. |
 | Twenty modern article layouts | Complete | The original 20 hero/body combinations remain renderable and selectable. |
+| Query-driven editorial feed layouts | Complete | The native Editorial feed block resolves literal or bound published articles and provides all eleven recreated Schematic Posts presets: five horizontal, four standard and two tile compositions, with granular imagery and metadata controls. |
 | Rich editorial body editor | Complete | Article builder text and interview answers use the manifest-driven rich-text control: bold, italic, links, headings, quotes, lists and live preview render through the same safe semantic renderer. Existing string content is backward-compatible. |
 | Featured image | Complete | Media foreign key, picker, public use and usage protection are connected. |
 | Featured video, GIF, embeds and galleries | Complete | Article details offers one versioned workflow for cover/poster images, GIF, library/direct video, safe YouTube/Vimeo embeds and ordered galleries; the fixed public route renders every mode and asset-backed choices participate in usage protection. |

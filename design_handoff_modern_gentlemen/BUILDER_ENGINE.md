@@ -139,11 +139,27 @@ design-preserving until an operator changes and publishes it. The cascade is:
 No database migration is required because the versioned settings live in the
 existing theme JSONB document.
 
+## Query-aware editorial feed (v1.4)
+
+The first Schematic theme extraction is a native `editorialFeed` block. It does
+not copy the theme's PHP or depend on Canvas/Powerkit: its `items` field uses the
+builder's existing `$bind` contract and the published Supabase article source.
+Editors can therefore combine category, issue and lead filters with sort,
+limit and offset, or switch back to a literal ordered card list.
+
+One component and one manifest reproduce the eleven discovered Posts renderer
+families: Horizontal 1–5, Standard 1–4 and Tile 1–2. Layout is independent from
+content and exposes image, tag, excerpt, author and reading-time visibility,
+three image ratios, three card treatments, three title scales and an optional
+more-stories action. Existing editorial sections remain registered unchanged;
+the new feed is an additive high-flexibility option rather than a migration.
+
 ## Next engine layers
 
 1. Add reusable symbols, component states and named responsive breakpoints
    without permitting arbitrary stored CSS.
-2. Implement the transcript's named hero, header, navigation, Latest, Style
-   and article presets in small renderer-backed groups.
+2. Continue the transcript and Schematic extraction with archive/feed controls,
+   article hero modes, header/navigation presets and footer composition in
+   small renderer-backed groups.
 3. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.

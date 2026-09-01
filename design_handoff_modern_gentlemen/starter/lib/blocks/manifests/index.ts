@@ -19,6 +19,7 @@ import { columns } from "./columns";
 import { coverCards } from "./coverCards";
 import { ctaBand } from "./ctaBand";
 import { editorialHero } from "./editorialHero";
+import { editorialFeed } from "./editorialFeed";
 import { featureSplit } from "./featureSplit";
 import { featuredLead } from "./featuredLead";
 import { filmStills } from "./filmStills";
@@ -74,6 +75,7 @@ export const blockManifests = {
   articleGrid,
   ctaBand,
   editorialHero,
+  editorialFeed,
   manifesto,
   coverCards,
   pullQuote,

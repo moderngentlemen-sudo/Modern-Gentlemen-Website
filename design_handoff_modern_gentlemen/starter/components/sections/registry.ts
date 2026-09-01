@@ -19,6 +19,7 @@ import { FeaturedLead } from "./FeaturedLead";
 import { ArticleGrid } from "./ArticleGrid";
 import { CtaBand } from "./CtaBand";
 import { EditorialHero } from "./EditorialHero";
+import { EditorialFeed } from "./EditorialFeed";
 import { Manifesto } from "./Manifesto";
 import { CoverCards } from "./CoverCards";
 import { PullQuote } from "./PullQuote";
@@ -77,6 +78,7 @@ export const registry = {
   articleGrid: ArticleGrid,
   ctaBand: CtaBand,
   editorialHero: EditorialHero,
+  editorialFeed: EditorialFeed,
   manifesto: Manifesto,
   coverCards: CoverCards,
   pullQuote: PullQuote,
