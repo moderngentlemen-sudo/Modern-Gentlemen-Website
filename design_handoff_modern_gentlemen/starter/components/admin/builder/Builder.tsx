@@ -38,6 +38,7 @@ import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
 import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
+import type { ThemeStyleClass } from "@/lib/domain/theme";
 
 /**
  * The server actions the builder may call.
@@ -118,12 +119,14 @@ export function Builder({
   canPublish,
   canPreview,
   patterns = [],
+  styleClasses = [],
 }: {
   init: BuilderInit;
   actions: BuilderServerActions;
   canPublish: boolean;
   canPreview: boolean;
   patterns?: BuilderPattern[];
+  styleClasses?: readonly ThemeStyleClass[];
 }) {
   const id = init.doc.id;
   // `treeKey` is a payload *path*, and for a template it is `areas.<name>`.
@@ -156,6 +159,7 @@ export function Builder({
           canPublish={canPublish}
           canPreview={canPreview}
           patterns={patterns}
+          styleClasses={styleClasses}
         />
       </PatternsProvider>
     </BuilderStoreProvider>
@@ -167,11 +171,13 @@ function BuilderLayout({
   canPublish,
   canPreview,
   patterns,
+  styleClasses,
 }: {
   callbacks: BuilderCallbacks;
   canPublish: boolean;
   canPreview: boolean;
   patterns: BuilderPattern[];
+  styleClasses: readonly ThemeStyleClass[];
 }) {
   useAutosave(callbacks.saveDraft);
   const [leftPanel, setLeftPanel] = useState<"add" | "navigator">("add");
@@ -359,7 +365,7 @@ function BuilderLayout({
           </main>
 
           <aside className={clsx("w-[320px] shrink-0 overflow-hidden border-l", HAIRLINE)}>
-            <PropertiesPanel />
+            <PropertiesPanel styleClasses={styleClasses} />
           </aside>
         </div>
 

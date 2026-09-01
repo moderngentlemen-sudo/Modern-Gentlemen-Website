@@ -27,6 +27,7 @@ import {
   parseThemeLayout,
   parseThemeColors,
   parseThemeSettings,
+  parseThemeStyleClasses,
   parseThemeTypography,
   safeCssColor,
   themeCssText,
@@ -154,6 +155,55 @@ describe("editable typography and header settings", () => {
     expect(parsed.typography).toEqual(DEFAULT_THEME_TYPOGRAPHY);
     expect(parsed.header).toEqual(DEFAULT_THEME_HEADER);
     expect(parsed.layout).toEqual(DEFAULT_THEME_LAYOUT);
+    expect(parsed.styleClasses).toEqual([]);
+  });
+
+  it("validates, parses and emits reusable responsive style classes", () => {
+    const styleClasses = [
+      {
+        id: "feature-card",
+        name: "Feature card",
+        visual: {
+          styles: {
+            desktop: { display: "grid" as const, gap: 24 as const, radius: "rounded" as const },
+            mobile: { display: "block" as const, paddingX: 16 as const },
+          },
+          effects: { hover: "lift" as const, motion: "gentle" as const },
+        },
+      },
+    ];
+
+    expect(parseThemeStyleClasses({ styleClasses })).toEqual(styleClasses);
+    expect(themeDesignCssText({ ...DEFAULT_THEME_SETTINGS, styleClasses })).toContain(
+      '[data-mg-style~="feature-card"]'
+    );
+    expect(themeSettingsSchema.safeParse({ ...DEFAULT_THEME_SETTINGS, styleClasses }).success).toBe(
+      true
+    );
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        styleClasses: [...styleClasses, { ...styleClasses[0], name: "Duplicate" }],
+      }).success
+    ).toBe(false);
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        styleClasses: [{ id: "missing-visual", name: "Missing visual" }],
+      }).success
+    ).toBe(false);
+  });
+
+  it("drops malformed stored style classes independently", () => {
+    expect(
+      parseThemeStyleClasses({
+        styleClasses: [
+          { id: "unsafe class", name: "Bad", visual: {} },
+          { id: "safe-card", name: "Safe", visual: { styles: { desktop: { gap: 16 } } } },
+          { id: "script", name: "Script", visual: { rawCss: "display:none" } },
+        ],
+      })
+    ).toEqual([{ id: "safe-card", name: "Safe", visual: { styles: { desktop: { gap: 16 } } } }]);
   });
 
   it("keeps valid stored choices and falls back field by field", () => {

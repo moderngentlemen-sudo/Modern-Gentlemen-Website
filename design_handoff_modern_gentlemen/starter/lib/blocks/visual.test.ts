@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateVisualDesign, visualCss, visualDeclarations } from "./visual";
+import { validateVisualDesign, visualCss, visualDeclarations, visualStyleClassCss } from "./visual";
 
 describe("visual element design", () => {
   it("emits bounded responsive layout and interaction CSS", () => {
@@ -37,6 +37,25 @@ describe("visual element design", () => {
       "visual.effects.script",
       "visual.effects.hover",
     ]);
+  });
+
+  it("emits safe reusable class selectors and gives local rules higher specificity", () => {
+    const global = visualStyleClassCss("feature-card", {
+      styles: { desktop: { paddingX: 24 } },
+    });
+    const local = visualCss("card-one", { styles: { desktop: { paddingX: 48 } } });
+    const inheritedMotion = visualCss("card-two", {
+      styleClass: "feature-card",
+      styles: { desktop: { paddingX: 48 } },
+    });
+
+    expect(global).toContain('[data-mg-style~="feature-card"]');
+    expect(visualStyleClassCss('bad"]{color:red}', {})).toBe("");
+    expect(local.css).toContain(
+      `[data-mg-visual="${local.scope}"][data-mg-visual="${local.scope}"]`
+    );
+    expect(inheritedMotion.css).not.toContain("transition:");
+    expect(validateVisualDesign({ styleClass: "Feature Card" })[0]?.path).toBe("visual.styleClass");
   });
 
   it("maps every emitted value from a closed vocabulary", () => {

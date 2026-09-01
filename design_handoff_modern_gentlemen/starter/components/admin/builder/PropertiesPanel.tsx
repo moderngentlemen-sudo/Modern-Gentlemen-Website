@@ -44,6 +44,7 @@ import { FieldControl, type ControlContext } from "@/components/admin/fields/Fie
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
 
 import { findBlock } from "@/lib/blocks/traverse";
+import type { ThemeStyleClass } from "@/lib/domain/theme";
 
 import { useBuilder } from "./StoreContext";
 
@@ -58,7 +59,11 @@ const DEVICES = ["mobile", "tablet", "desktop"] as const;
  * modules show their real values. Values are *written* only into `settings` —
  * `BlockNode`'s own comment says the builder always writes that shape.
  */
-export function PropertiesPanel() {
+export function PropertiesPanel({
+  styleClasses = [],
+}: {
+  styleClasses?: readonly ThemeStyleClass[];
+}) {
   const selectedKey = useBuilder((s) => s.selectedKey);
   const selectedKeys = useBuilder((s) => s.selectedKeys);
   const tree = useBuilder((s) => s.tree);
@@ -76,7 +81,7 @@ export function PropertiesPanel() {
     const nodes = selectedKeys
       .map((key) => findBlock(tree, key))
       .filter((entry): entry is BlockNode => entry !== undefined);
-    return <MultiProperties nodes={nodes} />;
+    return <MultiProperties nodes={nodes} styleClasses={styleClasses} />;
   }
 
   if (!node) {
@@ -89,7 +94,9 @@ export function PropertiesPanel() {
     );
   }
 
-  return <BlockProperties key={node._key} node={node} allIssues={issues} />;
+  return (
+    <BlockProperties key={node._key} node={node} allIssues={issues} styleClasses={styleClasses} />
+  );
 }
 
 function commonValue<T>(values: readonly (T | undefined)[]): T | undefined {
@@ -97,11 +104,18 @@ function commonValue<T>(values: readonly (T | undefined)[]): T | undefined {
   return values.every((value) => value === first) ? first : undefined;
 }
 
-function MultiProperties({ nodes }: { nodes: BlockNode[] }) {
+function MultiProperties({
+  nodes,
+  styleClasses,
+}: {
+  nodes: BlockNode[];
+  styleClasses: readonly ThemeStyleClass[];
+}) {
   const device = useBuilder((s) => s.device);
   const setSelectedVisibility = useBuilder((s) => s.setSelectedVisibility);
   const setSelectedDesign = useBuilder((s) => s.setSelectedDesign);
   const setSelectedVisualStyle = useBuilder((s) => s.setSelectedVisualStyle);
+  const setSelectedVisualStyleClass = useBuilder((s) => s.setSelectedVisualStyleClass);
   const setSelectedLocked = useBuilder((s) => s.setSelectedLocked);
   const styles = nodes.map((node) => node.visual?.styles?.[device]);
   const allLocked = nodes.every((node) => node.locked === true);
@@ -117,6 +131,17 @@ function MultiProperties({ nodes }: { nodes: BlockNode[] }) {
       </header>
 
       <PanelSection title="Group layout">
+        <Select
+          label="Reusable style class"
+          value={commonValue(nodes.map((node) => node.visual?.styleClass)) ?? ""}
+          placeholder="Mixed or none"
+          options={styleClasses.map((styleClass) => ({
+            value: styleClass.id,
+            label: styleClass.name,
+          }))}
+          disabled={allLocked}
+          onChange={(styleClass) => setSelectedVisualStyleClass(styleClass || undefined)}
+        />
         <Select
           label="Width preset"
           value={commonValue(styles.map((style) => style?.width)) ?? ""}
@@ -185,7 +210,15 @@ function MultiProperties({ nodes }: { nodes: BlockNode[] }) {
   );
 }
 
-function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: BlockIssue[] }) {
+function BlockProperties({
+  node,
+  allIssues,
+  styleClasses,
+}: {
+  node: BlockNode;
+  allIssues: BlockIssue[];
+  styleClasses: readonly ThemeStyleClass[];
+}) {
   const setSetting = useBuilder((s) => s.setSetting);
   const unsetSetting = useBuilder((s) => s.unsetSetting);
   const listAdd = useBuilder((s) => s.listAdd);
@@ -196,6 +229,7 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
   const setVisualStyle = useBuilder((s) => s.setVisualStyle);
   const setVisualEffects = useBuilder((s) => s.setVisualEffects);
   const setVisualName = useBuilder((s) => s.setVisualName);
+  const setVisualStyleClass = useBuilder((s) => s.setVisualStyleClass);
   const setLocked = useBuilder((s) => s.setLocked);
   const device = useBuilder((s) => s.device);
 
@@ -327,6 +361,18 @@ function BlockProperties({ node, allIssues }: { node: BlockNode; allIssues: Bloc
       </PanelSection>
 
       <PanelSection title={`Visual layout — ${device}`} defaultOpen={false}>
+        <Select
+          label="Reusable style class"
+          value={node.visual?.styleClass ?? ""}
+          placeholder="None — local styles only"
+          options={styleClasses.map((styleClass) => ({
+            value: styleClass.id,
+            label: styleClass.name,
+          }))}
+          disabled={locked}
+          help="Applies a published global recipe. Local controls below override it."
+          onChange={(styleClass) => setVisualStyleClass(key, styleClass || undefined)}
+        />
         <TextInput
           label="Element name"
           value={node.visual?.name ?? ""}

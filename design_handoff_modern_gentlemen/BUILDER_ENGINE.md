@@ -96,10 +96,33 @@ optional presets only after their rendering behavior exists.
 has been exposed. This distinction prevents an editor from offering choices the
 public site silently ignores.
 
+## Reusable global style classes (v1.2)
+
+Theme payload v6 adds `styleClasses`, a bounded library of named visual recipes.
+Each class has a stable lowercase id plus the same responsive `styles` and
+interaction `effects` vocabulary used by an individual builder element. Class
+definitions cannot contain arbitrary CSS, another class reference or an
+element-only Navigator name.
+
+Publishing the theme emits selectors such as
+`[data-mg-style~="feature-card"]`. A builder element stores only that safe id at
+`visual.styleClass`; its existing local responsive values remain separate. The
+local selector repeats its scoped data attribute so it always outranks the
+global class, independent of stylesheet insertion order. This creates a clear
+cascade:
+
+1. built-in component composition and global theme variables;
+2. the published reusable style class;
+3. the element's local responsive overrides.
+
+There is no migration. Payloads from theme v1-v5 parse with an empty class
+library, unstyled legacy blocks still return their child directly, and a
+class-only block gets one wrapper but no redundant local `<style>` element.
+
 ## Next engine layers
 
-1. Add class/style tokens, reusable symbols, component states and named
-   responsive breakpoints without permitting arbitrary stored CSS.
+1. Add semantic component defaults, reusable symbols, component states and
+   named responsive breakpoints without permitting arbitrary stored CSS.
 2. Implement the transcript's named hero, header, navigation, Latest, Style
    and article presets in small renderer-backed groups.
 3. Add migration fixtures and visual baselines for every current page before a

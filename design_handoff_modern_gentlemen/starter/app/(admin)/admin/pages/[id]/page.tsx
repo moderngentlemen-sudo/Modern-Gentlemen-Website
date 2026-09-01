@@ -5,7 +5,7 @@ import { getDocument } from "@/lib/services/documents";
 import { listInsertablePatterns } from "@/lib/services/patterns";
 import { BLOCK_TREE_KEY } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
-import { Builder } from "@/components/admin/builder/Builder";
+import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
 
 import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "./actions";
 

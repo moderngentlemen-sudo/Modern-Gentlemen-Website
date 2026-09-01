@@ -661,6 +661,17 @@ describe("settings", () => {
     expect(store.getState().tree[0].visual).toBeUndefined();
   });
 
+  it("applies and clears a reusable visual class as undoable block data", () => {
+    store.getState().setVisualStyleClass(key, "feature-card");
+    expect(store.getState().tree[0].visual?.styleClass).toBe("feature-card");
+
+    store.getState().setVisualStyleClass(key, undefined);
+    expect(store.getState().tree[0].visual?.styleClass).toBeUndefined();
+
+    store.getState().undo();
+    expect(store.getState().tree[0].visual?.styleClass).toBe("feature-card");
+  });
+
   it("clears inherited visual overrides and refuses changes while locked", () => {
     store.getState().setVisualEffects(key, { hover: "lift", motion: "gentle" });
     store.getState().setVisualEffects(key, { hover: undefined });

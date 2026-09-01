@@ -46,7 +46,7 @@ or function impossible to reproduce.
 | Native low-level elements | Complete | Heading, Text, Image, Video, Embed, Icon, Product, Form, Button, Divider and responsive Spacer are available alongside every legacy section. Product resolves the live catalogue and shared bag; Form captures configurable bounded fields through an RLS-protected public path. |
 | Responsive visual styling | Complete | Per-device layout, grid/flex, sizing, spacing, surface, border, corner, shadow, opacity, overflow, hover and motion controls use the shared visual renderer. |
 | Direct manipulation | Complete | Canvas/Navigator multi-select, group operations, drag/drop, direct resize with optional 5% grid snapping and smart canvas/peer alignment, persistent and Space-key hand panning, rulers, 50–150% zoom, exact responsive dimensions and bounded positioning work. All viewport aids remain editor-only. |
-| Shared classes/design tokens/symbol states | Partial | Global theme roles and reusable patterns exist; reusable style classes, component states and shared local style tokens remain. |
+| Shared classes/design tokens/symbol states | Partial | Global theme roles, reusable patterns and published responsive style classes with local overrides exist; component states and shared local token aliases remain. |
 
 ## Templates, binding and preview
 
@@ -68,11 +68,11 @@ or function impossible to reproduce.
 |---|---|---|
 | Colors, fonts and webfonts | Complete | Context-aware color tokens, five font roles, curated stacks and bounded provider/direct-file webfonts are editable and published. |
 | Layout widths and gutters | Complete | Global content width and desktop/mobile gutters cascade through shared CSS variables. |
-| Global spacing, borders, shadows, buttons, cards and forms | Partial | Element-local spacing/border/shadow controls exist; comprehensive named global component tokens and form/card/button defaults remain. |
+| Global spacing, borders, shadows, buttons, cards and forms | Partial | Reusable classes now provide named global responsive spacing/border/shadow recipes; semantic button/card/form component defaults remain. |
 | Animation presets | Partial | Element hover/motion and advanced header behavior exist; a reusable global animation library with entrance/scroll states remains. |
 | Header customization | Partial | Height, scale, scroll/background behavior, compact state, divider, search/theme/bag visibility, icon bubbles and hover styles work. Announcement bars, arbitrary element layout, account/social/CTA controls and the remaining Claude presets remain. |
 | Footer customization | Partial | Menus are data-driven, but tagline, social destinations and arbitrary footer composition remain fixed in the component. |
-| Site-wide cascading defaults with local overrides | Partial | Theme variables and per-element visual overrides form the first cascade; shared class tokens and component-default inheritance remain. |
+| Site-wide cascading defaults with local overrides | Partial | Published reusable classes now cascade between theme variables and higher-specificity per-element overrides; semantic component-default inheritance remains. |
 
 ## Editorial CMS and media
 
@@ -137,8 +137,8 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Complete the global design system for buttons, cards, forms, borders,
-   shadows, animation presets and reusable style classes.
+1. Complete semantic global defaults for buttons, cards and forms, plus entrance
+   and scroll animation states. Reusable responsive style classes are complete.
 2. Add one-click “save selection as pattern,” document duplication and the
    global command palette.
 3. Expose media tagging and conditional navigation rules.

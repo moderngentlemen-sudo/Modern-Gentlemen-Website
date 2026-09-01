@@ -29,6 +29,7 @@ import {
   type ThemeLayout,
   type ThemeContext,
   type ThemeSettings,
+  type ThemeStyleClass,
   type ThemeToken,
   type ThemeTypography,
   type ThemeWebfont,
@@ -41,6 +42,7 @@ import { NumberInput } from "@/components/admin/ui/NumberInput";
 import { Toggle } from "@/components/admin/ui/Toggle";
 import { useToast } from "@/components/admin/ui/Toast";
 import { publishThemeAction, saveThemeDraftAction, unpublishThemeAction } from "./actions";
+import { StyleClassEditor } from "./StyleClassEditor";
 
 interface ThemeEditorProps {
   initial: {
@@ -159,6 +161,35 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, layout: { ...current.layout, [key]: value } }));
+  }
+
+  function setStyleClasses(styleClasses: ThemeStyleClass[]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, styleClasses }));
+  }
+
+  function addStyleClass() {
+    if (draft.styleClasses.length >= 32) return;
+    let id = `style-${Date.now().toString(36)}`;
+    let suffix = 2;
+    while (draft.styleClasses.some((styleClass) => styleClass.id === id)) {
+      id = `style-${Date.now().toString(36)}-${suffix++}`;
+    }
+    setStyleClasses([
+      ...draft.styleClasses,
+      { id, name: `Style ${draft.styleClasses.length + 1}`, visual: {} },
+    ]);
+  }
+
+  function updateStyleClass(id: string, next: ThemeStyleClass) {
+    setStyleClasses(
+      draft.styleClasses.map((styleClass) => (styleClass.id === id ? next : styleClass))
+    );
+  }
+
+  function removeStyleClass(id: string) {
+    setStyleClasses(draft.styleClasses.filter((styleClass) => styleClass.id !== id));
   }
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, success: string) {
@@ -407,6 +438,46 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                     )}
                   </div>
                 </div>
+              ))
+            )}
+          </div>
+        </PanelSection>
+
+        <PanelSection
+          title="Reusable style classes"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending || draft.styleClasses.length >= 32}
+                onClick={addStyleClass}
+              >
+                Add style class
+              </Button>
+            ) : undefined
+          }
+        >
+          <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-mg-fg/60">
+            Define a responsive visual recipe once, publish the theme, then apply it from any
+            builder element&apos;s Visual layout panel. Per-element settings remain available and
+            override the class without changing it everywhere else.
+          </p>
+          <div className="space-y-5">
+            {draft.styleClasses.length === 0 ? (
+              <p className="border border-dashed border-mg-bd/20 px-4 py-6 text-[13px] text-mg-fg/60">
+                No reusable styles yet. Add one for cards, content bands, buttons, feature grids or
+                any other treatment you want to keep consistent.
+              </p>
+            ) : (
+              draft.styleClasses.map((styleClass) => (
+                <StyleClassEditor
+                  key={styleClass.id}
+                  value={styleClass}
+                  disabled={!canWrite || pending}
+                  onChange={(next) => updateStyleClass(styleClass.id, next)}
+                  onRemove={() => removeStyleClass(styleClass.id)}
+                />
               ))
             )}
           </div>
@@ -670,9 +741,9 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
           made here.
         </p>
         <p className="mt-2">
-          Typography, site width and header behavior are global settings. Additional spacing is
-          available per section in the builder, so an editor can change page rhythm without
-          rewriting that section&apos;s internal layout. Radii and motion remain follow-up controls.
+          Typography, site width, header behavior and reusable style classes are global settings.
+          Classes are published with the theme; local builder controls override them so a page can
+          diverge without duplicating or rewriting the shared recipe.
         </p>
         {initial.published === null && (
           <p className="mt-2 text-mg-accentSerif">

@@ -26,6 +26,7 @@ export const VISUAL_OPACITIES = [25, 50, 75, 100] as const;
 export const VISUAL_OVERFLOWS = ["visible", "hidden", "auto"] as const;
 export const VISUAL_HOVERS = ["none", "lift", "scale", "glow", "fade"] as const;
 export const VISUAL_MOTIONS = ["instant", "snappy", "smooth", "gentle"] as const;
+export const VISUAL_STYLE_CLASS_ID = /^[a-z][a-z0-9-]{0,39}$/;
 
 export interface VisualStyle {
   display?: (typeof VISUAL_DISPLAYS)[number];
@@ -70,6 +71,8 @@ export interface VisualEffects {
 export interface VisualElementDesign {
   /** Optional editor-facing name, shown by the hierarchy in a later phase. */
   name?: string;
+  /** A reusable class defined by the published global theme. */
+  styleClass?: string;
   styles?: Partial<Record<VisualBreakpoint, VisualStyle>>;
   effects?: VisualEffects;
 }
@@ -128,7 +131,7 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
   const issues: VisualDesignIssue[] = [];
 
   for (const property of Object.keys(design)) {
-    if (!["name", "styles", "effects"].includes(property)) {
+    if (!["name", "styleClass", "styles", "effects"].includes(property)) {
       issues.push({
         path: `visual.${property}`,
         message: "Unknown visual setting.",
@@ -138,6 +141,16 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
 
   if (design.name !== undefined && (typeof design.name !== "string" || design.name.length > 80)) {
     issues.push({ path: "visual.name", message: "Element names must be at most 80 characters." });
+  }
+
+  if (
+    design.styleClass !== undefined &&
+    (typeof design.styleClass !== "string" || !VISUAL_STYLE_CLASS_ID.test(design.styleClass))
+  ) {
+    issues.push({
+      path: "visual.styleClass",
+      message: "Choose a reusable style class or leave it empty.",
+    });
   }
 
   if (design.styles !== undefined) {
@@ -218,6 +231,7 @@ export function hasVisualDesign(value: VisualElementDesign | undefined): boolean
   if (!value) return false;
   return Boolean(
     value.name ||
+    value.styleClass ||
     Object.values(value.styles ?? {}).some((style) => style && Object.keys(style).length > 0) ||
     Object.keys(value.effects ?? {}).length > 0
   );
@@ -349,12 +363,7 @@ function scopeForKey(key: string): string {
   return `ve-${(hash >>> 0).toString(36)}`;
 }
 
-export function visualCss(
-  key: string,
-  design: VisualElementDesign
-): { scope: string; css: string } {
-  const scope = scopeForKey(key);
-  const selector = `[data-mg-visual="${scope}"]`;
+function rulesForSelector(selector: string, design: VisualElementDesign): string {
   const desktop = visualDeclarations(design.styles?.desktop);
   const tablet = visualDeclarations(design.styles?.tablet);
   const mobile = visualDeclarations(design.styles?.mobile);
@@ -373,9 +382,15 @@ export function visualCss(
       : motion === "gentle"
         ? "cubic-bezier(.22,1,.36,1)"
         : "cubic-bezier(.4,0,.2,1)";
-  const rules = [
-    `${selector}{${desktop}${desktop ? ";" : ""}transition:transform ${duration} ${easing},opacity ${duration} ${easing},box-shadow ${duration} ${easing}}`,
-  ];
+  // A local style layered over a class must not silently replace that class's
+  // motion timing merely because it changes padding or width. Unclassed
+  // elements retain the engine's original smooth-transition baseline.
+  const transition =
+    !design.styleClass || design.effects?.motion !== undefined
+      ? `transition:transform ${duration} ${easing},opacity ${duration} ${easing},box-shadow ${duration} ${easing}`
+      : "";
+  const desktopRule = [desktop, transition].filter(Boolean).join(";");
+  const rules = [`${selector}{${desktopRule}}`];
   if (tablet) rules.push(`@media(max-width:1024px){${selector}{${tablet}}}`);
   if (mobile) rules.push(`@media(max-width:680px){${selector}{${mobile}}}`);
 
@@ -391,5 +406,23 @@ export function visualCss(
             : "opacity:.72";
     rules.push(`${selector}:hover{${declaration}}`);
   }
-  return { scope, css: rules.join("") };
+  return rules.join("");
+}
+
+export function visualCss(
+  key: string,
+  design: VisualElementDesign
+): { scope: string; css: string } {
+  const scope = scopeForKey(key);
+  // Two attributes deliberately outrank a global style class's one attribute.
+  // This makes per-element values true local overrides regardless of stylesheet
+  // insertion order.
+  const selector = `[data-mg-visual="${scope}"][data-mg-visual="${scope}"]`;
+  return { scope, css: rulesForSelector(selector, design) };
+}
+
+/** CSS for one validated global class id. Invalid stored ids emit nothing. */
+export function visualStyleClassCss(id: string, design: VisualElementDesign): string {
+  if (!VISUAL_STYLE_CLASS_ID.test(id)) return "";
+  return rulesForSelector(`[data-mg-style~="${id}"]`, design);
 }

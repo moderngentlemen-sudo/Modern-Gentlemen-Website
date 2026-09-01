@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
 
-import { hasVisualDesign, visualCss, type VisualElementDesign } from "@/lib/blocks/visual";
+import {
+  VISUAL_STYLE_CLASS_ID,
+  hasVisualDesign,
+  visualCss,
+  type VisualElementDesign,
+} from "@/lib/blocks/visual";
 
 /**
  * The compatibility bridge between existing components and the new visual
@@ -17,11 +22,21 @@ export function VisualElementFrame({
   children: ReactNode;
 }) {
   if (!hasVisualDesign(visual)) return children;
-  const { scope, css } = visualCss(blockKey, visual!);
+  const hasLocalCss = Boolean(
+    Object.values(visual?.styles ?? {}).some((style) => style && Object.keys(style).length > 0) ||
+    Object.keys(visual?.effects ?? {}).length > 0
+  );
+  const local = hasLocalCss ? visualCss(blockKey, visual!) : null;
+  const styleClass =
+    visual?.styleClass && VISUAL_STYLE_CLASS_ID.test(visual.styleClass)
+      ? visual.styleClass
+      : undefined;
   return (
     <>
-      <style data-mg-visual-style={scope}>{css}</style>
-      <div data-mg-visual={scope}>{children}</div>
+      {local && <style data-mg-visual-style={local.scope}>{local.css}</style>}
+      <div data-mg-visual={local?.scope} data-mg-style={styleClass}>
+        {children}
+      </div>
     </>
   );
 }

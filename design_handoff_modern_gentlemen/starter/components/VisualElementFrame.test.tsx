@@ -29,4 +29,15 @@ describe("VisualElementFrame", () => {
     expect(html).toContain("padding-left:24px");
     expect(html.match(/<section/g)).toHaveLength(1);
   });
+
+  it("applies a reusable class without emitting redundant local CSS", () => {
+    const html = renderToStaticMarkup(
+      <VisualElementFrame blockKey="classed" visual={{ styleClass: "feature-card" }}>
+        <section>Content</section>
+      </VisualElementFrame>
+    );
+
+    expect(html).toContain('data-mg-style="feature-card"');
+    expect(html).not.toContain("data-mg-visual-style");
+  });
 });

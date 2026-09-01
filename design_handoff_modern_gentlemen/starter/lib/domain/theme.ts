@@ -28,6 +28,12 @@
  */
 
 import { z } from "zod";
+import {
+  VISUAL_STYLE_CLASS_ID,
+  validateVisualDesign,
+  visualStyleClassCss,
+  type VisualElementDesign,
+} from "@/lib/blocks/visual";
 
 /** `revisions.entity_type` / the `p_entity_type` argument. See the note above. */
 export const THEME_ENTITY_TYPE = "theme";
@@ -400,6 +406,14 @@ export interface ThemeSettings {
   typography: ThemeTypography;
   header: ThemeHeader;
   layout: ThemeLayout;
+  /** Reusable, responsive visual recipes applied by builder elements. */
+  styleClasses: ThemeStyleClass[];
+}
+
+export interface ThemeStyleClass {
+  id: string;
+  name: string;
+  visual: VisualElementDesign;
 }
 
 export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
@@ -407,10 +421,11 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   typography: DEFAULT_THEME_TYPOGRAPHY,
   header: DEFAULT_THEME_HEADER,
   layout: DEFAULT_THEME_LAYOUT,
+  styleClasses: [],
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 5;
+export const THEME_PAYLOAD_VERSION = 6;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -672,11 +687,54 @@ export const themeLayoutSchema = z.object({
   mobileGutter: z.number().int().min(12).max(40),
 });
 
+const themeStyleVisualSchema = z.custom<VisualElementDesign>((value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (validateVisualDesign(value).length > 0) return false;
+  const visual = value as VisualElementDesign;
+  // A class is itself the reusable layer; nesting a class reference or an
+  // editor-only element name inside it would be ambiguous.
+  return visual.name === undefined && visual.styleClass === undefined;
+}, "Use only supported responsive styles and effects");
+
+export const themeStyleClassSchema = z.object({
+  id: z.string().regex(VISUAL_STYLE_CLASS_ID, "Use a lowercase id such as feature-card"),
+  name: z.string().trim().min(1).max(60),
+  visual: themeStyleVisualSchema,
+});
+
+export const themeStyleClassesSchema = z
+  .array(themeStyleClassSchema)
+  .max(32)
+  .superRefine((classes, context) => {
+    const ids = new Set<string>();
+    const names = new Set<string>();
+    classes.forEach((styleClass, index) => {
+      const normalizedName = styleClass.name.trim().toLocaleLowerCase();
+      if (ids.has(styleClass.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "id"],
+          message: "Style class ids must be unique",
+        });
+      }
+      if (names.has(normalizedName)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "name"],
+          message: "Style class names must be unique",
+        });
+      }
+      ids.add(styleClass.id);
+      names.add(normalizedName);
+    });
+  });
+
 export const themeSettingsSchema = z.object({
   colors: themeColorsSchema,
   typography: themeTypographySchema,
   header: themeHeaderSchema,
   layout: themeLayoutSchema,
+  styleClasses: themeStyleClassesSchema,
 });
 
 export const themePayloadSchema = z.object({
@@ -685,6 +743,7 @@ export const themePayloadSchema = z.object({
   typography: themeTypographySchema.optional(),
   header: themeHeaderSchema.optional(),
   layout: themeLayoutSchema.optional(),
+  styleClasses: themeStyleClassesSchema.optional(),
 });
 export type ThemePayload = z.infer<typeof themePayloadSchema>;
 
@@ -846,12 +905,33 @@ export function parseThemeLayout(value: unknown): ThemeLayout {
   return out;
 }
 
+/** Keep valid global classes independently so one damaged recipe cannot blank the library. */
+export function parseThemeStyleClasses(value: unknown): ThemeStyleClass[] {
+  const incoming = asRecord(value)?.styleClasses;
+  if (!Array.isArray(incoming)) return [];
+
+  const parsed = incoming.slice(0, 32).flatMap((candidate) => {
+    const result = themeStyleClassSchema.safeParse(candidate);
+    return result.success ? [result.data] : [];
+  });
+  const ids = new Set<string>();
+  const names = new Set<string>();
+  return parsed.filter((styleClass) => {
+    const name = styleClass.name.trim().toLocaleLowerCase();
+    if (ids.has(styleClass.id) || names.has(name)) return false;
+    ids.add(styleClass.id);
+    names.add(name);
+    return true;
+  });
+}
+
 export function parseThemeSettings(value: unknown): ThemeSettings {
   return {
     colors: parseThemeColors(value),
     typography: parseThemeTypography(value),
     header: parseThemeHeader(value),
     layout: parseThemeLayout(value),
+    styleClasses: parseThemeStyleClasses(value),
   };
 }
 
@@ -991,5 +1071,8 @@ export function themeDesignCssText(settings: ThemeSettings): string {
   declarations.push(`--layout-content-width:${settings.layout.contentWidth}px`);
   declarations.push(`--layout-desktop-gutter:${settings.layout.desktopGutter}px`);
   declarations.push(`--layout-mobile-gutter:${settings.layout.mobileGutter}px`);
-  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}`;
+  const styleClasses = settings.styleClasses
+    .map((styleClass) => visualStyleClassCss(styleClass.id, styleClass.visual))
+    .join("");
+  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${styleClasses}`;
 }

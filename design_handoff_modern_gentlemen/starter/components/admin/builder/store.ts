@@ -209,9 +209,11 @@ export interface BuilderActions {
   setSelectedVisibility: (patch: Partial<BlockVisibility>) => void;
   setSelectedDesign: (patch: Partial<BlockDesign>) => void;
   setSelectedVisualStyle: (breakpoint: VisualBreakpoint, patch: Partial<VisualStyle>) => void;
+  setSelectedVisualStyleClass: (styleClass: string | undefined) => void;
   setSelectedLocked: (locked: boolean) => void;
   setVisualEffects: (key: string, patch: Partial<VisualEffects>) => void;
   setVisualName: (key: string, name: string | undefined) => void;
+  setVisualStyleClass: (key: string, styleClass: string | undefined) => void;
   setLocked: (key: string, locked: boolean) => void;
 
   /**
@@ -718,6 +720,17 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           }
         }),
 
+      setSelectedVisualStyleClass: (styleClass) =>
+        commit(null, (draft) => {
+          for (const key of get().selectedKeys) {
+            const node = findDraft(draft, key);
+            if (!node || node.locked) continue;
+            if (!node.visual) node.visual = {};
+            if (styleClass) node.visual.styleClass = styleClass;
+            else delete node.visual.styleClass;
+          }
+        }),
+
       setSelectedLocked: (locked) =>
         commit(null, (draft) => {
           for (const key of get().selectedKeys) {
@@ -746,6 +759,15 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           if (!node.visual) node.visual = {};
           if (name === undefined || name.trim() === "") delete node.visual.name;
           else node.visual.name = name.slice(0, 80);
+        }),
+
+      setVisualStyleClass: (key, styleClass) =>
+        commit(null, (draft) => {
+          const node = findDraft(draft, key);
+          if (!node || node.locked) return;
+          if (!node.visual) node.visual = {};
+          if (styleClass) node.visual.styleClass = styleClass;
+          else delete node.visual.styleClass;
         }),
 
       // Deliberately not routed through `editSettings`: locking a block must
