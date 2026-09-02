@@ -422,6 +422,7 @@ function BuilderLayout({
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
         onDragCancel={() => {
+          console.info("[builder:dnd:cancel]");
           setLibraryType(null);
           setDrop(null);
         }}
