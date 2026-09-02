@@ -69,6 +69,14 @@ ancestors and descendants are excluded from peer candidates so a container does
 not snap to itself. These controls are editing aids only: they do not dirty a
 document, enter undo history or serialize into its payload.
 
+Existing block drags now expose the same valid insertion gaps as library drags.
+An editor can move a block to an exact position inside a non-empty container;
+slot allow-lists and horizontal layout declarations still suppress invalid
+gaps, and a dragged container's own branch is excluded so a cycle cannot be
+created. The operation continues through the path-aware `moveInto` action, so
+undo, validation and autosave retain the same guarantees as every other tree
+edit.
+
 ## Claude Design tweak migration
 
 The supplied tweak transcript is treated as a requirements inventory. Its
@@ -220,3 +228,4 @@ actions, hierarchy, responsive layout and color treatment without breaking a
 preset's numbered identity. Both renderers are additive: every original hero
 and section remains registered, so this migration does not narrow what the
 existing site can reproduce.
+

@@ -10,7 +10,7 @@ import {
   type ComponentType,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useShallow } from "zustand/react/shallow";
@@ -34,7 +34,8 @@ import { BlockDesignFrame } from "@/components/BlockDesignFrame";
 import { VisualElementFrame } from "@/components/VisualElementFrame";
 import { useBuilder } from "./StoreContext";
 import { usePattern } from "./PatternsContext";
-import { gapDropId, type DropLocation } from "./dnd";
+import { gapDropId, parseDragId, type DropLocation } from "./dnd";
+import { subtreeContains } from "./tree";
 
 /** Widths the device switcher previews at. */
 const DEVICE_WIDTH = {
@@ -77,11 +78,11 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
  * has to be outside the empty-tree branch or a brand-new page (the first thing
  * an editor meets) would have no drag context whatsoever.
  *
- * The two props are that context's state, passed down rather than read from
- * `useDndContext` so the rendering rule stays a function of its inputs and can
- * be asserted without a layout engine. `libraryDragType` is the type being
- * dragged in, or `null`; `drop` is the insertion point under the pointer, which
- * names a container as well as an index now that lists nest.
+ * `drop` is the insertion point under the pointer, which names a container as
+ * well as an index now that lists nest. The legacy `libraryDragType` prop keeps
+ * isolated canvas previews deterministic; during a real gesture the active
+ * dnd-kit id supplies the drag kind, dragged type and source node so existing
+ * block drags can use the same gaps as library drags.
  */
 export function Canvas({
   libraryDragType = null,
@@ -115,7 +116,29 @@ export function Canvas({
   const [panning, setPanning] = useState(false);
   const [guideX, setGuideX] = useState<number | null>(null);
 
-  const dragging = libraryDragType !== null;
+  /**
+   * `libraryDragType` is retained as a prop for the rail's rendering state and
+   * for callers that render the canvas in isolation. The dnd context is the
+   * authoritative source during a real gesture, however, because an existing
+   * block drag deliberately has no library type.
+   */
+  const { active } = useDndContext();
+  const activeDrag = active ? parseDragId(active.id) : null;
+  const dragKind =
+    activeDrag?.kind === "library" || activeDrag?.kind === "block"
+      ? activeDrag.kind
+      : libraryDragType !== null
+        ? "library"
+        : null;
+  const dragType =
+    activeDrag?.kind === "library"
+      ? activeDrag.type
+      : activeDrag?.kind === "block"
+        ? (findBlock(tree, activeDrag.key)?._type ?? null)
+        : libraryDragType;
+  const draggedNode =
+    activeDrag?.kind === "block" ? (findBlock(tree, activeDrag.key) ?? null) : null;
+  const dragging = dragKind !== null;
   const handActive = canvasTool === "hand" || spaceHand;
 
   useEffect(() => {
@@ -364,7 +387,14 @@ export function Canvas({
               {tree.length === 0 ? (
                 <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
               ) : (
-                <BlockList nodes={tree} parentKey={null} dragType={libraryDragType} drop={drop} />
+                <BlockList
+                  nodes={tree}
+                  parentKey={null}
+                  dragKind={dragKind}
+                  dragType={dragType}
+                  draggedNode={draggedNode}
+                  drop={drop}
+                />
               )}
             </div>
           </div>
@@ -475,11 +505,14 @@ function isOver(drop: DropLocation | null, parentKey: string | null, index: numb
 }
 
 /**
- * One insertion point, rendered only while a library item is in flight.
+ * One insertion point, rendered while a library item or an existing block is
+ * in flight. Existing block drags use these gaps to choose an exact position
+ * inside a non-empty container rather than relying on a block's centre.
  *
- * Registering them conditionally is what keeps block reordering unaffected: a
- * gap is never a candidate `over` target for a drag that started on the canvas,
- * so `closestCenter` still resolves to a block exactly as it did before.
+ * They are registered for both library and existing-block drags. The gaps are
+ * intentionally thin, so `closestCenter` still resolves to a block when the
+ * pointer is over its body and to the explicit gap when the editor chooses a
+ * position between blocks.
  */
 function GapDropZone({
   index,
@@ -517,14 +550,18 @@ function GapDropZone({
 function BlockList({
   nodes,
   parentKey,
+  dragKind,
   dragType,
+  draggedNode,
   drop,
   slot,
   depth = 0,
 }: {
   nodes: BlockNode[];
   parentKey: string | null;
+  dragKind: "library" | "block" | null;
   dragType: string | null;
+  draggedNode: BlockNode | null;
   drop: DropLocation | null;
   /** The slot these nodes live in, or undefined for the root list. */
   slot?: BlockSlot;
@@ -543,9 +580,15 @@ function BlockList({
    * A row's slot accepts `column` and nothing else, so during an ordinary
    * section drag it now offers no gaps at all — the grid stays exactly as it
    * renders. The section goes into a *column*, which is a list of its own and
-   * lays its gaps out vertically like every other list.
+   * lays its gaps out vertically like every other list. The same rule applies
+   * to existing block drags, which is what makes precise in-container moves
+   * possible without exposing invalid row positions.
    */
   const accepts = dragType === null || !slot?.allow || slot.allow.includes(dragType);
+
+  /** A block may never receive its own branch, even while its descendants are empty. */
+  const insideDraggedBranch =
+    parentKey !== null && draggedNode !== null && subtreeContains(draggedNode, parentKey);
 
   /**
    * A horizontal slot never shows strips, and this is now **declared** rather
@@ -558,7 +601,8 @@ function BlockList({
    * anything between them" is the honest rule; reordering inside such a slot
    * goes block-onto-block, which `dropTargetFor` makes land where it looks.
    */
-  const dragging = dragType !== null && accepts && slot?.direction !== "horizontal";
+  const dragging =
+    dragKind !== null && accepts && !insideDraggedBranch && slot?.direction !== "horizontal";
 
   return (
     <SortableContext items={nodes.map((node) => node._key)} strategy={verticalListSortingStrategy}>
@@ -571,7 +615,14 @@ function BlockList({
               over={isOver(drop, parentKey, index)}
             />
           )}
-          <SortableBlock node={node} dragType={dragType} drop={drop} depth={depth} />
+          <SortableBlock
+            node={node}
+            dragKind={dragKind}
+            dragType={dragType}
+            draggedNode={draggedNode}
+            drop={drop}
+            depth={depth}
+          />
         </Fragment>
       ))}
       {dragging && (
@@ -588,30 +639,31 @@ function BlockList({
 /**
  * A container with nothing in it.
  *
- * Registered as a droppable **whatever is being dragged**, unlike the gaps —
- * which is how an existing block is moved into an empty container, and it
- * cannot compete with sibling reordering because it exists only while the
- * container has no siblings to reorder.
+ * Registered as a droppable **whatever is being dragged**. It is the empty-list
+ * form of the same gap vocabulary, and remains available when a block is moved
+ * into a container that has no siblings to position around.
  */
 function EmptySlot({
   parentKey,
   label,
   over,
+  disabled = false,
 }: {
   parentKey: string;
   label: string;
   over: boolean;
+  disabled?: boolean;
 }) {
-  const { setNodeRef } = useDroppable({ id: gapDropId(0, parentKey) });
+  const { setNodeRef } = useDroppable({ id: gapDropId(0, parentKey), disabled });
 
   return (
     <div
       ref={setNodeRef}
-      data-gap-index={0}
+      data-gap-index={disabled ? undefined : 0}
       data-gap-parent={parentKey}
       className={clsx(
         "flex min-h-[120px] items-center justify-center border border-dashed p-6 text-center",
-        over ? "border-mg-accent bg-mg-accent/5" : "border-mg-fg/20"
+        over && !disabled ? "border-mg-accent bg-mg-accent/5" : "border-mg-fg/20"
       )}
     >
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/60">
@@ -641,12 +693,16 @@ function EmptyDropZone({ dragging, over }: { dragging: boolean; over: boolean })
 
 function SortableBlock({
   node,
+  dragKind,
   dragType,
+  draggedNode,
   drop,
   depth,
 }: {
   node: BlockNode;
+  dragKind: "library" | "block" | null;
   dragType: string | null;
+  draggedNode: BlockNode | null;
   drop: DropLocation | null;
   depth: number;
 }) {
@@ -826,12 +882,15 @@ function SortableBlock({
                         parentKey={node._key}
                         label={slot.label}
                         over={isOver(drop, node._key, 0)}
+                        disabled={draggedNode !== null && subtreeContains(draggedNode, node._key)}
                       />
                     ) : (
                       <BlockList
                         nodes={children}
                         parentKey={node._key}
+                        dragKind={dragKind}
                         dragType={dragType}
+                        draggedNode={draggedNode}
                         drop={drop}
                         slot={slot}
                         depth={depth + 1}
@@ -956,3 +1015,4 @@ function SortableBlock({
     </div>
   );
 }
+

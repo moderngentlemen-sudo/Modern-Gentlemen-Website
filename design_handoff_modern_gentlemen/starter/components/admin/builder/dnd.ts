@@ -10,8 +10,10 @@
  *
  * Drag-from-library follows the same philosophy: the identifiers below encode
  * everything a drop needs, `parseDragId` and `dropIndexFor` decide what it
- * means, and the React layer is left as a dispatcher. A real drag is proved in
- * `tests/e2e/builder.spec.ts`, which is the only place it can be.
+ * means, and the React layer is left as a dispatcher. Both library and
+ * existing-block drags share the explicit gap identifiers; the latter now use
+ * them to position a move inside a non-empty container. A real drag is proved
+ * in `tests/e2e/builder.spec.ts`, which is the only place it can be.
  */
 
 /**
@@ -109,3 +111,4 @@ export function moveIndex<T>(items: readonly T[], from: number, to: number): T[]
   next.splice(target, 0, moved);
   return next;
 }
+

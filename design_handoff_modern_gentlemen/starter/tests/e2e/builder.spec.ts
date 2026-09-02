@@ -168,11 +168,14 @@ let dragSlug = "";
  * test would need the drag to dwell at the edge instead.
  */
 /**
- * Drag one element onto another with the mouse.
+ * Drag one element onto another with the mouse. For an existing block, the
+ * target may be a gap that appears after the drag activates; this is how the
+ * builder chooses an exact position inside a non-empty container.
  *
- * Shared by the library drags and by block-onto-block reordering, which is the
- * only route a column has: a row shows no insertion strips, because they would
- * become grid cells (see `Column.tsx`).
+ * Shared by the library drags and by block-onto-block reordering. Horizontal
+ * column rows still show no insertion strips, because they would become grid
+ * cells (see `Column.tsx`); columns continue to reorder by dropping onto a
+ * sibling.
  */
 async function dragOnto(page: Page, source: Locator, target: Locator) {
   await source.scrollIntoViewIfNeeded();
@@ -352,6 +355,34 @@ test.describe("page builder — drag from the library", () => {
     await expect(nested).toHaveCount(4);
 
     /*
+      Existing blocks use the same gaps as library drags. Move the nested
+      Newsletter from the second column to the front of the first column. The
+      gap does not exist before activation, so `dragOnto` waits for it after
+      the block handle has crossed the sensor threshold.
+    */
+    const firstColumn = page
+      .getByRole("button", { name: "Drag Column", exact: true })
+      .first()
+      .locator("xpath=ancestor::*[@data-block-key][1]");
+    const firstColumnOrder = () =>
+      firstColumn
+        .locator("[data-block-key]")
+        .evaluateAll((frames) =>
+          frames.map(
+            (frame) =>
+              frame.querySelector('button[aria-label^="Drag "]')?.getAttribute("aria-label") ?? "?"
+          )
+        );
+    await dragOnto(
+      page,
+      page.getByRole("button", { name: "Drag Newsletter", exact: true }).last(),
+      firstColumn.locator('[data-gap-index="0"]')
+    );
+    await expect
+      .poll(firstColumnOrder, { timeout: 10_000 })
+      .toEqual(["Drag Newsletter", "Drag Timeline"]);
+
+    /*
       ⚠️ The nested block's own toolbar must work. The canvas kills pointer
       events on links and buttons inside a section, and that selector is a
       descendant one — applied to a container it would reach every nested
@@ -445,3 +476,4 @@ test.describe("page builder — drag from the library", () => {
     await expect(page.getByRole("link", { name: dragTitle })).toHaveCount(0);
   });
 });
+

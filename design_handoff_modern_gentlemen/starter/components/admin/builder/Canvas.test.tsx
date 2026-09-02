@@ -14,9 +14,10 @@
  * is asserted in store.test.ts, against the pure function the canvas calls, and
  * a real drag is proved in `tests/e2e/builder.spec.ts`.
  *
- * What *is* asserted here is the rendering rule the drop targets follow, which
- * is a plain function of the canvas's props — the reason those props exist
- * rather than the canvas reading `useDndContext` for itself.
+ * What *is* asserted here is the rendering rule the drop targets follow for a
+ * library drag. Existing-block drag state comes from `useDndContext` in the
+ * production canvas because that source has no library prop; its structural
+ * destination is covered by the path-aware tree tests and the browser suite.
  *
  * The `DndContext` wrapper below mirrors the real tree: it lives in
  * `Builder.tsx` now, so the canvas is no longer self-sufficient.
@@ -596,3 +597,4 @@ describe("frame chrome cannot swallow a neighbour's click", () => {
     }
   });
 });
+

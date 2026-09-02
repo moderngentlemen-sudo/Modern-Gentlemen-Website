@@ -202,9 +202,9 @@ function BuilderLayout({
    * pointer — which names a container as well as an index now that a container
    * has a list of its own.
    *
-   * `drop` is tracked for a *block* drag too, not only a library one: dropping
-   * an existing block onto an empty container's placeholder is how it gets
-   * moved in there.
+   * `drop` is tracked for a *block* drag too, not only a library one: the same
+   * location vocabulary now handles exact moves into non-empty containers as
+   * well as the empty-slot case.
    */
   const [libraryType, setLibraryType] = useState<string | null>(null);
   const [drop, setDrop] = useState<DropLocation | null>(null);
@@ -255,8 +255,8 @@ function BuilderLayout({
 
     if (active.kind !== "block" || overId === undefined) return;
 
-    // A block onto an insertion point — today that is an empty container's
-    // placeholder, which is the only way into one.
+    // A block onto an insertion point — either a gap between siblings or an
+    // empty container's placeholder.
     if (location) {
       moveTo(active.key, location.parentKey, location.index);
       return;
@@ -387,3 +387,4 @@ function BuilderLayout({
     </div>
   );
 }
+
