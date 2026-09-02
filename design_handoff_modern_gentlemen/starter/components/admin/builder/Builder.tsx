@@ -275,6 +275,26 @@ function BuilderLayout({
     // A block onto an insertion point — either a gap between siblings or an
     // empty container's placeholder.
     if (location) {
+      /**
+       * A horizontal row is the one container where a gap can be visually
+       * underneath the intended target: an empty column's placeholder fills
+       * the cell below its own drag handle. Treat that resolution as a sibling
+       * column drop, not as moving one column inside another column.
+       */
+      const home = locate(tree, active.key);
+      const homeParent =
+        home?.parentKey === null || home?.parentKey === undefined
+          ? null
+          : findBlock(tree, home.parentKey);
+      const destination = location.parentKey ? findBlock(tree, location.parentKey) : null;
+      if (
+        homeParent &&
+        manifestFor(homeParent._type)?.slot?.direction === "horizontal" &&
+        destination?._type === "column"
+      ) {
+        move(active.key, dropTargetFor(tree, active.key, destination._key));
+        return;
+      }
       moveTo(active.key, location.parentKey, location.index);
       return;
     }
