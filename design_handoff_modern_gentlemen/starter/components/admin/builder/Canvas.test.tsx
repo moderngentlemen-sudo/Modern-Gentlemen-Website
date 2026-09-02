@@ -597,4 +597,3 @@ describe("frame chrome cannot swallow a neighbour's click", () => {
     }
   });
 });
-

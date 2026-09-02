@@ -1015,4 +1015,3 @@ function SortableBlock({
     </div>
   );
 }
-

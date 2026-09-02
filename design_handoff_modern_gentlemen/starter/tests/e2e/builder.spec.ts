@@ -476,4 +476,3 @@ test.describe("page builder — drag from the library", () => {
     await expect(page.getByRole("link", { name: dragTitle })).toHaveCount(0);
   });
 });
-

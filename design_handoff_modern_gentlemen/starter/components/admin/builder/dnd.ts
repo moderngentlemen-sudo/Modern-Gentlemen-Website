@@ -111,4 +111,3 @@ export function moveIndex<T>(items: readonly T[], from: number, to: number): T[]
   next.splice(target, 0, moved);
   return next;
 }
-
