@@ -267,6 +267,10 @@ function BuilderLayout({
   function onDragStart(event: DragStartEvent) {
     const active = parseDragId(event.active.id);
     lastOverRef.current = null;
+    document.documentElement.setAttribute(
+      "data-builder-dnd-debug",
+      JSON.stringify({ phase: "start", id: event.active.id, kind: active.kind })
+    );
     if (active.kind === "library") setLibraryType(active.type);
   }
 
@@ -303,6 +307,18 @@ function BuilderLayout({
       !(active.kind === "block" && eventOver?.kind === "block" && eventOver.key === active.key)
         ? eventOverId
         : (lastOverRef.current ?? eventOverId);
+    document.documentElement.setAttribute(
+      "data-builder-dnd-debug",
+      JSON.stringify({
+        phase: "end",
+        active:
+          active.kind === "block" ? active.key : active.kind === "library" ? active.type : null,
+        kind: active.kind,
+        eventOverId,
+        lastOver: lastOverRef.current,
+        overId,
+      })
+    );
     console.info("[builder:dnd:end]", {
       active: active.kind === "block" ? active.key : active.kind === "library" ? active.type : null,
       activeKind: active.kind,
@@ -423,6 +439,10 @@ function BuilderLayout({
         onDragEnd={onDragEnd}
         onDragCancel={() => {
           console.info("[builder:dnd:cancel]");
+          document.documentElement.setAttribute(
+            "data-builder-dnd-debug",
+            JSON.stringify({ phase: "cancel" })
+          );
           setLibraryType(null);
           setDrop(null);
         }}
