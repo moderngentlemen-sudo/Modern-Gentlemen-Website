@@ -22,6 +22,7 @@ import type { ActionResult, SerializedIssue } from "@/app/(admin)/admin/_lib/act
 import { HAIRLINE } from "@/components/admin/ui/styles";
 import { manifestFor } from "@/lib/blocks/manifests";
 import { areaNameOf } from "@/lib/blocks/areas";
+import { findBlock } from "@/lib/blocks/traverse";
 
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
 import { PatternsProvider } from "./PatternsContext";
@@ -216,16 +217,31 @@ function BuilderLayout({
 
   /**
    * Prefer an explicit gap whenever the pointer is inside one. `closestCenter`
-   * is useful as the fallback for block-on-block sorting (and for horizontal
-   * column rows that deliberately have no gaps), but it skips over a thin gap
-   * inside a populated container because the neighbouring block's centre is
-   * always closer. Library drags and existing-block drags therefore share this
-   * pointer-first collision rule.
+   * is useful as the fallback for block-on-block sorting, but it skips over a
+   * thin gap inside a populated container because the neighbouring block's
+   * centre is always closer. The one exception is a column being reordered in
+   * a horizontal row: its sibling's empty placeholder sits under the drag
+   * handle, so pointer-first would resolve to that inner gap and reject the
+   * move as a cycle instead of targeting the sibling column.
    */
-  const collisionDetection = useCallback<CollisionDetection>((args) => {
-    const pointerHits = pointerWithin(args);
-    return pointerHits.length > 0 ? pointerHits : closestCenter(args);
-  }, []);
+  const collisionDetection = useCallback<CollisionDetection>(
+    (args) => {
+      const active = parseDragId(args.active.id);
+      if (active.kind === "block") {
+        const home = locate(tree, active.key);
+        const parent =
+          home?.parentKey === null || home?.parentKey === undefined
+            ? null
+            : findBlock(tree, home.parentKey);
+        if (parent && manifestFor(parent._type)?.slot?.direction === "horizontal") {
+          return closestCenter(args);
+        }
+      }
+      const pointerHits = pointerWithin(args);
+      return pointerHits.length > 0 ? pointerHits : closestCenter(args);
+    },
+    [tree]
+  );
 
   function onDragStart(event: DragStartEvent) {
     const active = parseDragId(event.active.id);
