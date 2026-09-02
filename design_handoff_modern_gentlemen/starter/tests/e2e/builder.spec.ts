@@ -439,23 +439,6 @@ test.describe("page builder — drag from the library", () => {
       after removing it, which for a forward drag is the index the active just
       vacated — so the block sprang back and nothing failed anywhere.
     */
-    const deepest = page.locator("[data-block-key] [data-block-key] [data-block-key]");
-    const contents = () =>
-      deepest.evaluateAll((frames) =>
-        frames.map(
-          (frame) =>
-            frame.querySelector('button[aria-label^="Duplicate "]')?.getAttribute("aria-label") ??
-            "?"
-        )
-      );
-
-    await deepest.first().waitFor();
-    const before = await contents();
-    // The preceding nesting test now persists Newsletter ahead of Timeline in
-    // the first column. Either label proves the row is populated; the assertion
-    // after the swap is the one that proves the columns changed places.
-    expect(before.some((label) => /Newsletter|Timeline/.test(label))).toBe(true);
-
     /*
       ⚠️ `exact` is load-bearing. `getByRole`'s `name` matches a **substring**
       by default, and the row's own handle is "Drag Columns — layout" — which
@@ -465,18 +448,25 @@ test.describe("page builder — drag from the library", () => {
     */
     const handles = page.getByRole("button", { name: "Drag Column", exact: true });
     await expect(handles).toHaveCount(2);
+    const columnOrder = () =>
+      handles.evaluateAll((buttons) =>
+        buttons.map((button) => button.closest<HTMLElement>("[data-block-key]")?.dataset.blockKey)
+      );
+    const before = await columnOrder();
     await dragOnto(page, handles.first(), handles.last());
 
-    // The Timeline's column now comes second, so the Newsletter's is first.
-    await expect.poll(async () => (await contents())[0], { timeout: 10_000 }).toMatch(/Newsletter/);
+    // The two column keys must reverse. This proves the row reordered rather
+    // than merely moving a child inside one of its cells, independent of which
+    // sections the preceding serial tests left in the row.
+    await expect.poll(columnOrder, { timeout: 10_000 }).toEqual([before[1], before[0]]);
 
     await page.keyboard.press("ControlOrMeta+s");
     await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
 
     // Persisted, not just moved on screen.
     await page.reload();
-    await deepest.first().waitFor();
-    expect((await contents())[0]).toMatch(/Newsletter/);
+    await expect(handles).toHaveCount(2);
+    expect(await columnOrder()).toEqual([before[1], before[0]]);
   });
 
   test("cleans up the page it created", async ({ page }) => {
