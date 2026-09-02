@@ -303,6 +303,13 @@ function BuilderLayout({
       !(active.kind === "block" && eventOver?.kind === "block" && eventOver.key === active.key)
         ? eventOverId
         : (lastOverRef.current ?? eventOverId);
+    console.info("[builder:dnd:end]", {
+      active: active.kind === "block" ? active.key : active.kind === "library" ? active.type : null,
+      activeKind: active.kind,
+      eventOverId,
+      lastOver: lastOverRef.current,
+      overId,
+    });
     lastOverRef.current = null;
     const location = dropLocationFor(overId);
 
@@ -362,6 +369,14 @@ function BuilderLayout({
       home?.parentKey === null || home?.parentKey === undefined
         ? null
         : findBlock(tree, home.parentKey);
+    console.info("[builder:dnd:fallback]", {
+      home,
+      parentType: parent?._type,
+      siblings: parent?.children?.map((child) => child._key),
+      hasTranslated: Boolean(
+        event.active.rect.current.translated ?? event.active.rect.current.initial
+      ),
+    });
     if (!parent || manifestFor(parent._type)?.slot?.direction !== "horizontal") return;
 
     const siblings = (parent.children ?? []).filter((child) => child._key !== active.key);
