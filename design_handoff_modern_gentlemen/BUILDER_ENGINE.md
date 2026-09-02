@@ -180,11 +180,25 @@ existing versioned article payload. Merge helpers preserve every unrelated
 hero field and the builder section tree. The public reader uses only published
 data, so saving a draft presentation cannot leak it to the live article.
 
+## Header compositions (v1.7)
+
+Theme → Header exposes Balanced, Centered Logo and Navigation Left. Balanced is
+the compatibility composition. Centered Logo partitions the existing primary
+menu around the brand; Navigation Left keeps one menu beside the brand. All
+three reuse the same menu tree, mega-menu state, mobile drawer and action
+cluster, so switching composition cannot orphan navigation functionality.
+
+The header CTA is an optional label/destination pair. Internal paths and HTTPS
+URLs are accepted; unsafe stored schemes are ignored at the public read
+boundary and rejected by the admin write schema. Composition remains
+independent from initial/compact height, smart scrolling, background and icon
+controls. Version-7 payloads read as Balanced without a data migration.
+
 ## Next engine layers
 
 1. Add reusable symbols, component states and named responsive breakpoints
    without permitting arbitrary stored CSS.
-2. Continue the transcript and Schematic extraction with header/navigation
-   presets and footer composition in small renderer-backed groups.
+2. Continue the transcript and Schematic extraction with deeper navigation
+   surfaces and footer composition in small renderer-backed groups.
 3. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.

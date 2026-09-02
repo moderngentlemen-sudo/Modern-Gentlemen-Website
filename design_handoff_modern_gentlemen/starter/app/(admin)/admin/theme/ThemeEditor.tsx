@@ -12,6 +12,7 @@ import {
   FONT_PRESET_OPTIONS,
   HEADER_BACKGROUNDS,
   HEADER_CART_VISIBILITY,
+  HEADER_COMPOSITIONS,
   HEADER_ICON_HOVERS,
   HEADER_SCROLL_BEHAVIORS,
   THEME_BUTTON_CASES,
@@ -36,6 +37,7 @@ import {
   type FontSelection,
   type HeaderBackground,
   type HeaderCartVisibility,
+  type HeaderComposition,
   type HeaderIconHover,
   type HeaderScrollBehavior,
   type ThemeHeader,
@@ -332,6 +334,22 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
           }
         >
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Select
+              label="Header composition"
+              value={draft.header.composition}
+              disabled={!canWrite || pending}
+              options={HEADER_COMPOSITIONS.map((value) => ({
+                value,
+                label:
+                  value === "balanced"
+                    ? "Balanced"
+                    : value === "centered-logo"
+                      ? "Centered logo"
+                      : "Navigation left",
+              }))}
+              onChange={(value) => setHeader("composition", value as HeaderComposition)}
+              help="Balanced preserves the original site header."
+            />
             <FontSelect
               label="Body"
               value={draft.typography.body}
@@ -944,6 +962,22 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               checked={draft.header.showThemeToggle}
               disabled={!canWrite || pending}
               onChange={(value) => setHeader("showThemeToggle", value)}
+            />
+            <TextInput
+              label="Header CTA label"
+              value={draft.header.ctaLabel}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("ctaLabel", value)}
+              placeholder="Subscribe"
+              help="Shown only when both label and destination are set."
+            />
+            <TextInput
+              label="Header CTA destination"
+              value={draft.header.ctaHref}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("ctaHref", value)}
+              placeholder="/newsletter"
+              help="Internal path or HTTPS URL."
             />
           </div>
         </PanelSection>

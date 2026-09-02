@@ -23,8 +23,9 @@ const isStoreRoute = (path: string | null) =>
   !!path && STORE_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
 
 /** Full chrome header: dark, frosted-on-scroll nav that slides away on
- *  scroll-down and returns on scroll-up (no resize — brand rejected resize
- *  motion, EXECUTION_PLAN §10), mega-menu, drawer, search, bag drawer, theme
+ *  scroll-down and returns on scroll-up. The compatibility preset does not
+ *  resize; editors may explicitly enable the compact height. Mega-menu,
+ *  drawer, search, bag drawer, theme
  *  toggle, live bag badge. Always-dark chrome via data-darkband. See
  *  04_CHROME.md.
  *
@@ -101,9 +102,61 @@ export function Header({
   const activeEntry = nav.find((entry) => entry.id === menuKey) ?? null;
   const openMenu = (key: string) => setMenuKey(megaKeys.has(key) ? key : null);
 
-  // 'Frost only' nav motion (the prototype's chosen default).
+  // Frost-only motion remains the compatibility default.
   const MOTION = "0.45s cubic-bezier(.4,0,.2,1)";
   const slide = hidden ? "translateY(-100%)" : "none";
+  const splitAt = Math.ceil(nav.length / 2);
+
+  const navigation = (items: NavLink[], label = "Primary", align = "justify-center") => (
+    <nav
+      className={`hidden min-[821px]:flex min-w-0 gap-6 whitespace-nowrap ${align}`}
+      aria-label={label}
+      style={{ transform: `scale(${settings.scale})` }}
+    >
+      {items.map((item) => {
+        const hasMenu = megaKeys.has(item.id);
+        return (
+          <Link
+            key={item.id}
+            href={item.href}
+            aria-haspopup={hasMenu || undefined}
+            aria-expanded={hasMenu ? menuKey === item.id : undefined}
+            data-mega={hasMenu ? item.id : ""}
+            onFocus={() => openMenu(item.id)}
+            onClick={(event) => {
+              if (hasMenu && menuKey !== item.id) {
+                event.preventDefault();
+                setMenuKey(item.id);
+              }
+            }}
+            className="mg-underline font-nav text-[12.5px] font-medium uppercase leading-[normal] tracking-[0.14em] text-[rgba(255,255,255,0.78)] hover:text-white"
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  const burgerButton = <BurgerButton expanded={drawer} onClick={() => setDrawer(true)} />;
+  const logoLink = <LogoLink />;
+  const actions = (
+    <HeaderActions
+      settings={settings}
+      theme={theme}
+      cartCount={cart.count}
+      showBag={showBag}
+      search={search}
+      bag={bag}
+      spin={spin}
+      onSearch={() => setSearch(true)}
+      onBag={() => setBag(true)}
+      onTheme={() => {
+        toggle();
+        setSpin((value) => value + 1);
+      }}
+    />
+  );
 
   return (
     <>
@@ -159,7 +212,12 @@ export function Header({
       >
         <header
           // ≤680 the bar insets 20px, two below the sections' 22px.
-          className="container-mg max-[680px]:!px-5 box-border flex items-center justify-between pt-[2px] border-b"
+          data-header-composition={settings.composition}
+          className={`container-mg max-[680px]:!px-5 box-border items-center pt-[2px] border-b ${
+            settings.composition === "centered-logo"
+              ? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+              : "flex"
+          }`}
           style={{
             height: headerHeight,
             background: frosted ? "rgba(13,13,13,0.55)" : "transparent",
@@ -167,144 +225,49 @@ export function Header({
             WebkitBackdropFilter: frosted ? "blur(20px)" : "none",
             borderBottomColor:
               frosted || settings.divider ? "rgba(255,255,255,0.12)" : "transparent",
-            // Slide-away only — the bar keeps its 72px height (EXECUTION_PLAN §10).
             // The global prefers-reduced-motion rule zeroes the durations.
             transition: `height ${MOTION}, background ${MOTION}, backdrop-filter ${MOTION}, border-color ${MOTION}`,
           }}
         >
-          {/* LEFT — burger (Sq thin pair) + monogram */}
-          <div
-            className="flex items-center gap-1 shrink-0 transition-transform"
-            style={{ transform: `scale(${settings.scale})` }}
-          >
-            <button
-              aria-label="Open menu"
-              title="Menu"
-              aria-expanded={drawer}
-              onClick={() => setDrawer(true)}
-              // 24×22 box, squares flush left — the prototype's geometry. The
-              // ::after ring below expands the hit area to 44px without adding
-              // a single visible pixel.
-              //
-              // Hover = burgerHover 'Staircase': the two squares stretch into
-              // stepped bars, 12px then 17px, on the springy .3s curve. The mark
-              // itself does NOT scale — the prototype's generic
-              // `[data-burger]:hover{scale(1.06)}` is overridden inside the nav
-              // by its header-scale rule, so the bars are the whole animation.
-              className="group/burger relative flex flex-col items-start justify-center gap-[4px] w-6 min-h-[22px] after:absolute after:-inset-[11px] after:content-['']"
-            >
-              <span className="block h-[6px] w-[6px] bg-[#f4f4f4] transition-[width,transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)] group-hover/burger:w-3" />
-              <span
-                className="block h-[6px] w-[6px] bg-mg-accent transition-[width,transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)] group-hover/burger:w-[17px]"
-                style={{ boxShadow: "0 0 8px 0 rgba(200,16,46,0.45)" }}
-              />
-            </button>
-            <Link
-              href="/"
-              aria-label="Modern Gentlemen — home"
-              className="flex items-center text-white"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mg-logo.svg" alt="Modern Gentlemen" className="block h-[19px] w-auto" />
-            </Link>
-          </div>
-
-          {/* CENTER — nav (hidden ≤820px) */}
-          <nav
-            className="hidden min-[821px]:flex flex-1 min-w-0 justify-center gap-6 px-4 whitespace-nowrap"
-            aria-label="Primary"
-            style={{ transform: `scale(${settings.scale})` }}
-          >
-            {nav.map((n) => {
-              const hasMenu = megaKeys.has(n.id);
-              return (
-                <Link
-                  key={n.id}
-                  href={n.href}
-                  aria-haspopup={hasMenu || undefined}
-                  aria-expanded={hasMenu ? menuKey === n.id : undefined}
-                  data-mega={hasMenu ? n.id : ""}
-                  onFocus={() => openMenu(n.id)}
-                  onClick={(e) => {
-                    // Coarse-pointer / no-hover: first tap opens the mega-menu
-                    // instead of navigating; a second tap follows the link.
-                    if (hasMenu && menuKey !== n.id) {
-                      e.preventDefault();
-                      setMenuKey(n.id);
-                    }
-                  }}
-                  className="mg-underline font-nav text-[12.5px] font-medium uppercase leading-[normal] tracking-[0.14em] text-[rgba(255,255,255,0.78)] hover:text-white"
-                >
-                  {n.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* RIGHT — icon cluster: search · bag · theme */}
-          <div
-            className="flex items-center gap-[5px] min-[681px]:gap-3.5 shrink-0 transition-transform"
-            style={{ transform: `scale(${settings.scale})` }}
-          >
-            {settings.showSearch && (
-              <IconButton
-                label="Search"
-                title="Search"
-                expanded={search}
-                controls="mg-search-overlay"
-                bubbles={settings.iconBubbles}
-                hover={settings.iconHover}
-                onClick={() => setSearch(true)}
-              >
-                <SearchIcon />
-              </IconButton>
-            )}
-            {showBag && (
-              <IconButton
-                label="Bag"
-                title="Bag"
-                expanded={bag}
-                controls="mg-bag-drawer"
-                bubbles={settings.iconBubbles}
-                hover={settings.iconHover}
-                onClick={() => setBag(true)}
-              >
-                <BagIcon />
-                {cart.count > 0 && (
-                  <span className="absolute -top-[3px] -right-[3px] box-border min-w-[17px] h-[17px] px-1 grid place-items-center bg-mg-accent text-white font-grotesk font-semibold text-[10px] leading-none">
-                    {cart.count}
-                  </span>
+          {settings.composition === "centered-logo" ? (
+            <>
+              <div className="flex min-w-0 items-center gap-6 overflow-hidden">
+                {burgerButton}
+                {navigation(
+                  nav.slice(0, splitAt),
+                  "Primary navigation, first group",
+                  "justify-start"
                 )}
-              </IconButton>
-            )}
-            {settings.showThemeToggle && (
-              <IconButton
-                label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-                title="Toggle light / dark"
-                className="overflow-hidden"
-                bubbles={settings.iconBubbles}
-                hover={settings.iconHover}
-                onClick={() => {
-                  toggle();
-                  setSpin((s) => s + 1);
-                }}
+              </div>
+              <div style={{ transform: `scale(${settings.scale})` }}>{logoLink}</div>
+              <div className="flex min-w-0 items-center justify-end gap-6 overflow-hidden">
+                {navigation(nav.slice(splitAt), "Primary navigation, second group", "justify-end")}
+                {actions}
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                className="flex shrink-0 items-center gap-1 transition-transform"
+                style={{ transform: `scale(${settings.scale})` }}
               >
-                {/* Alternating spin direction, matching mgSpin / mgSpinB. */}
-                <span
-                  key={spin}
-                  className={`flex ${
-                    spin === 0
-                      ? ""
-                      : spin % 2 === 1
-                        ? "motion-safe:animate-[mgSpin_.5s_cubic-bezier(.34,1.4,.5,1)]"
-                        : "motion-safe:animate-[mgSpinB_.5s_cubic-bezier(.34,1.4,.5,1)]"
-                  }`}
-                >
-                  <ThemeIcon dark={theme === "dark"} />
-                </span>
-              </IconButton>
-            )}
-          </div>
+                {burgerButton}
+                {logoLink}
+              </div>
+              <div
+                className={`min-w-0 px-4 ${
+                  settings.composition === "navigation-left" ? "flex-none" : "flex-1"
+                }`}
+              >
+                {navigation(
+                  nav,
+                  "Primary",
+                  settings.composition === "navigation-left" ? "justify-start" : "justify-center"
+                )}
+              </div>
+              <div className="ml-auto">{actions}</div>
+            </>
+          )}
         </header>
 
         <MegaMenu entry={activeEntry} onClose={() => setMenuKey(null)} />
@@ -321,6 +284,127 @@ export function Header({
           drawer open can't leave it hanging with no trigger to close it. */}
       <BagDrawer open={bag && showBag} onClose={() => setBag(false)} />
     </>
+  );
+}
+
+function BurgerButton({ expanded, onClick }: { expanded: boolean; onClick: () => void }) {
+  return (
+    <button
+      aria-label="Open menu"
+      title="Menu"
+      aria-expanded={expanded}
+      onClick={onClick}
+      className="group/burger relative flex min-h-[22px] w-6 shrink-0 flex-col items-start justify-center gap-[4px] after:absolute after:-inset-[11px] after:content-['']"
+    >
+      <span className="block h-[6px] w-[6px] bg-[#f4f4f4] transition-[width,transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)] group-hover/burger:w-3" />
+      <span
+        className="block h-[6px] w-[6px] bg-mg-accent transition-[width,transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)] group-hover/burger:w-[17px]"
+        style={{ boxShadow: "0 0 8px 0 rgba(200,16,46,0.45)" }}
+      />
+    </button>
+  );
+}
+
+function LogoLink() {
+  return (
+    <Link href="/" aria-label="Modern Gentlemen — home" className="flex items-center text-white">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/mg-logo.svg" alt="Modern Gentlemen" className="block h-[19px] w-auto" />
+    </Link>
+  );
+}
+
+function HeaderActions({
+  settings,
+  theme,
+  cartCount,
+  showBag,
+  search,
+  bag,
+  spin,
+  onSearch,
+  onBag,
+  onTheme,
+}: {
+  settings: ThemeHeader;
+  theme: "light" | "dark";
+  cartCount: number;
+  showBag: boolean;
+  search: boolean;
+  bag: boolean;
+  spin: number;
+  onSearch: () => void;
+  onBag: () => void;
+  onTheme: () => void;
+}) {
+  return (
+    <div
+      className="flex shrink-0 items-center gap-[5px] transition-transform min-[681px]:gap-3.5"
+      style={{ transform: `scale(${settings.scale})` }}
+    >
+      {settings.ctaLabel && settings.ctaHref && (
+        <Link
+          href={settings.ctaHref}
+          className="hidden border border-white/25 px-4 py-2 font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white transition-colors hover:border-mg-accent hover:bg-mg-accent min-[681px]:block"
+        >
+          {settings.ctaLabel}
+        </Link>
+      )}
+      {settings.showSearch && (
+        <IconButton
+          label="Search"
+          title="Search"
+          expanded={search}
+          controls="mg-search-overlay"
+          bubbles={settings.iconBubbles}
+          hover={settings.iconHover}
+          onClick={onSearch}
+        >
+          <SearchIcon />
+        </IconButton>
+      )}
+      {showBag && (
+        <IconButton
+          label="Bag"
+          title="Bag"
+          expanded={bag}
+          controls="mg-bag-drawer"
+          bubbles={settings.iconBubbles}
+          hover={settings.iconHover}
+          onClick={onBag}
+        >
+          <BagIcon />
+          {cartCount > 0 && (
+            <span className="absolute -top-[3px] -right-[3px] box-border grid h-[17px] min-w-[17px] place-items-center bg-mg-accent px-1 font-grotesk text-[10px] font-semibold leading-none text-white">
+              {cartCount}
+            </span>
+          )}
+        </IconButton>
+      )}
+      {settings.showThemeToggle && (
+        <IconButton
+          label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+          title="Toggle light / dark"
+          className="overflow-hidden"
+          bubbles={settings.iconBubbles}
+          hover={settings.iconHover}
+          onClick={onTheme}
+        >
+          <span
+            key={spin}
+            className={`flex ${
+              spin === 0
+                ? ""
+                : spin % 2 === 1
+                  ? "motion-safe:animate-[mgSpin_.5s_cubic-bezier(.34,1.4,.5,1)]"
+                  : "motion-safe:animate-[mgSpinB_.5s_cubic-bezier(.34,1.4,.5,1)]"
+            }`}
+          >
+            <ThemeIcon dark={theme === "dark"} />
+          </span>
+        </IconButton>
+      )}
+    </div>
   );
 }
 

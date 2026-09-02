@@ -70,7 +70,7 @@ or function impossible to reproduce.
 | Layout widths and gutters | Complete | Global content width and desktop/mobile gutters cascade through shared CSS variables. |
 | Global spacing, borders, shadows, buttons, cards and forms | Complete | Reusable responsive recipes cover spacing/borders/shadows, while published semantic defaults control button shape/case/shadow/interaction, card shape/border/shadow/media hover and form shape/border/fill/focus. |
 | Animation presets | Partial | Element hover/motion and advanced header behavior exist; a reusable global animation library with entrance/scroll states remains. |
-| Header customization | Partial | Height, scale, scroll/background behavior, compact state, divider, search/theme/bag visibility, icon bubbles and hover styles work. Announcement bars, arbitrary element layout, account/social/CTA controls and the remaining Claude presets remain. |
+| Header customization | Partial | Balanced, centered-logo and navigation-left compositions now work with editable initial/compact heights, smart scroll/background behavior, divider, safe optional CTA, search/theme/bag visibility, icon bubbles and hover styles. Announcement bars, arbitrary element layout, account/social controls and the remaining Claude presets remain. |
 | Footer customization | Partial | Menus are data-driven, but tagline, social destinations and arbitrary footer composition remain fixed in the component. |
 | Site-wide cascading defaults with local overrides | Complete | Published theme variables and semantic component defaults feed public component hooks, reusable classes sit above them, and higher-specificity per-element settings remain local overrides. |
 

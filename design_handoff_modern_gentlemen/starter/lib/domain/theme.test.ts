@@ -276,6 +276,7 @@ describe("editable typography and header settings", () => {
     expect(
       parseThemeHeader({
         header: {
+          composition: "centered-logo",
           scrollBehavior: "always-visible",
           background: "not-a-background",
           showSearch: false,
@@ -284,10 +285,22 @@ describe("editable typography and header settings", () => {
       })
     ).toEqual({
       ...DEFAULT_THEME_HEADER,
+      composition: "centered-logo",
       scrollBehavior: "always-visible",
       showSearch: false,
       height: 80,
     });
+
+    expect(
+      parseThemeHeader({
+        header: {
+          composition: "unsafe-layout",
+          height: 88,
+          ctaLabel: "  Join us  ",
+          ctaHref: "javascript:alert(1)",
+        },
+      })
+    ).toEqual({ ...DEFAULT_THEME_HEADER, height: 88, ctaLabel: "Join us" });
   });
 
   it("emits role variables from presets rather than arbitrary CSS", () => {

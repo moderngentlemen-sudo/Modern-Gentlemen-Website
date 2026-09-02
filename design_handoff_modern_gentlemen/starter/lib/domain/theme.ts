@@ -347,6 +347,8 @@ export const DEFAULT_THEME_TYPOGRAPHY: ThemeTypography = {
 
 export const HEADER_SCROLL_BEHAVIORS = ["hide-on-scroll", "always-visible"] as const;
 export type HeaderScrollBehavior = (typeof HEADER_SCROLL_BEHAVIORS)[number];
+export const HEADER_COMPOSITIONS = ["balanced", "centered-logo", "navigation-left"] as const;
+export type HeaderComposition = (typeof HEADER_COMPOSITIONS)[number];
 export const HEADER_BACKGROUNDS = ["dynamic", "solid", "transparent"] as const;
 export type HeaderBackground = (typeof HEADER_BACKGROUNDS)[number];
 export const HEADER_CART_VISIBILITY = ["store-only", "always", "hidden"] as const;
@@ -355,10 +357,13 @@ export const HEADER_ICON_HOVERS = ["none", "scale", "lift", "circle", "glow"] as
 export type HeaderIconHover = (typeof HEADER_ICON_HOVERS)[number];
 
 export interface ThemeHeader {
+  composition: HeaderComposition;
   scrollBehavior: HeaderScrollBehavior;
   background: HeaderBackground;
   showSearch: boolean;
   showThemeToggle: boolean;
+  ctaLabel: string;
+  ctaHref: string;
   cartVisibility: HeaderCartVisibility;
   /** Header and page offset, in pixels. */
   height: number;
@@ -372,10 +377,13 @@ export interface ThemeHeader {
 }
 
 export const DEFAULT_THEME_HEADER: ThemeHeader = {
+  composition: "balanced",
   scrollBehavior: "hide-on-scroll",
   background: "dynamic",
   showSearch: true,
   showThemeToggle: true,
+  ctaLabel: "",
+  ctaHref: "",
   cartVisibility: "store-only",
   height: 72,
   shrinkOnScroll: false,
@@ -468,7 +476,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 7;
+export const THEME_PAYLOAD_VERSION = 8;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -709,11 +717,19 @@ export const themeTypographySchema = z
     }
   });
 
+const safeHeaderHref = (value: string): boolean =>
+  value === "" ||
+  (value.startsWith("/") && !value.startsWith("//")) ||
+  /^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(value);
+
 export const themeHeaderSchema = z.object({
+  composition: z.enum(HEADER_COMPOSITIONS),
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
   background: z.enum(HEADER_BACKGROUNDS),
   showSearch: z.boolean(),
   showThemeToggle: z.boolean(),
+  ctaLabel: z.string().trim().max(80),
+  ctaHref: z.string().trim().max(2048).refine(safeHeaderHref, "Use an internal path or HTTPS URL"),
   cartVisibility: z.enum(HEADER_CART_VISIBILITY),
   height: z.number().int().min(56).max(96),
   shrinkOnScroll: z.boolean(),
@@ -907,6 +923,9 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   if (!incoming) return { ...DEFAULT_THEME_HEADER };
 
   const out = { ...DEFAULT_THEME_HEADER };
+  if ((HEADER_COMPOSITIONS as readonly unknown[]).includes(incoming.composition)) {
+    out.composition = incoming.composition as HeaderComposition;
+  }
   if ((HEADER_SCROLL_BEHAVIORS as readonly unknown[]).includes(incoming.scrollBehavior)) {
     out.scrollBehavior = incoming.scrollBehavior as HeaderScrollBehavior;
   }
@@ -916,6 +935,12 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   if (typeof incoming.showSearch === "boolean") out.showSearch = incoming.showSearch;
   if (typeof incoming.showThemeToggle === "boolean") {
     out.showThemeToggle = incoming.showThemeToggle;
+  }
+  if (typeof incoming.ctaLabel === "string" && incoming.ctaLabel.length <= 80) {
+    out.ctaLabel = incoming.ctaLabel.trim();
+  }
+  if (typeof incoming.ctaHref === "string" && safeHeaderHref(incoming.ctaHref.trim())) {
+    out.ctaHref = incoming.ctaHref.trim();
   }
   if ((HEADER_CART_VISIBILITY as readonly unknown[]).includes(incoming.cartVisibility)) {
     out.cartVisibility = incoming.cartVisibility as HeaderCartVisibility;
