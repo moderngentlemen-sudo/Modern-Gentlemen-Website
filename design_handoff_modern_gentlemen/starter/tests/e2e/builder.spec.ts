@@ -349,8 +349,8 @@ test.describe("page builder — drag from the library", () => {
     // ⚠️ **The reported bug.** The second column is still empty, so it still
     // advertises its own target — and a section aimed at it lands there rather
     // than nowhere.
-    const secondColumn = page.locator("[data-gap-parent]").last();
-    await dragFromLibrary(page, /^Newsletter/i, secondColumn);
+    const secondColumnGap = page.locator("[data-gap-parent]").last();
+    await dragFromLibrary(page, /^Newsletter/i, secondColumnGap);
     await expect(blocks).toHaveCount(before + 5);
     await expect(nested).toHaveCount(4);
 
@@ -364,6 +364,10 @@ test.describe("page builder — drag from the library", () => {
       .getByRole("button", { name: "Drag Column", exact: true })
       .first()
       .locator("xpath=ancestor::*[@data-block-key][1]");
+    const secondColumn = page
+      .getByRole("button", { name: "Drag Column", exact: true })
+      .last()
+      .locator("xpath=ancestor::*[@data-block-key][1]");
     const firstColumnOrder = () =>
       firstColumn
         .locator("[data-block-key]")
@@ -375,7 +379,7 @@ test.describe("page builder — drag from the library", () => {
         );
     await dragOnto(
       page,
-      page.getByRole("button", { name: "Drag Newsletter", exact: true }).last(),
+      secondColumn.getByRole("button", { name: "Drag Newsletter", exact: true }),
       firstColumn.locator('[data-gap-index="0"]')
     );
     await expect
