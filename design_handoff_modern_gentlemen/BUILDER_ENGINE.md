@@ -75,22 +75,22 @@ The supplied tweak transcript is treated as a requirements inventory. Its
 chosen values describe the current design baseline; alternatives become
 optional presets only after their rendering behavior exists.
 
-| Tweak family | Engine destination | State |
-|---|---|---|
-| Header height, visibility, background, search, theme and bag visibility | Theme → Header | Working |
-| Header scale, shrink-on-scroll, shrunk height, divider, icon bubbles and icon hover | Theme → Header | Working; original choices are defaults |
-| Global spacing, width, backgrounds, corners, borders, shadows and opacity | Builder → Visual layout/appearance | Working per breakpoint |
-| Flex/grid arrangement, gaps, alignment and responsive stacking | Builder → Visual layout | Working per breakpoint |
-| Hover/motion treatment | Builder → Visual appearance | Working |
-| Site fonts and provider/direct-file webfonts | Theme → Typography/Webfonts | Working |
-| Hero size, media, mobile composition and alignment | Hero component manifests | Existing media/height controls; detailed preset migration next |
-| Homepage, Latest and Style compositions | Component variants and patterns | Existing canonical variants remain; transcript presets next |
-| Burger geometry/hover, nav/dropdown/drawer motion | Theme → Header/Navigation advanced | Catalogued; requires each named renderer preset |
-| Sidebar logo/tagline/bubbles, footer tagline | Theme → Navigation/Footer | Catalogued |
-| Bag drawer/dropdown/full-page behavior | Theme → Commerce chrome | Catalogued; drawer is current baseline |
-| Article template, score, verdict and hero media | Article/template editor | Existing template/content model; detailed preset migration next |
-| Category width and shop width | Template area + visual max-width | General width control works; named convenience presets next |
-| Dark mode, overlay mode and sharp-corner baseline | Theme tokens + visual appearance | Existing theme and per-element controls; global convenience toggles next |
+| Tweak family                                                                        | Engine destination                 | State                                                                    |
+| ----------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+| Header height, visibility, background, search, theme and bag visibility             | Theme → Header                     | Working                                                                  |
+| Header scale, shrink-on-scroll, shrunk height, divider, icon bubbles and icon hover | Theme → Header                     | Working; original choices are defaults                                   |
+| Global spacing, width, backgrounds, corners, borders, shadows and opacity           | Builder → Visual layout/appearance | Working per breakpoint                                                   |
+| Flex/grid arrangement, gaps, alignment and responsive stacking                      | Builder → Visual layout            | Working per breakpoint                                                   |
+| Hover/motion treatment                                                              | Builder → Visual appearance        | Working                                                                  |
+| Site fonts and provider/direct-file webfonts                                        | Theme → Typography/Webfonts        | Working                                                                  |
+| Hero size, media, mobile composition and alignment                                  | Hero component manifests           | Existing media/height controls; detailed preset migration next           |
+| Homepage, Latest and Style compositions                                             | Component variants and patterns    | Existing canonical variants remain; transcript presets next              |
+| Burger geometry/hover, nav/dropdown/drawer motion                                   | Theme → Header/Navigation advanced | Catalogued; requires each named renderer preset                          |
+| Sidebar logo/tagline/bubbles, footer tagline                                        | Theme → Navigation/Footer          | Catalogued                                                               |
+| Bag drawer/dropdown/full-page behavior                                              | Theme → Commerce chrome            | Catalogued; drawer is current baseline                                   |
+| Article template, score, verdict and hero media                                     | Article/template editor            | Existing template/content model; detailed preset migration next          |
+| Category width and shop width                                                       | Template area + visual max-width   | General width control works; named convenience presets next              |
+| Dark mode, overlay mode and sharp-corner baseline                                   | Theme tokens + visual appearance   | Existing theme and per-element controls; global convenience toggles next |
 
 “Catalogued” means the source requirement is retained here, not that a control
 has been exposed. This distinction prevents an editor from offering choices the
@@ -196,9 +196,25 @@ controls. Version-7 payloads read as Balanced without a data migration.
 
 ## Next engine layers
 
-1. Add reusable symbols, component states and named responsive breakpoints
+1. Continue the numbered Section Library migration from `MODULE_MAP.md`, beginning with Hero Studio II and the Vogue hero family.
+2. Add reusable symbols, component states and named responsive breakpoints
    without permitting arbitrary stored CSS.
-2. Continue the transcript and Schematic extraction with deeper navigation
+3. Continue the transcript and Schematic extraction with deeper navigation
    surfaces and footer composition in small renderer-backed groups.
-3. Add migration fixtures and visual baselines for every current page before a
+4. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.
+
+## Numbered Hero Studio (v1.8)
+
+The standalone Modern Gentlemen Section Library is now governed by a complete
+145-entry compatibility map rather than the former partial 1–28 inventory.
+Every source composition has a stable number, a target builder family and an
+honest Native, Compatible or Queued status.
+
+`heroStudio` is the first native multi-preset family. Its Library preset field
+offers 001 Editorial Split, 069 Full-Bleed Cover, 070 Type Masthead and 071
+Triptych. Editors can change the content, media, actions, alignment, image
+position, height, title scale, overlay strength and color treatment without
+breaking the numbered composition. The renderer is additive: every original
+hero and section remains registered, so this migration does not narrow what
+the existing site can reproduce.

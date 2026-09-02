@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks/manifests";
 import type { BlockCategory } from "@/lib/blocks/types";
 import { HeroCoverStar } from "./HeroCoverStar";
+import { HeroStudio } from "./HeroStudio";
 import { LatestGrid } from "./LatestGrid";
 import { FeatureSplit } from "./FeatureSplit";
 import { TwoUpCategory } from "./TwoUpCategory";
@@ -60,6 +61,7 @@ import { NativeForm } from "../elements/NativeForm";
  * the ~125 modules so nothing is lost.
  */
 export const registry = {
+  heroStudio: HeroStudio,
   heroCoverStar: HeroCoverStar,
   latestGrid: LatestGrid,
   featureSplit: FeatureSplit,
