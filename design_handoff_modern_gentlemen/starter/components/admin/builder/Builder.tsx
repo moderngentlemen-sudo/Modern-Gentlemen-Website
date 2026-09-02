@@ -14,6 +14,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  useDndContext,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
@@ -197,6 +198,7 @@ function BuilderLayout({
   const moveTo = useBuilder((s) => s.moveTo);
   const selectedKey = useBuilder((s) => s.selectedKey);
   const tree = useBuilder((s) => s.tree);
+  const { droppableRects } = useDndContext();
 
   /**
    * The library entry in flight, if any, and the insertion point under the
@@ -320,9 +322,42 @@ function BuilderLayout({
     // Block onto block — and cross-container for free, since `moveByKey` works
     // on locations rather than root indexes.
     const over = parseDragId(overId);
-    if (over.kind !== "block" || over.key === active.key) return;
+    if (over.kind === "block" && over.key !== active.key) {
+      move(active.key, dropTargetFor(tree, active.key, over.key));
+      return;
+    }
 
-    move(active.key, dropTargetFor(tree, active.key, over.key));
+    /**
+     * Pointer sensors can report no `over` (or the active block itself) when
+     * the final move lands on a toolbar edge. Horizontal rows still have an
+     * unambiguous destination: choose the nearest measured direct sibling
+     * using the active rectangle's final translated position. This keeps a
+     * release-time miss from turning a valid column reorder into a no-op.
+     */
+    const home = locate(tree, active.key);
+    const parent =
+      home?.parentKey === null || home?.parentKey === undefined
+        ? null
+        : findBlock(tree, home.parentKey);
+    if (!parent || manifestFor(parent._type)?.slot?.direction !== "horizontal") return;
+
+    const siblings = (parent.children ?? []).filter((child) => child._key !== active.key);
+    const translated = event.active.rect.current.translated ?? event.active.rect.current.initial;
+    if (!translated || siblings.length === 0) return;
+
+    const centerX = translated.left + translated.width / 2;
+    const centerY = translated.top + translated.height / 2;
+    const nearest = siblings
+      .map((sibling) => {
+        const rect = droppableRects.get(sibling._key);
+        if (!rect) return null;
+        const dx = rect.left + rect.width / 2 - centerX;
+        const dy = rect.top + rect.height / 2 - centerY;
+        return { key: sibling._key, distance: dx * dx + dy * dy };
+      })
+      .filter((candidate): candidate is { key: string; distance: number } => candidate !== null)
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (nearest) move(active.key, nearest.key);
   }
 
   return (
