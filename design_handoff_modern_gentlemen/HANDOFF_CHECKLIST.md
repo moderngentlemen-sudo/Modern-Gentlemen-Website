@@ -35,7 +35,7 @@ A pre-flight list for picking this up in a real build. Nothing here blocks start
 ## 5. Build the stubbed pieces (all documented as TODO)
 
 - [ ] Article template hero/body variants — one component per `template` enum value.
-- [ ] Remaining Section Library modules — all 145 are inventoried in `MODULE_MAP.md`; Hero Studio now supplies native presets 001 and 069–071. Continue the queued families without removing the compatible existing blocks.
+- [x] Section Library modules — all 145 are native numbered presets in `Hero Studio` and `Section Studio`; retain the original blocks as compatibility renderers and continue screenshot-level preset refinement against `MODULE_MAP.md`.
 - [ ] Checkout payment step — replace demo with Stripe Elements or redirect to hosted checkout.
 - [ ] Member accounts/auth (if in scope).
 

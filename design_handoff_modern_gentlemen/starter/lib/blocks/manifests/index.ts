@@ -25,6 +25,7 @@ import { featuredLead } from "./featuredLead";
 import { filmStills } from "./filmStills";
 import { heroCoverStar } from "./heroCoverStar";
 import { heroStudio } from "./heroStudio";
+import { sectionStudio } from "./sectionStudio";
 import { interview } from "./interview";
 import { latestGrid } from "./latestGrid";
 import { layoutContainer } from "./layoutContainer";
@@ -59,6 +60,7 @@ import { twoUpCategory } from "./twoUpCategory";
 
 export const blockManifests = {
   heroStudio,
+  sectionStudio,
   heroCoverStar,
   latestGrid,
   featureSplit,

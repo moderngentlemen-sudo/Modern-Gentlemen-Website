@@ -1,22 +1,21 @@
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
+import { HERO_STUDIO_PRESETS } from "../heroStudioPresets";
 
 export const heroStudio = defineBlock({
   type: "heroStudio",
   label: "Hero studio",
   category: "hero",
   description:
-    "Section Library 01, 69, 70 and 71: split editorial, full-bleed cover, type masthead and triptych heroes.",
+    "The complete Section Library hero catalogue: 01, every standard hero from 69–115, and Vogue 6A–6J from 116–125.",
   fields: {
     variant: field.select({
       label: "Library preset",
       default: "editorialSplit",
-      options: [
-        { value: "editorialSplit", label: "01 · Editorial Split Hero" },
-        { value: "fullBleedCover", label: "69 · Full-Bleed Cover" },
-        { value: "typeMasthead", label: "70 · Type Masthead" },
-        { value: "triptych", label: "71 · Triptych" },
-      ],
+      options: HERO_STUDIO_PRESETS.map((preset) => ({
+        value: preset.value,
+        label: `${preset.module} · ${preset.label}`,
+      })),
     }),
     eyebrow: field.text({ label: "Eyebrow" }),
     headline: field.textarea({ label: "Headline", required: true }),
@@ -25,12 +24,22 @@ export const heroStudio = defineBlock({
     image: field.image({ label: "Primary image" }),
     imageAlt: field.text({ label: "Primary image alt text" }),
     images: field.list({
-      label: "Triptych images",
+      label: "Image collection",
       itemLabel: "image",
-      max: 3,
+      max: 6,
       of: {
         image: field.image({ label: "Image", required: true }),
         alt: field.text({ label: "Alt text" }),
+      },
+    }),
+    highlights: field.list({
+      label: "Headlines, rankings or ticker items",
+      itemLabel: "item",
+      max: 8,
+      of: {
+        value: field.text({ label: "Number or value" }),
+        label: field.text({ label: "Label", required: true }),
+        href: field.url({ label: "Link" }),
       },
     }),
     primaryCta: field.link({ label: "Primary action" }),
@@ -101,6 +110,11 @@ export const heroStudio = defineBlock({
       { image: "/images/hero-cover.jpg", alt: "Editorial portrait" },
       { image: "/images/style-mono.jpg", alt: "Monochrome tailoring" },
       { image: "/images/watch-gear.jpg", alt: "Mechanical watch" },
+    ],
+    highlights: [
+      { value: "01", label: "The lead story", href: "/" },
+      { value: "02", label: "Editor's selection", href: "/" },
+      { value: "03", label: "The essential detail", href: "/" },
     ],
   },
 });

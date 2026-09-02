@@ -196,7 +196,7 @@ controls. Version-7 payloads read as Balanced without a data migration.
 
 ## Next engine layers
 
-1. Continue the numbered Section Library migration from `MODULE_MAP.md`, beginning with Hero Studio II and the Vogue hero family.
+1. Run screenshot-level responsive comparison for all numbered Section Library presets and refine any visual divergence without changing their content contracts.
 2. Add reusable symbols, component states and named responsive breakpoints
    without permitting arbitrary stored CSS.
 3. Continue the transcript and Schematic extraction with deeper navigation
@@ -211,10 +211,12 @@ The standalone Modern Gentlemen Section Library is now governed by a complete
 Every source composition has a stable number, a target builder family and an
 honest Native, Compatible or Queued status.
 
-`heroStudio` is the first native multi-preset family. Its Library preset field
-offers 001 Editorial Split, 069 Full-Bleed Cover, 070 Type Masthead and 071
-Triptych. Editors can change the content, media, actions, alignment, image
-position, height, title scale, overlay strength and color treatment without
-breaking the numbered composition. The renderer is additive: every original
-hero and section remains registered, so this migration does not narrow what
-the existing site can reproduce.
+`heroStudio` covers 001 and every hero from 069–125, including Vogue 6A–6J,
+through shared cover, masthead, split, collage, film, ranking, ticker and
+editorial archetypes. `sectionStudio` covers every remaining composition,
+002–068 and 126–145, through shared card, list, feature, people, data,
+commerce, media and utility archetypes. Editors can change content, media,
+actions, hierarchy, responsive layout and color treatment without breaking a
+preset's numbered identity. Both renderers are additive: every original hero
+and section remains registered, so this migration does not narrow what the
+existing site can reproduce.

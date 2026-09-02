@@ -1,14 +1,12 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { HERO_STUDIO_PRESETS } from "@/lib/blocks/heroStudioPresets";
 import { HERO_STUDIO_VARIANTS, HeroStudio, type HeroStudioVariant } from "./HeroStudio";
 
-const moduleNumber: Record<HeroStudioVariant, string> = {
-  editorialSplit: "01",
-  fullBleedCover: "69",
-  typeMasthead: "70",
-  triptych: "71",
-};
+const moduleNumber = Object.fromEntries(
+  HERO_STUDIO_PRESETS.map((preset) => [preset.value, preset.module])
+) as Record<HeroStudioVariant, string>;
 
 afterEach(cleanup);
 
@@ -78,5 +76,15 @@ describe("HeroStudio", () => {
     expect(screen.getByAltText("First")).toBeInTheDocument();
     expect(screen.getByAltText("Third")).toBeInTheDocument();
     expect(screen.queryByAltText("Fourth")).toBeNull();
+  });
+
+  it("keeps every standard hero number unique and selectable", () => {
+    expect(HERO_STUDIO_PRESETS).toHaveLength(58);
+    expect(new Set(HERO_STUDIO_PRESETS.map((preset) => preset.value))).toHaveProperty("size", 58);
+    expect(new Set(HERO_STUDIO_PRESETS.map((preset) => preset.module))).toHaveProperty("size", 58);
+    expect(HERO_STUDIO_PRESETS.map((preset) => preset.module)).toEqual([
+      "01",
+      ...Array.from({ length: 57 }, (_, index) => String(index + 69)),
+    ]);
   });
 });

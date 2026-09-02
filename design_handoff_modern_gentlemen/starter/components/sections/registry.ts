@@ -3,6 +3,7 @@ import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks
 import type { BlockCategory } from "@/lib/blocks/types";
 import { HeroCoverStar } from "./HeroCoverStar";
 import { HeroStudio } from "./HeroStudio";
+import { SectionStudio } from "./SectionStudio";
 import { LatestGrid } from "./LatestGrid";
 import { FeatureSplit } from "./FeatureSplit";
 import { TwoUpCategory } from "./TwoUpCategory";
@@ -62,6 +63,7 @@ import { NativeForm } from "../elements/NativeForm";
  */
 export const registry = {
   heroStudio: HeroStudio,
+  sectionStudio: SectionStudio,
   heroCoverStar: HeroCoverStar,
   latestGrid: LatestGrid,
   featureSplit: FeatureSplit,
