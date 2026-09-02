@@ -311,7 +311,9 @@ function BuilderLayout({
       return;
     }
 
-    if (active.kind !== "block" || overId === undefined) return;
+    // A pointer release can legitimately have no current droppable; the
+    // horizontal sibling fallback below resolves that case from geometry.
+    if (active.kind !== "block") return;
 
     // A block onto an insertion point — either a gap between siblings or an
     // empty container's placeholder.
@@ -342,8 +344,8 @@ function BuilderLayout({
 
     // Block onto block — and cross-container for free, since `moveByKey` works
     // on locations rather than root indexes.
-    const over = parseDragId(overId);
-    if (over.kind === "block" && over.key !== active.key) {
+    const over = overId === undefined ? null : parseDragId(overId);
+    if (over?.kind === "block" && over.key !== active.key) {
       move(active.key, dropTargetFor(tree, active.key, over.key));
       return;
     }
