@@ -462,6 +462,10 @@ test.describe("page builder — drag from the library", () => {
       );
     const before = await columnOrder();
     await dragOnto(page, handles.first(), handles.last());
+    console.log(
+      "[builder:test:debug]",
+      await page.locator("html").getAttribute("data-builder-dnd-debug")
+    );
 
     // The two column keys must reverse. This proves the row reordered rather
     // than merely moving a child inside one of its cells, independent of which
