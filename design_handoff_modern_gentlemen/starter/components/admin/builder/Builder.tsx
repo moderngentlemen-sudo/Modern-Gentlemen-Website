@@ -234,7 +234,17 @@ function BuilderLayout({
             ? null
             : findBlock(tree, home.parentKey);
         if (parent && manifestFor(parent._type)?.slot?.direction === "horizontal") {
-          return closestCenter(args);
+          // A column's empty placeholder fills the cell beneath its toolbar.
+          // Exclude gap droppables for this sibling-reorder gesture so
+          // `closestCenter` resolves the column (or one of its child blocks,
+          // which `dropTargetFor` lifts back to the sibling) instead of trying
+          // to nest the dragged column into that placeholder.
+          return closestCenter({
+            ...args,
+            droppableContainers: args.droppableContainers.filter(
+              (container) => parseDragId(container.id).kind !== "gap"
+            ),
+          });
         }
       }
       const pointerHits = pointerWithin(args);
