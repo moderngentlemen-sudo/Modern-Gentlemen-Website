@@ -380,7 +380,7 @@ test.describe("page builder — drag from the library", () => {
     );
     await expect
       .poll(firstColumnOrder, { timeout: 10_000 })
-      .toEqual(["Drag Newsletter", "Drag Timeline"]);
+      .toEqual(["Drag Newsletter", "Drag Timeline — a brief history"]);
 
     /*
       ⚠️ The nested block's own toolbar must work. The canvas kills pointer
