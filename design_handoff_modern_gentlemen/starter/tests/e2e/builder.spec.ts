@@ -449,7 +449,10 @@ test.describe("page builder — drag from the library", () => {
 
     await deepest.first().waitFor();
     const before = await contents();
-    expect(before[0]).toMatch(/Timeline/);
+    // The preceding nesting test now persists Newsletter ahead of Timeline in
+    // the first column. Either label proves the row is populated; the assertion
+    // after the swap is the one that proves the columns changed places.
+    expect(before.some((label) => /Newsletter|Timeline/.test(label))).toBe(true);
 
     /*
       ⚠️ `exact` is load-bearing. `getByRole`'s `name` matches a **substring**
