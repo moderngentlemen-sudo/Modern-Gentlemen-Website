@@ -215,16 +215,17 @@ function BuilderLayout({
   );
 
   /**
-   * `closestCenter` is right for sorting a column of tall blocks and wrong for
-   * the thin gaps between them — it would keep resolving to a block's centre.
-   * A library drag therefore switches to `pointerWithin`, which asks only what
-   * is under the pointer.
+   * Prefer an explicit gap whenever the pointer is inside one. `closestCenter`
+   * is useful as the fallback for block-on-block sorting (and for horizontal
+   * column rows that deliberately have no gaps), but it skips over a thin gap
+   * inside a populated container because the neighbouring block's centre is
+   * always closer. Library drags and existing-block drags therefore share this
+   * pointer-first collision rule.
    */
-  const collisionDetection = useCallback<CollisionDetection>(
-    (args) =>
-      (parseDragId(args.active.id).kind === "library" ? pointerWithin : closestCenter)(args),
-    []
-  );
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const pointerHits = pointerWithin(args);
+    return pointerHits.length > 0 ? pointerHits : closestCenter(args);
+  }, []);
 
   function onDragStart(event: DragStartEvent) {
     const active = parseDragId(event.active.id);
