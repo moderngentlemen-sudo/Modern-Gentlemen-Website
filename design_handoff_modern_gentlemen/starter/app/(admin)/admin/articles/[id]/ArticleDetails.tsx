@@ -16,9 +16,12 @@ import {
 } from "@/components/admin/articles/RelatedArticles";
 import {
   ARTICLE_FEATURED_MEDIA_KINDS,
+  ARTICLE_APPEARANCES,
+  ARTICLE_HEADER_MODES,
   ARTICLE_TEMPLATE_NAMES,
   type ArticleFeaturedMedia,
   type ArticleMediaAsset,
+  type ArticlePresentation,
 } from "@/lib/domain/articles";
 import type { AssetView } from "@/lib/services/media";
 
@@ -41,6 +44,7 @@ export interface ArticleMetaForm {
   featuredAssetId: string | null;
   featuredAssetUrl: string | null;
   featuredMedia: ArticleFeaturedMedia;
+  presentation: ArticlePresentation;
   readingMinutes: number | null;
   issueNo: string | null;
   tagIds: string[];
@@ -48,6 +52,20 @@ export interface ArticleMetaForm {
 }
 
 const TEMPLATE_OPTIONS = ARTICLE_TEMPLATE_NAMES.map((name) => ({ value: name, label: name }));
+const HEADER_MODE_LABELS: Record<ArticlePresentation["headerMode"], string> = {
+  template: "Use template",
+  standard: "Standard",
+  large: "Large",
+  largeMedia: "Large media",
+  full: "Full bleed",
+  titleOnly: "Title only",
+  none: "No article header",
+};
+const APPEARANCE_LABELS: Record<ArticlePresentation["appearance"], string> = {
+  template: "Use template",
+  compact: "Compact",
+  large: "Large",
+};
 
 /**
  * The part of an article that is not a block tree.
@@ -107,6 +125,7 @@ export function ArticleDetails({
         tagIds: form.tagIds,
         relatedIds: form.relatedIds,
         featuredMedia: form.featuredMedia,
+        presentation: form.presentation,
       });
 
       if (!result.ok) {
@@ -186,6 +205,40 @@ export function ArticleDetails({
             disabled={!canWrite}
             help="One of the twenty hero × body pairings."
           />
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Article header"
+              value={form.presentation.headerMode}
+              onChange={(headerMode) =>
+                set("presentation", {
+                  ...form.presentation,
+                  headerMode: headerMode as ArticlePresentation["headerMode"],
+                })
+              }
+              options={ARTICLE_HEADER_MODES.map((value) => ({
+                value,
+                label: HEADER_MODE_LABELS[value],
+              }))}
+              disabled={!canWrite}
+              help="Override the template header without changing its body design."
+            />
+            <Select
+              label="Article appearance"
+              value={form.presentation.appearance}
+              onChange={(appearance) =>
+                set("presentation", {
+                  ...form.presentation,
+                  appearance: appearance as ArticlePresentation["appearance"],
+                })
+              }
+              options={ARTICLE_APPEARANCES.map((value) => ({
+                value,
+                label: APPEARANCE_LABELS[value],
+              }))}
+              disabled={!canWrite}
+              help="Adjust the hero title scale while retaining the selected composition."
+            />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <NumberInput
               label="Reading minutes"

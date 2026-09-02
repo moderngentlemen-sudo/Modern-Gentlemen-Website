@@ -167,12 +167,24 @@ row and column gaps, horizontal image width and placement, optional separators
 and per-card read-more copy. Preset values preserve every original composition;
 an editor can always return each override to “Use layout preset.”
 
+## Article presentation overrides (v1.6)
+
+Article Details keeps the twenty existing hero/body templates as the default,
+then adds a document-level presentation layer. An editor may choose Standard,
+Large, Large Media, Full Bleed, Title Only or None without changing the body
+template, and may independently choose the template, compact or large title
+scale. “Use template” is the explicit compatibility setting.
+
+These settings live in `hero.presentation` beside featured media in the
+existing versioned article payload. Merge helpers preserve every unrelated
+hero field and the builder section tree. The public reader uses only published
+data, so saving a draft presentation cannot leak it to the live article.
+
 ## Next engine layers
 
 1. Add reusable symbols, component states and named responsive breakpoints
    without permitting arbitrary stored CSS.
-2. Continue the transcript and Schematic extraction with article hero modes,
-   header/navigation presets and footer composition in small renderer-backed
-   groups.
+2. Continue the transcript and Schematic extraction with header/navigation
+   presets and footer composition in small renderer-backed groups.
 3. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.

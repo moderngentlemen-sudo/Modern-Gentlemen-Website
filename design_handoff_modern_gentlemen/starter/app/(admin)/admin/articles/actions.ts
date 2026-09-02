@@ -10,8 +10,14 @@ import {
   updateArticleMeta,
 } from "@/lib/services/articles";
 import { deleteDocument } from "@/lib/services/documents";
-import { ARTICLE_TEMPLATE_NAMES } from "@/lib/domain/articles";
-import { ARTICLE_FEATURED_MEDIA_KINDS, withArticleFeaturedMedia } from "@/lib/domain/articles";
+import {
+  ARTICLE_APPEARANCES,
+  ARTICLE_FEATURED_MEDIA_KINDS,
+  ARTICLE_HEADER_MODES,
+  ARTICLE_TEMPLATE_NAMES,
+  withArticleFeaturedMedia,
+  withArticlePresentation,
+} from "@/lib/domain/articles";
 import { getDocument, saveDraft } from "@/lib/services/documents";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../_lib/action-result";
@@ -127,6 +133,12 @@ const MetaInput = z.object({
         .optional(),
     })
     .optional(),
+  presentation: z
+    .object({
+      headerMode: z.enum(ARTICLE_HEADER_MODES),
+      appearance: z.enum(ARTICLE_APPEARANCES),
+    })
+    .optional(),
 });
 
 export async function updateArticleMetaAction(input: unknown): Promise<ActionResult> {
@@ -135,7 +147,7 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { id, tagIds, relatedIds, featuredMedia, ...patch } = parsed.data;
+  const { id, tagIds, relatedIds, featuredMedia, presentation, ...patch } = parsed.data;
 
   try {
     // Both sides of the write. Re-filing an article from Watches to Culture
@@ -144,13 +156,16 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     const before = await publicPathsForArticle(id);
 
     await updateArticleMeta(id, patch);
-    if (featuredMedia) {
+    if (featuredMedia || presentation) {
       const document = await getDocument("article", id);
       if (!document) throw new Error(`No such article: ${id}`);
+      const withMedia = featuredMedia
+        ? withArticleFeaturedMedia(document.draft_data, featuredMedia)
+        : document.draft_data;
       await saveDraft(
         "article",
         id,
-        withArticleFeaturedMedia(document.draft_data, featuredMedia) as Json
+        (presentation ? withArticlePresentation(withMedia, presentation) : withMedia) as Json
       );
     }
     if (tagIds) await setArticleTags(id, tagIds);

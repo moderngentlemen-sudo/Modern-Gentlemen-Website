@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { ArticleKicker, Byline } from "./primitives";
 import { MediaImage } from "../ui/MediaImage";
 import { optimizedImageUrl } from "../ui/imageUrl";
+import type { ArticleAppearance } from "@/lib/domain/articles";
 
 interface Props {
   kicker: string;
@@ -11,13 +12,14 @@ interface Props {
   byline: string;
   videoUrl: string;
   poster?: string;
+  appearance?: ArticleAppearance;
 }
 
 /** Article "Video" hero — full-bleed muted autoplay loop + scrim, centered
  *  caption. Imperative muted play (React `muted` is unreliable), reduced-motion
  *  gated. Falls back to the poster image when no self-contained video asset is
  *  supplied (as the homepage hero does). Bleeds behind the fixed header. */
-export function HeroVideo({ kicker, title, byline, videoUrl, poster }: Props) {
+export function HeroVideo({ kicker, title, byline, videoUrl, poster, appearance }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (!videoUrl) return;
@@ -29,7 +31,11 @@ export function HeroVideo({ kicker, title, byline, videoUrl, poster }: Props) {
     el.play().catch(() => {});
   }, [videoUrl]);
   return (
-    <section data-darkband className="relative -mt-[72px] bg-[#0d0d0d] text-[#f4f4f4]">
+    <section
+      data-darkband
+      data-article-appearance={appearance === "template" ? undefined : appearance}
+      className="relative -mt-[72px] bg-[#0d0d0d] text-[#f4f4f4]"
+    >
       <div data-hero-media className="relative h-[80vh] min-h-[540px] overflow-hidden bg-black">
         {videoUrl ? (
           <video

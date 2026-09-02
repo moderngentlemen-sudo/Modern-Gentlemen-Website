@@ -438,6 +438,18 @@ a:hover {
 [data-specrow]:nth-child(even) {
   background: color-mix(in srgb, var(--mg-bd) 2%, transparent);
 }
+[data-article-appearance="compact"] [data-title-xl] {
+  font-size: 56px !important;
+}
+[data-article-appearance="compact"] [data-title-lg] {
+  font-size: 46px !important;
+}
+[data-article-appearance="large"] [data-title-xl] {
+  font-size: clamp(80px, 8vw, 124px) !important;
+}
+[data-article-appearance="large"] [data-title-lg] {
+  font-size: clamp(68px, 7vw, 104px) !important;
+}
 
 @media (max-width: 820px) {
   [data-title-xl] {
@@ -477,6 +489,16 @@ a:hover {
   }
   [data-title-lg] {
     font-size: 36px !important;
+  }
+  [data-article-appearance="compact"] [data-title-xl],
+  [data-article-appearance="compact"] [data-title-lg] {
+    font-size: 34px !important;
+  }
+  [data-article-appearance="large"] [data-title-xl] {
+    font-size: 48px !important;
+  }
+  [data-article-appearance="large"] [data-title-lg] {
+    font-size: 44px !important;
   }
   [data-body] {
     font-size: 17px !important;

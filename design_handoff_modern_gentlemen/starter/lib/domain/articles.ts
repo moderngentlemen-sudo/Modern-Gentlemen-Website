@@ -66,6 +66,30 @@ export type HeroVariant =
   | "centered"
   | "video";
 
+export const ARTICLE_HEADER_MODES = [
+  "template",
+  "standard",
+  "large",
+  "largeMedia",
+  "full",
+  "titleOnly",
+  "none",
+] as const;
+export type ArticleHeaderMode = (typeof ARTICLE_HEADER_MODES)[number];
+
+export const ARTICLE_APPEARANCES = ["template", "compact", "large"] as const;
+export type ArticleAppearance = (typeof ARTICLE_APPEARANCES)[number];
+
+export interface ArticlePresentation {
+  headerMode: ArticleHeaderMode;
+  appearance: ArticleAppearance;
+}
+
+export const DEFAULT_ARTICLE_PRESENTATION: ArticlePresentation = {
+  headerMode: "template",
+  appearance: "template",
+};
+
 export type BodyVariant =
   | "prose"
   | "essay"
@@ -164,6 +188,7 @@ export interface ArticleDoc {
   heroImage?: string;
   videoUrl?: string;
   featuredMedia?: ArticleFeaturedMedia;
+  presentation?: ArticlePresentation;
 }
 
 export const ARTICLE_FEATURED_MEDIA_KINDS = ["image", "video", "gif", "embed", "gallery"] as const;
@@ -257,6 +282,42 @@ export function withArticleFeaturedMedia(
   }
 
   return { ...root, hero };
+}
+
+/** Read a per-article header override while treating old payloads as template-driven. */
+export function articlePresentationOf(payload: unknown): ArticlePresentation {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload))
+    return DEFAULT_ARTICLE_PRESENTATION;
+  const hero = (payload as Record<string, unknown>).hero;
+  if (!hero || typeof hero !== "object" || Array.isArray(hero)) return DEFAULT_ARTICLE_PRESENTATION;
+  const value = (hero as Record<string, unknown>).presentation;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return DEFAULT_ARTICLE_PRESENTATION;
+  const record = value as Record<string, unknown>;
+  return {
+    headerMode: (ARTICLE_HEADER_MODES as readonly unknown[]).includes(record.headerMode)
+      ? (record.headerMode as ArticleHeaderMode)
+      : "template",
+    appearance: (ARTICLE_APPEARANCES as readonly unknown[]).includes(record.appearance)
+      ? (record.appearance as ArticleAppearance)
+      : "template",
+  };
+}
+
+/** Merge header settings without losing media, legacy hero fields, or builder sections. */
+export function withArticlePresentation(
+  payload: unknown,
+  presentation: ArticlePresentation
+): Record<string, unknown> {
+  const root =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? { ...(payload as Record<string, unknown>) }
+      : {};
+  const currentHero =
+    root.hero && typeof root.hero === "object" && !Array.isArray(root.hero)
+      ? (root.hero as Record<string, unknown>)
+      : {};
+  return { ...root, hero: { ...currentHero, presentation } };
 }
 
 /** Direct asset references carried outside the block tree, for usage protection. */

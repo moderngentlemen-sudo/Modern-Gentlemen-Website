@@ -119,6 +119,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             byline={a.byline}
             image={a.heroImage}
             videoUrl={a.videoUrl}
+            presentation={a.presentation}
           />
           {a.featuredMedia &&
             (a.featuredMedia.kind === "gallery" ||

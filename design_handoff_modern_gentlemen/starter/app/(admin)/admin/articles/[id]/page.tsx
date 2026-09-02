@@ -10,7 +10,11 @@ import { Button } from "@/components/admin/ui/Button";
 import { StatusPill } from "@/components/admin/ui/Badge";
 
 import { ArticleDetails } from "./ArticleDetails";
-import { articleFeaturedMediaOf, type ArticleFeaturedMedia } from "@/lib/domain/articles";
+import {
+  articleFeaturedMediaOf,
+  articlePresentationOf,
+  type ArticleFeaturedMedia,
+} from "@/lib/domain/articles";
 
 /**
  * An article's details screen.
@@ -99,6 +103,7 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
           featuredAssetId: meta.featured_asset_id ?? cover?.assetId ?? null,
           featuredAssetUrl: featured?.url ?? cover?.url ?? null,
           featuredMedia,
+          presentation: articlePresentationOf(document.draft_data),
           readingMinutes: meta.reading_minutes,
           issueNo: meta.issue_no,
           tagIds,

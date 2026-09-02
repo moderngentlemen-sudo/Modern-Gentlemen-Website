@@ -29,6 +29,7 @@ import type { Json } from "@/lib/db/database.types";
 import {
   authorInitial,
   articleFeaturedMediaOf,
+  articlePresentationOf,
   composeByline,
   composeCardTag,
   composeKicker,
@@ -208,6 +209,11 @@ function categoryLabel(row: {
 function docOf(row: ArticleRow): ArticleDoc {
   const hero = payloadObject(row.published_data, "hero");
   const featuredMedia = articleFeaturedMediaOf(row.published_data);
+  const storedHero = payloadObject(row.published_data, "hero");
+  const hasPresentation =
+    storedHero.presentation !== null &&
+    typeof storedHero.presentation === "object" &&
+    !Array.isArray(storedHero.presentation);
 
   return {
     slug: row.slug,
@@ -221,6 +227,7 @@ function docOf(row: ArticleRow): ArticleDoc {
     heroImage: assetUrl(row.media_assets),
     videoUrl: featuredMedia?.video?.url ?? optionalString(hero.videoUrl),
     ...(featuredMedia ? { featuredMedia } : {}),
+    ...(hasPresentation ? { presentation: articlePresentationOf(row.published_data) } : {}),
   };
 }
 

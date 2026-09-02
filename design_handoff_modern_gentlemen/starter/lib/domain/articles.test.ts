@@ -5,6 +5,9 @@ import {
   articleEmbedUrl,
   articleFeaturedMediaOf,
   articleFeaturedMediaUsages,
+  articlePresentationOf,
+  ARTICLE_APPEARANCES,
+  ARTICLE_HEADER_MODES,
   ARTICLE_TEMPLATE_LAYOUTS,
   ARTICLE_TEMPLATE_NAMES,
   DEFAULT_ARTICLE_TEMPLATE,
@@ -19,6 +22,7 @@ import {
   readingTimes,
   readingUnitFor,
   withArticleFeaturedMedia,
+  withArticlePresentation,
 } from "./articles";
 
 /**
@@ -102,6 +106,50 @@ describe("article featured media", () => {
     expect(articleEmbedUrl("https://vimeo.com/12345")).toBe("https://player.vimeo.com/video/12345");
     expect(articleEmbedUrl("http://youtube.com/watch?v=nope")).toBeUndefined();
     expect(articleEmbedUrl("https://example.com/video")).toBeUndefined();
+  });
+});
+
+describe("article presentation", () => {
+  it("exposes the six theme header modes plus the backward-compatible template mode", () => {
+    expect(ARTICLE_HEADER_MODES).toEqual([
+      "template",
+      "standard",
+      "large",
+      "largeMedia",
+      "full",
+      "titleOnly",
+      "none",
+    ]);
+    expect(ARTICLE_APPEARANCES).toEqual(["template", "compact", "large"]);
+  });
+
+  it("defaults old or malformed payloads to their existing template presentation", () => {
+    expect(articlePresentationOf(undefined)).toEqual({
+      headerMode: "template",
+      appearance: "template",
+    });
+    expect(articlePresentationOf({ hero: { presentation: { headerMode: "invented" } } })).toEqual({
+      headerMode: "template",
+      appearance: "template",
+    });
+  });
+
+  it("merges presentation without losing media, legacy fields, or builder sections", () => {
+    const payload = withArticlePresentation(
+      {
+        hero: { category: "Style", featuredMedia: { kind: "image" } },
+        sections: [{ _type: "richText" }],
+      },
+      { headerMode: "largeMedia", appearance: "compact" }
+    );
+
+    expect(articlePresentationOf(payload)).toEqual({
+      headerMode: "largeMedia",
+      appearance: "compact",
+    });
+    expect((payload.hero as Record<string, unknown>).category).toBe("Style");
+    expect((payload.hero as Record<string, unknown>).featuredMedia).toEqual({ kind: "image" });
+    expect(payload.sections).toEqual([{ _type: "richText" }]);
   });
 });
 
