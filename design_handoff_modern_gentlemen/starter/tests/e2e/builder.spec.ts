@@ -402,7 +402,7 @@ test.describe("page builder — drag from the library", () => {
     // After the move Newsletter is deliberately first, so a positional
     // triple-descendant locator would duplicate the wrong block. Anchor this
     // assertion to the Timeline handle itself instead.
-    const timeline = page
+    const timeline = firstColumn
       .getByRole("button", { name: /^Drag Timeline/i })
       .locator("xpath=ancestor::*[@data-block-key][1]");
     await timeline.getByRole("button", { name: /^Duplicate/ }).click();
