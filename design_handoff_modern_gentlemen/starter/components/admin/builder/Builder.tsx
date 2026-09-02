@@ -36,7 +36,7 @@ import { PublishBar } from "./PublishBar";
 import { ValidationTray } from "./ValidationTray";
 import { useAutosave } from "./useAutosave";
 import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
-import { dropTargetFor, locate } from "./tree";
+import { dropTargetFor, locate, subtreeContains } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { ThemeStyleClass } from "@/lib/domain/theme";
