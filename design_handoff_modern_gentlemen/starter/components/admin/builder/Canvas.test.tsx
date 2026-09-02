@@ -478,25 +478,37 @@ describe("direct canvas manipulation", () => {
 });
 
 describe("nested chrome", () => {
-  it("stacks a nested block's toolbar above its container's", async () => {
-    // Both frames pin their controls to their own top-right, and `group-hover`
-    // fires for every ancestor group — so both are on screen at once and their
-    // corners can overlap. Flat z-indexes let the container's toolbar swallow
-    // clicks meant for the block inside it, which CI found as a flaky drag spec
-    // rather than as a bug report.
-    renderCanvas([{ _key: "C1", _type: "columns", children: [newBlockNode("pullQuote")] }]);
+  it("stacks and staggers nested toolbars so every drag handle remains reachable", async () => {
+    // A first child begins at its container's top edge. Z-index by depth keeps
+    // that child's controls clickable, but without a different vertical lane
+    // it covers the parent's drag handle at the same coordinates. The browser
+    // E2E exposed this by activating Newsletter when it aimed at Column.
+    renderCanvas([
+      {
+        _key: "R1",
+        _type: "columns",
+        children: [
+          {
+            _key: "C1",
+            _type: "column",
+            children: [{ ...newBlockNode("newsletter"), _key: "N1" }],
+          },
+        ],
+      },
+    ]);
 
     const frames = [...document.querySelectorAll("[data-block-key]")];
-    const outer = frames.find((f) => f.getAttribute("data-block-key") === "C1")!;
-    const inner = frames.find((f) => f.getAttribute("data-block-key") !== "C1")!;
+    const row = frames.find((f) => f.getAttribute("data-block-key") === "R1")!;
+    const column = frames.find((f) => f.getAttribute("data-block-key") === "C1")!;
+    const leaf = frames.find((f) => f.getAttribute("data-block-key") === "N1")!;
 
-    const zOf = (frame: Element) =>
-      Number(
-        [...frame.querySelectorAll<HTMLElement>(":scope > div")].find((d) => d.style.zIndex)?.style
-          .zIndex ?? "0"
-      );
+    const toolbarOf = (frame: Element) =>
+      [...frame.querySelectorAll<HTMLElement>(":scope > div")].find((d) => d.style.zIndex)!;
+    const zOf = (frame: Element) => Number(toolbarOf(frame).style.zIndex);
+    const topOf = (frame: Element) => Number.parseFloat(toolbarOf(frame).style.top);
 
-    expect(zOf(inner)).toBeGreaterThan(zOf(outer));
+    expect([zOf(row), zOf(column), zOf(leaf)]).toEqual([10, 11, 12]);
+    expect([topOf(row), topOf(column), topOf(leaf)]).toEqual([8, 48, 88]);
   });
 });
 

@@ -14,7 +14,6 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
-  useDndContext,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
@@ -41,6 +40,8 @@ import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { ThemeStyleClass } from "@/lib/domain/theme";
+
+type CollisionArguments = Parameters<CollisionDetection>[0];
 
 /**
  * The server actions the builder may call.
@@ -198,7 +199,6 @@ function BuilderLayout({
   const moveTo = useBuilder((s) => s.moveTo);
   const selectedKey = useBuilder((s) => s.selectedKey);
   const tree = useBuilder((s) => s.tree);
-  const { droppableRects } = useDndContext();
 
   /**
    * The library entry in flight, if any, and the insertion point under the
@@ -212,6 +212,14 @@ function BuilderLayout({
   const [libraryType, setLibraryType] = useState<string | null>(null);
   const [drop, setDrop] = useState<DropLocation | null>(null);
   const lastOverRef = useRef<string | number | null>(null);
+  /**
+   * The measured rectangles belong to the DndContext rendered below this
+   * component. Calling `useDndContext` here cannot read that child provider —
+   * React context only flows down — so retain the live map supplied to the
+   * collision callback instead. It is the same measurement set used to choose
+   * `over`, and remains available to release-time geometry fallback.
+   */
+  const droppableRectsRef = useRef<CollisionArguments["droppableRects"] | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -229,6 +237,7 @@ function BuilderLayout({
    */
   const collisionDetection = useCallback<CollisionDetection>(
     (args) => {
+      droppableRectsRef.current = args.droppableRects;
       const active = parseDragId(args.active.id);
       if (active.kind === "block") {
         const home = locate(tree, active.key);
@@ -267,10 +276,6 @@ function BuilderLayout({
   function onDragStart(event: DragStartEvent) {
     const active = parseDragId(event.active.id);
     lastOverRef.current = null;
-    document.documentElement.setAttribute(
-      "data-builder-dnd-debug",
-      JSON.stringify({ phase: "start", id: event.active.id, kind: active.kind })
-    );
     if (active.kind === "library") setLibraryType(active.type);
   }
 
@@ -307,25 +312,6 @@ function BuilderLayout({
       !(active.kind === "block" && eventOver?.kind === "block" && eventOver.key === active.key)
         ? eventOverId
         : (lastOverRef.current ?? eventOverId);
-    document.documentElement.setAttribute(
-      "data-builder-dnd-debug",
-      JSON.stringify({
-        phase: "end",
-        active:
-          active.kind === "block" ? active.key : active.kind === "library" ? active.type : null,
-        kind: active.kind,
-        eventOverId,
-        lastOver: lastOverRef.current,
-        overId,
-      })
-    );
-    console.info("[builder:dnd:end]", {
-      active: active.kind === "block" ? active.key : active.kind === "library" ? active.type : null,
-      activeKind: active.kind,
-      eventOverId,
-      lastOver: lastOverRef.current,
-      overId,
-    });
     lastOverRef.current = null;
     const location = dropLocationFor(overId);
 
@@ -385,14 +371,6 @@ function BuilderLayout({
       home?.parentKey === null || home?.parentKey === undefined
         ? null
         : findBlock(tree, home.parentKey);
-    console.info("[builder:dnd:fallback]", {
-      home,
-      parentType: parent?._type,
-      siblings: parent?.children?.map((child) => child._key),
-      hasTranslated: Boolean(
-        event.active.rect.current.translated ?? event.active.rect.current.initial
-      ),
-    });
     if (!parent || manifestFor(parent._type)?.slot?.direction !== "horizontal") return;
 
     const siblings = (parent.children ?? []).filter((child) => child._key !== active.key);
@@ -416,7 +394,7 @@ function BuilderLayout({
     const centerY = translated.top + translated.height / 2;
     const nearest = siblings
       .map((sibling) => {
-        const rect = droppableRects.get(sibling._key);
+        const rect = droppableRectsRef.current?.get(sibling._key);
         if (!rect) return null;
         const dx = rect.left + rect.width / 2 - centerX;
         const dy = rect.top + rect.height / 2 - centerY;
@@ -438,11 +416,6 @@ function BuilderLayout({
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
         onDragCancel={() => {
-          console.info("[builder:dnd:cancel]");
-          document.documentElement.setAttribute(
-            "data-builder-dnd-debug",
-            JSON.stringify({ phase: "cancel" })
-          );
           setLibraryType(null);
           setDrop(null);
         }}

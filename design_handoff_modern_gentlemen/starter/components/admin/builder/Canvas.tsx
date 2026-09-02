@@ -938,14 +938,20 @@ function SortableBlock({
       )}
 
       {/*
-        ⚠️ Deeper chrome sits above shallower chrome, and this is not polish.
+        ⚠️ Deeper chrome sits above and below shallower chrome, and this is not
+        polish.
 
-        Every frame pins its toolbar to its own top-right, and a nested block's
-        corner can fall under its container's — Tailwind's `group-hover` fires
-        for every ancestor group, so both are on screen at once. With one flat
-        `z-10` the container's toolbar wins by document order and swallows
-        clicks meant for the block inside it. CI caught it as a flake before a
-        person could report it as a mystery.
+        Every frame owns a top-right toolbar, and a first child can begin at the
+        exact same corner as its container. Tailwind's `group-hover` fires for
+        every ancestor group, so both controls are on screen at once. A flat
+        `z-10` lets the container swallow child clicks; z-index by depth fixes
+        that direction but creates the inverse defect — the child then covers
+        the container's drag handle. CI exposed it because a drag aimed at a
+        Column activated the Newsletter at index zero instead.
+
+        Depth therefore owns a small vertical canvas lane as well as a z-index.
+        This affects editor chrome only: it does not wrap or offset the section,
+        and it leaves both the parent and child controls independently hittable.
 
         ⚠️ **The bar itself takes no pointer events; only its buttons do.** Once
         columns put two blocks SIDE BY SIDE, one frame's chrome could sit over a
@@ -963,8 +969,8 @@ function SortableBlock({
         are its siblings rather than its descendants.
       */}
       <div
-        style={{ zIndex: 10 + depth }}
-        className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+        style={{ zIndex: 10 + depth, top: 8 + depth * 40 }}
+        className="pointer-events-none absolute right-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
       >
         <span className="mr-1 bg-black/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white">
           {label}

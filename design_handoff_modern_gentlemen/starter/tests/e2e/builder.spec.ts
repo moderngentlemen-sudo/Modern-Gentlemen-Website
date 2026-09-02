@@ -233,14 +233,6 @@ test.describe("page builder — drag from the library", () => {
   test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
   test.describe.configure({ mode: "serial" });
 
-  // Forward temporary builder diagnostics into the CI log while resolving the
-  // column reorder regression. Removed once the release payload is understood.
-  test.beforeEach(({ page }) => {
-    page.on("console", (message) => {
-      if (message.text().startsWith("[builder:dnd:")) console.log(message.text());
-    });
-  });
-
   test("drops onto an empty page, then above the block already there", async ({ page }) => {
     await signIn(page);
 
@@ -462,10 +454,6 @@ test.describe("page builder — drag from the library", () => {
       );
     const before = await columnOrder();
     await dragOnto(page, handles.first(), handles.last());
-    console.log(
-      "[builder:test:debug]",
-      await page.locator("html").getAttribute("data-builder-dnd-debug")
-    );
 
     // The two column keys must reverse. This proves the row reordered rather
     // than merely moving a child inside one of its cells, independent of which
