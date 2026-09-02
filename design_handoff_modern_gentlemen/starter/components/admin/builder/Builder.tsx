@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -211,6 +211,7 @@ function BuilderLayout({
    */
   const [libraryType, setLibraryType] = useState<string | null>(null);
   const [drop, setDrop] = useState<DropLocation | null>(null);
+  const lastOverRef = useRef<string | number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -265,10 +266,23 @@ function BuilderLayout({
 
   function onDragStart(event: DragStartEvent) {
     const active = parseDragId(event.active.id);
+    lastOverRef.current = null;
     if (active.kind === "library") setLibraryType(active.type);
   }
 
   function onDragOver(event: DragOverEvent) {
+    const active = parseDragId(event.active.id);
+    const over = event.over?.id;
+    if (over !== undefined && over !== null) {
+      const parsedOver = parseDragId(over);
+      if (!(
+        active.kind === "block" &&
+        parsedOver.kind === "block" &&
+        parsedOver.key === active.key
+      )) {
+        lastOverRef.current = over;
+      }
+    }
     const next = dropLocationFor(event.over?.id);
     setDrop((current) =>
       current?.parentKey === (next?.parentKey ?? null) && current?.index === next?.index
@@ -282,7 +296,14 @@ function BuilderLayout({
     setDrop(null);
 
     const active = parseDragId(event.active.id);
-    const overId = event.over?.id;
+    const eventOverId = event.over?.id;
+    const eventOver = eventOverId === undefined ? null : parseDragId(eventOverId);
+    const overId =
+      eventOverId !== undefined &&
+      !(active.kind === "block" && eventOver?.kind === "block" && eventOver.key === active.key)
+        ? eventOverId
+        : (lastOverRef.current ?? eventOverId);
+    lastOverRef.current = null;
     const location = dropLocationFor(overId);
 
     if (active.kind === "library") {
