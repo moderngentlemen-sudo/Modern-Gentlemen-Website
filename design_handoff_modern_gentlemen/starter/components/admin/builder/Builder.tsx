@@ -36,7 +36,7 @@ import { PublishBar } from "./PublishBar";
 import { ValidationTray } from "./ValidationTray";
 import { useAutosave } from "./useAutosave";
 import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
-import { dropTargetFor, locate, subtreeContains } from "./tree";
+import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { ThemeStyleClass } from "@/lib/domain/theme";
@@ -229,7 +229,6 @@ function BuilderLayout({
       const active = parseDragId(args.active.id);
       if (active.kind === "block") {
         const home = locate(tree, active.key);
-        const dragged = findBlock(tree, active.key);
         const parent =
           home?.parentKey === null || home?.parentKey === undefined
             ? null
@@ -240,20 +239,18 @@ function BuilderLayout({
           // `closestCenter` resolves the column (or one of its child blocks,
           // which `dropTargetFor` lifts back to the sibling) instead of trying
           // to nest the dragged column into that placeholder.
+          const siblings = new Set(
+            (parent.children ?? []).map((child) => child._key).filter((key) => key !== active.key)
+          );
           return closestCenter({
             ...args,
+            // A row's child columns are the only valid destinations for a
+            // horizontal sibling reorder. Filtering to those direct wrappers
+            // keeps the row itself, the dragged branch, and nested content
+            // from winning the collision before the column under the pointer.
             droppableContainers: args.droppableContainers.filter((container) => {
               const candidate = parseDragId(container.id);
-              if (candidate.kind === "gap") return false;
-              // The active wrapper (and any nested descendants) can remain the
-              // nearest rect while the pointer travels over a sibling's
-              // toolbar. Excluding that branch guarantees a horizontal drag
-              // resolves to a different sibling, never back to itself.
-              return !(
-                candidate.kind === "block" &&
-                dragged &&
-                subtreeContains(dragged, candidate.key)
-              );
+              return candidate.kind === "block" && siblings.has(candidate.key);
             }),
           });
         }
