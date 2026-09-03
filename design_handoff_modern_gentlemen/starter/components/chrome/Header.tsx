@@ -12,6 +12,7 @@ import { BagDrawer } from "./BagDrawer";
 import { MegaMenu } from "./MegaMenu";
 import type { NavLink } from "@/lib/domain/navigation";
 import { DEFAULT_THEME_HEADER, type ThemeHeader } from "@/lib/domain/theme";
+import { useVisibleNavigation } from "@/lib/useVisibleNavigation";
 
 /** Routes that show the bag button. The editorial prototypes' header carries
  *  search + theme only (see `Modern Gentlemen Homepage.dc.html` and
@@ -59,6 +60,8 @@ export function Header({
   const [navHover, setNavHover] = useState(false);
   const [spin, setSpin] = useState(0);
   const navZoneRef = useRef<HTMLDivElement>(null);
+  const visibleNav = useVisibleNavigation(nav);
+  const visibleSecondary = useVisibleNavigation(drawerSecondary);
 
   // Touch devices synthesise a mouseenter on tap but often never fire the
   // matching mouseleave, which would leave the bar frosted AND pinned open for
@@ -98,14 +101,16 @@ export function Header({
   // An entry opens the mega-menu if it has children. `menuKey` is that entry's
   // id — the allowlist it replaced was a constant that had to be kept in step
   // with the menu data by hand.
-  const megaKeys = new Set(nav.filter((entry) => entry.children.length > 0).map((e) => e.id));
-  const activeEntry = nav.find((entry) => entry.id === menuKey) ?? null;
+  const megaKeys = new Set(
+    visibleNav.filter((entry) => entry.children.length > 0).map((entry) => entry.id)
+  );
+  const activeEntry = visibleNav.find((entry) => entry.id === menuKey) ?? null;
   const openMenu = (key: string) => setMenuKey(megaKeys.has(key) ? key : null);
 
   // Frost-only motion remains the compatibility default.
   const MOTION = "0.45s cubic-bezier(.4,0,.2,1)";
   const slide = hidden ? "translateY(-100%)" : "none";
-  const splitAt = Math.ceil(nav.length / 2);
+  const splitAt = Math.ceil(visibleNav.length / 2);
 
   const navigation = (items: NavLink[], label = "Primary", align = "justify-center") => (
     <nav
@@ -234,14 +239,18 @@ export function Header({
               <div className="flex min-w-0 items-center gap-6 overflow-hidden">
                 {burgerButton}
                 {navigation(
-                  nav.slice(0, splitAt),
+                  visibleNav.slice(0, splitAt),
                   "Primary navigation, first group",
                   "justify-start"
                 )}
               </div>
               <div style={{ transform: `scale(${settings.scale})` }}>{logoLink}</div>
               <div className="flex min-w-0 items-center justify-end gap-6 overflow-hidden">
-                {navigation(nav.slice(splitAt), "Primary navigation, second group", "justify-end")}
+                {navigation(
+                  visibleNav.slice(splitAt),
+                  "Primary navigation, second group",
+                  "justify-end"
+                )}
                 {actions}
               </div>
             </>
@@ -260,7 +269,7 @@ export function Header({
                 }`}
               >
                 {navigation(
-                  nav,
+                  visibleNav,
                   "Primary",
                   settings.composition === "navigation-left" ? "justify-start" : "justify-center"
                 )}
@@ -276,8 +285,8 @@ export function Header({
       <Drawer
         open={drawer}
         onClose={() => setDrawer(false)}
-        groups={nav}
-        secondary={drawerSecondary}
+        groups={visibleNav}
+        secondary={visibleSecondary}
       />
       <SearchOverlay open={settings.showSearch && search} onClose={() => setSearch(false)} />
       {/* Gated on `showBag` too, so navigating off the store journey with the

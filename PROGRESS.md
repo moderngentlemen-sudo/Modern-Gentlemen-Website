@@ -11,6 +11,22 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — conditional navigation rules
+
+Menu entries now expose working visibility controls for everyone, signed-in or
+signed-out visitors; members or non-members; mobile, tablet or desktop; and an
+optional local-time start/end window. Rules flow through the existing
+`menu_items.visibility` JSON, are strictly validated on writes and forgiving on
+reads, and filter every nested branch consistently across the header,
+mega-menu, drawer, footer and legal links. Audience state is resolved in the
+browser against Supabase Auth and the viewer's own RLS-protected profile so the
+public layout keeps static generation; unconditional menus make no auth request.
+Conditional audience and scheduled links fail closed until their state is
+known, schedules update in an open tab, and existing empty visibility payloads
+render exactly as before. Focused domain, tree-filter, header and UI coverage
+passes, as do changed-file Prettier, repository-wide ESLint, TypeScript and all
+**1,839/1,839 unit tests**.
+
 ### 2026-09-03 — media tags are editable and useful
 
 The media library now exposes the tag tables that have existed since the

@@ -101,23 +101,28 @@ export const menuItemOptionsSchema = z
   .passthrough();
 export type MenuItemOptions = z.infer<typeof menuItemOptionsSchema>;
 
-/**
- * `menu_items.visibility` — parsed, stored, and **not applied at render**.
- *
- * Honouring `auth` or `member` would mean reading the session in the site
- * layout, and any route that awaits `cookies()` is opted out of static rendering
- * by Next. The chrome is on every public page, so applying it there would cost
- * the entire site its static build — no error, no failing test, just a slower
- * site. Same stance the builder already takes with `visibility.devices`: the
- * control says so in its help text rather than pretending.
- */
+export const NAVIGATION_DEVICES = ["mobile", "tablet", "desktop"] as const;
+export type NavigationDevice = (typeof NAVIGATION_DEVICES)[number];
+
+/** `menu_items.visibility`, evaluated by the public client chrome. */
 export const menuItemVisibilitySchema = z
   .object({
     auth: z.enum(["any", "in", "out"]).optional(),
     member: z.boolean().nullable().optional(),
-    devices: z.array(z.string()).optional(),
+    devices: z.array(z.enum(NAVIGATION_DEVICES)).min(1).optional(),
+    startsAt: z.string().datetime({ offset: true }).nullable().optional(),
+    endsAt: z.string().datetime({ offset: true }).nullable().optional(),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((value, context) => {
+    if (value.startsAt && value.endsAt && Date.parse(value.startsAt) >= Date.parse(value.endsAt)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endsAt"],
+        message: "The visibility end must be after its start",
+      });
+    }
+  });
 export type MenuItemVisibility = z.infer<typeof menuItemVisibilitySchema>;
 
 /** Forgiving on the way out of the database: a malformed payload must not blank
@@ -131,6 +136,34 @@ export function parseMenuItemOptions(value: unknown): MenuItemOptions {
 export function parseMenuItemVisibility(value: unknown): MenuItemVisibility {
   const parsed = menuItemVisibilitySchema.safeParse(value ?? {});
   return parsed.success ? parsed.data : {};
+}
+
+export interface NavigationViewer {
+  auth: "unknown" | "in" | "out";
+  member: boolean | null;
+  device: NavigationDevice | null;
+  now: number | null;
+}
+
+/** Pure visibility decision shared by header, drawer, mega-menu and footer. */
+export function isMenuItemVisible(
+  visibility: MenuItemVisibility | undefined,
+  viewer: NavigationViewer
+): boolean {
+  if (!visibility) return true;
+  if ((visibility.startsAt || visibility.endsAt) && viewer.now === null) return false;
+  if (visibility.startsAt && viewer.now! < Date.parse(visibility.startsAt)) return false;
+  if (visibility.endsAt && viewer.now! >= Date.parse(visibility.endsAt)) return false;
+  if (visibility.devices && (!viewer.device || !visibility.devices.includes(viewer.device))) {
+    return false;
+  }
+  if (visibility.auth && visibility.auth !== "any") {
+    if (viewer.auth === "unknown" || viewer.auth !== visibility.auth) return false;
+  }
+  if (visibility.member !== null && visibility.member !== undefined) {
+    if (viewer.member === null || viewer.member !== visibility.member) return false;
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +358,7 @@ export interface NavLink {
   /** The mega-menu column heading this child sits under, if any. */
   group?: string;
   feature?: MenuFeature;
+  visibility?: MenuItemVisibility;
   children: NavLink[];
 }
 

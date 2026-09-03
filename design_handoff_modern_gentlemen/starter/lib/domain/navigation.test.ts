@@ -6,6 +6,7 @@ import {
   flattenChildren,
   groupChildren,
   hrefForItem,
+  isMenuItemVisible,
   isMenuLinkType,
   MENU_LINK_TYPES,
   parseMenuItemOptions,
@@ -170,10 +171,18 @@ describe("the jsonb payloads", () => {
     expect(options.group).toBe("Guides");
     expect(options.feature?.title).toBe("Racing Green");
 
-    expect(parseMenuItemVisibility({ auth: "in", member: null, devices: ["mobile"] })).toEqual({
+    expect(
+      parseMenuItemVisibility({
+        auth: "in",
+        member: null,
+        devices: ["mobile"],
+        startsAt: "2026-09-03T12:00:00.000Z",
+      })
+    ).toEqual({
       auth: "in",
       member: null,
       devices: ["mobile"],
+      startsAt: "2026-09-03T12:00:00.000Z",
     });
   });
 
@@ -186,6 +195,42 @@ describe("the jsonb payloads", () => {
     expect(parseMenuItemOptions({ feature: { title: 12 } })).toEqual({});
     expect(parseMenuItemOptions(null)).toEqual({});
     expect(parseMenuItemVisibility("nonsense")).toEqual({});
+    expect(
+      parseMenuItemVisibility({
+        startsAt: "2026-09-04T12:00:00.000Z",
+        endsAt: "2026-09-03T12:00:00.000Z",
+      })
+    ).toEqual({});
+  });
+});
+
+describe("isMenuItemVisible", () => {
+  const viewer = {
+    auth: "in" as const,
+    member: true,
+    device: "desktop" as const,
+    now: Date.parse("2026-09-03T12:00:00.000Z"),
+  };
+
+  it("applies audience, membership and device conditions together", () => {
+    expect(isMenuItemVisible({ auth: "in", member: true, devices: ["desktop"] }, viewer)).toBe(
+      true
+    );
+    expect(isMenuItemVisible({ auth: "out" }, viewer)).toBe(false);
+    expect(isMenuItemVisible({ member: false }, viewer)).toBe(false);
+    expect(isMenuItemVisible({ devices: ["mobile"] }, viewer)).toBe(false);
+    expect(isMenuItemVisible({ devices: ["desktop"] }, { ...viewer, device: null })).toBe(false);
+  });
+
+  it("uses a half-open schedule and hides private links until auth resolves", () => {
+    expect(isMenuItemVisible({ startsAt: "2026-09-03T12:00:00.000Z" }, viewer)).toBe(true);
+    expect(isMenuItemVisible({ endsAt: "2026-09-03T12:00:00.000Z" }, viewer)).toBe(false);
+    expect(
+      isMenuItemVisible({ startsAt: "2026-09-03T12:00:00.000Z" }, { ...viewer, now: null })
+    ).toBe(false);
+    expect(isMenuItemVisible({ auth: "in" }, { ...viewer, auth: "unknown", member: null })).toBe(
+      false
+    );
   });
 });
 

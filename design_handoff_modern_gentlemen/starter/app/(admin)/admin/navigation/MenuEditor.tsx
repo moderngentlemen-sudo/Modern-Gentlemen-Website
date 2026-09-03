@@ -11,10 +11,13 @@ import { Panel } from "@/components/admin/ui/Panel";
 import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { useToast } from "@/components/admin/ui/Toast";
 import { LABEL_SM } from "@/components/admin/ui/styles";
+import { Checkbox } from "@/components/admin/ui/Toggle";
 import {
   isLinkTargetKind,
+  NAVIGATION_DEVICES,
   type LinkTargetKind,
   type MenuFeature,
+  type MenuItemVisibility,
   type MenuLinkType,
 } from "@/lib/domain/navigation";
 import type { LinkTarget } from "@/lib/services/navigation";
@@ -34,6 +37,7 @@ export interface EditorItem {
   url: string | null;
   group: string | null;
   feature: MenuFeature | null;
+  visibility: MenuItemVisibility;
   children: EditorItem[];
 }
 
@@ -68,6 +72,9 @@ interface Draft {
   targetId: string;
   url: string;
   group: string;
+  visibility: MenuItemVisibility;
+  startsAt: string;
+  endsAt: string;
 }
 
 const emptyDraft = (parentId: string | null): Draft => ({
@@ -78,6 +85,9 @@ const emptyDraft = (parentId: string | null): Draft => ({
   targetId: "",
   url: "",
   group: "",
+  visibility: {},
+  startsAt: "",
+  endsAt: "",
 });
 
 /**
@@ -126,6 +136,9 @@ export function MenuEditor({
       targetId: item.targetId ?? "",
       url: item.url ?? "",
       group: item.group ?? "",
+      visibility: item.visibility,
+      startsAt: toLocalDateTime(item.visibility.startsAt),
+      endsAt: toLocalDateTime(item.visibility.endsAt),
     });
   }
 
@@ -142,6 +155,7 @@ export function MenuEditor({
       // A feature card is authored nowhere else yet, so an edit must carry the
       // existing one through rather than dropping it: `options` is written whole.
       feature: draft.item?.feature ?? null,
+      visibility: visibilityOf(draft),
     };
 
     startTransition(async () => {
@@ -341,10 +355,96 @@ export function MenuEditor({
               />
             )}
 
-            <p className={LABEL_SM}>
-              Visibility rules are not applied on the public site — the chrome is statically
-              rendered and reads no session.
-            </p>
+            <div className="border-t border-mg-bd/15 pt-4">
+              <p className={LABEL_SM}>Visibility</p>
+              <div className="mt-3 space-y-4">
+                <Select
+                  label="Audience"
+                  value={draft.visibility.auth ?? "any"}
+                  onChange={(auth) =>
+                    setDraft({
+                      ...draft,
+                      visibility: {
+                        ...draft.visibility,
+                        auth: auth as "any" | "in" | "out",
+                      },
+                    })
+                  }
+                  options={[
+                    { value: "any", label: "Everyone" },
+                    { value: "in", label: "Signed-in visitors" },
+                    { value: "out", label: "Signed-out visitors" },
+                  ]}
+                  help="Resolved in the browser so the public site remains statically rendered."
+                />
+                <Select
+                  label="Membership"
+                  value={
+                    draft.visibility.member === true
+                      ? "member"
+                      : draft.visibility.member === false
+                        ? "non-member"
+                        : "any"
+                  }
+                  onChange={(member) =>
+                    setDraft({
+                      ...draft,
+                      visibility: {
+                        ...draft.visibility,
+                        member: member === "any" ? null : member === "member",
+                      },
+                    })
+                  }
+                  options={[
+                    { value: "any", label: "Any membership" },
+                    { value: "member", label: "Members only" },
+                    { value: "non-member", label: "Non-members only" },
+                  ]}
+                />
+                <div>
+                  <p className={LABEL_SM}>Devices</p>
+                  <div className="mt-2 flex flex-wrap gap-4">
+                    {NAVIGATION_DEVICES.map((device) => {
+                      const selected = draft.visibility.devices ?? [...NAVIGATION_DEVICES];
+                      return (
+                        <Checkbox
+                          key={device}
+                          label={device[0].toUpperCase() + device.slice(1)}
+                          checked={selected.includes(device)}
+                          onChange={(checked) => {
+                            const next = checked
+                              ? [...new Set([...selected, device])]
+                              : selected.filter((value) => value !== device);
+                            if (next.length > 0) {
+                              setDraft({
+                                ...draft,
+                                visibility: { ...draft.visibility, devices: next },
+                              });
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <TextInput
+                    type="datetime-local"
+                    label="Show from"
+                    value={draft.startsAt}
+                    onChange={(startsAt) => setDraft({ ...draft, startsAt })}
+                    help="Optional, in your local time."
+                  />
+                  <TextInput
+                    type="datetime-local"
+                    label="Hide after"
+                    value={draft.endsAt}
+                    onChange={(endsAt) => setDraft({ ...draft, endsAt })}
+                    help="Optional, in your local time."
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </Dialog>
@@ -392,6 +492,26 @@ function findItem(items: EditorItem[], id: string): EditorItem | null {
   return null;
 }
 
+function toLocalDateTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function visibilityOf(draft: Draft): MenuItemVisibility {
+  const visibility = { ...draft.visibility };
+  if (!visibility.auth || visibility.auth === "any") delete visibility.auth;
+  if (visibility.member === null) delete visibility.member;
+  if (visibility.devices?.length === NAVIGATION_DEVICES.length) delete visibility.devices;
+  visibility.startsAt = draft.startsAt ? new Date(draft.startsAt).toISOString() : null;
+  visibility.endsAt = draft.endsAt ? new Date(draft.endsAt).toISOString() : null;
+  if (!visibility.startsAt) delete visibility.startsAt;
+  if (!visibility.endsAt) delete visibility.endsAt;
+  return visibility;
+}
+
 function Row({
   item,
   canWrite,
@@ -421,6 +541,9 @@ function Row({
           {item.linkType === "url" ? item.url : item.linkType}
         </span>
         {item.group && <span className={`ml-2 ${LABEL_SM}`}>{item.group}</span>}
+        {Object.keys(item.visibility).length > 0 && (
+          <span className={`ml-2 ${LABEL_SM}`}>Conditional</span>
+        )}
       </div>
 
       {canWrite && (

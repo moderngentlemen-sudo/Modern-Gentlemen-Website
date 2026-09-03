@@ -24,6 +24,7 @@ function toEditorItem(node: MenuItemNode): EditorItem {
     url: node.url,
     group: node.options.group ?? null,
     feature: node.options.feature ?? null,
+    visibility: node.visibility,
     children: node.children.map(toEditorItem),
   };
 }

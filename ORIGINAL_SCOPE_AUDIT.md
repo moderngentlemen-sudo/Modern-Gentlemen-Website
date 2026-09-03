@@ -113,7 +113,7 @@ or function impossible to reproduce.
 | --------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Nested menus and dynamic/external links | Complete | Menu tree editing, nested entries, page/category/product/external targets and public header/footer reads are connected.                                                                                                                                                             |
 | Header/footer menu assignment           | Complete | Named menu records are resolved by the public chrome.                                                                                                                                                                                                                               |
-| Conditional navigation visibility       | Open     | Menu entries do not yet have audience/device/date conditions.                                                                                                                                                                                                                       |
+| Conditional navigation visibility       | Complete | Menu entries expose audience, membership, device and start/end conditions. One shared browser evaluator filters nested header, mega-menu, drawer, footer and legal navigation while preserving static public rendering.                                                             |
 | Draft/published states and validation   | Complete | Strict block/content schemas gate atomic publishing; anonymous reads see published data only.                                                                                                                                                                                       |
 | Revision history and rollback           | Complete | Immutable revisions, publish events, history views and atomic rollback are implemented across document types.                                                                                                                                                                       |
 | Named snapshots                         | Complete | Snapshot labels and reasons are stored and exposed by the shared publish bar/history.                                                                                                                                                                                               |
@@ -141,8 +141,8 @@ or function impossible to reproduce.
 1. ~~Add reusable entrance and scroll animation states.~~ Complete 2026-09-03.
 2. ~~Add one-click “save selection as pattern,” reusable-document duplication
    and the global command palette.~~ Complete 2026-09-03.
-3. ~~Expose media tagging.~~ Complete 2026-09-03. Conditional navigation rules
-   remain.
+3. ~~Expose media tagging and conditional navigation rules.~~ Complete
+   2026-09-03.
 4. Add Shopify collection mapping and the remaining explicit E2E acceptance
    scenarios.
 

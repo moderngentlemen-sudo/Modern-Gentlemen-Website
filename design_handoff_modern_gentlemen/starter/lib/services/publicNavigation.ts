@@ -104,6 +104,7 @@ function toNavLinks(nodes: MenuItemNode[], slugs: SlugsById): NavLink[] {
       id: node.id,
       label: node.label,
       href,
+      visibility: node.visibility,
       children: toNavLinks(node.children, slugs),
     };
     if (node.options.group) link.group = node.options.group;

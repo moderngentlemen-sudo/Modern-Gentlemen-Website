@@ -25,11 +25,9 @@ import { getPublishedGlobalTemplate } from "@/lib/services/publicContent";
  * every public route, so one read at the top serves all of them.
  *
  * Both reads go through `lib/db/public.ts`, which touches no cookies — so the
- * routes below stay statically rendered. Swapping either for `lib/db/server.ts`
- * would opt the entire public site out of static rendering with no error and no
- * failing test; see the standing rule in CLAUDE.md. It is also why a menu item's
- * `visibility.auth` is stored but never applied: honouring it needs the session
- * this layout deliberately does not read.
+ * routes below stay statically rendered. Conditional menu entries are resolved
+ * by the client chrome after this static tree arrives; unconditional menus make
+ * no auth request at all.
  */
 export const revalidate = 3600;
 

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { NavLink } from "@/lib/domain/navigation";
+import { useVisibleNavigation } from "@/lib/useVisibleNavigation";
 
 const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   {
@@ -61,6 +64,9 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
  *  Both link rows come from the database (`footer-primary` and `footer-legal`);
  *  the socials do not, because they are inline SVG marks rather than content. */
 export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavLink[] }) {
+  const visibleNav = useVisibleNavigation(nav);
+  const visibleLegal = useVisibleNavigation(legal);
+
   return (
     <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band">
       {/* ≤680 every footer row insets 22px, matching the sections. */}
@@ -84,7 +90,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
           className="flex flex-wrap gap-x-5 gap-y-3.5 min-[681px]:gap-x-7 min-[681px]:justify-end"
           aria-label="Footer"
         >
-          {nav.map((link) => (
+          {visibleNav.map((link) => (
             <Link
               key={link.id}
               href={link.href}
@@ -122,7 +128,7 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
       <div className="container-mg flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/50">
         <span>© {new Date().getFullYear()} Modern Gentlemen — Est. 2026</span>
         <span className="whitespace-pre-wrap">
-          {legal.map((link, i) => (
+          {visibleLegal.map((link, i) => (
             <span key={link.id}>
               {i > 0 && " · "}
               <Link href={link.href} className="hover:text-white transition-colors">

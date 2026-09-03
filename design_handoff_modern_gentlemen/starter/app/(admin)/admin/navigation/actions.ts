@@ -13,6 +13,7 @@ import {
 import {
   EDITABLE_MENU_LINK_TYPES,
   menuFeatureSchema,
+  menuItemVisibilitySchema,
   MENU_STATUSES,
 } from "@/lib/domain/navigation";
 import { ok, type ActionResult } from "../_lib/action-result";
@@ -53,6 +54,7 @@ const ItemBody = z
     url: z.string().trim().max(2000).nullable().optional(),
     group: z.string().trim().max(120).nullable().optional(),
     feature: menuFeatureSchema.nullable().optional(),
+    visibility: menuItemVisibilitySchema.optional(),
   })
   .superRefine((value, ctx) => {
     if (value.linkType === "url") {
@@ -131,6 +133,7 @@ export async function createMenuItemAction(input: unknown): Promise<ActionResult
       targetId: parsed.data.linkType === "url" ? null : (parsed.data.targetId ?? null),
       url: parsed.data.linkType === "url" ? (parsed.data.url ?? null) : null,
       options: optionsOf(parsed.data),
+      visibility: parsed.data.visibility,
       position: parsed.data.position,
     });
     return done();
@@ -150,6 +153,7 @@ export async function updateMenuItemAction(input: unknown): Promise<ActionResult
       targetId: parsed.data.linkType === "url" ? null : (parsed.data.targetId ?? null),
       url: parsed.data.linkType === "url" ? (parsed.data.url ?? null) : null,
       options: optionsOf(parsed.data),
+      visibility: parsed.data.visibility,
     });
     return done();
   } catch (error) {
