@@ -57,6 +57,13 @@ export interface MediaAsset {
   focalPoint: FocalPoint;
   checksum: string | null;
   createdAt: string;
+  tags: MediaTag[];
+}
+
+export interface MediaTag {
+  id: string;
+  slug: string;
+  label: string;
 }
 
 /** Editable metadata. The bytes are immutable; only the description changes. */
@@ -67,9 +74,27 @@ export const mediaMetadataSchema = z.object({
   credit: z.string().max(200).optional(),
   focalPoint: focalPointSchema.optional(),
   folderId: z.string().uuid().nullable().optional(),
+  tags: z.array(z.string().trim().min(1).max(60)).max(30).optional(),
 });
 
 export type MediaMetadata = z.infer<typeof mediaMetadataSchema>;
+
+/** Stable, human-readable tags from a comma-separated editor value. */
+export function normalizeMediaTags(values: string[]): { slug: string; label: string }[] {
+  const unique = new Map<string, string>();
+  for (const raw of values) {
+    const label = raw.trim().replace(/\s+/g, " ");
+    const slug = label
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60);
+    if (slug && !unique.has(slug)) unique.set(slug, label.slice(0, 60));
+  }
+  return [...unique].map(([slug, label]) => ({ slug, label }));
+}
 
 // ---------------------------------------------------------------------------
 // MIME → kind

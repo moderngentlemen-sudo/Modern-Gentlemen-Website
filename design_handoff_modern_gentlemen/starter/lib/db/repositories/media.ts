@@ -19,6 +19,7 @@ type Db = SupabaseClient<Database>;
 export type AssetRow = Database["public"]["Tables"]["media_assets"]["Row"];
 export type FolderRow = Database["public"]["Tables"]["media_folders"]["Row"];
 export type UsageRow = Database["public"]["Tables"]["media_usages"]["Row"];
+export type TagRow = Database["public"]["Tables"]["media_tags"]["Row"];
 
 export interface ListAssetsOptions {
   kind?: string;
@@ -27,6 +28,7 @@ export interface ListAssetsOptions {
   search?: string;
   limit?: number;
   offset?: number;
+  tagSlug?: string;
 }
 
 const DEFAULT_LIMIT = 60;
@@ -108,6 +110,19 @@ export async function listAssets(
   const limit = options.limit ?? DEFAULT_LIMIT;
   const offset = options.offset ?? 0;
 
+  let taggedAssetIds: string[] | undefined;
+  if (options.tagSlug) {
+    const links = (unwrap(
+      "listAssets/tag",
+      await db
+        .from("media_asset_tags")
+        .select("asset_id, media_tags!inner(slug)")
+        .eq("media_tags.slug", options.tagSlug)
+    ) ?? []) as unknown as { asset_id: string }[];
+    taggedAssetIds = [...new Set(links.map((link) => link.asset_id))];
+    if (taggedAssetIds.length === 0) return { assets: [], total: 0 };
+  }
+
   // A builder rather than one mutated query, because the fallback below needs a
   // second query with the SAME folder, kind, ordering and range. Duplicating
   // those three filters is how the two paths would come to disagree — the
@@ -121,6 +136,7 @@ export async function listAssets(
       .range(offset, offset + limit - 1);
 
     if (options.kind) query = query.eq("kind", options.kind);
+    if (taggedAssetIds) query = query.in("id", taggedAssetIds);
     if (options.folderId === null) query = query.is("folder_id", null);
     else if (options.folderId !== undefined) query = query.eq("folder_id", options.folderId);
     return query;
@@ -157,6 +173,65 @@ export async function listAssets(
   }
 
   return { assets, total };
+}
+
+export async function listTags(db: Db): Promise<TagRow[]> {
+  return (unwrap(
+    "listTags",
+    await db.from("media_tags").select("*").order("label", { ascending: true })
+  ) ?? []) as TagRow[];
+}
+
+export async function tagsForAssets(db: Db, assetIds: string[]): Promise<Map<string, TagRow[]>> {
+  const grouped = new Map<string, TagRow[]>();
+  if (assetIds.length === 0) return grouped;
+
+  const links = (unwrap(
+    "tagsForAssets",
+    await db
+      .from("media_asset_tags")
+      .select("asset_id, media_tags(id, slug, label)")
+      .in("asset_id", assetIds)
+  ) ?? []) as unknown as { asset_id: string; media_tags: TagRow | null }[];
+
+  for (const link of links) {
+    if (!link.media_tags) continue;
+    const current = grouped.get(link.asset_id) ?? [];
+    current.push(link.media_tags);
+    grouped.set(link.asset_id, current);
+  }
+  for (const tags of grouped.values()) tags.sort((a, b) => a.label.localeCompare(b.label));
+  return grouped;
+}
+
+export async function replaceAssetTags(
+  db: Db,
+  assetId: string,
+  tags: { slug: string; label: string }[]
+): Promise<TagRow[]> {
+  const rows =
+    tags.length === 0
+      ? []
+      : ((unwrap(
+          "replaceAssetTags/upsert-tags",
+          await db.from("media_tags").upsert(tags, { onConflict: "slug" }).select("*")
+        ) ?? []) as TagRow[]);
+
+  if (rows.length > 0) {
+    unwrap(
+      "replaceAssetTags/upsert-links",
+      await db.from("media_asset_tags").upsert(
+        rows.map((tag) => ({ asset_id: assetId, tag_id: tag.id })),
+        { onConflict: "asset_id,tag_id", ignoreDuplicates: true }
+      )
+    );
+  }
+
+  const keep = rows.map((tag) => tag.id);
+  let stale = db.from("media_asset_tags").delete().eq("asset_id", assetId);
+  if (keep.length > 0) stale = stale.not("tag_id", "in", `(${keep.join(",")})`);
+  unwrap("replaceAssetTags/prune-links", await stale);
+  return rows.sort((a, b) => a.label.localeCompare(b.label));
 }
 
 export async function getAsset(db: Db, id: string): Promise<AssetRow | null> {

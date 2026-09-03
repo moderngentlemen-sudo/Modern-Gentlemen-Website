@@ -6,6 +6,7 @@ import {
   galleryReferences,
   isPickableAs,
   mediaKindFromMime,
+  normalizeMediaTags,
   publicUrlFor,
   slugifyFileName,
   storagePathFor,
@@ -13,6 +14,20 @@ import {
 } from "./media";
 
 const PROJECT = "https://qnfoztnyxhubnnulpfwt.supabase.co";
+
+describe("normalizeMediaTags", () => {
+  it("trims, de-duplicates and creates stable slugs", () => {
+    expect(normalizeMediaTags([" Campaign ", "campaign", "Men's Style", "Café"])).toEqual([
+      { slug: "campaign", label: "Campaign" },
+      { slug: "men-s-style", label: "Men's Style" },
+      { slug: "cafe", label: "Café" },
+    ]);
+  });
+
+  it("drops punctuation-only values", () => {
+    expect(normalizeMediaTags(["---", "  "])).toEqual([]);
+  });
+});
 
 describe("mediaKindFromMime", () => {
   it.each([

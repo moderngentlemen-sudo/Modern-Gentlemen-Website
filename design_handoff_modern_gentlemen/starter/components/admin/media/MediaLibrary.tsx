@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "@/components/ui/clsx";
 import type { ActionResult } from "@/app/(admin)/admin/_lib/action-result";
 import { MEDIA_KINDS } from "@/lib/domain/media";
+import type { MediaTag } from "@/lib/domain/media";
 import type { AssetUsageView, AssetView } from "@/lib/services/media";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -43,6 +44,7 @@ export function MediaLibrary({
   initialAssets,
   initialTotal,
   initialFolders,
+  initialTags,
   actions,
   canWrite,
   canDelete,
@@ -50,6 +52,7 @@ export function MediaLibrary({
   initialAssets: AssetView[];
   initialTotal: number;
   initialFolders: MediaFolder[];
+  initialTags: MediaTag[];
   actions: MediaLibraryActions;
   canWrite: boolean;
   canDelete: boolean;
@@ -62,6 +65,8 @@ export function MediaLibrary({
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState("");
   const [folderId, setFolderId] = useState<string | null | undefined>(undefined);
+  const [tagSlug, setTagSlug] = useState("");
+  const [tags, setTags] = useState(initialTags);
   const [loading, setLoading] = useState(false);
 
   const selected = useMemo(
@@ -83,6 +88,7 @@ export function MediaLibrary({
         search: search.trim() || undefined,
         kind: kind || undefined,
         folderId,
+        tagSlug: tagSlug || undefined,
         limit: 60,
       });
       if (id !== requestId.current) return;
@@ -98,7 +104,7 @@ export function MediaLibrary({
 
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `actions` and `toast` are stable
-  }, [search, kind, folderId]);
+  }, [search, kind, folderId, tagSlug]);
 
   function onUploaded(asset: AssetView) {
     let added = false;
@@ -114,7 +120,7 @@ export function MediaLibrary({
     setSelectedId(asset.id);
   }
 
-  const filtered = search !== "" || kind !== "" || folderId !== undefined;
+  const filtered = search !== "" || kind !== "" || folderId !== undefined || tagSlug !== "";
 
   return (
     <div className="grid gap-6 px-8 py-8 lg:grid-cols-[180px_minmax(0,1fr)_320px]">
@@ -147,6 +153,19 @@ export function MediaLibrary({
             {MEDIA_KINDS.map((k) => (
               <option key={k} value={k}>
                 {k}
+              </option>
+            ))}
+          </select>
+          <select
+            value={tagSlug}
+            onChange={(event) => setTagSlug(event.target.value)}
+            aria-label="Filter by tag"
+            className={clsx(CONTROL, "w-auto")}
+          >
+            <option value="">All tags</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.slug}>
+                {tag.label}
               </option>
             ))}
           </select>
@@ -189,9 +208,14 @@ export function MediaLibrary({
             actions={actions}
             canWrite={canWrite}
             canDelete={canDelete}
-            onUpdated={(updated) =>
-              setAssets((current) => current.map((a) => (a.id === updated.id ? updated : a)))
-            }
+            onUpdated={(updated) => {
+              setAssets((current) => current.map((a) => (a.id === updated.id ? updated : a)));
+              setTags((current) => {
+                const bySlug = new Map(current.map((tag) => [tag.slug, tag]));
+                for (const tag of updated.tags) bySlug.set(tag.slug, tag);
+                return [...bySlug.values()].sort((a, b) => a.label.localeCompare(b.label));
+              });
+            }}
             onDeleted={(id) => {
               setAssets((current) => current.filter((a) => a.id !== id));
               setTotal((n) => Math.max(0, n - 1));

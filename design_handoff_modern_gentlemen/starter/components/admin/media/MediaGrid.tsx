@@ -54,6 +54,11 @@ export function MediaGrid({
                   <span>{asset.kind}</span>
                   <span>{formatByteSize(asset.byteSize)}</span>
                 </span>
+                {asset.tags.length > 0 && (
+                  <span className="mt-1 block truncate text-[10px] text-mg-fg/50">
+                    {asset.tags.map((tag) => tag.label).join(" · ")}
+                  </span>
+                )}
                 {/*
                   Missing alt text is worth surfacing in the grid rather than
                   only in the details panel. It is the one piece of metadata a

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { clsx } from "@/components/ui/clsx";
-import { isPickableAs, type MediaKind } from "@/lib/domain/media";
+import { isPickableAs, type MediaKind, type MediaTag } from "@/lib/domain/media";
 import type { AssetView } from "@/lib/services/media";
 import { Dialog } from "../ui/Dialog";
 import { CONTROL } from "../ui/styles";
@@ -36,12 +36,25 @@ export function MediaPickerDialog({
   const picker = useMediaPicker();
   const [assets, setAssets] = useState<AssetView[]>([]);
   const [search, setSearch] = useState("");
+  const [tagSlug, setTagSlug] = useState("");
+  const [tags, setTags] = useState<MediaTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Same staleness guard as the library: the last request started is the only
   // one allowed to write state.
   const requestId = useRef(0);
+
+  useEffect(() => {
+    if (!open || !picker?.listTags) return;
+    let cancelled = false;
+    void picker.listTags().then((result) => {
+      if (!cancelled && result.ok) setTags(result.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, picker]);
 
   useEffect(() => {
     if (!open || !picker) return;
@@ -57,6 +70,7 @@ export function MediaPickerDialog({
       const result = await picker.search({
         search: search.trim() || undefined,
         kind: kind === "video" ? "video" : undefined,
+        tagSlug: tagSlug || undefined,
         limit: 60,
       });
       if (id !== requestId.current) return;
@@ -70,7 +84,7 @@ export function MediaPickerDialog({
     }, 200);
 
     return () => clearTimeout(handle);
-  }, [open, search, kind, picker]);
+  }, [open, search, tagSlug, kind, picker]);
 
   return (
     <Dialog
@@ -80,15 +94,32 @@ export function MediaPickerDialog({
       description="Assets come from the media library. Uploading is done there."
       size="lg"
     >
-      <input
-        type="search"
-        value={search}
-        autoFocus
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search the library"
-        aria-label="Search the media library"
-        className={clsx(CONTROL, "mb-4")}
-      />
+      <div className="mb-4 flex gap-3">
+        <input
+          type="search"
+          value={search}
+          autoFocus
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search the library"
+          aria-label="Search the media library"
+          className={clsx(CONTROL, "min-w-0 flex-1")}
+        />
+        {tags.length > 0 && (
+          <select
+            value={tagSlug}
+            onChange={(event) => setTagSlug(event.target.value)}
+            aria-label="Filter media by tag"
+            className={clsx(CONTROL, "w-auto")}
+          >
+            <option value="">All tags</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.slug}>
+                {tag.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {error && <p className="mb-3 text-[12px] text-mg-accentSerif">{error}</p>}
 
@@ -102,7 +133,7 @@ export function MediaPickerDialog({
             onClose();
           }}
           emptyLabel={
-            search
+            search || tagSlug
               ? "Nothing in the library matches."
               : `No ${kind === "image" ? "images" : "videos"} in the library yet.`
           }

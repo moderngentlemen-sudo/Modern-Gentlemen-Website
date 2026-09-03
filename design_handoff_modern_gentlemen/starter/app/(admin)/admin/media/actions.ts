@@ -10,6 +10,7 @@ import {
   deleteFolder,
   getAssetUsageViews,
   listAssets,
+  listTags,
   updateAssetMetadata,
   uploadAsset,
   type AssetUsageView,
@@ -114,6 +115,7 @@ const SearchInput = z.object({
   folderId: z.string().uuid().nullable().optional(),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
+  tagSlug: z.string().max(60).optional(),
 });
 
 /** The picker's data source, and the library's own search. */
@@ -125,6 +127,16 @@ export async function listAssetsAction(
 
   try {
     return ok(await listAssets(parsed.data));
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+export async function listMediaTagsAction(): Promise<
+  ActionResult<Awaited<ReturnType<typeof listTags>>>
+> {
+  try {
+    return ok(await listTags());
   } catch (error) {
     return toActionResult(error);
   }

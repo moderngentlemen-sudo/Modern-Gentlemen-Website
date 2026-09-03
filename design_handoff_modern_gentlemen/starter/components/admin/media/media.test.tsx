@@ -42,12 +42,23 @@ function makeAsset(overrides: Partial<AssetView> = {}): AssetView {
     focalPoint: CENTRE,
     checksum: "abc",
     createdAt: "2026-08-02T00:00:00Z",
+    tags: [],
     url: "https://p.supabase.co/storage/v1/object/public/media/2026/08/ab12-hero.jpg",
     ...overrides,
   };
 }
 
 describe("MediaGrid", () => {
+  it("surfaces tags while scanning the grid", () => {
+    render(
+      <MediaGrid
+        assets={[makeAsset({ tags: [{ id: "tag-1", slug: "campaign", label: "Campaign" }] })]}
+        onSelect={() => {}}
+      />
+    );
+    expect(screen.getByText("Campaign")).toBeInTheDocument();
+  });
+
   it("flags an image with no alt text, where an editor scanning forty will see it", () => {
     render(<MediaGrid assets={[makeAsset({ altText: null })]} onSelect={() => {}} />);
     expect(screen.getByText("No alt text")).toBeInTheDocument();
@@ -163,6 +174,27 @@ describe("AssetDetails", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Danger/ }));
     expect(await screen.findByRole("button", { name: "Delete asset" })).toBeDisabled();
     expect(screen.getByText(/This asset is in use/)).toBeInTheDocument();
+  });
+
+  it("saves comma-separated tags as structured metadata", async () => {
+    const assetActions = actions(noUsages);
+    render(
+      <AssetDetails
+        asset={makeAsset()}
+        actions={assetActions}
+        canWrite
+        canDelete={false}
+        onUpdated={() => {}}
+        onDeleted={() => {}}
+        onMessage={() => {}}
+      />
+    );
+
+    await userEvent.type(screen.getByLabelText("Tags"), "Campaign, Homepage");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(assetActions.update).toHaveBeenCalledWith(
+      expect.objectContaining({ tags: ["Campaign", "Homepage"] })
+    );
   });
 
   it("allows the delete once nothing references it", async () => {

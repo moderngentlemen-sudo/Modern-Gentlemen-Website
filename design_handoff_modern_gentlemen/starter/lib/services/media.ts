@@ -26,6 +26,7 @@ import {
   galleryReferences,
   MEDIA_BUCKET,
   mediaKindFromMime,
+  normalizeMediaTags,
   resolveAssetUrl,
   storagePathFor,
   storagePathFromPublicUrl,
@@ -33,6 +34,7 @@ import {
   type MediaAsset,
   type MediaKind,
   type MediaMetadata,
+  type MediaTag,
 } from "@/lib/domain/media";
 import { requirePermission } from "./auth";
 
@@ -82,7 +84,7 @@ function toFocalPoint(value: unknown): FocalPoint {
   return CENTRE;
 }
 
-export function toAssetView(row: repo.AssetRow): AssetView {
+export function toAssetView(row: repo.AssetRow, tags: MediaTag[] = []): AssetView {
   return {
     id: row.id,
     folderId: row.folder_id,
@@ -104,6 +106,7 @@ export function toAssetView(row: repo.AssetRow): AssetView {
     focalPoint: toFocalPoint(row.focal_point),
     checksum: row.checksum,
     createdAt: row.created_at,
+    tags,
     url: resolveAssetUrl(supabaseUrl(), {
       bucket: row.bucket,
       storagePath: row.storage_path,
@@ -122,14 +125,26 @@ export async function listAssets(
   await requirePermission("media.read");
   const db = await createClient();
   const { assets, total } = await repo.listAssets(db, options);
-  return { assets: assets.map(toAssetView), total };
+  const tags = await repo.tagsForAssets(
+    db,
+    assets.map((asset) => asset.id)
+  );
+  return { assets: assets.map((asset) => toAssetView(asset, tags.get(asset.id) ?? [])), total };
 }
 
 export async function getAsset(id: string): Promise<AssetView | null> {
   await requirePermission("media.read");
   const db = await createClient();
   const row = await repo.getAsset(db, id);
-  return row ? toAssetView(row) : null;
+  if (!row) return null;
+  const tags = await repo.tagsForAssets(db, [id]);
+  return toAssetView(row, tags.get(id) ?? []);
+}
+
+export async function listTags(): Promise<MediaTag[]> {
+  await requirePermission("media.read");
+  const db = await createClient();
+  return repo.listTags(db);
 }
 
 /**
@@ -376,8 +391,12 @@ export async function updateAssetMetadata(id: string, metadata: MediaMetadata): 
     ...(metadata.focalPoint !== undefined ? { focalPoint: metadata.focalPoint as Json } : {}),
     ...(metadata.folderId !== undefined ? { folderId: metadata.folderId } : {}),
   });
+  const tags =
+    metadata.tags === undefined
+      ? ((await repo.tagsForAssets(db, [id])).get(id) ?? [])
+      : await repo.replaceAssetTags(db, id, normalizeMediaTags(metadata.tags));
 
-  return toAssetView(row);
+  return toAssetView(row, tags);
 }
 
 /** A cleared text box means "no value", not an empty string. */

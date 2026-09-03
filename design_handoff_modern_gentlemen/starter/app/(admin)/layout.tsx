@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/services/auth";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { MediaPickerProvider } from "@/components/admin/media/MediaPickerContext";
-import { listAssetsAction } from "./admin/media/actions";
+import { listAssetsAction, listMediaTagsAction } from "./admin/media/actions";
 
 export const metadata: Metadata = {
   title: "Admin — Modern Gentlemen",
@@ -73,7 +73,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         not wrapped: a closure created in a Server Component is not a
         `"use server"` reference and Next refuses it at render.
       */}
-      <MediaPickerProvider search={listAssetsAction}>{children}</MediaPickerProvider>
+      <MediaPickerProvider search={listAssetsAction} listTags={listMediaTagsAction}>
+        {children}
+      </MediaPickerProvider>
     </AdminShell>
   );
 }

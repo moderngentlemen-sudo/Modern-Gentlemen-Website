@@ -3,12 +3,17 @@
 import { createContext, useContext, useMemo } from "react";
 import type { ActionResult } from "@/app/(admin)/admin/_lib/action-result";
 import type { AssetView } from "@/lib/services/media";
+import type { MediaTag } from "@/lib/domain/media";
 
 export type ListAssetsAction = (
   input: unknown
 ) => Promise<ActionResult<{ assets: AssetView[]; total: number }>>;
+export type ListMediaTagsAction = () => Promise<ActionResult<MediaTag[]>>;
 
-const MediaPickerContext = createContext<{ search: ListAssetsAction } | null>(null);
+const MediaPickerContext = createContext<{
+  search: ListAssetsAction;
+  listTags?: ListMediaTagsAction;
+} | null>(null);
 
 /**
  * Makes the library searchable from anywhere inside `/admin`.
@@ -25,12 +30,14 @@ const MediaPickerContext = createContext<{ search: ListAssetsAction } | null>(nu
  */
 export function MediaPickerProvider({
   search,
+  listTags,
   children,
 }: {
   search: ListAssetsAction;
+  listTags?: ListMediaTagsAction;
   children: React.ReactNode;
 }) {
-  const value = useMemo(() => ({ search }), [search]);
+  const value = useMemo(() => ({ search, listTags }), [search, listTags]);
   return <MediaPickerContext.Provider value={value}>{children}</MediaPickerContext.Provider>;
 }
 
@@ -40,6 +47,9 @@ export function MediaPickerProvider({
  * and losing the Browse button there is correct: the URL field still works, and
  * that is exactly what `MediaUrlControl` did before the library existed.
  */
-export function useMediaPicker(): { search: ListAssetsAction } | null {
+export function useMediaPicker(): {
+  search: ListAssetsAction;
+  listTags?: ListMediaTagsAction;
+} | null {
   return useContext(MediaPickerContext);
 }

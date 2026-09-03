@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/services/auth";
-import { listAssets, listFolders } from "@/lib/services/media";
+import { listAssets, listFolders, listTags } from "@/lib/services/media";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { MediaLibrary } from "@/components/admin/media/MediaLibrary";
 import {
@@ -16,9 +16,10 @@ export default async function MediaIndex() {
   // they may read media specifically.
   const user = await requirePermission("media.read");
 
-  const [{ assets, total }, folders] = await Promise.all([
+  const [{ assets, total }, folders, tags] = await Promise.all([
     listAssets({ limit: 60 }),
     listFolders(),
+    listTags(),
   ]);
 
   return (
@@ -33,6 +34,7 @@ export default async function MediaIndex() {
         initialAssets={assets}
         initialTotal={total}
         initialFolders={folders}
+        initialTags={tags}
         canWrite={user.permissions.has("media.write")}
         canDelete={user.permissions.has("media.delete")}
         // Action *references*, not closures over them. A closure created in a

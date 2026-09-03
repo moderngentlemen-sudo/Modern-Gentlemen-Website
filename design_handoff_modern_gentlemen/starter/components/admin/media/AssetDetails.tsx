@@ -78,6 +78,10 @@ export function AssetDetails({
       caption: form.caption,
       credit: form.credit,
       focalPoint: { x: form.focalX, y: form.focalY },
+      tags: form.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
     });
     setSaving(false);
 
@@ -131,6 +135,14 @@ export function AssetDetails({
           value={form.title}
           onChange={(title) => setForm((f) => ({ ...f, title }))}
           disabled={!canWrite}
+        />
+        <TextInput
+          label="Tags"
+          value={form.tags}
+          onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+          disabled={!canWrite}
+          placeholder="campaign, tailoring, homepage"
+          help="Comma-separated. Tags make large libraries faster to filter."
         />
         <TextInput
           label="Alt text"
@@ -244,5 +256,6 @@ function toForm(asset: AssetView) {
     credit: asset.credit ?? "",
     focalX: asset.focalPoint.x,
     focalY: asset.focalPoint.y,
+    tags: asset.tags.map((tag) => tag.label).join(", "),
   };
 }

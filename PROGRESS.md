@@ -11,6 +11,19 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — media tags are editable and useful
+
+The media library now exposes the tag tables that have existed since the
+initial media schema. Editors can assign comma-separated tags in an asset's
+details, with whitespace cleanup, accent-safe stable slugs, de-duplication and
+bounded input. Asset cards surface their tags, the library filters by any known
+tag, and the builder's reusable media picker loads the same vocabulary and
+passes its selection through the server-side query. List reads hydrate tags in
+one join query for the visible page rather than one request per asset, and tag
+assignment reconciles only the selected asset's join rows. Focused domain,
+repository and component coverage passes, as do repository-wide ESLint,
+TypeScript and all **1,836/1,836 unit tests**.
+
 ### 2026-09-03 — global admin command palette
 
 The admin shell now provides a permission-aware destination palette from the
