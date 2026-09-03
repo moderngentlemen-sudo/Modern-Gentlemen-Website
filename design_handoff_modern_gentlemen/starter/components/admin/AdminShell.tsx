@@ -7,6 +7,7 @@ import { useTheme } from "@/lib/theme";
 import type { Permission } from "@/lib/domain/permissions";
 import { ToastProvider } from "./ui/Toast";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "./ui/styles";
+import { AdminCommandPalette } from "./AdminCommandPalette";
 
 /**
  * The admin chrome: a fixed left rail and a top bar, replacing the public
@@ -40,6 +41,20 @@ const NAV: NavItem[] = [
   { href: "/admin/templates", label: "Templates", needs: "template.read" },
 ];
 
+const COMMAND_KEYWORDS: Record<string, string[]> = {
+  "/admin": ["dashboard", "home"],
+  "/admin/pages": ["website", "builder", "content"],
+  "/admin/articles": ["blog", "editorial", "posts"],
+  "/admin/taxonomy": ["categories", "tags", "authors"],
+  "/admin/products": ["store", "commerce", "catalog"],
+  "/admin/integrations": ["shopify", "feeds", "connections"],
+  "/admin/media": ["images", "video", "files", "assets"],
+  "/admin/navigation": ["menus", "header", "footer"],
+  "/admin/theme": ["design", "fonts", "styles", "colors"],
+  "/admin/patterns": ["sections", "reusable", "blocks"],
+  "/admin/templates": ["layouts", "builder", "structure"],
+};
+
 // **Templates is back, and it took a route to earn the link.** Both `Templates`
 // and `Patterns` sat in this array from Phase 4 with neither route built, so
 // anyone holding `template.read`/`pattern.read` — which every seeded admin does
@@ -69,6 +84,7 @@ export function AdminShell({
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const granted = new Set(permissions);
+  const visibleNav = NAV.filter((item) => !item.needs || granted.has(item.needs));
 
   return (
     <ToastProvider>
@@ -89,7 +105,7 @@ export function AdminShell({
           </div>
 
           <nav className="flex-1 overflow-y-auto py-2">
-            {NAV.filter((item) => !item.needs || granted.has(item.needs)).map((item) => {
+            {visibleNav.map((item) => {
               const active =
                 item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
 
@@ -111,6 +127,14 @@ export function AdminShell({
               );
             })}
           </nav>
+
+          <AdminCommandPalette
+            commands={visibleNav.map((item) => ({
+              href: item.href,
+              label: item.label,
+              keywords: COMMAND_KEYWORDS[item.href],
+            }))}
+          />
 
           <div className={clsx("border-t px-4 py-3", HAIRLINE)}>
             <p className="truncate text-[12px] text-mg-fg/70">{fullName ?? email}</p>

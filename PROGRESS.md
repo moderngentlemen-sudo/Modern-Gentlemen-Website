@@ -11,6 +11,18 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — global admin command palette
+
+The admin shell now provides a permission-aware destination palette from the
+sidebar and from Cmd/Ctrl+K. Editors can search every module their account may
+read by its visible name, route or practical aliases such as blog, builder,
+assets, menus, fonts and Shopify; inaccessible modules never enter the command
+index. Arrow keys move through results, Enter navigates, Escape closes, and the
+dialog reuses the shared focus trap and scroll lock. Focused component coverage
+verifies shortcut opening, alias search, keyboard routing and permission-shaped
+command input. Changed-file Prettier, repository-wide ESLint, TypeScript and all
+**1,832/1,832 unit tests** pass locally.
+
 ### 2026-09-03 — pages, templates and patterns can be duplicated
 
 The three reusable document libraries now expose permission-gated Duplicate

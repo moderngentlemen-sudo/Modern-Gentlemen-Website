@@ -13,7 +13,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/admin" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/admin",
+  useRouter: () => ({ push: vi.fn() }),
+}));
 vi.mock("@/lib/theme", () => ({ useTheme: () => ({ theme: "light", toggle: vi.fn() }) }));
 
 import { AdminShell } from "./AdminShell";

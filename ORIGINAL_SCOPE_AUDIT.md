@@ -128,7 +128,7 @@ or function impossible to reproduce.
 | Left navigation, canvas, properties and hierarchy | Complete | Permission-aware shell plus Add/Navigator, canvas and manifest-driven right panel.                                                                                                                                                                                               |
 | Undo/redo and autosave                            | Complete | Bounded coalescing history and server autosave cover tree edits and template areas.                                                                                                                                                                                              |
 | Publish/validation flow                           | Complete | Issues focus the offending block/area; snapshots, preview, publish and history share one bar.                                                                                                                                                                                    |
-| Search/command palette                            | Partial  | Module lists, media and insert libraries are searchable; a global keyboard command palette remains open.                                                                                                                                                                         |
+| Search/command palette                            | Complete | Module lists, media and insert libraries are searchable. The global permission-aware Cmd/Ctrl+K palette searches available admin destinations and aliases with full keyboard navigation.                                                                                         |
 | Fast editing without full reloads                 | Complete | Client stores and server actions update focused surfaces; editing does not reload on each field change.                                                                                                                                                                          |
 | Component/unit test pyramid base                  | Complete | Domain rules, manifests, stores, controls, media, commerce and renderer components have extensive Vitest coverage.                                                                                                                                                               |
 | Integration coverage                              | Complete | RLS, migrations, publishing, previews, public reads, bindings, media relations and schedules run against local Supabase in CI.                                                                                                                                                   |
@@ -139,8 +139,8 @@ or function impossible to reproduce.
 ## Ordered completion backlog
 
 1. ~~Add reusable entrance and scroll animation states.~~ Complete 2026-09-03.
-2. ~~Add one-click “save selection as pattern” and reusable-document
-   duplication.~~ Complete 2026-09-03. The global command palette remains.
+2. ~~Add one-click “save selection as pattern,” reusable-document duplication
+   and the global command palette.~~ Complete 2026-09-03.
 3. Expose media tagging and conditional navigation rules.
 4. Add Shopify collection mapping and the remaining explicit E2E acceptance
    scenarios.
