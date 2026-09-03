@@ -12,6 +12,7 @@
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/previewSessions";
 import type { DocumentType } from "@/lib/domain/documents";
+import type { Json } from "@/lib/db/database.types";
 import { requirePermission } from "./auth";
 import { consumeRateLimit, PREVIEW_GLOBAL, PREVIEW_PER_CALLER } from "./rateLimit";
 
@@ -43,6 +44,7 @@ export interface CreatePreviewInput {
   entityId: string;
   device?: repo.PreviewDevice;
   ttlMs?: number;
+  context?: Json;
 }
 
 export async function createPreview(input: CreatePreviewInput) {
@@ -57,6 +59,7 @@ export async function createPreview(input: CreatePreviewInput) {
     type: input.type,
     entityId: input.entityId,
     device: input.device,
+    context: input.context,
     createdBy: user.id,
     expiresAt,
   });

@@ -13,7 +13,7 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/db/database.types";
+import type { Database, Json } from "@/lib/db/database.types";
 import { testEnv } from "../setup/integration.setup";
 
 export type Db = SupabaseClient<Database>;
@@ -141,6 +141,7 @@ export class Fixtures {
     entityType?: string;
     expiresAt?: Date;
     createdBy?: string | null;
+    context?: Json;
   }): Promise<void> {
     const { data, error } = await this.db
       .from("preview_sessions")
@@ -149,6 +150,7 @@ export class Fixtures {
         entity_type: input.entityType ?? "page",
         entity_id: input.entityId,
         created_by: input.createdBy ?? null,
+        context: input.context ?? {},
         expires_at: (input.expiresAt ?? new Date(Date.now() + 3_600_000)).toISOString(),
       })
       .select("id")

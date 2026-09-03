@@ -47,6 +47,8 @@ export interface SourceView {
   pageSize: number;
   maxPages: number;
   status: string;
+  transport: "rest" | "graphql";
+  collectionLimit: number;
 }
 
 export interface MappingView {
@@ -79,6 +81,11 @@ const SHOPIFY_STATUS_OPTIONS = [
   { value: "draft", label: "Drafts only" },
   { value: "archived", label: "Archived only" },
   { value: "any", label: "Any status" },
+];
+
+const SHOPIFY_TRANSPORT_OPTIONS = [
+  { value: "rest", label: "REST — compatibility mode" },
+  { value: "graphql", label: "GraphQL — includes collections" },
 ];
 
 const TRANSFORM_OPTIONS = FEED_TRANSFORMS.map((transform) => ({
@@ -124,6 +131,8 @@ export function SourceEditor({
   const [pageSize, setPageSize] = useState(String(source.pageSize));
   const [maxPages, setMaxPages] = useState(String(source.maxPages));
   const [status, setStatus] = useState(source.status);
+  const [transport, setTransport] = useState(source.transport);
+  const [collectionLimit, setCollectionLimit] = useState(String(source.collectionLimit));
   const [fulfilment, setFulfilment] = useState<string>(source.fulfilment);
   const [currency, setCurrency] = useState(source.currency);
   const [credentialsRef, setCredentialsRef] = useState(source.credentialsRef ?? "");
@@ -163,6 +172,8 @@ export function SourceEditor({
               pageSize: Number(pageSize),
               maxPages: Number(maxPages),
               status,
+              transport,
+              collectionLimit: Number(collectionLimit),
             }
           : { ...shared, kind: "xml_feed", url, itemPath }
       );
@@ -270,6 +281,24 @@ export function SourceEditor({
                     options={SHOPIFY_STATUS_OPTIONS}
                     disabled={!canWrite}
                     help="Which of the store's products a run asks for."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label="API transport"
+                    value={transport}
+                    onChange={(value) => setTransport(value as "rest" | "graphql")}
+                    options={SHOPIFY_TRANSPORT_OPTIONS}
+                    disabled={!canWrite}
+                    help="GraphQL keeps REST-compatible product fields and adds direct collection memberships."
+                  />
+                  <TextInput
+                    label="Collections per product"
+                    value={collectionLimit}
+                    onChange={setCollectionLimit}
+                    disabled={!canWrite || transport !== "graphql"}
+                    help="1–100. Bounds collection graph expansion for each product."
+                    required
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -392,7 +421,10 @@ export function SourceEditor({
                 variant. To merchandise by Shopify tags, map <code className="font-mono">tags</code>
                 to <code className="font-mono">collections</code> with the
                 <code className="font-mono"> split_commas</code> transform;
-                <code className="font-mono"> product_type</code> can map one collection directly.
+                <code className="font-mono"> product_type</code> can map one collection directly. In
+                GraphQL mode, map <code className="font-mono">collections/title</code> to
+                <code className="font-mono"> collections</code> to mirror direct Shopify memberships
+                without an extra request per product.
               </>
             ) : (
               <>

@@ -91,6 +91,8 @@ export function Header({
   const hidden = settings.scrollBehavior === "hide-on-scroll" && scrollHidden;
   const compact = settings.shrinkOnScroll && scrolled && !drawer && !search && !bag && !menuKey;
   const headerHeight = compact ? settings.shrunkHeight : settings.height;
+  const announcementHeight = settings.announcementText ? 28 : 0;
+  const chromeHeight = headerHeight + announcementHeight;
 
   // Dynamic is the verified prototype behavior; the other two are explicit
   // editor choices and leave menu/overlay behavior unchanged.
@@ -171,7 +173,7 @@ export function Header({
         aria-hidden
         className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
-          height: headerHeight + 13,
+          height: chromeHeight + 13,
           opacity: frosted ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
@@ -215,6 +217,20 @@ export function Header({
         // Tabbing into chrome that has slid away must bring it back into view.
         onFocus={reveal}
       >
+        {settings.announcementText && (
+          <div
+            className="flex h-7 items-center justify-center border-b border-white/10 bg-[#0d0d0d]/90 px-5 text-center font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white/85 backdrop-blur-xl"
+            data-testid="header-announcement"
+          >
+            {settings.announcementHref ? (
+              <Link className="mg-underline hover:text-white" href={settings.announcementHref}>
+                {settings.announcementText}
+              </Link>
+            ) : (
+              <span>{settings.announcementText}</span>
+            )}
+          </div>
+        )}
         <header
           // ≤680 the bar insets 20px, two below the sections' 22px.
           data-header-composition={settings.composition}
@@ -359,6 +375,36 @@ function HeaderActions({
           {settings.ctaLabel}
         </Link>
       )}
+      {settings.showSocials && settings.instagramHref && (
+        <Link
+          href={settings.instagramHref}
+          aria-label="Instagram"
+          className="hidden font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white/75 transition-colors hover:text-white min-[1100px]:block"
+        >
+          IG
+        </Link>
+      )}
+      {settings.showSocials && settings.xHref && (
+        <Link
+          href={settings.xHref}
+          aria-label="X"
+          className="hidden font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white/75 transition-colors hover:text-white min-[1100px]:block"
+        >
+          X
+        </Link>
+      )}
+      {settings.showAccount && settings.accountHref && (
+        <Link
+          href={settings.accountHref}
+          aria-label="Account"
+          title="Account"
+          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border text-white transition-all duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] active:scale-95 ${
+            settings.iconBubbles ? "border-white/15 bg-white/[0.08]" : "border-transparent"
+          } ${headerHoverClass(settings.iconHover)}`}
+        >
+          <AccountIcon />
+        </Link>
+      )}
       {settings.showSearch && (
         <IconButton
           label="Search"
@@ -461,21 +507,23 @@ function IconButton({
       onClick={onClick}
       className={`relative flex items-center justify-center h-[38px] w-[38px] rounded-full border text-white transition-all duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] active:scale-95 ${
         bubbles ? "border-white/15 bg-white/[0.08]" : "border-transparent bg-transparent"
-      } ${
-        hover === "scale"
-          ? "hover:scale-[1.2]"
-          : hover === "lift"
-            ? "hover:-translate-y-1"
-            : hover === "circle"
-              ? "hover:border-white/25 hover:bg-white/[0.12]"
-              : hover === "glow"
-                ? "hover:shadow-[0_0_22px_rgba(200,16,46,0.55)]"
-                : ""
-      } ${className}`}
+      } ${headerHoverClass(hover)} ${className}`}
     >
       {children}
     </button>
   );
+}
+
+function headerHoverClass(hover: ThemeHeader["iconHover"]): string {
+  return hover === "scale"
+    ? "hover:scale-[1.2]"
+    : hover === "lift"
+      ? "hover:-translate-y-1"
+      : hover === "circle"
+        ? "hover:border-white/25 hover:bg-white/[0.12]"
+        : hover === "glow"
+          ? "hover:shadow-[0_0_22px_rgba(200,16,46,0.55)]"
+          : "";
 }
 
 /* --- inline icons (stroke = currentColor), 16px as the prototype sizes them --- */
@@ -511,6 +559,24 @@ function BagIcon() {
     >
       <path d="M6.5 8h11l-1 12h-9l-1-12Z" />
       <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
+  );
+}
+function AccountIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
     </svg>
   );
 }

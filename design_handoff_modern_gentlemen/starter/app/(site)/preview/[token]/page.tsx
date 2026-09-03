@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
 import { expandPatternRefs } from "@/lib/services/patterns";
-import { expandPublicPatterns, soleFramedDocument } from "@/lib/services/publicContent";
+import {
+  expandPublicPatterns,
+  getPublishedPreviewContext,
+  soleFramedDocument,
+  type PreviewContextDocumentType,
+} from "@/lib/services/publicContent";
 import { resolvePreview } from "@/lib/services/preview";
 import { clientIdentity } from "@/lib/services/rateLimit";
 import { readAreas } from "@/lib/blocks/areas";
@@ -69,7 +74,7 @@ export default async function PreviewPage({
   // a different message.
   const view: PreviewView =
     preview.entityType === "template"
-      ? await templateView(preview.entityId, preview.data, first(query.area))
+      ? await templateView(preview.entityId, preview.data, first(query.area), preview.context)
       : { sections: await sectionsFor(preview.entityType, preview.data), areaNames: [] };
 
   return (
@@ -131,7 +136,8 @@ interface PreviewView {
 async function templateView(
   templateId: string,
   payload: unknown,
-  requested: string | null
+  requested: string | null,
+  context: unknown
 ): Promise<PreviewView> {
   const areas = readAreas(payload);
   const areaNames = Object.keys(areas).sort();
@@ -144,7 +150,10 @@ async function templateView(
   const tree = await expandPatternRefs(areas[area], { preferDraft: true });
   if (collectContentMarkers(tree).length === 0) return { sections: tree, area, areaNames };
 
-  const framed = await soleFramedDocument(templateId);
+  const selectedContext = previewContextOf(context);
+  const framed = selectedContext
+    ? await getPublishedPreviewContext(selectedContext.entityType, selectedContext.entityId)
+    : await soleFramedDocument(templateId);
   const substitute: BlockTree = framed
     ? await expandPublicPatterns(framed.sections)
     : [{ _key: "documentcontentgap", _type: DOCUMENT_CONTENT_GAP_TYPE, settings: {} }];
@@ -154,6 +163,26 @@ async function templateView(
     area,
     areaNames,
     framing: framed?.title,
+  };
+}
+
+function previewContextOf(
+  value: unknown
+): { entityType: PreviewContextDocumentType; entityId: string } | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (
+    !["page", "category", "article", "product"].includes(String(record.entityType)) ||
+    typeof record.entityId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      record.entityId
+    )
+  ) {
+    return null;
+  }
+  return {
+    entityType: record.entityType as PreviewContextDocumentType,
+    entityId: record.entityId,
   };
 }
 

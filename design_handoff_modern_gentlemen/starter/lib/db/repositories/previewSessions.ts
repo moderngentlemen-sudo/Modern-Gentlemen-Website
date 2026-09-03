@@ -35,6 +35,7 @@ export interface ResolvedPreview {
   entityId: string;
   device: PreviewDevice;
   expiresAt: string;
+  context: Json;
   data: Json;
 }
 
@@ -86,6 +87,7 @@ export async function resolvePreview(db: Db, token: string): Promise<ResolvedPre
     entityId: row.entity_id,
     device: row.device as PreviewDevice,
     expiresAt: row.expires_at,
+    context: row.context,
     data: row.data,
   };
 }

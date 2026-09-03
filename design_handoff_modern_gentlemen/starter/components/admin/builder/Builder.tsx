@@ -41,7 +41,7 @@ import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
 import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
-import type { ThemeStyleClass } from "@/lib/domain/theme";
+import type { ThemeStyleClass, ThemeTokenAlias } from "@/lib/domain/theme";
 import type { TemplateOverrideState } from "@/lib/services/templates";
 import type { TemplateOverrideAction } from "@/components/admin/TemplateOverrideControl";
 
@@ -79,6 +79,7 @@ export interface BuilderServerActions {
      * and the template action is the only one whose schema accepts it.
      */
     area?: string;
+    context?: PreviewContextOption;
   }) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
   createPatternFromSelection?: (input: {
     name: string;
@@ -94,9 +95,16 @@ export interface BuilderCallbacks {
   publish: () => Promise<ActionResult<{ version: number }>>;
   snapshot: () => Promise<ActionResult<{ version: number }>>;
   createPreview: (
-    device: "desktop" | "tablet" | "mobile"
+    device: "desktop" | "tablet" | "mobile",
+    context?: PreviewContextOption
   ) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
   createPatternFromSelection?: BuilderServerActions["createPatternFromSelection"];
+}
+
+export interface PreviewContextOption {
+  entityType: "page" | "category" | "article" | "product";
+  entityId: string;
+  title: string;
 }
 
 export type { SerializedIssue };
@@ -135,6 +143,8 @@ export function Builder({
   patterns = [],
   styleClasses = [],
   templateOverride,
+  previewContexts = [],
+  tokenAliases = [],
 }: {
   init: BuilderInit;
   actions: BuilderServerActions;
@@ -142,6 +152,8 @@ export function Builder({
   canPreview: boolean;
   patterns?: BuilderPattern[];
   styleClasses?: readonly ThemeStyleClass[];
+  previewContexts?: PreviewContextOption[];
+  tokenAliases?: readonly ThemeTokenAlias[];
   templateOverride?: {
     state: TemplateOverrideState;
     action: TemplateOverrideAction;
@@ -159,7 +171,7 @@ export function Builder({
       saveDraft: (payload) => actions.saveDraft({ id, payload }),
       publish: () => actions.publish({ id }),
       snapshot: () => actions.snapshot({ id }),
-      createPreview: (device) => actions.createPreview({ id, device, area }),
+      createPreview: (device, context) => actions.createPreview({ id, device, area, context }),
       createPatternFromSelection: actions.createPatternFromSelection,
     }),
     [actions, id, area]
@@ -181,6 +193,8 @@ export function Builder({
           patterns={patterns}
           styleClasses={styleClasses}
           templateOverride={templateOverride}
+          previewContexts={previewContexts}
+          tokenAliases={tokenAliases}
         />
       </PatternsProvider>
     </BuilderStoreProvider>
@@ -194,6 +208,8 @@ function BuilderLayout({
   patterns,
   styleClasses,
   templateOverride,
+  previewContexts,
+  tokenAliases,
 }: {
   callbacks: BuilderCallbacks;
   canPublish: boolean;
@@ -204,6 +220,8 @@ function BuilderLayout({
     state: TemplateOverrideState;
     action: TemplateOverrideAction;
   };
+  previewContexts: PreviewContextOption[];
+  tokenAliases: readonly ThemeTokenAlias[];
 }) {
   useAutosave(callbacks.saveDraft);
   useBuilderShortcuts();
@@ -436,6 +454,7 @@ function BuilderLayout({
         canPublish={canPublish}
         canPreview={canPreview}
         templateOverride={templateOverride}
+        previewContexts={previewContexts}
       />
 
       <DndContext
@@ -532,7 +551,7 @@ function BuilderLayout({
             className={clsx("flex w-[320px] shrink-0 flex-col overflow-hidden border-l", HAIRLINE)}
           >
             <div className="min-h-0 flex-1 overflow-hidden">
-              <PropertiesPanel styleClasses={styleClasses} />
+              <PropertiesPanel styleClasses={styleClasses} tokenAliases={tokenAliases} />
             </div>
             {callbacks.createPatternFromSelection && (
               <SaveSelectionAsPattern action={callbacks.createPatternFromSelection} />

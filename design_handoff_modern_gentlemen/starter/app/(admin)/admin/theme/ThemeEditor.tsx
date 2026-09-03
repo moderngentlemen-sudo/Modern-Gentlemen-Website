@@ -51,6 +51,7 @@ import {
   type ThemeSettings,
   type ThemeStyleClass,
   type ThemeToken,
+  type ThemeTokenAlias,
   type ThemeTypography,
   type ThemeWebfont,
 } from "@/lib/domain/theme";
@@ -245,6 +246,29 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, styleClasses }));
+  }
+
+  function setTokenAliases(tokenAliases: ThemeTokenAlias[]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, tokenAliases }));
+  }
+
+  function addTokenAlias() {
+    if (draft.tokenAliases.length >= 24) return;
+    let id = `token-${Date.now().toString(36)}`;
+    let suffix = 2;
+    while (draft.tokenAliases.some((token) => token.id === id)) id = `${id}-${suffix++}`;
+    setTokenAliases([
+      ...draft.tokenAliases,
+      { id, name: `Color ${draft.tokenAliases.length + 1}`, light: "#0d0d0d", dark: "#f4f4f4" },
+    ]);
+  }
+
+  function updateTokenAlias(id: string, patch: Partial<ThemeTokenAlias>) {
+    setTokenAliases(
+      draft.tokenAliases.map((token) => (token.id === id ? { ...token, ...patch } : token))
+    );
   }
 
   function addStyleClass() {
@@ -746,6 +770,75 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
         </PanelSection>
 
         <PanelSection
+          title="Shared color tokens"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending || draft.tokenAliases.length >= 24}
+                onClick={addTokenAlias}
+              >
+                Add token
+              </Button>
+            ) : undefined
+          }
+        >
+          <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-mg-fg/60">
+            Name a light/dark color once, then use it in local element styles, component states or
+            reusable classes. Existing theme roles remain unchanged.
+          </p>
+          <div className="space-y-4">
+            {draft.tokenAliases.length === 0 ? (
+              <p className="border border-dashed border-mg-bd/20 px-4 py-6 text-[13px] text-mg-fg/60">
+                No shared local tokens yet.
+              </p>
+            ) : (
+              draft.tokenAliases.map((token) => (
+                <div
+                  key={token.id}
+                  className="grid gap-4 border border-mg-bd/15 p-4 sm:grid-cols-2 xl:grid-cols-4"
+                >
+                  <TextInput
+                    label="Token name"
+                    value={token.name}
+                    help={`Stable id: ${token.id}`}
+                    disabled={!canWrite || pending}
+                    onChange={(name) => updateTokenAlias(token.id, { name })}
+                  />
+                  <ColorInput
+                    label="Light value"
+                    value={token.light}
+                    disabled={!canWrite || pending}
+                    onChange={(light) => updateTokenAlias(token.id, { light })}
+                  />
+                  <ColorInput
+                    label="Dark value"
+                    value={token.dark}
+                    disabled={!canWrite || pending}
+                    onChange={(dark) => updateTokenAlias(token.id, { dark })}
+                  />
+                  {canWrite && (
+                    <div className="flex items-end">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={pending}
+                        onClick={() =>
+                          setTokenAliases(draft.tokenAliases.filter((item) => item.id !== token.id))
+                        }
+                      >
+                        Remove token
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </PanelSection>
+
+        <PanelSection
           title="Reusable style classes"
           actions={
             canWrite ? (
@@ -777,6 +870,7 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                   key={styleClass.id}
                   value={styleClass}
                   disabled={!canWrite || pending}
+                  tokenAliases={draft.tokenAliases}
                   onChange={(next) => updateStyleClass(styleClass.id, next)}
                   onRemove={() => removeStyleClass(styleClass.id)}
                 />
@@ -988,6 +1082,61 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               onChange={(value) => setHeader("ctaHref", value)}
               placeholder="/newsletter"
               help="Internal path or HTTPS URL."
+            />
+            <TextInput
+              label="Announcement"
+              value={draft.header.announcementText}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("announcementText", value)}
+              placeholder="Complimentary shipping this week"
+              help="Leave empty to preserve the original single-row header."
+            />
+            <TextInput
+              label="Announcement destination"
+              value={draft.header.announcementHref}
+              disabled={!canWrite || pending || !draft.header.announcementText}
+              onChange={(value) => setHeader("announcementHref", value)}
+              placeholder="/shop"
+              help="Optional internal path or HTTPS URL."
+            />
+            <Toggle
+              label="Show account"
+              checked={draft.header.showAccount}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("showAccount", value)}
+            />
+            <TextInput
+              label="Account destination"
+              value={draft.header.accountHref}
+              disabled={!canWrite || pending || !draft.header.showAccount}
+              onChange={(value) => setHeader("accountHref", value)}
+              placeholder="/account"
+              help="Internal path or HTTPS URL."
+            />
+            <Toggle
+              label="Show header socials"
+              checked={draft.header.showSocials}
+              disabled={!canWrite || pending}
+              help="Compact Instagram and X links appear on wide screens when destinations are set."
+              onChange={(value) => setHeader("showSocials", value)}
+            />
+            <TextInput
+              label="Header Instagram URL"
+              type="url"
+              value={draft.header.instagramHref}
+              disabled={!canWrite || pending || !draft.header.showSocials}
+              onChange={(value) => setHeader("instagramHref", value)}
+              placeholder="https://instagram.com/..."
+              help="HTTPS only."
+            />
+            <TextInput
+              label="Header X URL"
+              type="url"
+              value={draft.header.xHref}
+              disabled={!canWrite || pending || !draft.header.showSocials}
+              onChange={(value) => setHeader("xHref", value)}
+              placeholder="https://x.com/..."
+              help="HTTPS only."
             />
           </div>
         </PanelSection>

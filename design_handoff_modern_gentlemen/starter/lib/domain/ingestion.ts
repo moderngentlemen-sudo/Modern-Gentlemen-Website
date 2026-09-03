@@ -327,6 +327,10 @@ export const shopifyConfigSchema = z
     page_size: z.number().int().min(1).max(250).optional().default(250),
     /** Bounds a run — see the header. */
     max_pages: z.number().int().min(1).max(100).optional().default(20),
+    /** REST preserves every stored mapping; GraphQL additionally exposes direct collections. */
+    transport: z.enum(["rest", "graphql"]).optional().default("rest"),
+    /** Maximum collection memberships returned for one product in GraphQL mode. */
+    collection_limit: z.number().int().min(1).max(100).optional().default(50),
     /**
      * `any` is offered but not the default: a merchant's drafts and archived
      * products are theirs, and importing them by default stages proposals nobody

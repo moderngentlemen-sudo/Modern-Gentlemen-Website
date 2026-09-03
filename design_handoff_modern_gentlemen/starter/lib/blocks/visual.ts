@@ -36,6 +36,8 @@ export const VISUAL_ENTRANCES = [
 ] as const;
 export const VISUAL_REVEAL_BEHAVIORS = ["once", "repeat"] as const;
 export const VISUAL_REVEAL_DELAYS = [0, 100, 200, 400, 600] as const;
+export const VISUAL_STATES = ["hover", "focus", "active"] as const;
+export type VisualState = (typeof VISUAL_STATES)[number];
 export const VISUAL_STYLE_CLASS_ID = /^[a-z][a-z0-9-]{0,39}$/;
 
 export interface VisualStyle {
@@ -59,7 +61,9 @@ export interface VisualStyle {
   marginTop?: (typeof VISUAL_SPACES)[number];
   marginBottom?: (typeof VISUAL_SPACES)[number];
   background?: (typeof VISUAL_BACKGROUNDS)[number];
+  backgroundToken?: string;
   color?: (typeof VISUAL_COLORS)[number];
+  colorToken?: string;
   border?: (typeof VISUAL_BORDERS)[number];
   radius?: (typeof VISUAL_RADII)[number];
   shadow?: (typeof VISUAL_SHADOWS)[number];
@@ -81,6 +85,18 @@ export interface VisualEffects {
   revealDelay?: (typeof VISUAL_REVEAL_DELAYS)[number];
 }
 
+export type VisualStateStyle = Pick<
+  VisualStyle,
+  | "background"
+  | "backgroundToken"
+  | "color"
+  | "colorToken"
+  | "border"
+  | "radius"
+  | "shadow"
+  | "opacity"
+>;
+
 export interface VisualElementDesign {
   /** Optional editor-facing name, shown by the hierarchy in a later phase. */
   name?: string;
@@ -88,6 +104,8 @@ export interface VisualElementDesign {
   styleClass?: string;
   styles?: Partial<Record<VisualBreakpoint, VisualStyle>>;
   effects?: VisualEffects;
+  /** Appearance overrides for interactive component states. */
+  states?: Partial<Record<VisualState, VisualStateStyle>>;
 }
 
 type Vocabulary = readonly (string | number)[];
@@ -129,6 +147,8 @@ const NUMERIC_STYLE_BOUNDS: Partial<Record<keyof VisualStyle, readonly [number, 
   zIndex: [-10, 100],
 };
 
+const TOKEN_STYLE_PROPERTIES = new Set<keyof VisualStyle>(["backgroundToken", "colorToken"]);
+
 export interface VisualDesignIssue {
   path: string;
   message: string;
@@ -144,7 +164,7 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
   const issues: VisualDesignIssue[] = [];
 
   for (const property of Object.keys(design)) {
-    if (!["name", "styleClass", "styles", "effects"].includes(property)) {
+    if (!["name", "styleClass", "styles", "effects", "states"].includes(property)) {
       issues.push({
         path: `visual.${property}`,
         message: "Unknown visual setting.",
@@ -195,9 +215,15 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
               !Number.isFinite(propertyValue) ||
               propertyValue < bounds[0] ||
               propertyValue > bounds[1]);
+          const invalidToken =
+            TOKEN_STYLE_PROPERTIES.has(key) &&
+            (typeof propertyValue !== "string" || !VISUAL_STYLE_CLASS_ID.test(propertyValue));
           if (
             (bounds && invalidNumber) ||
-            (!bounds && (!allowed || !allowed.includes(propertyValue as never)))
+            invalidToken ||
+            (!bounds &&
+              !TOKEN_STYLE_PROPERTIES.has(key) &&
+              (!allowed || !allowed.includes(propertyValue as never)))
           ) {
             issues.push({
               path: `visual.styles.${breakpoint}.${property}`,
@@ -264,6 +290,56 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
     }
   }
 
+  if (design.states !== undefined) {
+    if (!design.states || typeof design.states !== "object" || Array.isArray(design.states)) {
+      issues.push({ path: "visual.states", message: "Component states must be an object." });
+    } else {
+      const allowedStateProperties = new Set([
+        "background",
+        "backgroundToken",
+        "color",
+        "colorToken",
+        "border",
+        "radius",
+        "shadow",
+        "opacity",
+      ]);
+      for (const [state, rawStyle] of Object.entries(design.states)) {
+        if (!(VISUAL_STATES as readonly string[]).includes(state)) {
+          issues.push({
+            path: `visual.states.${state}`,
+            message: "Choose hover, focus or active.",
+          });
+          continue;
+        }
+        if (!rawStyle || typeof rawStyle !== "object" || Array.isArray(rawStyle)) {
+          issues.push({
+            path: `visual.states.${state}`,
+            message: "State styles must be an object.",
+          });
+          continue;
+        }
+        for (const [property, propertyValue] of Object.entries(rawStyle)) {
+          const key = property as keyof VisualStyle;
+          const allowed = STYLE_VOCABULARY[key];
+          const validToken =
+            TOKEN_STYLE_PROPERTIES.has(key) &&
+            typeof propertyValue === "string" &&
+            VISUAL_STYLE_CLASS_ID.test(propertyValue);
+          if (
+            !allowedStateProperties.has(property) ||
+            (!validToken && !allowed?.includes(propertyValue as never))
+          ) {
+            issues.push({
+              path: `visual.states.${state}.${property}`,
+              message: `Choose a supported ${property} value.`,
+            });
+          }
+        }
+      }
+    }
+  }
+
   return issues;
 }
 
@@ -273,7 +349,8 @@ export function hasVisualDesign(value: VisualElementDesign | undefined): boolean
     value.name ||
     value.styleClass ||
     Object.values(value.styles ?? {}).some((style) => style && Object.keys(style).length > 0) ||
-    Object.keys(value.effects ?? {}).length > 0
+    Object.keys(value.effects ?? {}).length > 0 ||
+    Object.values(value.states ?? {}).some((style) => style && Object.keys(style).length > 0)
   );
 }
 
@@ -349,7 +426,9 @@ export function visualDeclarations(style: VisualStyle | undefined): string {
   if (style.marginTop !== undefined) out.push(`margin-top:${style.marginTop}px`);
   if (style.marginBottom !== undefined) out.push(`margin-bottom:${style.marginBottom}px`);
   if (style.background) out.push(`background:${BACKGROUND[style.background]}`);
+  if (style.backgroundToken) out.push(`background:var(--mg-token-${style.backgroundToken})`);
   if (style.color) out.push(`color:${COLOR[style.color]}`);
+  if (style.colorToken) out.push(`color:var(--mg-token-${style.colorToken})`);
   if (style.border) {
     const value =
       style.border === "none"
@@ -447,6 +526,13 @@ function rulesForSelector(selector: string, design: VisualElementDesign): string
             ? "box-shadow:0 18px 55px rgba(200,16,46,.24)"
             : "opacity:.72";
     rules.push(`${selector}:hover{${declaration}}`);
+  }
+
+  for (const state of VISUAL_STATES) {
+    const declarations = visualDeclarations(design.states?.[state]);
+    if (!declarations) continue;
+    const pseudo = state === "focus" ? ":focus-within" : `:${state}`;
+    rules.push(`${selector}${pseudo}{${declarations}}`);
   }
 
   const entrance = design.effects?.entrance;

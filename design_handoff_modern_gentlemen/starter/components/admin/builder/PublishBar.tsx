@@ -17,7 +17,7 @@ import type { TemplateOverrideState } from "@/lib/services/templates";
 import type { TemplateOverrideAction } from "@/components/admin/TemplateOverrideControl";
 
 import { useBuilder } from "./StoreContext";
-import type { BuilderCallbacks } from "./Builder";
+import type { BuilderCallbacks, PreviewContextOption } from "./Builder";
 
 function SaveStatusLabel() {
   const save = useBuilder((s) => s.save);
@@ -41,11 +41,13 @@ export function PublishBar({
   canPublish,
   canPreview,
   templateOverride,
+  previewContexts = [],
 }: {
   callbacks: BuilderCallbacks;
   canPublish: boolean;
   canPreview: boolean;
   templateOverride?: { state: TemplateOverrideState; action: TemplateOverrideAction };
+  previewContexts?: PreviewContextOption[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -79,6 +81,7 @@ export function PublishBar({
   const [confirmPublish, setConfirmPublish] = useState(false);
   const publicPath = publicPathForDocument(doc.type, doc.slug);
   const [preview, setPreview] = useState<{ path: string; expiresAt: string } | null>(null);
+  const [previewContextId, setPreviewContextId] = useState("");
 
   function publish() {
     startTransition(async () => {
@@ -144,7 +147,8 @@ export function PublishBar({
 
   function makePreview() {
     startTransition(async () => {
-      const result = await callbacks.createPreview(device);
+      const context = previewContexts.find((candidate) => candidate.entityId === previewContextId);
+      const result = await callbacks.createPreview(device, context);
       if (result.ok) setPreview(result.data);
       else toast.push(result.error, "error");
     });
@@ -216,6 +220,26 @@ export function PublishBar({
               state={templateOverride.state}
               action={templateOverride.action}
             />
+          )}
+          {doc.type === "template" && previewContexts.length > 0 && (
+            <select
+              aria-label="Preview record"
+              value={previewContextId}
+              disabled={pending}
+              onChange={(event) => setPreviewContextId(event.target.value)}
+              className={clsx(
+                "h-8 max-w-52 border bg-mg-bg px-2 font-mono text-[10px] text-mg-fg",
+                HAIRLINE,
+                FOCUS_RING
+              )}
+            >
+              <option value="">Automatic preview record</option>
+              {previewContexts.map((context) => (
+                <option key={context.entityId} value={context.entityId}>
+                  {context.title}
+                </option>
+              ))}
+            </select>
           )}
           {canPreview && (
             <Button size="sm" variant="outline" onClick={makePreview} loading={pending}>

@@ -1884,6 +1884,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           expires_at: string
+          context: Json
         }[]
       }
       rollback_document: {

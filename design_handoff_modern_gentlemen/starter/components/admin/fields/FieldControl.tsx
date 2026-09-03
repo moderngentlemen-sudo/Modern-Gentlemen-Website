@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { Field, FieldSet } from "@/lib/blocks/fields";
 import type { BlockIssue } from "@/lib/blocks/validate";
 import { PanelSection } from "@/components/admin/ui/Panel";
@@ -48,6 +49,9 @@ function asString(value: unknown): string {
 
 export function FieldControl({ field, path, ctx }: FieldControlProps) {
   const value = ctx.read(path);
+  const defaultValue = "default" in field ? field.default : undefined;
+  const inherited = value === undefined && defaultValue !== undefined;
+  const displayValue = inherited ? defaultValue : value;
   const error = issuesFor(ctx.issues, path)[0]?.message;
   const common = {
     label: field.label,
@@ -67,35 +71,55 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
     else ctx.write(path, next);
   };
 
+  const withInheritance = (control: ReactNode) =>
+    defaultValue === undefined ? (
+      control
+    ) : (
+      <div>
+        {control}
+        <div className="-mt-2 mb-3 flex justify-end">
+          <button
+            type="button"
+            disabled={ctx.disabled || inherited}
+            aria-pressed={inherited}
+            onClick={() => ctx.clear(path)}
+            className="font-mono text-[9px] uppercase tracking-[0.12em] text-mg-fg/50 underline-offset-2 hover:text-mg-fg hover:underline disabled:cursor-default disabled:no-underline disabled:opacity-70"
+          >
+            {inherited ? `Inherited: ${String(defaultValue)}` : "Use component default"}
+          </button>
+        </div>
+      </div>
+    );
+
   switch (field.kind) {
     case "text":
     case "url":
-      return (
+      return withInheritance(
         <TextInput
           {...common}
           type={field.kind === "url" ? "text" : "text"}
-          value={asString(value)}
+          value={asString(displayValue)}
           placeholder={field.placeholder}
           onChange={writeString}
         />
       );
 
     case "textarea":
-      return (
+      return withInheritance(
         <TextArea
           {...common}
           rows={4}
-          value={asString(value)}
+          value={asString(displayValue)}
           placeholder={field.placeholder}
           onChange={writeString}
         />
       );
 
     case "richText":
-      return (
+      return withInheritance(
         <RichTextEditor
           {...common}
-          value={asString(value)}
+          value={asString(displayValue)}
           placeholder={field.placeholder}
           onChange={writeString}
         />
@@ -103,21 +127,21 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
 
     case "image":
     case "video":
-      return (
+      return withInheritance(
         <MediaUrlControl
           {...common}
           kind={field.kind}
-          value={asString(value)}
+          value={asString(displayValue)}
           placeholder={field.placeholder}
           onChange={writeString}
         />
       );
 
     case "select":
-      return (
+      return withInheritance(
         <Select
           {...common}
-          value={asString(value)}
+          value={asString(displayValue)}
           options={field.options}
           placeholder={field.required ? undefined : "—"}
           onChange={(next) => (next === "" ? ctx.clear(path) : ctx.write(path, next))}
@@ -125,10 +149,10 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
       );
 
     case "number":
-      return (
+      return withInheritance(
         <NumberInput
           {...common}
-          value={typeof value === "number" ? value : undefined}
+          value={typeof displayValue === "number" ? displayValue : undefined}
           min={field.min}
           max={field.max}
           integer={field.integer}
@@ -137,12 +161,12 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
       );
 
     case "boolean":
-      return (
+      return withInheritance(
         <Toggle
           label={field.label}
           help={field.help}
           disabled={ctx.disabled}
-          checked={value === true}
+          checked={displayValue === true}
           onChange={(next) => ctx.write(path, next)}
         />
       );

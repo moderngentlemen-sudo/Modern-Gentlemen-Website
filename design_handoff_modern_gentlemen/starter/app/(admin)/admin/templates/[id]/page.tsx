@@ -1,13 +1,22 @@
 import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
-import { getDocument } from "@/lib/services/documents";
+import { getDocument, listDocuments } from "@/lib/services/documents";
+import { getTemplate } from "@/lib/services/templates";
 import { listInsertablePatterns } from "@/lib/services/patterns";
 import { DEFAULT_AREA_NAME, areaNamesOf, areaTreeKey, readArea } from "@/lib/blocks/areas";
 import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
 
 import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "./actions";
 import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
+import type { PreviewContextOption } from "@/components/admin/builder/Builder";
+
+const PREVIEW_CONTEXTS = {
+  page: { entityType: "page", permission: "page.read" },
+  archive: { entityType: "category", permission: "category.read" },
+  article: { entityType: "article", permission: "article.read" },
+  product: { entityType: "product", permission: "product.read" },
+} as const;
 
 /**
  * The builder route for a template — the first document type whose payload
@@ -34,12 +43,26 @@ export default async function TemplateBuilderPage({ params }: { params: Promise<
   const { id } = await params;
 
   const user = await requirePermission("template.write");
-  const template = await getDocument("template", id);
-  if (!template) notFound();
+  const [template, templateMetadata] = await Promise.all([
+    getDocument("template", id),
+    getTemplate(id),
+  ]);
+  if (!template || !templateMetadata) notFound();
 
   // Patterns are offered in the library rail, and reading them needs
   // `pattern.read` — which a template editor is not guaranteed to hold.
   const patterns = user.permissions.has("pattern.read") ? await listInsertablePatterns() : [];
+  const previewContext = PREVIEW_CONTEXTS[templateMetadata.kind as keyof typeof PREVIEW_CONTEXTS];
+  const previewContexts: PreviewContextOption[] =
+    previewContext && user.permissions.has(previewContext.permission)
+      ? (await listDocuments(previewContext.entityType, { status: "published", limit: 50 })).map(
+          (record) => ({
+            entityType: previewContext.entityType,
+            entityId: record.id,
+            title: record.title,
+          })
+        )
+      : [];
 
   const draft = (template.draft_data ?? {}) as Record<string, unknown>;
 
@@ -81,6 +104,7 @@ export default async function TemplateBuilderPage({ params }: { params: Promise<
           : {}),
       }}
       patterns={patterns}
+      previewContexts={previewContexts}
       canPublish={user.permissions.has("template.publish")}
       // Preview is on for templates now. `/preview/[token]` reads areas rather
       // than `BLOCK_TREE_KEY[type]` (which is still `null` here), and the link

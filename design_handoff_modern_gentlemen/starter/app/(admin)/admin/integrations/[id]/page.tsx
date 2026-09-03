@@ -89,6 +89,8 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
             pageSize: shopify?.page_size ?? 250,
             maxPages: shopify?.max_pages ?? 20,
             status: shopify?.status ?? "active",
+            transport: shopify?.transport ?? "rest",
+            collectionLimit: shopify?.collection_limit ?? 50,
             fulfilment: (shopify ?? xml)?.fulfilment ?? "direct",
             currency: (shopify ?? xml)?.currency ?? "GBP",
           }}

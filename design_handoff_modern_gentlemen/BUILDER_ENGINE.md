@@ -268,13 +268,39 @@ the verified original footer defaults field by field and require no migration.
 
 ## Next engine layers
 
-1. Run screenshot-level responsive comparison for all numbered Section Library presets and refine any visual divergence without changing their content contracts.
-2. Add reusable symbols, component states and named responsive breakpoints
-   without permitting arbitrary stored CSS.
+1. Continue screenshot-level responsive comparison for numbered Section Library presets as designs evolve, without changing their content contracts.
+2. Add editor-named responsive breakpoints if the owner chooses to replace the current stable desktop/tablet/mobile contract.
 3. Continue the transcript and Schematic extraction with deeper navigation
    surfaces and footer composition in small renderer-backed groups.
 4. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.
+
+## Shared tokens, field inheritance and component states (v2.2)
+
+Theme payload v12 adds up to 24 stable-id color tokens, each with light and dark
+values validated by the same CSS-color boundary as the core theme. A local
+element or reusable class may reference one by id for its background or text;
+the renderer emits only `var(--mg-token-<safe-id>)`, never authored CSS.
+
+The visual model also accepts bounded hover, focus-within and active appearance
+states. These reuse the existing background, color, border, radius, shadow and
+opacity vocabularies and work both locally and through reusable classes. The
+older transform-based hover presets remain compatible.
+
+Manifest defaults are now visible inheritance rather than invisible renderer
+behavior: an unset field displays its effective component default, and an
+explicit value can be cleared back to that default even when the field is
+required. Clearing removes the stored key; it does not copy the current default,
+so future component-default changes continue to cascade.
+
+## Contextual template previews (v2.3)
+
+Template builders may preview a compatible published page, category, article or
+product at the `documentContent` marker. The selected record id and type live in
+the existing preview capability's context JSON. `resolve_preview` returns that
+context alongside exactly one authorized draft, while the record itself is read
+through the anonymous published-content path. Old tokens and automatic
+assignment-based stand-ins continue to work with an empty context.
 
 ## Numbered Hero Studio (v1.8)
 

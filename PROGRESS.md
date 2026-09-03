@@ -11,6 +11,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — remaining credential-free builder and Shopify gaps are closed
+
+Theme payload v12 adds reusable light/dark local color tokens plus bounded
+hover, focus-within and active appearance states for both individual elements
+and reusable classes. Manifest fields with defaults now show the effective
+inherited value and can return an explicit local value to inheritance in one
+click. Template preview capabilities now retain a validated published record
+context, so page, archive, article and product templates can be reviewed against
+several real instances without exposing any second draft. Header controls add an
+opt-in announcement strip, account destination and wide-screen social links;
+all are empty/off by default, preserving the published chrome and page offset.
+
+Shopify sources may opt into a cursor-paginated GraphQL transport that keeps the
+existing REST-shaped mapping vocabulary while exposing direct collection nodes
+at `collections/title`. Product pages, pages per run and collections per product
+remain independently bounded; REST stays the default for every existing source.
+Focused TypeScript and **284/284 tests** pass after correcting two new test
+assertions to match established scalar-collapse and coalesced-undo behavior.
+
 ### 2026-09-03 — new Shopify sources target the current stable API
 
 New Shopify source configurations now default to Admin API `2026-07`, the
@@ -951,7 +970,7 @@ The repository _also_ needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 
 - [x] ~~`resolve_preview` still has no rate limiting (carried over from Phase 3).~~ — **closed 2026-09-03.** Tokens remain 256-bit and are not used as a bucket identity, because a token-scoped allowance would give anyone holding the link a denial-of-service lever over every other reviewer. The route consumes one caller bucket derived from the same proxy identity as forms/newsletter and one unforgeable global bucket before resolving the capability; when no proxy identity exists, only the global bucket is spent. A refusal deliberately renders the same unavailable state as an unknown, expired or revoked token, so the limiter creates no new oracle.
 - [x] ~~The builder has no keyboard shortcuts beyond `Cmd/Ctrl+S`.~~ — **closed 2026-09-03.** Select all, duplicate, undo/redo, delete and clear-selection now use the store's existing multi-selection operations and explicitly stand down in inputs, content-editable regions and dialogs. Drag-from-library remains pointer-only by decision: the library entries wire dnd-kit's pointer activator and deliberately _not_ its keyboard one, because the `KeyboardSensor` claims Enter and Space and calls `preventDefault`, which would replace click-to-insert with a keyboard drag and leave no accessible path at all. Insert-at-the-selection by click is still that path. A keyboard _drag_ would need its own affordance and its own announcements, and is a separate accessibility enhancement rather than part of the editing-shortcut gap.
-- [ ] `visibility.devices` is written but **not applied at render** — the control says so in its help text rather than pretending otherwise.
+- [x] ~~`visibility.devices` is written but not applied at render.~~ — **closed** by the renderer-backed responsive visibility wrapper and canvas device preview; publish validation rejects malformed device sets.
 - [x] ~~`products.status` permits `'scheduled'` with no `scheduled_for` column~~ — **fixed in `0026`**: the CHECK is narrowed to `draft`/`published`/`archived`. This bullet framed it as "either dropping the value from a live CHECK or adding the column", and narrowing won — scheduling a _product_ is a feature nobody has asked for, and adding the column would have been inventing it. Verified zero rows used it, and the migration raises rather than corrupting if that is ever false elsewhere.
 - [x] ~~an asset used only in a product gallery is not "in use" as far as the delete refusal is concerned~~ — **fixed.** `media_usages` reconciliation still does not cover `product_media` (they are different tables with different lifecycles, and merging them would mean teaching reconciliation about a join no block tree mentions). Instead `deleteAsset` now asks **both**, via `productsForAsset` in the products repository, and `lib/domain/media.ts#galleryReferences` maps the result into the same `AssetUsage` shape so it flows through `AssetInUseError` and the admin's "Used in" panel unchanged. The panel therefore shows gallery references _before_ an editor tries to delete, and `getAssetUsageViews` learned to link `product` — which also fixed a product's block-tree usage resolving a title and then offering nowhere to go.
   - **Why it mattered when it did.** The gap was harmless while the public store rendered from `lib/catalog.ts`: nothing downstream read the join. Phase 7b made `/shop` and every PDP read `product_media`, so the same unguarded delete cascades the gallery rows away and takes photographs off the live storefront. The bug did not change; its blast radius did. Worth remembering as a shape — a dormant defect that a _different_ change arms.
@@ -963,4 +982,4 @@ The repository _also_ needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 - [ ] Real membership subscriptions vs. flag-only
 - [~] **Newsletter ESP integration.** ⚠️ The parenthetical here read "(Supabase capture works standalone)" and was false — nothing was captured at all until `0024`. **The capture layer is done now**: a table `anon` may INSERT and not read, `POST /api/newsletter`, and both bands wired to it with real error states. What remains is genuinely two things, in order: **consent + double opt-in** (a decision, not a task — UK GDPR/PECR wants a recorded lawful basis, wording beside the button, and a privacy notice to link to; rows are `pending` and nothing writes `confirmed` until it exists), then **the ESP adapter itself**, which should follow the `SourceAdapter` precedent in `lib/integrations/commerce/`.
 - [ ] Production imagery/video + rights
-- [ ] Remaining article templates & Section Library modules
+- [x] ~~Remaining article templates & Section Library modules.~~ — **closed**: all 20 article layouts and all 125 imported plus 20 platform Section Library presets are registered, rendered and provenance-validated.

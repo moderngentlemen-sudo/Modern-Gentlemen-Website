@@ -50,6 +50,10 @@ export const shopifyAdapter: SourceAdapter<ShopifyConfig> = {
       "x-shopify-access-token": context.credential,
     };
 
+    if (config.transport === "graphql") {
+      return fetchGraphqlProducts(config, context, headers);
+    }
+
     const products: unknown[] = [];
     let url: string | null = firstPageUrl(config);
     let pages = 0;
@@ -103,6 +107,143 @@ export const shopifyAdapter: SourceAdapter<ShopifyConfig> = {
     return isPresent(value) ? value : null;
   },
 };
+
+const PRODUCTS_QUERY = `query Products($first: Int!, $after: String, $query: String, $collections: Int!) {
+  products(first: $first, after: $after, query: $query) {
+    nodes {
+      legacyResourceId title handle status vendor productType tags descriptionHtml
+      createdAt updatedAt publishedAt
+      variants(first: 100) { nodes { legacyResourceId sku price compareAtPrice inventoryQuantity } }
+      images(first: 20) { nodes { url altText } }
+      collections(first: $collections) { nodes { id handle title } }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}`;
+
+async function fetchGraphqlProducts(
+  config: ShopifyConfig,
+  context: AdapterContext,
+  headers: Record<string, string>
+): Promise<unknown[]> {
+  const url = `https://${config.shop_domain}/admin/api/${config.api_version}/graphql.json`;
+  const records: unknown[] = [];
+  let after: string | null = null;
+
+  for (let page = 0; page < config.max_pages; page += 1) {
+    const response = await fetchCapped(context.fetch, url, {
+      subject: "The Shopify GraphQL API",
+      headers: { ...headers, "content-type": "application/json" },
+      method: "POST",
+      body: JSON.stringify({
+        query: PRODUCTS_QUERY,
+        variables: {
+          first: config.page_size,
+          after,
+          query: config.status === "any" ? null : `status:${config.status}`,
+          collections: config.collection_limit,
+        },
+      }),
+      timeoutMs: config.timeout_ms,
+      redirect: "manual",
+      describeStatus,
+      retry: { ...RATE_LIMIT_RETRY, wait: context.wait },
+    });
+    const parsed = graphqlPage(response.text);
+    records.push(...parsed.products.map(normalizeGraphqlProduct));
+    if (!parsed.hasNextPage || !parsed.endCursor) break;
+    after = parsed.endCursor;
+  }
+
+  return records;
+}
+
+function graphqlPage(body: string): {
+  products: Record<string, unknown>[];
+  hasNextPage: boolean;
+  endCursor: string | null;
+} {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch (error) {
+    throw new AdapterError(
+      `The Shopify GraphQL API did not answer with JSON: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  const root = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  if (Array.isArray(root?.errors) && root.errors.length > 0) {
+    const messages = root.errors
+      .slice(0, 3)
+      .map((error) =>
+        error &&
+        typeof error === "object" &&
+        typeof (error as Record<string, unknown>).message === "string"
+          ? (error as Record<string, unknown>).message
+          : "Unknown GraphQL error"
+      )
+      .join("; ");
+    throw new AdapterError(`The Shopify GraphQL API refused the product query: ${messages}`);
+  }
+  const data = root?.data as Record<string, unknown> | undefined;
+  const products = data?.products as Record<string, unknown> | undefined;
+  if (!products || !Array.isArray(products.nodes)) {
+    throw new AdapterError("The Shopify GraphQL API answered without a products connection.");
+  }
+  const pageInfo = products.pageInfo as Record<string, unknown> | undefined;
+  return {
+    products: products.nodes.filter(
+      (node): node is Record<string, unknown> =>
+        !!node && typeof node === "object" && !Array.isArray(node)
+    ),
+    hasNextPage: pageInfo?.hasNextPage === true,
+    endCursor: typeof pageInfo?.endCursor === "string" ? pageInfo.endCursor : null,
+  };
+}
+
+function connectionNodes(value: unknown): unknown[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const nodes = (value as Record<string, unknown>).nodes;
+  return Array.isArray(nodes) ? nodes : [];
+}
+
+/** REST-compatible keys preserve existing field mappings when a source opts into GraphQL. */
+function normalizeGraphqlProduct(product: Record<string, unknown>): Record<string, unknown> {
+  const variants = connectionNodes(product.variants).map((variant) => {
+    const row = variant as Record<string, unknown>;
+    return {
+      id: row.legacyResourceId,
+      sku: row.sku,
+      price: row.price,
+      compare_at_price: row.compareAtPrice,
+      inventory_quantity: row.inventoryQuantity,
+    };
+  });
+  const images = connectionNodes(product.images).map((image) => {
+    const row = image as Record<string, unknown>;
+    return { src: row.url, alt: row.altText };
+  });
+  const collections = connectionNodes(product.collections).map((collection) => {
+    const row = collection as Record<string, unknown>;
+    return { id: row.id, handle: row.handle, title: row.title };
+  });
+  return {
+    id: product.legacyResourceId,
+    title: product.title,
+    handle: product.handle,
+    status: typeof product.status === "string" ? product.status.toLowerCase() : product.status,
+    vendor: product.vendor,
+    product_type: product.productType,
+    tags: product.tags,
+    body_html: product.descriptionHtml,
+    created_at: product.createdAt,
+    updated_at: product.updatedAt,
+    published_at: product.publishedAt,
+    variants,
+    images,
+    collections,
+  };
+}
 
 function firstPageUrl(config: ShopifyConfig): string {
   const query = new URLSearchParams({

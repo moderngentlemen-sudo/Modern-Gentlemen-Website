@@ -64,6 +64,8 @@ const ShopifyConfig = z.object({
   pageSize: z.number().int(),
   maxPages: z.number().int(),
   status: z.enum(["active", "archived", "draft", "any"]),
+  transport: z.enum(["rest", "graphql"]),
+  collectionLimit: z.number().int(),
 });
 
 const Config = z.discriminatedUnion("kind", [XmlFeedConfig, ShopifyConfig]);
@@ -111,6 +113,8 @@ export async function saveSourceAction(input: unknown): Promise<ActionResult> {
               page_size: input.pageSize,
               max_pages: input.maxPages,
               status: input.status,
+              transport: input.transport,
+              collection_limit: input.collectionLimit,
             },
       credentialsRef: input.credentialsRef || null,
       // Storing this is what `integration.write` gates, and it is the only

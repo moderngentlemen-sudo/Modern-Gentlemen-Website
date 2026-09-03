@@ -112,6 +112,19 @@ describe("help and required", () => {
 });
 
 describe("writing values", () => {
+  it("shows an inherited manifest default without persisting a copy", () => {
+    const ctx = renderField(field.boolean({ label: "Featured", default: true }), undefined);
+    expect(screen.getByRole("switch", { name: "Featured" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Inherited: true" })).toBeDisabled();
+    expect(ctx.writes).toEqual([]);
+  });
+
+  it("clears an explicit value to restore field inheritance", async () => {
+    const ctx = renderField(field.text({ label: "Heading", default: "The Latest" }), "Custom");
+    await userEvent.click(screen.getByRole("button", { name: "Use component default" }));
+    expect(ctx.writes).toContainEqual(["target", "<cleared>"]);
+  });
+
   it("writes a text edit at its own path", async () => {
     const ctx = renderField(field.text({ label: "Headline" }), "");
     await userEvent.type(screen.getByLabelText("Headline"), "A");

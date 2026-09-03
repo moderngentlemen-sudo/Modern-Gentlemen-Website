@@ -23,12 +23,15 @@ import {
   VISUAL_REVEAL_DELAYS,
   VISUAL_SHADOWS,
   VISUAL_SPACES,
+  VISUAL_STATES,
   VISUAL_WIDTHS,
   type VisualBreakpoint,
   type VisualEffects,
+  type VisualState,
+  type VisualStateStyle,
   type VisualStyle,
 } from "@/lib/blocks/visual";
-import type { ThemeStyleClass } from "@/lib/domain/theme";
+import type { ThemeStyleClass, ThemeTokenAlias } from "@/lib/domain/theme";
 import { Button } from "@/components/admin/ui/Button";
 import { TextInput } from "@/components/admin/ui/Input";
 import { NumberInput } from "@/components/admin/ui/NumberInput";
@@ -95,21 +98,49 @@ const PRECISE_FIELDS: {
 export function StyleClassEditor({
   value,
   disabled,
+  tokenAliases,
   onChange,
   onRemove,
 }: {
   value: ThemeStyleClass;
   disabled: boolean;
+  tokenAliases: readonly ThemeTokenAlias[];
   onChange: (next: ThemeStyleClass) => void;
   onRemove: () => void;
 }) {
   const [device, setDevice] = useState<VisualBreakpoint>("desktop");
+  const [componentState, setComponentState] = useState<VisualState>("hover");
   const style = value.visual.styles?.[device] ?? {};
 
   function setStyle(property: keyof VisualStyle, next: string | number | undefined) {
     const currentStyle = { ...style } as Record<string, unknown>;
     if (next === undefined || next === "") delete currentStyle[property];
     else currentStyle[property] = next;
+    if (next !== undefined && next !== "" && property === "background") {
+      delete currentStyle.backgroundToken;
+    }
+    if (next !== undefined && next !== "" && property === "color") delete currentStyle.colorToken;
+    onChange({
+      ...value,
+      visual: {
+        ...value.visual,
+        styles: { ...value.visual.styles, [device]: currentStyle as VisualStyle },
+      },
+    });
+  }
+
+  function setStyleToken(
+    property: "backgroundToken" | "colorToken",
+    counterpart: "background" | "color",
+    next: string
+  ) {
+    const currentStyle = { ...style } as Record<string, unknown>;
+    if (next) {
+      currentStyle[property] = next;
+      delete currentStyle[counterpart];
+    } else {
+      delete currentStyle[property];
+    }
     onChange({
       ...value,
       visual: {
@@ -135,6 +166,26 @@ export function StyleClassEditor({
       delete effects.revealDelay;
     }
     onChange({ ...value, visual: { ...value.visual, effects } });
+  }
+
+  function setStateStyle(property: keyof VisualStateStyle, next: string) {
+    const stateStyle = { ...(value.visual.states?.[componentState] ?? {}) } as Record<
+      string,
+      unknown
+    >;
+    if (!next) delete stateStyle[property];
+    else stateStyle[property] = property === "opacity" ? Number(next) : next;
+    if (next && property === "backgroundToken") delete stateStyle.background;
+    if (next && property === "colorToken") delete stateStyle.color;
+    if (next && property === "background") delete stateStyle.backgroundToken;
+    if (next && property === "color") delete stateStyle.colorToken;
+    const states = { ...value.visual.states };
+    if (Object.keys(stateStyle).length > 0) {
+      states[componentState] = stateStyle as VisualStateStyle;
+    } else {
+      delete states[componentState];
+    }
+    onChange({ ...value, visual: { ...value.visual, states } });
   }
 
   return (
@@ -199,6 +250,26 @@ export function StyleClassEditor({
             onChange={(next) => setStyle(field.property, next)}
           />
         ))}
+        {tokenAliases.length > 0 && (
+          <>
+            <Select
+              label="Shared background token"
+              value={style.backgroundToken ?? ""}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              disabled={disabled}
+              onChange={(next) => setStyleToken("backgroundToken", "background", next)}
+            />
+            <Select
+              label="Shared text token"
+              value={style.colorToken ?? ""}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              disabled={disabled}
+              onChange={(next) => setStyleToken("colorToken", "color", next)}
+            />
+          </>
+        )}
       </div>
 
       <p className="mb-3 mt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60">
@@ -248,6 +319,64 @@ export function StyleClassEditor({
           </>
         )}
       </div>
+
+      <p className="mb-3 mt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-fg/60">
+        Component states
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Select
+          label="State"
+          value={componentState}
+          options={options(VISUAL_STATES)}
+          disabled={disabled}
+          onChange={(next) => setComponentState(next as VisualState)}
+        />
+        {STATE_FIELDS.map((field) => (
+          <Select
+            key={field.property}
+            label={field.label}
+            value={String(value.visual.states?.[componentState]?.[field.property] ?? "")}
+            placeholder="Inherit"
+            options={options(field.values, field.suffix)}
+            disabled={disabled}
+            onChange={(next) => setStateStyle(field.property, next)}
+          />
+        ))}
+        {tokenAliases.length > 0 && (
+          <>
+            <Select
+              label="State background token"
+              value={value.visual.states?.[componentState]?.backgroundToken ?? ""}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              disabled={disabled}
+              onChange={(next) => setStateStyle("backgroundToken", next)}
+            />
+            <Select
+              label="State text token"
+              value={value.visual.states?.[componentState]?.colorToken ?? ""}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              disabled={disabled}
+              onChange={(next) => setStateStyle("colorToken", next)}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }
+
+const STATE_FIELDS: {
+  property: keyof VisualStateStyle;
+  label: string;
+  values: readonly (string | number)[];
+  suffix?: string;
+}[] = [
+  { property: "background", label: "Background", values: VISUAL_BACKGROUNDS },
+  { property: "color", label: "Text color", values: VISUAL_COLORS },
+  { property: "border", label: "Border", values: VISUAL_BORDERS },
+  { property: "radius", label: "Corners", values: VISUAL_RADII },
+  { property: "shadow", label: "Shadow", values: VISUAL_SHADOWS },
+  { property: "opacity", label: "Opacity", values: VISUAL_OPACITIES, suffix: "%" },
+];

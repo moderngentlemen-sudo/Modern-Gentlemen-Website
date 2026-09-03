@@ -374,6 +374,14 @@ export interface ThemeHeader {
   scale: number;
   iconBubbles: boolean;
   iconHover: HeaderIconHover;
+  /** Optional compatibility-safe strip above the primary navigation. */
+  announcementText: string;
+  announcementHref: string;
+  showAccount: boolean;
+  accountHref: string;
+  showSocials: boolean;
+  instagramHref: string;
+  xHref: string;
 }
 
 export const DEFAULT_THEME_HEADER: ThemeHeader = {
@@ -392,6 +400,13 @@ export const DEFAULT_THEME_HEADER: ThemeHeader = {
   scale: 1,
   iconBubbles: false,
   iconHover: "scale",
+  announcementText: "",
+  announcementHref: "",
+  showAccount: false,
+  accountHref: "/account",
+  showSocials: false,
+  instagramHref: "",
+  xHref: "",
 };
 
 export const FOOTER_LAYOUTS = ["responsive", "stacked", "centered"] as const;
@@ -486,6 +501,8 @@ export interface ThemeSettings {
   layout: ThemeLayout;
   /** Reusable, responsive visual recipes applied by builder elements. */
   styleClasses: ThemeStyleClass[];
+  /** Shared colour values that local visual settings may reference by stable id. */
+  tokenAliases: ThemeTokenAlias[];
   /** Semantic defaults consumed by public buttons, cards and form fields. */
   components: ThemeComponentDefaults;
 }
@@ -496,6 +513,13 @@ export interface ThemeStyleClass {
   visual: VisualElementDesign;
 }
 
+export interface ThemeTokenAlias {
+  id: string;
+  name: string;
+  light: string;
+  dark: string;
+}
+
 export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   colors: DEFAULT_THEME_COLORS,
   typography: DEFAULT_THEME_TYPOGRAPHY,
@@ -503,11 +527,12 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   footer: DEFAULT_THEME_FOOTER,
   layout: DEFAULT_THEME_LAYOUT,
   styleClasses: [],
+  tokenAliases: [],
   components: DEFAULT_THEME_COMPONENTS,
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 10;
+export const THEME_PAYLOAD_VERSION = 12;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -772,6 +797,21 @@ export const themeHeaderSchema = z.object({
   scale: z.number().min(0.8).max(1.4),
   iconBubbles: z.boolean(),
   iconHover: z.enum(HEADER_ICON_HOVERS),
+  announcementText: z.string().trim().max(160),
+  announcementHref: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(safeHeaderHref, "Use an internal path or HTTPS URL"),
+  showAccount: z.boolean(),
+  accountHref: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(safeHeaderHref, "Use an internal path or HTTPS URL"),
+  showSocials: z.boolean(),
+  instagramHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  xHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
 });
 
 export const themeFooterSchema = z.object({
@@ -855,6 +895,40 @@ export const themeStyleClassesSchema = z
     });
   });
 
+export const themeTokenAliasSchema = z.object({
+  id: z.string().regex(VISUAL_STYLE_CLASS_ID, "Use a lowercase id such as brand-gold"),
+  name: z.string().trim().min(1).max(60),
+  light: colorValue,
+  dark: colorValue,
+});
+
+export const themeTokenAliasesSchema = z
+  .array(themeTokenAliasSchema)
+  .max(24)
+  .superRefine((tokens, context) => {
+    const ids = new Set<string>();
+    const names = new Set<string>();
+    tokens.forEach((token, index) => {
+      const name = token.name.trim().toLocaleLowerCase();
+      if (ids.has(token.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "id"],
+          message: "Token ids must be unique",
+        });
+      }
+      if (names.has(name)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "name"],
+          message: "Token names must be unique",
+        });
+      }
+      ids.add(token.id);
+      names.add(name);
+    });
+  });
+
 export const themeSettingsSchema = z.object({
   colors: themeColorsSchema,
   typography: themeTypographySchema,
@@ -862,6 +936,7 @@ export const themeSettingsSchema = z.object({
   footer: themeFooterSchema,
   layout: themeLayoutSchema,
   styleClasses: themeStyleClassesSchema,
+  tokenAliases: themeTokenAliasesSchema,
   components: themeComponentDefaultsSchema,
 });
 
@@ -873,6 +948,7 @@ export const themePayloadSchema = z.object({
   footer: themeFooterSchema.optional(),
   layout: themeLayoutSchema.optional(),
   styleClasses: themeStyleClassesSchema.optional(),
+  tokenAliases: themeTokenAliasesSchema.optional(),
   components: themeComponentDefaultsSchema.optional(),
 });
 export type ThemePayload = z.infer<typeof themePayloadSchema>;
@@ -1015,6 +1091,26 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   if ((HEADER_ICON_HOVERS as readonly unknown[]).includes(incoming.iconHover)) {
     out.iconHover = incoming.iconHover as HeaderIconHover;
   }
+  if (typeof incoming.announcementText === "string" && incoming.announcementText.length <= 160) {
+    out.announcementText = incoming.announcementText.trim();
+  }
+  if (
+    typeof incoming.announcementHref === "string" &&
+    safeHeaderHref(incoming.announcementHref.trim())
+  ) {
+    out.announcementHref = incoming.announcementHref.trim();
+  }
+  if (typeof incoming.showAccount === "boolean") out.showAccount = incoming.showAccount;
+  if (typeof incoming.accountHref === "string" && safeHeaderHref(incoming.accountHref.trim())) {
+    out.accountHref = incoming.accountHref.trim();
+  }
+  if (typeof incoming.showSocials === "boolean") out.showSocials = incoming.showSocials;
+  if (typeof incoming.instagramHref === "string" && safeSocialHref(incoming.instagramHref.trim())) {
+    out.instagramHref = incoming.instagramHref.trim();
+  }
+  if (typeof incoming.xHref === "string" && safeSocialHref(incoming.xHref.trim())) {
+    out.xHref = incoming.xHref.trim();
+  }
   return out;
 }
 
@@ -1090,6 +1186,24 @@ export function parseThemeStyleClasses(value: unknown): ThemeStyleClass[] {
   });
 }
 
+export function parseThemeTokenAliases(value: unknown): ThemeTokenAlias[] {
+  const incoming = asRecord(value)?.tokenAliases;
+  if (!Array.isArray(incoming)) return [];
+  const parsed = incoming.slice(0, 24).flatMap((candidate) => {
+    const result = themeTokenAliasSchema.safeParse(candidate);
+    return result.success ? [result.data] : [];
+  });
+  const ids = new Set<string>();
+  const names = new Set<string>();
+  return parsed.filter((token) => {
+    const name = token.name.trim().toLocaleLowerCase();
+    if (ids.has(token.id) || names.has(name)) return false;
+    ids.add(token.id);
+    names.add(name);
+    return true;
+  });
+}
+
 /** Forgiving field-by-field read for semantic public-component defaults. */
 export function parseThemeComponentDefaults(value: unknown): ThemeComponentDefaults {
   const incoming = asRecord(asRecord(value)?.components);
@@ -1139,6 +1253,7 @@ export function parseThemeSettings(value: unknown): ThemeSettings {
     footer: parseThemeFooter(value),
     layout: parseThemeLayout(value),
     styleClasses: parseThemeStyleClasses(value),
+    tokenAliases: parseThemeTokenAliases(value),
     components: parseThemeComponentDefaults(value),
   };
 }
@@ -1335,12 +1450,22 @@ export function themeDesignCssText(settings: ThemeSettings): string {
       `${FONT_ROLE_VAR[role]}:${fontStackForSelection(settings.typography[role], settings.typography.webfonts)}`
   );
   declarations.push(`--font-base-size:${settings.typography.baseSize}px`);
-  declarations.push(`--header-height:${settings.header.height}px`);
+  const announcementHeight = settings.header.announcementText ? 28 : 0;
+  declarations.push(`--header-height:${settings.header.height + announcementHeight}px`);
   declarations.push(`--layout-content-width:${settings.layout.contentWidth}px`);
   declarations.push(`--layout-desktop-gutter:${settings.layout.desktopGutter}px`);
   declarations.push(`--layout-mobile-gutter:${settings.layout.mobileGutter}px`);
   const styleClasses = settings.styleClasses
     .map((styleClass) => visualStyleClassCss(styleClass.id, styleClass.visual))
     .join("");
-  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${themeComponentCssText(settings.components)}${styleClasses}`;
+  const darkAliases = settings.tokenAliases
+    .map((token) => `--mg-token-${token.id}:${token.dark}`)
+    .join(";");
+  const lightAliases = settings.tokenAliases
+    .map((token) => `--mg-token-${token.id}:${token.light}`)
+    .join(";");
+  const aliasCss = settings.tokenAliases.length
+    ? `:root:root{${darkAliases}}html[data-mgtheme="light"]:root{${lightAliases}}`
+    : "";
+  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${aliasCss}${themeComponentCssText(settings.components)}${styleClasses}`;
 }

@@ -34,6 +34,8 @@ export interface CappedRequest {
   subject: string;
   headers: Record<string, string>;
   timeoutMs: number;
+  method?: "GET" | "POST";
+  body?: string;
   /**
    * Defaults to `"follow"`, which is right for a feed URL that may be behind a
    * CDN or a shortener.
@@ -143,6 +145,8 @@ export async function fetchCapped(
     let response: Response;
     try {
       response = await fetchImpl(url, {
+        method: request.method ?? "GET",
+        body: request.body,
         headers: request.headers,
         redirect: request.redirect ?? "follow",
         // Inside the loop on purpose: a signal is consumed once, and reusing one

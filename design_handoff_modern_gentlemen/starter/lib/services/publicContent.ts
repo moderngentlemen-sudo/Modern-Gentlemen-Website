@@ -304,6 +304,60 @@ export interface FramedDocument {
   sections: BlockTree;
 }
 
+export type PreviewContextDocumentType = "page" | "category" | "article" | "product";
+
+/**
+ * Reads one explicitly selected, published record for a template preview.
+ * Literal table branches keep generated Supabase types honest, and anonymous
+ * RLS plus the status predicate ensure a draft can never be pulled into a
+ * shareable template capability.
+ */
+export async function getPublishedPreviewContext(
+  type: PreviewContextDocumentType,
+  id: string
+): Promise<FramedDocument | null> {
+  const db = createPublicClient();
+  if (type === "page") {
+    const { data, error } = await db
+      .from("pages")
+      .select("title, published_data")
+      .eq("id", id)
+      .eq("status", "published")
+      .maybeSingle();
+    if (error) throw new Error(`Could not read the preview page: ${error.message}`);
+    return data ? { title: data.title, sections: sectionsOf(data.published_data) } : null;
+  }
+  if (type === "category") {
+    const { data, error } = await db
+      .from("categories")
+      .select("name, published_data")
+      .eq("id", id)
+      .eq("status", "published")
+      .maybeSingle();
+    if (error) throw new Error(`Could not read the preview category: ${error.message}`);
+    return data ? { title: data.name, sections: sectionsOf(data.published_data) } : null;
+  }
+  if (type === "article") {
+    const { data, error } = await db
+      .from("articles")
+      .select("title, published_data")
+      .eq("id", id)
+      .eq("status", "published")
+      .maybeSingle();
+    if (error) throw new Error(`Could not read the preview article: ${error.message}`);
+    return data ? { title: data.title, sections: sectionsOf(data.published_data) } : null;
+  }
+
+  const { data, error } = await db
+    .from("products")
+    .select("name, published_data")
+    .eq("id", id)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) throw new Error(`Could not read the preview product: ${error.message}`);
+  return data ? { title: data.name, sections: sectionsOf(data.published_data) } : null;
+}
+
 export async function soleFramedDocument(templateId: string): Promise<FramedDocument | null> {
   const db = createPublicClient();
 

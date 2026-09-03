@@ -12,5 +12,5 @@ import { Builder } from "./Builder";
  */
 export async function BuilderWithTheme(props: ComponentProps<typeof Builder>) {
   const theme = await getPublishedThemeSettings();
-  return <Builder {...props} styleClasses={theme.styleClasses} />;
+  return <Builder {...props} styleClasses={theme.styleClasses} tokenAliases={theme.tokenAliases} />;
 }

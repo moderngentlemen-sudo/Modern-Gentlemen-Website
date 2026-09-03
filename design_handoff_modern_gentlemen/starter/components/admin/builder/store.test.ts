@@ -696,6 +696,25 @@ describe("settings", () => {
     store.getState().setVisualStyle(key, "desktop", { display: "flex" });
     expect(store.getState().tree[0].visual?.styles?.desktop).toBeUndefined();
   });
+
+  it("writes and clears component-state overrides as undoable visual data", () => {
+    store.getState().setVisualState(key, "focus", { border: "accent", opacity: 75 });
+    expect(store.getState().tree[0].visual?.states?.focus).toEqual({
+      border: "accent",
+      opacity: 75,
+    });
+
+    store.getState().undo();
+    expect(store.getState().tree[0].visual?.states).toBeUndefined();
+    store.getState().redo();
+    expect(store.getState().tree[0].visual?.states?.focus).toEqual({
+      border: "accent",
+      opacity: 75,
+    });
+
+    store.getState().setVisualState(key, "focus", { border: undefined, opacity: undefined });
+    expect(store.getState().tree[0].visual?.states).toBeUndefined();
+  });
 });
 
 describe("undo and redo", () => {

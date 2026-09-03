@@ -32,6 +32,7 @@ import {
   parseThemeComponentDefaults,
   parseThemeSettings,
   parseThemeStyleClasses,
+  parseThemeTokenAliases,
   parseThemeTypography,
   safeCssColor,
   themeCssText,
@@ -271,6 +272,29 @@ describe("editable typography and header settings", () => {
     ).toEqual([{ id: "safe-card", name: "Safe", visual: { styles: { desktop: { gap: 16 } } } }]);
   });
 
+  it("validates, parses and emits shared light/dark color aliases", () => {
+    const tokenAliases = [
+      { id: "brand-gold", name: "Brand gold", light: "#6b4f00", dark: "#f5cf65" },
+    ];
+    expect(parseThemeTokenAliases({ tokenAliases })).toEqual(tokenAliases);
+    expect(themeSettingsSchema.safeParse({ ...DEFAULT_THEME_SETTINGS, tokenAliases }).success).toBe(
+      true
+    );
+
+    const css = themeDesignCssText({ ...DEFAULT_THEME_SETTINGS, tokenAliases });
+    expect(css).toContain(":root:root{--mg-token-brand-gold:#f5cf65}");
+    expect(css).toContain('html[data-mgtheme="light"]:root{--mg-token-brand-gold:#6b4f00}');
+    expect(
+      parseThemeTokenAliases({
+        tokenAliases: [
+          ...tokenAliases,
+          { id: "brand-gold", name: "Duplicate", light: "red", dark: "blue" },
+          { id: "unsafe token", name: "Unsafe", light: "#fff", dark: "#000" },
+        ],
+      })
+    ).toEqual(tokenAliases);
+  });
+
   it("keeps valid stored choices and falls back field by field", () => {
     expect(
       parseThemeTypography({
@@ -345,6 +369,35 @@ describe("editable typography and header settings", () => {
     ).toBe(true);
   });
 
+  it("keeps safe optional header chrome and rejects unsafe destinations", () => {
+    expect(
+      parseThemeHeader({
+        header: {
+          announcementText: "  New issue available  ",
+          announcementHref: "/latest",
+          showAccount: true,
+          accountHref: "javascript:alert(1)",
+          showSocials: true,
+          instagramHref: "https://instagram.com/modern.gentlemen",
+          xHref: "/social",
+        },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_HEADER,
+      announcementText: "New issue available",
+      announcementHref: "/latest",
+      showAccount: true,
+      showSocials: true,
+      instagramHref: "https://instagram.com/modern.gentlemen",
+    });
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        header: { ...DEFAULT_THEME_HEADER, announcementHref: "javascript:alert(1)" },
+      }).success
+    ).toBe(false);
+  });
+
   it("emits role variables from presets rather than arbitrary CSS", () => {
     const css = themeDesignCssText({
       ...DEFAULT_THEME_SETTINGS,
@@ -360,6 +413,15 @@ describe("editable typography and header settings", () => {
     expect(css).toContain("--layout-content-width:1320px");
     expect(css).toContain("--layout-desktop-gutter:48px");
     expect(css).toContain("--layout-mobile-gutter:22px");
+  });
+
+  it("includes an enabled announcement in the public header offset", () => {
+    expect(
+      themeDesignCssText({
+        ...DEFAULT_THEME_SETTINGS,
+        header: { ...DEFAULT_THEME_HEADER, height: 80, announcementText: "New issue" },
+      })
+    ).toContain("--header-height:108px");
   });
 
   it("keeps valid layout settings and falls back field by field", () => {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { saveDraft } from "@/lib/services/documents";
+import { getDocument, saveDraft } from "@/lib/services/documents";
 import { getTemplate, publicPathsForTemplate } from "@/lib/services/templates";
 import { createPreview } from "@/lib/services/preview";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
@@ -30,6 +30,19 @@ import { toActionResult } from "../../_lib/errors";
  *      below walks it.
  */
 const Id = z.string().uuid();
+const PreviewContext = z
+  .object({
+    entityType: z.enum(["page", "category", "article", "product"]),
+    entityId: Id,
+  })
+  .strict();
+
+const PREVIEW_CONTEXT_TYPE = {
+  page: "page",
+  archive: "category",
+  article: "article",
+  product: "product",
+} as const;
 
 /** Structural validation only; content validation is the manifests' job at publish. */
 const BlockNodeish = z.object({ _key: z.string().min(1), _type: z.string().min(1) }).passthrough();
@@ -196,15 +209,36 @@ export async function createPreviewAction(
       id: Id,
       device: z.enum(["desktop", "tablet", "mobile"]).optional(),
       area: z.string().regex(AREA_NAME_PATTERN).optional(),
+      context: PreviewContext.optional(),
     })
     .safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
 
   try {
+    const template = await getTemplate(parsed.data.id);
+    if (!template) return { ok: false, error: "Template not found" };
+
+    const expectedContext = PREVIEW_CONTEXT_TYPE[
+      template.kind as keyof typeof PREVIEW_CONTEXT_TYPE
+    ] as "page" | "category" | "article" | "product" | undefined;
+    if (parsed.data.context) {
+      if (parsed.data.context.entityType !== expectedContext) {
+        return { ok: false, error: "That record cannot be previewed with this template kind." };
+      }
+      const record = await getDocument(
+        parsed.data.context.entityType,
+        parsed.data.context.entityId
+      );
+      if (!record || record.status !== "published") {
+        return { ok: false, error: "Choose a published record for this preview." };
+      }
+    }
+
     const preview = await createPreview({
       type: "template",
       entityId: parsed.data.id,
       device: parsed.data.device,
+      context: parsed.data.context ?? {},
     });
 
     const path = parsed.data.area
