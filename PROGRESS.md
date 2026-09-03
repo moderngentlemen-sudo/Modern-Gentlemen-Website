@@ -11,6 +11,21 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — public preview resolution is rate-limited
+
+The first self-contained security item in the ordered backlog is closed.
+`/preview/[token]` now consumes a database-backed per-caller bucket (120 requests
+per ten minutes) and a global bucket (5,000 requests per hour) before invoking
+the public `resolve_preview` security-definer function. Both counters are spent
+even when one refuses, missing proxy identities still consume the global bucket,
+and refusal returns the same unavailable result as an invalid, expired or
+revoked capability. The preview token is deliberately not part of either bucket:
+otherwise someone who learned a valid link could exhaust that link's private
+allowance and deny it to every legitimate reviewer. Focused verification:
+Prettier, ESLint, TypeScript and 12 rate-limit/preview unit tests; the complete
+credential-free gate passes with **1,810/1,810 unit tests**. CI remains the
+integration/build/E2E/visual/accessibility/performance gate.
+
 ### 2026-09-02 — nested builder drag regression resolved
 
 GitHub `main` commit `4f048ae` fixes the persistent two-column E2E failure and
@@ -664,7 +679,7 @@ The repository *also* needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 - [ ] **A section preview mounts the real component on hover**, which for an image- or video-heavy block is real work on every hover. Acceptable today at the library's current size and one preview at a time; if the library grows or a section gets heavier, the cheap fix is a short hover delay before mounting rather than a thumbnail — a thumbnail reintroduces exactly the drift the preview exists to avoid.
 - [x] ~~**`POST /api/newsletter` has no rate limiting**~~ — **fixed, and the bullet's own objection is what shaped the fix.** "An in-process counter is worthless on a platform that can run more than one container" was right, and the conclusion drawn from it — that this needed shared state "this deployment does not have" — was wrong: the deployment has Postgres. `0026` holds a fixed-window counter and a `security definer` `rate_limit_hit()`; `lib/services/rateLimit.ts` calls it. **Two buckets, and the second is the load-bearing one.** The per-caller bucket keys on `x-forwarded-for`, which is attacker-supplied and — unlike the `x-forwarded-host` case in `publicUrl.ts` — **cannot be validated**, because any IP is a plausible one. So a caller who rotates the header gets a fresh bucket every time, and what actually bounds the table is a **global** bucket no header can escape. ⚠️ **The limit is spent before the address is validated**, deliberately: validating first would make a malformed address a free request, which is the cheapest thing an abusive caller can send. That is why the per-caller limit is 10 and not 5 — a visitor correcting a typo spends budget doing it. Probed against the built route on a verified-free port: ten 201s, then 429 with `Retry-After`, and a different forwarded address still 201.
 
-- [ ] `resolve_preview` still has no rate limiting (carried over from Phase 3). Tokens are 256-bit so brute force is impractical, but the endpoint is public and unthrottled. ⚠️ **The reason to revisit it is now cheaper than the reason to defer it**: `rate_limit_hit()` exists, `consumeRateLimit` is one call, and the only open question is what identity a preview link should key on.
+- [x] ~~`resolve_preview` still has no rate limiting (carried over from Phase 3).~~ — **closed 2026-09-03.** Tokens remain 256-bit and are not used as a bucket identity, because a token-scoped allowance would give anyone holding the link a denial-of-service lever over every other reviewer. The route consumes one caller bucket derived from the same proxy identity as forms/newsletter and one unforgeable global bucket before resolving the capability; when no proxy identity exists, only the global bucket is spent. A refusal deliberately renders the same unavailable state as an unknown, expired or revoked token, so the limiter creates no new oracle.
 - [ ] The builder has no keyboard shortcuts beyond `Cmd/Ctrl+S`. ~~and no drag-from-library~~ — **drag-from-library is done**, but it is **pointer-only by decision**: the library entries wire dnd-kit's pointer activator and deliberately *not* its keyboard one, because the `KeyboardSensor` claims Enter and Space and calls `preventDefault`, which would replace click-to-insert with a keyboard drag and leave no accessible path at all. Insert-at-the-selection by click is still that path. A keyboard *drag* would need its own affordance and its own announcements, and is unbuilt.
 - [ ] `visibility.devices` is written but **not applied at render** — the control says so in its help text rather than pretending otherwise.
 - [x] ~~`products.status` permits `'scheduled'` with no `scheduled_for` column~~ — **fixed in `0026`**: the CHECK is narrowed to `draft`/`published`/`archived`. This bullet framed it as "either dropping the value from a live CHECK or adding the column", and narrowing won — scheduling a *product* is a feature nobody has asked for, and adding the column would have been inventing it. Verified zero rows used it, and the migration raises rather than corrupting if that is ever false elsewhere.

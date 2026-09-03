@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
 import { expandPatternRefs } from "@/lib/services/patterns";
 import { expandPublicPatterns, soleFramedDocument } from "@/lib/services/publicContent";
 import { resolvePreview } from "@/lib/services/preview";
+import { clientIdentity } from "@/lib/services/rateLimit";
 import { readAreas } from "@/lib/blocks/areas";
 import {
   collectContentMarkers,
@@ -55,8 +57,8 @@ export default async function PreviewPage({
   params: Promise<{ token: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ token }, query] = await Promise.all([params, searchParams]);
-  const preview = await resolvePreview(token);
+  const [{ token }, query, requestHeaders] = await Promise.all([params, searchParams, headers()]);
+  const preview = await resolvePreview(token, clientIdentity(requestHeaders));
 
   if (!preview) return <PreviewUnavailable />;
 

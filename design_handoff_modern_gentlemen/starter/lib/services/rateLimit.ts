@@ -38,6 +38,19 @@ export const NEWSLETTER_PER_CALLER = { limit: 10, windowSeconds: 600 } as const;
 export const NEWSLETTER_GLOBAL = { limit: 300, windowSeconds: 3600 } as const;
 export const FORM_PER_CALLER = { limit: 20, windowSeconds: 600 } as const;
 export const FORM_GLOBAL = { limit: 1_000, windowSeconds: 3600 } as const;
+/**
+ * Preview resolution is a public read, but an expensive one: every miss still
+ * invokes a security-definer database function. A reviewer can legitimately
+ * reload a draft repeatedly, so its caller allowance is intentionally higher
+ * than either public write endpoint. The global bucket is the hard ceiling for
+ * forged forwarding headers.
+ *
+ * Neither bucket is keyed to the preview token. Someone who learns a valid
+ * link must not be able to spend that link's private allowance and lock every
+ * other reviewer out of it.
+ */
+export const PREVIEW_PER_CALLER = { limit: 120, windowSeconds: 600 } as const;
+export const PREVIEW_GLOBAL = { limit: 5_000, windowSeconds: 3600 } as const;
 
 /**
  * Who is calling, as far as anything behind a proxy can tell.

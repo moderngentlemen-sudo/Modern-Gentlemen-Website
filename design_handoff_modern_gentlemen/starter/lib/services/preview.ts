@@ -13,6 +13,7 @@ import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/previewSessions";
 import type { DocumentType } from "@/lib/domain/documents";
 import { requirePermission } from "./auth";
+import { consumeRateLimit, PREVIEW_GLOBAL, PREVIEW_PER_CALLER } from "./rateLimit";
 
 export type { PreviewDevice, ResolvedPreview } from "@/lib/db/repositories/previewSessions";
 
@@ -68,7 +69,23 @@ export async function createPreview(input: CreatePreviewInput) {
  * header. Returns `null` for a token that is unknown *or* expired; the two are
  * not distinguished, so a guesser learns nothing from the difference.
  */
-export async function resolvePreview(token: string) {
+export async function resolvePreview(token: string, identity: string | null) {
+  // A miss is not free: `resolve_preview` still invokes a security-definer
+  // database function. Consume both independent buckets before inspecting the
+  // token, just as the public write services do before validating their input.
+  // Promise.all matters here: callers already over their personal allowance
+  // must still increment the global counter that bounds forged proxy headers.
+  const [callerAllowed, globalAllowed] = await Promise.all([
+    identity === null
+      ? Promise.resolve(true)
+      : consumeRateLimit({ scope: "preview", identity, ...PREVIEW_PER_CALLER }),
+    consumeRateLimit({ scope: "preview", identity: "*", ...PREVIEW_GLOBAL }),
+  ]);
+
+  // Unknown, expired, revoked and rate-limited links all resolve to the same
+  // result, preserving the capability endpoint's existing non-disclosure rule.
+  if (!callerAllowed || !globalAllowed) return null;
+
   const db = await createClient();
   return repo.resolvePreview(db, token);
 }
