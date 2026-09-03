@@ -941,6 +941,25 @@ describe("an authenticated user holding no roles is not staff", () => {
     expect(error?.code).toBe(DENIED);
   });
 
+  it("cannot combine published-row visibility with authenticated draft privileges", async () => {
+    const live = await makePage("published");
+
+    const { data, error } = await outsiderDb
+      .from("pages")
+      .select("slug, status, draft_data, published_data")
+      .eq("id", live.id);
+
+    // `0020` cannot revoke this column from all of `authenticated`: the builder
+    // is authenticated too. `0028` instead scopes published-row visibility to
+    // anon and grants authenticated reads by permission, so a role-less JWT
+    // cannot combine a public row with authenticated's wider column grant.
+    expect(
+      error,
+      "RLS hides the row rather than exposing a distinguishable column error"
+    ).toBeNull();
+    expect(data ?? [], "a role-less account must receive no CMS document row").toHaveLength(0);
+  });
+
   it("can read its own profile and not another account's", async () => {
     const { data: own } = await outsiderDb.from("profiles").select("id").eq("id", outsider.id);
     expect(own ?? [], "own profile").toHaveLength(1);
