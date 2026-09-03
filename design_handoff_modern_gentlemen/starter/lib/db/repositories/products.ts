@@ -365,6 +365,32 @@ export async function createCollection(
   ) as { id: string };
 }
 
+export async function findCollectionBySlug(db: Db, slug: string): Promise<CollectionRow | null> {
+  return (
+    (unwrap(
+      "findCollectionBySlug",
+      await db.from("product_collections").select(COLLECTION_COLUMNS).eq("slug", slug).maybeSingle()
+    ) as CollectionRow | null) ?? null
+  );
+}
+
+/** Add source-provided memberships without removing editorially curated ones. */
+export async function attachProductToCollection(
+  db: Db,
+  productId: string,
+  collectionId: string
+): Promise<void> {
+  unwrap(
+    "attachProductToCollection",
+    await db
+      .from("product_collection_items")
+      .upsert(
+        { collection_id: collectionId, product_id: productId },
+        { onConflict: "collection_id,product_id", ignoreDuplicates: true }
+      )
+  );
+}
+
 export async function updateCollection(
   db: Db,
   id: string,

@@ -94,18 +94,18 @@ or function impossible to reproduce.
 
 ## Commerce and integrations
 
-| Requirement                                                | Status   | Evidence / remaining work                                                                                                                                    |
-| ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Native/direct products                                     | Complete | Metadata, SKU, status, pence pricing, compare-at validation, inventory, availability, variants, collections, badges, specs and galleries.                    |
-| Affiliate products                                         | Complete | Merchant link/name, disclosure, external display price, availability and media share the product model and public catalogue.                                 |
-| Mixed editorial/commerce rendering                         | Complete | Product rows, public catalogue/PDP, bindings and article commerce components use the same published data.                                                    |
-| XML field mapping and manual sync                          | Complete | Configurable mappings, validation, fetch/parse adapters and manual jobs are connected.                                                                       |
-| XML dedupe, change detection, source tracking and approval | Complete | Staged import items record source identity/action/diffs and require review/apply workflows.                                                                  |
-| Scheduled XML sync                                         | Complete | Source schedules and signed background job routing are implemented.                                                                                          |
-| XML error reporting                                        | Complete | Job/item status, errors and review screens expose failures without publishing partial data.                                                                  |
-| Shopify abstraction and product/inventory/status sync      | Complete | Shopify is a `SourceAdapter` behind the same ingestion pipeline, with paginated transforms and hybrid local/source products.                                 |
-| Shopify collection sync                                    | Partial  | Local collections exist, but Shopify collections are not yet imported and mapped as a first-class sync stream.                                               |
-| Live Shopify credential verification/E2E                   | Partial  | Config validation and adapter/unit coverage exist; CI deliberately does not call a real merchant store. Production connection requires merchant credentials. |
+| Requirement                                                | Status   | Evidence / remaining work                                                                                                                                                                                                 |
+| ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Native/direct products                                     | Complete | Metadata, SKU, status, pence pricing, compare-at validation, inventory, availability, variants, collections, badges, specs and galleries.                                                                                 |
+| Affiliate products                                         | Complete | Merchant link/name, disclosure, external display price, availability and media share the product model and public catalogue.                                                                                              |
+| Mixed editorial/commerce rendering                         | Complete | Product rows, public catalogue/PDP, bindings and article commerce components use the same published data.                                                                                                                 |
+| XML field mapping and manual sync                          | Complete | Configurable mappings, validation, fetch/parse adapters and manual jobs are connected.                                                                                                                                    |
+| XML dedupe, change detection, source tracking and approval | Complete | Staged import items record source identity/action/diffs and require review/apply workflows.                                                                                                                               |
+| Scheduled XML sync                                         | Complete | Source schedules and signed background job routing are implemented.                                                                                                                                                       |
+| XML error reporting                                        | Complete | Job/item status, errors and review screens expose failures without publishing partial data.                                                                                                                               |
+| Shopify abstraction and product/inventory/status sync      | Complete | Shopify is a `SourceAdapter` behind the same ingestion pipeline, with paginated transforms and hybrid local/source products.                                                                                              |
+| Shopify collection sync                                    | Partial  | Shopify tags or product type can map additively into created/reused local collections without pruning curated memberships. Direct manual/smart collection-graph mirroring still needs a bounded GraphQL bulk-sync stream. |
+| Live Shopify credential verification/E2E                   | Partial  | Config validation and adapter/unit coverage exist; CI deliberately does not call a real merchant store. Production connection requires merchant credentials.                                                              |
 
 ## Navigation, revisions and publishing
 
@@ -143,8 +143,9 @@ or function impossible to reproduce.
    and the global command palette.~~ Complete 2026-09-03.
 3. ~~Expose media tagging and conditional navigation rules.~~ Complete
    2026-09-03.
-4. Add Shopify collection mapping and the remaining explicit E2E acceptance
-   scenarios.
+4. ~~Add source-to-local Shopify collection mapping.~~ Complete 2026-09-03.
+   Direct Shopify collection-graph mirroring and the remaining explicit E2E
+   acceptance scenarios remain.
 
 This backlog is additive. Existing high-fidelity sections and the fixed article
 template library remain supported until migration fixtures and visual proof

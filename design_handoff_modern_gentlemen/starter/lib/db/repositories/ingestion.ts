@@ -181,17 +181,38 @@ export async function getProductForDiff(
   db: Db,
   id: string
 ): Promise<Record<string, unknown> | null> {
-  return unwrap(
+  const row = unwrap(
     "getProductForDiff",
     await db
       .from("products")
       .select(
         "name, slug, sku, cat, cat_label, blurb, story, material, price_pence, " +
-          "compare_at_pence, stock, availability, badges, affiliate"
+          "compare_at_pence, stock, availability, badges, affiliate, " +
+          "product_collection_items(product_collections(slug, name))"
       )
       .eq("id", id)
       .maybeSingle()
-  ) as Record<string, unknown> | null;
+  ) as unknown as
+    | (Record<string, unknown> & {
+        product_collection_items?: {
+          product_collections: { slug: string; name: string } | null;
+        }[];
+      })
+    | null;
+
+  if (!row) return null;
+  const { product_collection_items: memberships = [], ...product } = row;
+  product.collections = memberships.flatMap((membership) =>
+    membership.product_collections
+      ? [
+          {
+            slug: membership.product_collections.slug,
+            label: membership.product_collections.name,
+          },
+        ]
+      : []
+  );
+  return product;
 }
 
 // ---------------------------------------------------------------------------

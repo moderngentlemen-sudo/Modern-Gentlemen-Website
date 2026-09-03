@@ -63,7 +63,7 @@ import {
   resolveCredential,
 } from "@/lib/integrations/commerce";
 import { uploadAsset } from "./media";
-import { attachProductMedia } from "@/lib/db/repositories/products";
+import * as productsRepo from "@/lib/db/repositories/products";
 import type { Json } from "@/lib/db/database.types";
 import { requirePermission } from "./auth";
 
@@ -578,6 +578,12 @@ export interface ApplyResult {
    * always "run apply again", and a bare number reads as data loss.
    */
   imagesSkipped: number;
+  /** Source collection memberships confirmed without removing curated memberships. */
+  collectionsLinked: number;
+  /** Local collection records created from mapped source values. */
+  collectionsCreated: number;
+  /** Collection links that failed independently after their product was written. */
+  collectionsSkipped: number;
   /**
    * Approved items this call did not reach, because the batch was full.
    *
@@ -629,12 +635,16 @@ export async function applyJob(jobId: string, limit = APPLY_BATCH_SIZE): Promise
     productIds: [],
     imagesImported: 0,
     imagesSkipped: 0,
+    collectionsLinked: 0,
+    collectionsCreated: 0,
+    collectionsSkipped: 0,
     remaining: approvedAll.length - approved.length,
   };
 
   // One budget for the whole run — see `imageImportPlan` on why a cap rather
   // than a queue is the right answer while the import stays idempotent.
   const imageBudget = { remaining: MAX_IMAGE_DOWNLOADS_PER_RUN };
+  const collectionsBySlug = new Map<string, string>();
 
   // ⚠️ Checked once, up front, rather than discovered per image. `uploadAsset`
   // requires `media.write`, which `applyJob` does not otherwise need — a
@@ -664,6 +674,14 @@ export async function applyJob(jobId: string, limit = APPLY_BATCH_SIZE): Promise
       await repo.markItemApplied(db, item.id, productId);
       result.applied += 1;
       result.productIds.push(productId);
+
+      await importCollections(db, {
+        productId,
+        product: parsed.data,
+        label: item.external_id ?? item.id,
+        collectionsBySlug,
+        result,
+      });
 
       // ⚠️ **After the item is marked applied, and outside its try/catch on
       // purpose.** The product row is written and correct; a photograph that
@@ -757,7 +775,7 @@ async function importImages(
 
     try {
       const asset = await imageAssetFor(url, input.product);
-      await attachProductMedia(db, input.productId, {
+      await productsRepo.attachProductMedia(db, input.productId, {
         assetId: asset.id,
         // The first photograph a feed lists is the one it leads with. Position
         // carries the feed's own order, which is the only ordering information
@@ -769,6 +787,60 @@ async function importImages(
     } catch (error) {
       input.result.imagesSkipped += 1;
       input.result.errors.push(`${input.label}: image ${index + 1} — ${describe(error)}`);
+    }
+  }
+}
+
+/**
+ * Adds mapped source collections after the product write. A feed is allowed to
+ * merchandise a product into another collection, but never to remove a
+ * relationship an editor curated locally; the operation is therefore an
+ * idempotent attach, not replacement.
+ */
+async function importCollections(
+  db: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    productId: string;
+    product: NormalisedProduct;
+    label: string;
+    collectionsBySlug: Map<string, string>;
+    result: ApplyResult;
+  }
+): Promise<void> {
+  for (const collection of input.product.collections ?? []) {
+    try {
+      let collectionId = input.collectionsBySlug.get(collection.slug);
+      if (!collectionId) {
+        const existing = await productsRepo.findCollectionBySlug(db, collection.slug);
+        if (existing) {
+          collectionId = existing.id;
+        } else {
+          try {
+            const created = await productsRepo.createCollection(db, {
+              slug: collection.slug,
+              name: collection.label,
+            });
+            collectionId = created.id;
+            input.result.collectionsCreated += 1;
+          } catch (error) {
+            const collision = error instanceof RepositoryError && error.code === "23505";
+            const raced = collision
+              ? await productsRepo.findCollectionBySlug(db, collection.slug)
+              : null;
+            if (!raced) throw error;
+            collectionId = raced.id;
+          }
+        }
+        input.collectionsBySlug.set(collection.slug, collectionId);
+      }
+
+      await productsRepo.attachProductToCollection(db, input.productId, collectionId);
+      input.result.collectionsLinked += 1;
+    } catch (error) {
+      input.result.collectionsSkipped += 1;
+      input.result.errors.push(
+        `${input.label}: collection "${collection.label}" was not linked (${describe(error)}).`
+      );
     }
   }
 }

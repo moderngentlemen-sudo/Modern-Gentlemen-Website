@@ -139,6 +139,7 @@ export const FEED_TARGET_FIELDS: Readonly<Record<string, TargetFieldSpec>> = {
   availability: { kind: "availability", label: "Availability" },
   badges: { kind: "list", label: "Badges" },
   images: { kind: "urlList", label: "Image URLs" },
+  collections: { kind: "list", label: "Collections" },
   "affiliate.merchant_name": { kind: "text", label: "Merchant name" },
   "affiliate.merchant_url": { kind: "url", label: "Merchant URL" },
   "affiliate.disclosure": { kind: "text", label: "Disclosure" },
@@ -523,6 +524,9 @@ export const normalisedProductSchema = z
     badges: z.array(z.enum(PRODUCT_BADGES)).optional(),
     /** URLs, not asset ids. `applyJob` fetches them and catalogues the result. */
     images: z.array(z.string().url()).optional(),
+    collections: z
+      .array(z.object({ slug: z.string().min(1), label: z.string().min(1) }).strict())
+      .optional(),
     affiliate: z
       .object({
         merchant_name: z.string().optional(),
@@ -561,6 +565,14 @@ export function assembleProduct(values: Partial<Record<FeedTargetField, unknown>
     if (value === null || value === undefined) continue;
     if (field.startsWith("affiliate.")) {
       affiliate[field.slice("affiliate.".length)] = value;
+    } else if (field === "collections" && Array.isArray(value)) {
+      const bySlug = new Map<string, string>();
+      for (const entry of value) {
+        const label = String(entry).trim().replace(/\s+/g, " ");
+        const slug = slugify(label);
+        if (slug && !bySlug.has(slug)) bySlug.set(slug, label);
+      }
+      product.collections = [...bySlug].map(([slug, label]) => ({ slug, label }));
     } else {
       product[field] = value;
     }
@@ -678,6 +690,30 @@ export function diffFields(
     const current = before[field] ?? null;
     const normalisedCurrent = current === undefined ? null : current;
 
+    if (field === "collections" && Array.isArray(incoming)) {
+      const present = Array.isArray(normalisedCurrent) ? normalisedCurrent : [];
+      const slugs = new Set(
+        present.flatMap((entry) =>
+          entry &&
+          typeof entry === "object" &&
+          typeof (entry as { slug?: unknown }).slug === "string"
+            ? [(entry as { slug: string }).slug]
+            : []
+        )
+      );
+      const additions = incoming.filter(
+        (entry) =>
+          entry &&
+          typeof entry === "object" &&
+          typeof (entry as { slug?: unknown }).slug === "string" &&
+          !slugs.has((entry as { slug: string }).slug)
+      );
+      if (additions.length > 0) {
+        changes.push({ field, before: present, after: [...present, ...additions] });
+      }
+      continue;
+    }
+
     if (stableStringify(normalisedCurrent) !== stableStringify(incoming)) {
       changes.push({ field, before: normalisedCurrent, after: incoming });
     }
@@ -752,7 +788,7 @@ export function columnsForApply(
     // `media_assets` rows and `product_media` links after this row is written;
     // copied through here it would reach `products` as a column that does not
     // exist, failing the apply of a run that validated cleanly.
-    if (field === "images") continue;
+    if (field === "images" || field === "collections") continue;
     if (action === "update" && !writtenOnUpdate(field)) continue;
     columns[field] = value;
   }

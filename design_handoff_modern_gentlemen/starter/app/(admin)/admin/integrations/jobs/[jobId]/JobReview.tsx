@@ -142,6 +142,9 @@ export function JobReview({
       let failed = 0;
       let imagesImported = 0;
       let imagesSkipped = 0;
+      let collectionsLinked = 0;
+      let collectionsCreated = 0;
+      let collectionsSkipped = 0;
       let batches = 0;
 
       for (;;) {
@@ -163,6 +166,9 @@ export function JobReview({
         failed += result.data.failed;
         imagesImported += result.data.imagesImported;
         imagesSkipped += result.data.imagesSkipped;
+        collectionsLinked += result.data.collectionsLinked;
+        collectionsCreated += result.data.collectionsCreated;
+        collectionsSkipped += result.data.collectionsSkipped;
         batches += 1;
 
         if (result.data.remaining === 0) break;
@@ -195,10 +201,17 @@ export function JobReview({
             ? ` · ${imagesImported} image${imagesImported === 1 ? "" : "s"}`
             : ` · ${imagesImported} image${imagesImported === 1 ? "" : "s"}, ${imagesSkipped} left — run apply again`;
 
+      const collections =
+        collectionsLinked === 0 && collectionsSkipped === 0
+          ? ""
+          : ` · ${collectionsLinked} collection link${collectionsLinked === 1 ? "" : "s"}` +
+            (collectionsCreated > 0 ? ` (${collectionsCreated} new)` : "") +
+            (collectionsSkipped > 0 ? `, ${collectionsSkipped} skipped` : "");
+
       toast.push(
         failed === 0
-          ? `${applied} written to the catalogue${images}`
-          : `${applied} written, ${failed} failed${images}`,
+          ? `${applied} written to the catalogue${images}${collections}`
+          : `${applied} written, ${failed} failed${images}${collections}`,
         failed === 0 ? "success" : "error"
       );
       router.refresh();

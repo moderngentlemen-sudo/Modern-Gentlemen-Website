@@ -127,6 +127,13 @@ describe("coerceValue", () => {
     });
   });
 
+  it("accepts Shopify tags as collection candidates", () => {
+    expect(coerceValue("collections", ["Style", "Essentials"])).toEqual({
+      ok: true,
+      value: ["Style", "Essentials"],
+    });
+  });
+
   it("refuses a merchant URL that is not one", () => {
     expect(coerceValue("affiliate.merchant_url", "not a url").ok).toBe(false);
     expect(coerceValue("affiliate.merchant_url", "javascript:alert(1)").ok).toBe(false);
@@ -162,6 +169,21 @@ describe("assembleProduct", () => {
     if (result.ok) expect(result.product.slug).toBe("custom-slug");
   });
 
+  it("normalises collection names into unique local identities", () => {
+    const result = assembleProduct({
+      external_id: "A",
+      name: "Watch Roll",
+      collections: [" Men's Style ", "men's style", "Travel"],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.product.collections).toEqual([
+        { slug: "men-s-style", label: "Men's Style" },
+        { slug: "travel", label: "Travel" },
+      ]);
+    }
+  });
+
   it("fails a record with no name", () => {
     expect(assembleProduct({ external_id: "A" }).ok).toBe(false);
   });
@@ -182,6 +204,12 @@ describe("contentHashOf", () => {
     const withAffiliate = product({ affiliate: { merchant_name: "A" } });
     const changed = product({ affiliate: { merchant_name: "B" } });
     expect(contentHashOf(withAffiliate)).not.toBe(contentHashOf(changed));
+  });
+
+  it("tracks collection mapping changes", () => {
+    expect(contentHashOf(product({ collections: [{ slug: "style", label: "Style" }] }))).not.toBe(
+      contentHashOf(product({ collections: [{ slug: "travel", label: "Travel" }] }))
+    );
   });
 });
 
@@ -239,6 +267,27 @@ describe("diffFields", () => {
     expect(changes.map((change) => change.field)).not.toContain("external_id");
   });
 
+  it("shows imported collections as additions without promising to remove curated ones", () => {
+    const current = [{ slug: "editorial", label: "Editorial" }];
+    const changes = diffFields(
+      { name: "Oxford Shoe", collections: current },
+      product({ collections: [{ slug: "shopify-style", label: "Shopify Style" }] })
+    );
+    expect(changes.find((change) => change.field === "collections")).toEqual({
+      field: "collections",
+      before: current,
+      after: [...current, { slug: "shopify-style", label: "Shopify Style" }],
+    });
+  });
+
+  it("does not propose removing a collection omitted by the source", () => {
+    const changes = diffFields(
+      { name: "Oxford Shoe", collections: [{ slug: "editorial", label: "Editorial" }] },
+      product({ collections: [] })
+    );
+    expect(changes.map((change) => change.field)).not.toContain("collections");
+  });
+
   it("agrees with columnsForApply about which fields an update writes", () => {
     const before = { name: "Old name", slug: "old-slug", price_pence: 1 };
     const diffed = diffFields(before, product()).map((change) => change.field);
@@ -270,6 +319,15 @@ describe("columnsForApply", () => {
 
   it("does not write external_id as a column — the repository owns it", () => {
     expect(columnsForApply(product(), "create", DEFAULTS)).not.toHaveProperty("external_id");
+  });
+
+  it("does not mistake collection relationships for product columns", () => {
+    const columns = columnsForApply(
+      product({ collections: [{ slug: "style", label: "Style" }] }),
+      "create",
+      DEFAULTS
+    );
+    expect(columns).not.toHaveProperty("collections");
   });
 
   it("carries the affiliate object through as one value", () => {

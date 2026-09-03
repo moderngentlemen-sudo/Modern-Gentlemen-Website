@@ -388,7 +388,10 @@ export function SourceEditor({
                 A number selects one entry of a list, so{" "}
                 <code className="font-mono">variants/0/price</code> is the first variant&rsquo;s
                 price; without one, <code className="font-mono">variants/sku</code> matches every
-                variant.
+                variant. To merchandise by Shopify tags, map <code className="font-mono">tags</code>
+                to <code className="font-mono">collections</code> with the
+                <code className="font-mono"> split_commas</code> transform;
+                <code className="font-mono"> product_type</code> can map one collection directly.
               </>
             ) : (
               <>

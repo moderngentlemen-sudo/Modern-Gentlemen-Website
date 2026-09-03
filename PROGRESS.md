@@ -11,6 +11,23 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — source products can map into local collections
+
+The generic ingestion vocabulary now includes a non-column `collections`
+target. Shopify sources can map comma-separated `tags` with `split_commas`, or
+map `product_type` directly; XML sources receive the same capability through
+the adapter abstraction. Values become stable local slugs and display labels,
+review diffs show additive collection relationships, and apply creates or
+reuses collection rows before idempotently attaching the product. Source syncs
+never prune a local membership, so editor-curated merchandising remains intact.
+Apply summaries report links, newly created collections and independent
+failures. This closes field-level Shopify collection mapping. Direct mirroring
+of Shopify's actual manual/smart collection graph remains a separate GraphQL
+bulk-sync stream: the legacy REST product response does not carry memberships,
+and per-product requests would make a large sync an unsafe N+1 operation.
+Formatting, repository-wide ESLint, TypeScript, and all **1,845/1,845 unit
+tests** pass locally.
+
 ### 2026-09-03 — conditional navigation rules
 
 Menu entries now expose working visibility controls for everyone, signed-in or
