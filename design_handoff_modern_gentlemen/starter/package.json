@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "deploy:check": "node scripts/check-deploy.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project=unit",
     "test:watch": "vitest --project=unit",

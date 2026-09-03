@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   DEFAULT_THEME_COLORS,
   DEFAULT_THEME_COMPONENTS,
+  DEFAULT_THEME_FOOTER,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_TYPOGRAPHY,
   FONT_PRESET_OPTIONS,
+  FOOTER_LAYOUTS,
   HEADER_BACKGROUNDS,
   HEADER_CART_VISIBILITY,
   HEADER_COMPOSITIONS,
@@ -35,6 +37,7 @@ import {
   WEBFONT_SOURCES,
   WEBFONT_STYLES,
   type FontSelection,
+  type FooterLayout,
   type HeaderBackground,
   type HeaderCartVisibility,
   type HeaderComposition,
@@ -44,14 +47,16 @@ import {
   type ThemeLayout,
   type ThemeContext,
   type ThemeComponentDefaults,
+  type ThemeFooter,
   type ThemeSettings,
   type ThemeStyleClass,
   type ThemeToken,
+  type ThemeTokenAlias,
   type ThemeTypography,
   type ThemeWebfont,
 } from "@/lib/domain/theme";
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
-import { ColorInput, TextInput } from "@/components/admin/ui/Input";
+import { ColorInput, TextArea, TextInput } from "@/components/admin/ui/Input";
 import { Button } from "@/components/admin/ui/Button";
 import { Select } from "@/components/admin/ui/Select";
 import { NumberInput } from "@/components/admin/ui/NumberInput";
@@ -180,6 +185,12 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDraft((current) => ({ ...current, header: { ...current.header, [key]: value } }));
   }
 
+  function setFooter<K extends keyof ThemeFooter>(key: K, value: ThemeFooter[K]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, footer: { ...current.footer, [key]: value } }));
+  }
+
   function setLayout<K extends keyof ThemeLayout>(key: K, value: ThemeLayout[K]) {
     setDirty(true);
     setError(null);
@@ -235,6 +246,29 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, styleClasses }));
+  }
+
+  function setTokenAliases(tokenAliases: ThemeTokenAlias[]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, tokenAliases }));
+  }
+
+  function addTokenAlias() {
+    if (draft.tokenAliases.length >= 24) return;
+    let id = `token-${Date.now().toString(36)}`;
+    let suffix = 2;
+    while (draft.tokenAliases.some((token) => token.id === id)) id = `${id}-${suffix++}`;
+    setTokenAliases([
+      ...draft.tokenAliases,
+      { id, name: `Color ${draft.tokenAliases.length + 1}`, light: "#0d0d0d", dark: "#f4f4f4" },
+    ]);
+  }
+
+  function updateTokenAlias(id: string, patch: Partial<ThemeTokenAlias>) {
+    setTokenAliases(
+      draft.tokenAliases.map((token) => (token.id === id ? { ...token, ...patch } : token))
+    );
   }
 
   function addStyleClass() {
@@ -736,6 +770,75 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
         </PanelSection>
 
         <PanelSection
+          title="Shared color tokens"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending || draft.tokenAliases.length >= 24}
+                onClick={addTokenAlias}
+              >
+                Add token
+              </Button>
+            ) : undefined
+          }
+        >
+          <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-mg-fg/60">
+            Name a light/dark color once, then use it in local element styles, component states or
+            reusable classes. Existing theme roles remain unchanged.
+          </p>
+          <div className="space-y-4">
+            {draft.tokenAliases.length === 0 ? (
+              <p className="border border-dashed border-mg-bd/20 px-4 py-6 text-[13px] text-mg-fg/60">
+                No shared local tokens yet.
+              </p>
+            ) : (
+              draft.tokenAliases.map((token) => (
+                <div
+                  key={token.id}
+                  className="grid gap-4 border border-mg-bd/15 p-4 sm:grid-cols-2 xl:grid-cols-4"
+                >
+                  <TextInput
+                    label="Token name"
+                    value={token.name}
+                    help={`Stable id: ${token.id}`}
+                    disabled={!canWrite || pending}
+                    onChange={(name) => updateTokenAlias(token.id, { name })}
+                  />
+                  <ColorInput
+                    label="Light value"
+                    value={token.light}
+                    disabled={!canWrite || pending}
+                    onChange={(light) => updateTokenAlias(token.id, { light })}
+                  />
+                  <ColorInput
+                    label="Dark value"
+                    value={token.dark}
+                    disabled={!canWrite || pending}
+                    onChange={(dark) => updateTokenAlias(token.id, { dark })}
+                  />
+                  {canWrite && (
+                    <div className="flex items-end">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={pending}
+                        onClick={() =>
+                          setTokenAliases(draft.tokenAliases.filter((item) => item.id !== token.id))
+                        }
+                      >
+                        Remove token
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </PanelSection>
+
+        <PanelSection
           title="Reusable style classes"
           actions={
             canWrite ? (
@@ -767,6 +870,7 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                   key={styleClass.id}
                   value={styleClass}
                   disabled={!canWrite || pending}
+                  tokenAliases={draft.tokenAliases}
                   onChange={(next) => updateStyleClass(styleClass.id, next)}
                   onRemove={() => removeStyleClass(styleClass.id)}
                 />
@@ -979,6 +1083,148 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               placeholder="/newsletter"
               help="Internal path or HTTPS URL."
             />
+            <TextInput
+              label="Announcement"
+              value={draft.header.announcementText}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("announcementText", value)}
+              placeholder="Complimentary shipping this week"
+              help="Leave empty to preserve the original single-row header."
+            />
+            <TextInput
+              label="Announcement destination"
+              value={draft.header.announcementHref}
+              disabled={!canWrite || pending || !draft.header.announcementText}
+              onChange={(value) => setHeader("announcementHref", value)}
+              placeholder="/shop"
+              help="Optional internal path or HTTPS URL."
+            />
+            <Toggle
+              label="Show account"
+              checked={draft.header.showAccount}
+              disabled={!canWrite || pending}
+              onChange={(value) => setHeader("showAccount", value)}
+            />
+            <TextInput
+              label="Account destination"
+              value={draft.header.accountHref}
+              disabled={!canWrite || pending || !draft.header.showAccount}
+              onChange={(value) => setHeader("accountHref", value)}
+              placeholder="/account"
+              help="Internal path or HTTPS URL."
+            />
+            <Toggle
+              label="Show header socials"
+              checked={draft.header.showSocials}
+              disabled={!canWrite || pending}
+              help="Compact Instagram and X links appear on wide screens when destinations are set."
+              onChange={(value) => setHeader("showSocials", value)}
+            />
+            <TextInput
+              label="Header Instagram URL"
+              type="url"
+              value={draft.header.instagramHref}
+              disabled={!canWrite || pending || !draft.header.showSocials}
+              onChange={(value) => setHeader("instagramHref", value)}
+              placeholder="https://instagram.com/..."
+              help="HTTPS only."
+            />
+            <TextInput
+              label="Header X URL"
+              type="url"
+              value={draft.header.xHref}
+              disabled={!canWrite || pending || !draft.header.showSocials}
+              onChange={(value) => setHeader("xHref", value)}
+              placeholder="https://x.com/..."
+              help="HTTPS only."
+            />
+          </div>
+        </PanelSection>
+
+        <PanelSection
+          title="Footer"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDirty(true);
+                  setDraft((current) => ({
+                    ...current,
+                    footer: { ...DEFAULT_THEME_FOOTER },
+                  }));
+                }}
+              >
+                Reset to defaults
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Select
+              label="Footer layout"
+              value={draft.footer.layout}
+              disabled={!canWrite || pending}
+              options={FOOTER_LAYOUTS.map((value) => ({
+                value,
+                label:
+                  value === "responsive"
+                    ? "Responsive columns"
+                    : value === "stacked"
+                      ? "Always stacked"
+                      : "Centered stack",
+              }))}
+              onChange={(value) => setFooter("layout", value as FooterLayout)}
+            />
+            <Toggle
+              label="Show tagline"
+              checked={draft.footer.showTagline}
+              disabled={!canWrite || pending}
+              onChange={(value) => setFooter("showTagline", value)}
+            />
+            <Toggle
+              label="Show social row"
+              checked={draft.footer.showSocials}
+              disabled={!canWrite || pending}
+              onChange={(value) => setFooter("showSocials", value)}
+            />
+            <div className="sm:col-span-2 xl:col-span-3">
+              <TextArea
+                label="Footer tagline"
+                value={draft.footer.tagline}
+                rows={2}
+                disabled={!canWrite || pending || !draft.footer.showTagline}
+                onChange={(value) => setFooter("tagline", value)}
+                help="Up to 240 characters. Navigation and legal links remain menu-managed."
+              />
+            </div>
+            <TextInput
+              label="Social row label"
+              value={draft.footer.followLabel}
+              disabled={!canWrite || pending || !draft.footer.showSocials}
+              onChange={(value) => setFooter("followLabel", value)}
+            />
+            {(
+              [
+                ["instagramHref", "Instagram URL"],
+                ["xHref", "X URL"],
+                ["youtubeHref", "YouTube URL"],
+                ["linkedinHref", "LinkedIn URL"],
+              ] as const
+            ).map(([key, label]) => (
+              <TextInput
+                key={key}
+                label={label}
+                type="url"
+                value={draft.footer[key]}
+                disabled={!canWrite || pending || !draft.footer.showSocials}
+                onChange={(value) => setFooter(key, value)}
+                placeholder="https://"
+                help="HTTPS only. Leave blank to hide this destination."
+              />
+            ))}
           </div>
         </PanelSection>
       </Panel>

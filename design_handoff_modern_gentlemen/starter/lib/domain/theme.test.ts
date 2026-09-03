@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THEME_COLORS,
   DEFAULT_THEME_COMPONENTS,
+  DEFAULT_THEME_FOOTER,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_SETTINGS,
@@ -25,11 +26,13 @@ import {
   TOKENS_BY_CONTEXT,
   accentChannels,
   parseThemeHeader,
+  parseThemeFooter,
   parseThemeLayout,
   parseThemeColors,
   parseThemeComponentDefaults,
   parseThemeSettings,
   parseThemeStyleClasses,
+  parseThemeTokenAliases,
   parseThemeTypography,
   safeCssColor,
   themeCssText,
@@ -158,6 +161,7 @@ describe("editable typography and header settings", () => {
     expect(parsed.colors).toEqual(DEFAULT_THEME_COLORS);
     expect(parsed.typography).toEqual(DEFAULT_THEME_TYPOGRAPHY);
     expect(parsed.header).toEqual(DEFAULT_THEME_HEADER);
+    expect(parsed.footer).toEqual(DEFAULT_THEME_FOOTER);
     expect(parsed.layout).toEqual(DEFAULT_THEME_LAYOUT);
     expect(parsed.styleClasses).toEqual([]);
     expect(parsed.components).toEqual(DEFAULT_THEME_COMPONENTS);
@@ -268,6 +272,29 @@ describe("editable typography and header settings", () => {
     ).toEqual([{ id: "safe-card", name: "Safe", visual: { styles: { desktop: { gap: 16 } } } }]);
   });
 
+  it("validates, parses and emits shared light/dark color aliases", () => {
+    const tokenAliases = [
+      { id: "brand-gold", name: "Brand gold", light: "#6b4f00", dark: "#f5cf65" },
+    ];
+    expect(parseThemeTokenAliases({ tokenAliases })).toEqual(tokenAliases);
+    expect(themeSettingsSchema.safeParse({ ...DEFAULT_THEME_SETTINGS, tokenAliases }).success).toBe(
+      true
+    );
+
+    const css = themeDesignCssText({ ...DEFAULT_THEME_SETTINGS, tokenAliases });
+    expect(css).toContain(":root:root{--mg-token-brand-gold:#f5cf65}");
+    expect(css).toContain('html[data-mgtheme="light"]:root{--mg-token-brand-gold:#6b4f00}');
+    expect(
+      parseThemeTokenAliases({
+        tokenAliases: [
+          ...tokenAliases,
+          { id: "brand-gold", name: "Duplicate", light: "red", dark: "blue" },
+          { id: "unsafe token", name: "Unsafe", light: "#fff", dark: "#000" },
+        ],
+      })
+    ).toEqual(tokenAliases);
+  });
+
   it("keeps valid stored choices and falls back field by field", () => {
     expect(
       parseThemeTypography({
@@ -307,6 +334,68 @@ describe("editable typography and header settings", () => {
         },
       })
     ).toEqual({ ...DEFAULT_THEME_HEADER, height: 88, ctaLabel: "Join us" });
+
+    expect(
+      parseThemeFooter({
+        footer: {
+          layout: "centered",
+          showTagline: false,
+          tagline: "  A quieter footer.  ",
+          instagramHref: "javascript:alert(1)",
+          xHref: "https://example.com/modern-gentlemen",
+        },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_FOOTER,
+      layout: "centered",
+      showTagline: false,
+      tagline: "A quieter footer.",
+      xHref: "https://example.com/modern-gentlemen",
+    });
+  });
+
+  it("strictly rejects unsafe footer destinations", () => {
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        footer: { ...DEFAULT_THEME_FOOTER, instagramHref: "/social" },
+      }).success
+    ).toBe(false);
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        footer: { ...DEFAULT_THEME_FOOTER, instagramHref: "https://example.com/profile" },
+      }).success
+    ).toBe(true);
+  });
+
+  it("keeps safe optional header chrome and rejects unsafe destinations", () => {
+    expect(
+      parseThemeHeader({
+        header: {
+          announcementText: "  New issue available  ",
+          announcementHref: "/latest",
+          showAccount: true,
+          accountHref: "javascript:alert(1)",
+          showSocials: true,
+          instagramHref: "https://instagram.com/modern.gentlemen",
+          xHref: "/social",
+        },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_HEADER,
+      announcementText: "New issue available",
+      announcementHref: "/latest",
+      showAccount: true,
+      showSocials: true,
+      instagramHref: "https://instagram.com/modern.gentlemen",
+    });
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        header: { ...DEFAULT_THEME_HEADER, announcementHref: "javascript:alert(1)" },
+      }).success
+    ).toBe(false);
   });
 
   it("emits role variables from presets rather than arbitrary CSS", () => {
@@ -324,6 +413,15 @@ describe("editable typography and header settings", () => {
     expect(css).toContain("--layout-content-width:1320px");
     expect(css).toContain("--layout-desktop-gutter:48px");
     expect(css).toContain("--layout-mobile-gutter:22px");
+  });
+
+  it("includes an enabled announcement in the public header offset", () => {
+    expect(
+      themeDesignCssText({
+        ...DEFAULT_THEME_SETTINGS,
+        header: { ...DEFAULT_THEME_HEADER, height: 80, announcementText: "New issue" },
+      })
+    ).toContain("--header-height:108px");
   });
 
   it("keeps valid layout settings and falls back field by field", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseAssignmentTarget } from "./templates";
+import { deriveTemplateOverrideState, parseAssignmentTarget } from "./templates";
 
 /**
  * The one pure boundary in the assignment path, and the only place a value an
@@ -78,5 +78,71 @@ describe("parseAssignmentTarget", () => {
     ]) {
       expect(parseAssignmentTarget(bad, "page"), bad).toBeNull();
     }
+  });
+});
+
+describe("deriveTemplateOverrideState", () => {
+  const templates = [
+    { id: "default", name: "Editorial default", status: "published" },
+    { id: "feature", name: "Feature frame", status: "draft" },
+  ];
+
+  it("keeps explicit and inherited assignments separate", () => {
+    expect(
+      deriveTemplateOverrideState(
+        templates,
+        [
+          {
+            template_id: "default",
+            scope: "content_type",
+            content_type: "article",
+            taxonomy_slug: null,
+            entry_id: null,
+            priority: 0,
+          },
+          {
+            template_id: "feature",
+            scope: "entry",
+            content_type: "article",
+            taxonomy_slug: null,
+            entry_id: "article-1",
+            priority: 0,
+          },
+        ],
+        "article",
+        "article-1"
+      )
+    ).toEqual({
+      explicitTemplateId: "feature",
+      inheritedTemplate: { id: "default", name: "Editorial default" },
+      options: templates,
+    });
+  });
+
+  it("does not describe a draft content-type assignment as a live inheritance", () => {
+    expect(
+      deriveTemplateOverrideState(
+        templates,
+        [
+          {
+            template_id: "feature",
+            scope: "content_type",
+            content_type: "article",
+            taxonomy_slug: null,
+            entry_id: null,
+            priority: 0,
+          },
+        ],
+        "article",
+        "article-1"
+      ).inheritedTemplate
+    ).toBeNull();
+  });
+
+  it("represents inheritance without copying the default into the override", () => {
+    expect(deriveTemplateOverrideState(templates, [], "page", "page-1")).toMatchObject({
+      explicitTemplateId: null,
+      inheritedTemplate: null,
+    });
   });
 });

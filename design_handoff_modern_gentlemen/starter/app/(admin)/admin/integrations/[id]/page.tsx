@@ -3,7 +3,12 @@ import type { z } from "zod";
 
 import { requirePermission } from "@/lib/services/auth";
 import { getSource, listJobs, listMappings } from "@/lib/services/ingestion";
-import { isSyncSchedule, shopifyConfigSchema, xmlFeedConfigSchema } from "@/lib/domain/ingestion";
+import {
+  DEFAULT_SHOPIFY_API_VERSION,
+  isSyncSchedule,
+  shopifyConfigSchema,
+  xmlFeedConfigSchema,
+} from "@/lib/domain/ingestion";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Button } from "@/components/admin/ui/Button";
 import { SourceEditor } from "./SourceEditor";
@@ -80,10 +85,12 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
             url: xml?.url ?? "",
             itemPath: xml?.item_path ?? "",
             shopDomain: shopify?.shop_domain ?? "",
-            apiVersion: shopify?.api_version ?? "2025-01",
+            apiVersion: shopify?.api_version ?? DEFAULT_SHOPIFY_API_VERSION,
             pageSize: shopify?.page_size ?? 250,
             maxPages: shopify?.max_pages ?? 20,
             status: shopify?.status ?? "active",
+            transport: shopify?.transport ?? "rest",
+            collectionLimit: shopify?.collection_limit ?? 50,
             fulfilment: (shopify ?? xml)?.fulfilment ?? "direct",
             currency: (shopify ?? xml)?.currency ?? "GBP",
           }}

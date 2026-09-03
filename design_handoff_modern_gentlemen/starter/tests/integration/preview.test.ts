@@ -30,7 +30,11 @@ describe("resolve_preview", () => {
   it("hands an anonymous caller the draft a valid token names", async () => {
     const page = await fixtures.createPage();
     const token = prefixed("valid-token");
-    await fixtures.createPreviewSession({ token, entityId: page.id });
+    await fixtures.createPreviewSession({
+      token,
+      entityId: page.id,
+      context: { entityType: "page", entityId: page.id },
+    });
 
     const { data, error } = await anon.rpc("resolve_preview", { p_token: token });
 
@@ -38,6 +42,7 @@ describe("resolve_preview", () => {
     expect(data).toHaveLength(1);
     expect(data?.[0].entity_type).toBe("page");
     expect(data?.[0].entity_id).toBe(page.id);
+    expect(data?.[0].context).toEqual({ entityType: "page", entityId: page.id });
 
     const payload = data?.[0].data as { sections: { quote: string }[] };
     expect(payload.sections[0].quote).toBe("A fixture quote.");

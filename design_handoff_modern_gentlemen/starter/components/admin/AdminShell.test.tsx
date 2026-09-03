@@ -99,3 +99,19 @@ describe("the Templates entry", () => {
     expect(within(nav).queryByRole("link", { name: "Templates" })).toBeNull();
   });
 });
+
+describe("the Subscribers entry", () => {
+  it("shares the integration read boundary with product-source integrations", () => {
+    renderShell(["integration.read"]);
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).getByRole("link", { name: "Subscribers" })).toHaveAttribute(
+      "href",
+      "/admin/newsletter"
+    );
+  });
+
+  it("does not expose subscriber data without integration access", () => {
+    renderShell(["page.read"]);
+    expect(screen.queryByRole("link", { name: "Subscribers" })).toBeNull();
+  });
+});

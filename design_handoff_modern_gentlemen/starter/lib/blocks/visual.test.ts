@@ -38,6 +38,20 @@ describe("visual element design", () => {
     expect(result.css).toContain("prefers-reduced-motion:reduce");
   });
 
+  it("emits bounded hover, focus-within and active appearance states", () => {
+    const result = visualCss("button", {
+      states: {
+        hover: { background: "accent", color: "light" },
+        focus: { border: "strong", shadow: "elevated" },
+        active: { opacity: 75 },
+      },
+    });
+
+    expect(result.css).toContain(":hover{background:var(--mg-accent);color:#f4f4f4}");
+    expect(result.css).toContain(":focus-within{border:1px solid var(--mg-bd);box-shadow:");
+    expect(result.css).toContain(":active{opacity:0.75;--mg-visual-opacity:0.75}");
+  });
+
   it("rejects arbitrary CSS values and unknown responsive properties", () => {
     const issues = validateVisualDesign({
       styles: {
@@ -67,6 +81,21 @@ describe("visual element design", () => {
       "visual.effects.entrance",
       "visual.effects.revealBehavior",
       "visual.effects.revealDelay",
+    ]);
+  });
+
+  it("rejects unknown states, layout properties and arbitrary state values", () => {
+    expect(
+      validateVisualDesign({
+        states: {
+          selected: { background: "accent" },
+          hover: { position: "absolute", background: "url(javascript:evil)" },
+        },
+      }).map((issue) => issue.path)
+    ).toEqual([
+      "visual.states.selected",
+      "visual.states.hover.position",
+      "visual.states.hover.background",
     ]);
   });
 
@@ -100,6 +129,16 @@ describe("visual element design", () => {
     ).toBe(
       "width:100%;max-width:760px;margin-inline:auto;border-radius:999px;opacity:0.75;--mg-visual-opacity:0.75"
     );
+  });
+
+  it("references only safe shared token ids", () => {
+    expect(visualDeclarations({ backgroundToken: "brand-gold", colorToken: "on-brand-gold" })).toBe(
+      "background:var(--mg-token-brand-gold);color:var(--mg-token-on-brand-gold)"
+    );
+    expect(
+      validateVisualDesign({ styles: { desktop: { backgroundToken: 'bad"]{display:none}' } } })[0]
+        ?.path
+    ).toBe("visual.styles.desktop.backgroundToken");
   });
 
   it("emits bounded precise dimensions and positioning", () => {

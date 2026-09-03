@@ -14,10 +14,87 @@
 
 import { z } from "zod";
 
+export const bindingConditionOperatorSchema = z.enum([
+  "equals",
+  "not_equals",
+  "contains",
+  "not_contains",
+  "starts_with",
+  "ends_with",
+  "greater_than",
+  "greater_than_or_equal",
+  "less_than",
+  "less_than_or_equal",
+  "exists",
+  "not_exists",
+]);
+
+export const bindingConditionSchema = z
+  .object({
+    field: z.string().min(1),
+    operator: bindingConditionOperatorSchema,
+    value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  })
+  .superRefine((condition, context) => {
+    const valueFree = condition.operator === "exists" || condition.operator === "not_exists";
+    const textOnly = ["contains", "not_contains", "starts_with", "ends_with"].includes(
+      condition.operator
+    );
+    const numberOnly = [
+      "greater_than",
+      "greater_than_or_equal",
+      "less_than",
+      "less_than_or_equal",
+    ].includes(condition.operator);
+    if (!valueFree && condition.value === undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: "Required" });
+    }
+    if (valueFree && condition.value !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "Presence checks do not take a value",
+      });
+    }
+    if (textOnly && typeof condition.value !== "string") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "This operator requires text",
+      });
+    }
+    if (numberOnly && typeof condition.value !== "number") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "This operator requires a number",
+      });
+    }
+    if (typeof condition.value === "string" && !valueFree && condition.value.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "Condition values cannot be empty",
+      });
+    }
+  });
+
+export const bindingExpressionSchema = z.object({
+  match: z.enum(["all", "any"]).default("all"),
+  conditions: z.array(bindingConditionSchema).min(1).max(8),
+});
+
+export type BindingConditionOperator = z.infer<typeof bindingConditionOperatorSchema>;
+export type BindingCondition = z.infer<typeof bindingConditionSchema>;
+export type BindingExpression = z.infer<typeof bindingExpressionSchema>;
+
 export const bindingQuerySchema = z.object({
   /** Which collection to read, e.g. "articles". Resolved against the source map. */
   source: z.string().min(1),
+  /** Legacy equality filters. Retained permanently for existing documents. */
   filter: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+  /** Typed, bounded conditional rules combined with legacy filters using AND. */
+  where: bindingExpressionSchema.optional(),
   sort: z
     .object({
       field: z.string().min(1),

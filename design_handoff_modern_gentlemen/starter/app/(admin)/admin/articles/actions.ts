@@ -23,6 +23,7 @@ import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 import { publicPathsForArticle, revalidatePublicPaths } from "./revalidate";
+import { setTemplateOverrideForEntry } from "@/lib/services/templates";
 
 /**
  * Article actions. Same contract as the pages actions: parse first, call a
@@ -180,6 +181,23 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     // time, the tag a category card prints — so a save changes the public pages
     // even though no block moved.
     revalidatePublicPaths([...before, ...(await publicPathsForArticle(id))]);
+    return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+export async function setArticleTemplateOverrideAction(input: unknown): Promise<ActionResult> {
+  const parsed = z
+    .object({ id: z.string().uuid(), templateId: z.string().uuid().nullable() })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid template selection" };
+
+  try {
+    await setTemplateOverrideForEntry("article", parsed.data.id, parsed.data.templateId);
+    revalidatePath("/admin/articles");
+    revalidatePath(`/admin/articles/${parsed.data.id}`);
+    revalidatePublicPaths(await publicPathsForArticle(parsed.data.id));
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);

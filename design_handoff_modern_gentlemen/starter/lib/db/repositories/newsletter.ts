@@ -5,14 +5,11 @@ import type { SubscriberSource } from "@/lib/domain/newsletter";
 type Db = SupabaseClient<Database>;
 
 /**
- * The subscriber table's only writer.
+ * The subscriber table's public writer and staff reader.
  *
- * ⚠️ **This repository deliberately has no read.** Every other repository here
- * pairs one, and the omission is the point: `anon` holds no SELECT grant on
- * `newsletter_subscribers` (see `0024`), so a read would fail from the public
- * route anyway — and adding one "for symmetry" is how a subscriber list ends up
- * being fetched from somewhere it should not be. A staff-facing read arrives
- * with the admin screen that needs it, through a session that has one.
+ * `anon` still holds no SELECT grant on `newsletter_subscribers` (see `0024`).
+ * The reader below is called only by the permission-gated admin service through
+ * a staff session; the public route continues to call only `insertSubscriber`.
  */
 
 /**
@@ -42,6 +39,19 @@ type Db = SupabaseClient<Database>;
 
 /** Postgres unique-violation. A repeat sign-up, which is not an error here. */
 const UNIQUE_VIOLATION = "23505";
+
+export type SubscriberRow = Database["public"]["Tables"]["newsletter_subscribers"]["Row"];
+
+export async function listSubscribers(db: Db, limit: number): Promise<SubscriberRow[]> {
+  const { data, error } = await db
+    .from("newsletter_subscribers")
+    .select("id, email, source, status, confirmed_at, created_at, updated_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(`Could not list newsletter subscribers: ${error.message}`);
+  return (data ?? []) as SubscriberRow[];
+}
 
 export async function insertSubscriber(
   db: Db,

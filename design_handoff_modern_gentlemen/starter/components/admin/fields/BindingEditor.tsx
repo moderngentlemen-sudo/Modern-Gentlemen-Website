@@ -9,8 +9,14 @@ import { NumberInput } from "@/components/admin/ui/NumberInput";
 import { TextInput } from "@/components/admin/ui/Input";
 import { Toggle } from "@/components/admin/ui/Toggle";
 import { FOCUS_RING, HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
-import type { BindingQuery } from "@/lib/blocks/binding";
+import type {
+  BindingCondition,
+  BindingConditionOperator,
+  BindingQuery,
+} from "@/lib/blocks/binding";
 import {
+  conditionNeedsValue,
+  conditionOperatorsFor,
   coerceFilterValue,
   filterValueToInput,
   filterableFieldFor,
@@ -286,6 +292,199 @@ function FilterFields({
   );
 }
 
+function ConditionValue({
+  condition,
+  field,
+  index,
+  disabled,
+  onChange,
+}: {
+  condition: BindingCondition;
+  field: FilterableField;
+  index: number;
+  disabled?: boolean;
+  onChange: (value: string | number | boolean | undefined) => void;
+}) {
+  if (!conditionNeedsValue(condition.operator)) return null;
+
+  const label = `Condition ${index + 1} value`;
+  if (field.type === "boolean") {
+    return (
+      <Select
+        label={label}
+        value={filterValueToInput(condition.value)}
+        options={BOOLEAN_OPTIONS}
+        disabled={disabled}
+        onChange={(value) => onChange(coerceFilterValue("boolean", value))}
+      />
+    );
+  }
+
+  if (field.type === "number") {
+    return (
+      <NumberInput
+        label={label}
+        value={typeof condition.value === "number" ? condition.value : undefined}
+        disabled={disabled}
+        onChange={onChange}
+      />
+    );
+  }
+
+  return (
+    <TextInput
+      label={label}
+      value={typeof condition.value === "string" ? condition.value : ""}
+      disabled={disabled}
+      onChange={(value) => onChange(coerceFilterValue("string", value))}
+    />
+  );
+}
+
+function ConditionalExpression({
+  source,
+  expression,
+  onChange,
+  disabled,
+}: {
+  source: string | undefined;
+  expression: BindingQuery["where"];
+  onChange: (expression: BindingQuery["where"]) => void;
+  disabled?: boolean;
+}) {
+  const fields = filterableFieldsFor(source);
+  const conditions = expression?.conditions ?? [];
+
+  function write(conditions: BindingCondition[], match = expression?.match ?? "all") {
+    onChange(conditions.length > 0 ? { match, conditions } : undefined);
+  }
+
+  function patchCondition(index: number, patch: Partial<BindingCondition>) {
+    write(
+      conditions.map((condition, current) =>
+        current === index ? { ...condition, ...patch } : condition
+      )
+    );
+  }
+
+  return (
+    <div className="space-y-2 border-t border-mg-bd/15 pt-3">
+      <span className={LABEL_SM}>Conditional rules</span>
+      <span className={HELP_TEXT}>
+        Add typed comparisons when exact filters are not enough. These rules are combined with the
+        filters above.
+      </span>
+
+      {conditions.length > 1 && (
+        <Select
+          label="Match"
+          value={expression?.match ?? "all"}
+          options={[
+            { value: "all", label: "All conditions" },
+            { value: "any", label: "Any condition" },
+          ]}
+          disabled={disabled}
+          onChange={(match) => write(conditions, match as "all" | "any")}
+        />
+      )}
+
+      {conditions.map((condition, index) => {
+        const field = filterableFieldFor(source, condition.field);
+        if (!field) {
+          return (
+            <div key={`${condition.field}-${index}`} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-mg-accentSerif">
+                {condition.field} — not a field of this source
+              </span>
+              <IconButton
+                label={`Remove condition ${index + 1}`}
+                disabled={disabled}
+                onClick={() => write(conditions.filter((_, current) => current !== index))}
+              >
+                ✕
+              </IconButton>
+            </div>
+          );
+        }
+
+        const operators = conditionOperatorsFor(field.type);
+        return (
+          <div key={`${condition.field}-${index}`} className="space-y-2 border border-mg-bd/15 p-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2">
+              <Select
+                label={`Condition ${index + 1} field`}
+                value={condition.field}
+                options={fields.map((option) => ({ value: option.key, label: option.label }))}
+                disabled={disabled}
+                onChange={(key) => {
+                  const nextField = filterableFieldFor(source, key);
+                  if (!nextField) return;
+                  patchCondition(index, {
+                    field: key,
+                    operator: nextField.type === "boolean" ? "equals" : "exists",
+                    value: nextField.type === "boolean" ? true : undefined,
+                  });
+                }}
+              />
+              <Select
+                label={`Condition ${index + 1} operator`}
+                value={condition.operator}
+                options={operators}
+                disabled={disabled}
+                onChange={(operator) => {
+                  const nextOperator = operator as BindingConditionOperator;
+                  patchCondition(index, {
+                    operator: nextOperator,
+                    value: conditionNeedsValue(nextOperator)
+                      ? (condition.value ?? (field.type === "boolean" ? true : undefined))
+                      : undefined,
+                  });
+                }}
+              />
+              <IconButton
+                label={`Remove condition ${index + 1}`}
+                disabled={disabled}
+                className="mb-1"
+                onClick={() => write(conditions.filter((_, current) => current !== index))}
+              >
+                ✕
+              </IconButton>
+            </div>
+            <ConditionValue
+              condition={condition}
+              field={field}
+              index={index}
+              disabled={disabled}
+              onChange={(value) => patchCondition(index, { value })}
+            />
+          </div>
+        );
+      })}
+
+      {!disabled && fields.length > 0 && conditions.length < 8 && (
+        <Select
+          label="Add a condition"
+          value=""
+          options={fields.map((field) => ({ value: field.key, label: field.label }))}
+          placeholder="— choose a field —"
+          onChange={(key) => {
+            const field = filterableFieldFor(source, key);
+            if (!field) return;
+            write([
+              ...conditions,
+              {
+                field: key,
+                operator: field.type === "boolean" ? "equals" : "exists",
+                ...(field.type === "boolean" ? { value: true } : {}),
+              },
+            ]);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export function BindingEditor({
   query,
   onChange,
@@ -323,7 +522,7 @@ export function BindingEditor({
         // and nothing says why. Losing a filter on a deliberate source change is
         // the lesser surprise, and the only alternative that keeps it is a
         // per-source memory this control does not need.
-        onChange={(source) => patch({ source, filter: undefined })}
+        onChange={(source) => patch({ source, filter: undefined, where: undefined })}
       />
 
       <FilterFields
@@ -331,6 +530,13 @@ export function BindingEditor({
         filter={query.filter}
         disabled={disabled}
         onChange={(filter) => patch({ filter })}
+      />
+
+      <ConditionalExpression
+        source={query.source}
+        expression={query.where}
+        disabled={disabled}
+        onChange={(where) => patch({ where })}
       />
 
       <div className="grid grid-cols-2 gap-2">

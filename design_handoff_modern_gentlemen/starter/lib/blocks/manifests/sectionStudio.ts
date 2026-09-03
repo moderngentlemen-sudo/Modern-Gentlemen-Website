@@ -7,7 +7,7 @@ export const sectionStudio = defineBlock({
   label: "Section studio",
   category: "editorial",
   description:
-    "The complete non-hero Section Library: numbered presets 002–068 and 126–145 across editorial, media, people, data, commerce and utility archetypes.",
+    "Imported Section Library presets 02–68 plus additive platform presets 126–145 across editorial, media, people, data, commerce and utility archetypes.",
   fields: {
     variant: field.select({
       label: "Library preset",

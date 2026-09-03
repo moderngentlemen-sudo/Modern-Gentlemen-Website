@@ -42,7 +42,13 @@ import {
 } from "@/lib/blocks/areas";
 import type { BlockDesign, BlockNode, BlockTree, BlockVisibility } from "@/lib/blocks/types";
 import { stampBuilderPayload } from "@/lib/blocks/document";
-import type { VisualBreakpoint, VisualEffects, VisualStyle } from "@/lib/blocks/visual";
+import type {
+  VisualBreakpoint,
+  VisualEffects,
+  VisualState,
+  VisualStateStyle,
+  VisualStyle,
+} from "@/lib/blocks/visual";
 import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 
 import { moveIndex } from "./dnd";
@@ -213,6 +219,7 @@ export interface BuilderActions {
   setSelectedVisualStyleClass: (styleClass: string | undefined) => void;
   setSelectedLocked: (locked: boolean) => void;
   setVisualEffects: (key: string, patch: Partial<VisualEffects>) => void;
+  setVisualState: (key: string, state: VisualState, patch: Partial<VisualStateStyle>) => void;
   setVisualName: (key: string, name: string | undefined) => void;
   setVisualStyleClass: (key: string, styleClass: string | undefined) => void;
   setLocked: (key: string, locked: boolean) => void;
@@ -755,6 +762,22 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
             else effects[property] = value;
           }
           node.visual.effects = effects;
+        }),
+
+      setVisualState: (key, state, patch) =>
+        commit(`visual-state:${key}:${state}`, (draft) => {
+          const node = findDraft(draft, key);
+          if (!node || node.locked) return;
+          if (!node.visual) node.visual = {};
+          if (!node.visual.states) node.visual.states = {};
+          const style = { ...(node.visual.states[state] ?? {}) } as Record<string, unknown>;
+          for (const [property, value] of Object.entries(patch)) {
+            if (value === undefined) delete style[property];
+            else style[property] = value;
+          }
+          if (Object.keys(style).length > 0) node.visual.states[state] = style;
+          else delete node.visual.states[state];
+          if (Object.keys(node.visual.states).length === 0) delete node.visual.states;
         }),
 
       setVisualName: (key, name) =>

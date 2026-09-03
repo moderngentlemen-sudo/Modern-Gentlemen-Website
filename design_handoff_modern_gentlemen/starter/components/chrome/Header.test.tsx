@@ -68,6 +68,38 @@ describe("Header compositions", () => {
     );
     expect(screen.getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/newsletter");
   });
+
+  it("renders opt-in announcement, account and social controls", () => {
+    render(
+      <Header
+        nav={nav}
+        settings={{
+          ...DEFAULT_THEME_HEADER,
+          announcementText: "New issue available",
+          announcementHref: "/latest",
+          showAccount: true,
+          showSocials: true,
+          instagramHref: "https://instagram.com/modern.gentlemen",
+          xHref: "https://x.com/moderngents",
+        }}
+      />
+    );
+
+    expect(screen.getByTestId("header-announcement")).toHaveTextContent("New issue available");
+    expect(screen.getByRole("link", { name: "New issue available" })).toHaveAttribute(
+      "href",
+      "/latest"
+    );
+    expect(screen.getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
+    expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
+      "href",
+      "https://instagram.com/modern.gentlemen"
+    );
+    expect(screen.getByRole("link", { name: "X" })).toHaveAttribute(
+      "href",
+      "https://x.com/moderngents"
+    );
+  });
 });
 
 function renderHeader(composition: HeaderComposition) {

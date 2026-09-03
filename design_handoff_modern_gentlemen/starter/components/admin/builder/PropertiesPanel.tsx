@@ -30,8 +30,11 @@ import {
   VISUAL_REVEAL_DELAYS,
   VISUAL_SHADOWS,
   VISUAL_SPACES,
+  VISUAL_STATES,
   VISUAL_WIDTHS,
   type VisualEffects,
+  type VisualState,
+  type VisualStateStyle,
   type VisualStyle,
 } from "@/lib/blocks/visual";
 
@@ -47,7 +50,7 @@ import { FieldControl, type ControlContext } from "@/components/admin/fields/Fie
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
 
 import { findBlock } from "@/lib/blocks/traverse";
-import type { ThemeStyleClass } from "@/lib/domain/theme";
+import type { ThemeStyleClass, ThemeTokenAlias } from "@/lib/domain/theme";
 
 import { useBuilder } from "./StoreContext";
 
@@ -64,8 +67,10 @@ const DEVICES = ["mobile", "tablet", "desktop"] as const;
  */
 export function PropertiesPanel({
   styleClasses = [],
+  tokenAliases = [],
 }: {
   styleClasses?: readonly ThemeStyleClass[];
+  tokenAliases?: readonly ThemeTokenAlias[];
 }) {
   const selectedKey = useBuilder((s) => s.selectedKey);
   const selectedKeys = useBuilder((s) => s.selectedKeys);
@@ -98,7 +103,13 @@ export function PropertiesPanel({
   }
 
   return (
-    <BlockProperties key={node._key} node={node} allIssues={issues} styleClasses={styleClasses} />
+    <BlockProperties
+      key={node._key}
+      node={node}
+      allIssues={issues}
+      styleClasses={styleClasses}
+      tokenAliases={tokenAliases}
+    />
   );
 }
 
@@ -217,10 +228,12 @@ function BlockProperties({
   node,
   allIssues,
   styleClasses,
+  tokenAliases,
 }: {
   node: BlockNode;
   allIssues: BlockIssue[];
   styleClasses: readonly ThemeStyleClass[];
+  tokenAliases: readonly ThemeTokenAlias[];
 }) {
   const setSetting = useBuilder((s) => s.setSetting);
   const unsetSetting = useBuilder((s) => s.unsetSetting);
@@ -231,10 +244,12 @@ function BlockProperties({
   const setDesign = useBuilder((s) => s.setDesign);
   const setVisualStyle = useBuilder((s) => s.setVisualStyle);
   const setVisualEffects = useBuilder((s) => s.setVisualEffects);
+  const setVisualStateStyle = useBuilder((s) => s.setVisualState);
   const setVisualName = useBuilder((s) => s.setVisualName);
   const setVisualStyleClass = useBuilder((s) => s.setVisualStyleClass);
   const setLocked = useBuilder((s) => s.setLocked);
   const device = useBuilder((s) => s.device);
+  const [visualState, setVisualState] = useState<VisualState>("hover");
 
   const manifest = manifestFor(node._type);
   const key = node._key;
@@ -257,6 +272,8 @@ function BlockProperties({
     ]);
     setVisualStyle(key, device, {
       [property]: value === "" ? undefined : numeric.has(property) ? Number(value) : value,
+      ...(value && property === "background" ? { backgroundToken: undefined } : {}),
+      ...(value && property === "color" ? { colorToken: undefined } : {}),
     } as Partial<VisualStyle>);
   }
 
@@ -383,6 +400,36 @@ function BlockProperties({
           help="A private label for finding this element in the Navigator."
           onChange={(name) => setVisualName(key, name || undefined)}
         />
+        {tokenAliases.length > 0 && (
+          <>
+            <Select
+              label="Shared background token"
+              value={visualStyle.backgroundToken ?? ""}
+              disabled={locked}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              onChange={(backgroundToken) =>
+                setVisualStyle(key, device, {
+                  backgroundToken: backgroundToken || undefined,
+                  ...(backgroundToken ? { background: undefined } : {}),
+                })
+              }
+            />
+            <Select
+              label="Shared text token"
+              value={visualStyle.colorToken ?? ""}
+              disabled={locked}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              onChange={(colorToken) =>
+                setVisualStyle(key, device, {
+                  colorToken: colorToken || undefined,
+                  ...(colorToken ? { color: undefined } : {}),
+                })
+              }
+            />
+          </>
+        )}
         <p className={HELP_TEXT}>
           Tablet and mobile values override larger screens. Leave a control unset to inherit.
         </p>
@@ -479,6 +526,68 @@ function BlockProperties({
               onChange={(revealDelay) =>
                 setVisualEffects(key, {
                   revealDelay: Number(revealDelay) as VisualEffects["revealDelay"],
+                })
+              }
+            />
+          </>
+        )}
+      </PanelSection>
+
+      <PanelSection title="Component states" defaultOpen={false}>
+        <p className={HELP_TEXT}>
+          Reusable, bounded appearance overrides for pointer, keyboard-focus and pressed states.
+          Focus applies when this element or anything inside it receives focus.
+        </p>
+        <Select
+          label="State"
+          value={visualState}
+          disabled={locked}
+          options={optionsFor(VISUAL_STATES)}
+          onChange={(value) => setVisualState(value as VisualState)}
+        />
+        {VISUAL_STATE_FIELDS.map((field) => (
+          <Select
+            key={field.property}
+            label={field.label}
+            value={String(node.visual?.states?.[visualState]?.[field.property] ?? "")}
+            disabled={locked}
+            placeholder="Inherit"
+            options={field.options}
+            onChange={(value) =>
+              setVisualStateStyle(key, visualState, {
+                [field.property]:
+                  value === "" ? undefined : Number.isNaN(Number(value)) ? value : Number(value),
+                ...(value && field.property === "background" ? { backgroundToken: undefined } : {}),
+                ...(value && field.property === "color" ? { colorToken: undefined } : {}),
+              } as Partial<VisualStateStyle>)
+            }
+          />
+        ))}
+        {tokenAliases.length > 0 && (
+          <>
+            <Select
+              label="State background token"
+              value={node.visual?.states?.[visualState]?.backgroundToken ?? ""}
+              disabled={locked}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              onChange={(backgroundToken) =>
+                setVisualStateStyle(key, visualState, {
+                  backgroundToken: backgroundToken || undefined,
+                  ...(backgroundToken ? { background: undefined } : {}),
+                })
+              }
+            />
+            <Select
+              label="State text token"
+              value={node.visual?.states?.[visualState]?.colorToken ?? ""}
+              disabled={locked}
+              placeholder="Inherit"
+              options={tokenAliases.map((token) => ({ value: token.id, label: token.name }))}
+              onChange={(colorToken) =>
+                setVisualStateStyle(key, visualState, {
+                  colorToken: colorToken || undefined,
+                  ...(colorToken ? { color: undefined } : {}),
                 })
               }
             />
@@ -711,6 +820,11 @@ const VISUAL_APPEARANCE_FIELDS: VisualField[] = [
   { property: "opacity", label: "Opacity", options: optionsFor(VISUAL_OPACITIES, "%") },
   { property: "overflow", label: "Overflow", options: optionsFor(VISUAL_OVERFLOWS) },
 ];
+
+const VISUAL_STATE_FIELDS = VISUAL_APPEARANCE_FIELDS.filter(
+  (field): field is VisualField & { property: keyof VisualStateStyle } =>
+    field.property !== "overflow"
+);
 
 /**
  * A field that may hold either a literal or a `$bind` descriptor.

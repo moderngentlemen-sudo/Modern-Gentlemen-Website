@@ -28,7 +28,9 @@
  */
 
 import { createPublicClient } from "@/lib/db/public";
+import { createClient } from "@/lib/db/server";
 import { insertSubscriber } from "@/lib/db/repositories/newsletter";
+import { listSubscribers as listSubscriberRows } from "@/lib/db/repositories/newsletter";
 import {
   isPlausibleEmail,
   isSubscriberSource,
@@ -36,6 +38,7 @@ import {
   type SubscribeOutcome,
 } from "@/lib/domain/newsletter";
 import { consumeRateLimit, NEWSLETTER_GLOBAL, NEWSLETTER_PER_CALLER } from "./rateLimit";
+import { requirePermission } from "./auth";
 
 export async function subscribeToNewsletter(input: {
   email: unknown;
@@ -89,4 +92,11 @@ export async function subscribeToNewsletter(input: {
     // "unavailable".
     return { ok: false, reason: "unavailable" };
   }
+}
+
+/** Staff-only handoff view; lifecycle writes wait for the chosen ESP/double-opt-in flow. */
+export async function listNewsletterSubscribers(limit = 250) {
+  await requirePermission("integration.read");
+  const db = await createClient();
+  return listSubscriberRows(db, Math.min(Math.max(Math.trunc(limit), 1), 5_000));
 }

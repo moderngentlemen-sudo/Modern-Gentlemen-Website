@@ -374,6 +374,14 @@ export interface ThemeHeader {
   scale: number;
   iconBubbles: boolean;
   iconHover: HeaderIconHover;
+  /** Optional compatibility-safe strip above the primary navigation. */
+  announcementText: string;
+  announcementHref: string;
+  showAccount: boolean;
+  accountHref: string;
+  showSocials: boolean;
+  instagramHref: string;
+  xHref: string;
 }
 
 export const DEFAULT_THEME_HEADER: ThemeHeader = {
@@ -392,6 +400,42 @@ export const DEFAULT_THEME_HEADER: ThemeHeader = {
   scale: 1,
   iconBubbles: false,
   iconHover: "scale",
+  announcementText: "",
+  announcementHref: "",
+  showAccount: false,
+  accountHref: "/account",
+  showSocials: false,
+  instagramHref: "",
+  xHref: "",
+};
+
+export const FOOTER_LAYOUTS = ["responsive", "stacked", "centered"] as const;
+export type FooterLayout = (typeof FOOTER_LAYOUTS)[number];
+
+export interface ThemeFooter {
+  /** Responsive preserves the original two-column desktop composition. */
+  layout: FooterLayout;
+  showTagline: boolean;
+  tagline: string;
+  showSocials: boolean;
+  followLabel: string;
+  instagramHref: string;
+  xHref: string;
+  youtubeHref: string;
+  linkedinHref: string;
+}
+
+export const DEFAULT_THEME_FOOTER: ThemeFooter = {
+  layout: "responsive",
+  showTagline: true,
+  tagline:
+    "A field guide to the considered life — style, watches, film & the art of doing things properly.",
+  showSocials: true,
+  followLabel: "Follow Modern Gentlemen",
+  instagramHref: "https://instagram.com",
+  xHref: "https://x.com",
+  youtubeHref: "https://youtube.com",
+  linkedinHref: "https://linkedin.com",
 };
 
 export interface ThemeLayout {
@@ -453,9 +497,12 @@ export interface ThemeSettings {
   colors: ThemeColors;
   typography: ThemeTypography;
   header: ThemeHeader;
+  footer: ThemeFooter;
   layout: ThemeLayout;
   /** Reusable, responsive visual recipes applied by builder elements. */
   styleClasses: ThemeStyleClass[];
+  /** Shared colour values that local visual settings may reference by stable id. */
+  tokenAliases: ThemeTokenAlias[];
   /** Semantic defaults consumed by public buttons, cards and form fields. */
   components: ThemeComponentDefaults;
 }
@@ -466,17 +513,26 @@ export interface ThemeStyleClass {
   visual: VisualElementDesign;
 }
 
+export interface ThemeTokenAlias {
+  id: string;
+  name: string;
+  light: string;
+  dark: string;
+}
+
 export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   colors: DEFAULT_THEME_COLORS,
   typography: DEFAULT_THEME_TYPOGRAPHY,
   header: DEFAULT_THEME_HEADER,
+  footer: DEFAULT_THEME_FOOTER,
   layout: DEFAULT_THEME_LAYOUT,
   styleClasses: [],
+  tokenAliases: [],
   components: DEFAULT_THEME_COMPONENTS,
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 9;
+export const THEME_PAYLOAD_VERSION = 12;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -722,6 +778,9 @@ const safeHeaderHref = (value: string): boolean =>
   (value.startsWith("/") && !value.startsWith("//")) ||
   /^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(value);
 
+const safeSocialHref = (value: string): boolean =>
+  value === "" || /^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(value);
+
 export const themeHeaderSchema = z.object({
   composition: z.enum(HEADER_COMPOSITIONS),
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
@@ -738,6 +797,33 @@ export const themeHeaderSchema = z.object({
   scale: z.number().min(0.8).max(1.4),
   iconBubbles: z.boolean(),
   iconHover: z.enum(HEADER_ICON_HOVERS),
+  announcementText: z.string().trim().max(160),
+  announcementHref: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(safeHeaderHref, "Use an internal path or HTTPS URL"),
+  showAccount: z.boolean(),
+  accountHref: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(safeHeaderHref, "Use an internal path or HTTPS URL"),
+  showSocials: z.boolean(),
+  instagramHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  xHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+});
+
+export const themeFooterSchema = z.object({
+  layout: z.enum(FOOTER_LAYOUTS),
+  showTagline: z.boolean(),
+  tagline: z.string().trim().max(240),
+  showSocials: z.boolean(),
+  followLabel: z.string().trim().max(80),
+  instagramHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  xHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  youtubeHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  linkedinHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
 });
 
 export const themeLayoutSchema = z.object({
@@ -809,12 +895,48 @@ export const themeStyleClassesSchema = z
     });
   });
 
+export const themeTokenAliasSchema = z.object({
+  id: z.string().regex(VISUAL_STYLE_CLASS_ID, "Use a lowercase id such as brand-gold"),
+  name: z.string().trim().min(1).max(60),
+  light: colorValue,
+  dark: colorValue,
+});
+
+export const themeTokenAliasesSchema = z
+  .array(themeTokenAliasSchema)
+  .max(24)
+  .superRefine((tokens, context) => {
+    const ids = new Set<string>();
+    const names = new Set<string>();
+    tokens.forEach((token, index) => {
+      const name = token.name.trim().toLocaleLowerCase();
+      if (ids.has(token.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "id"],
+          message: "Token ids must be unique",
+        });
+      }
+      if (names.has(name)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "name"],
+          message: "Token names must be unique",
+        });
+      }
+      ids.add(token.id);
+      names.add(name);
+    });
+  });
+
 export const themeSettingsSchema = z.object({
   colors: themeColorsSchema,
   typography: themeTypographySchema,
   header: themeHeaderSchema,
+  footer: themeFooterSchema,
   layout: themeLayoutSchema,
   styleClasses: themeStyleClassesSchema,
+  tokenAliases: themeTokenAliasesSchema,
   components: themeComponentDefaultsSchema,
 });
 
@@ -823,8 +945,10 @@ export const themePayloadSchema = z.object({
   colors: themeColorsSchema.optional(),
   typography: themeTypographySchema.optional(),
   header: themeHeaderSchema.optional(),
+  footer: themeFooterSchema.optional(),
   layout: themeLayoutSchema.optional(),
   styleClasses: themeStyleClassesSchema.optional(),
+  tokenAliases: themeTokenAliasesSchema.optional(),
   components: themeComponentDefaultsSchema.optional(),
 });
 export type ThemePayload = z.infer<typeof themePayloadSchema>;
@@ -967,6 +1091,52 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   if ((HEADER_ICON_HOVERS as readonly unknown[]).includes(incoming.iconHover)) {
     out.iconHover = incoming.iconHover as HeaderIconHover;
   }
+  if (typeof incoming.announcementText === "string" && incoming.announcementText.length <= 160) {
+    out.announcementText = incoming.announcementText.trim();
+  }
+  if (
+    typeof incoming.announcementHref === "string" &&
+    safeHeaderHref(incoming.announcementHref.trim())
+  ) {
+    out.announcementHref = incoming.announcementHref.trim();
+  }
+  if (typeof incoming.showAccount === "boolean") out.showAccount = incoming.showAccount;
+  if (typeof incoming.accountHref === "string" && safeHeaderHref(incoming.accountHref.trim())) {
+    out.accountHref = incoming.accountHref.trim();
+  }
+  if (typeof incoming.showSocials === "boolean") out.showSocials = incoming.showSocials;
+  if (typeof incoming.instagramHref === "string" && safeSocialHref(incoming.instagramHref.trim())) {
+    out.instagramHref = incoming.instagramHref.trim();
+  }
+  if (typeof incoming.xHref === "string" && safeSocialHref(incoming.xHref.trim())) {
+    out.xHref = incoming.xHref.trim();
+  }
+  return out;
+}
+
+/** Forgiving public read for footer copy, layout and external destinations. */
+export function parseThemeFooter(value: unknown): ThemeFooter {
+  const incoming = asRecord(asRecord(value)?.footer);
+  if (!incoming) return { ...DEFAULT_THEME_FOOTER };
+
+  const out = { ...DEFAULT_THEME_FOOTER };
+  if ((FOOTER_LAYOUTS as readonly unknown[]).includes(incoming.layout)) {
+    out.layout = incoming.layout as FooterLayout;
+  }
+  if (typeof incoming.showTagline === "boolean") out.showTagline = incoming.showTagline;
+  if (typeof incoming.tagline === "string" && incoming.tagline.length <= 240) {
+    out.tagline = incoming.tagline.trim();
+  }
+  if (typeof incoming.showSocials === "boolean") out.showSocials = incoming.showSocials;
+  if (typeof incoming.followLabel === "string" && incoming.followLabel.length <= 80) {
+    out.followLabel = incoming.followLabel.trim();
+  }
+  for (const key of ["instagramHref", "xHref", "youtubeHref", "linkedinHref"] as const) {
+    const candidate = incoming[key];
+    if (typeof candidate === "string" && safeSocialHref(candidate.trim())) {
+      out[key] = candidate.trim();
+    }
+  }
   return out;
 }
 
@@ -1011,6 +1181,24 @@ export function parseThemeStyleClasses(value: unknown): ThemeStyleClass[] {
     const name = styleClass.name.trim().toLocaleLowerCase();
     if (ids.has(styleClass.id) || names.has(name)) return false;
     ids.add(styleClass.id);
+    names.add(name);
+    return true;
+  });
+}
+
+export function parseThemeTokenAliases(value: unknown): ThemeTokenAlias[] {
+  const incoming = asRecord(value)?.tokenAliases;
+  if (!Array.isArray(incoming)) return [];
+  const parsed = incoming.slice(0, 24).flatMap((candidate) => {
+    const result = themeTokenAliasSchema.safeParse(candidate);
+    return result.success ? [result.data] : [];
+  });
+  const ids = new Set<string>();
+  const names = new Set<string>();
+  return parsed.filter((token) => {
+    const name = token.name.trim().toLocaleLowerCase();
+    if (ids.has(token.id) || names.has(name)) return false;
+    ids.add(token.id);
     names.add(name);
     return true;
   });
@@ -1062,8 +1250,10 @@ export function parseThemeSettings(value: unknown): ThemeSettings {
     colors: parseThemeColors(value),
     typography: parseThemeTypography(value),
     header: parseThemeHeader(value),
+    footer: parseThemeFooter(value),
     layout: parseThemeLayout(value),
     styleClasses: parseThemeStyleClasses(value),
+    tokenAliases: parseThemeTokenAliases(value),
     components: parseThemeComponentDefaults(value),
   };
 }
@@ -1260,12 +1450,22 @@ export function themeDesignCssText(settings: ThemeSettings): string {
       `${FONT_ROLE_VAR[role]}:${fontStackForSelection(settings.typography[role], settings.typography.webfonts)}`
   );
   declarations.push(`--font-base-size:${settings.typography.baseSize}px`);
-  declarations.push(`--header-height:${settings.header.height}px`);
+  const announcementHeight = settings.header.announcementText ? 28 : 0;
+  declarations.push(`--header-height:${settings.header.height + announcementHeight}px`);
   declarations.push(`--layout-content-width:${settings.layout.contentWidth}px`);
   declarations.push(`--layout-desktop-gutter:${settings.layout.desktopGutter}px`);
   declarations.push(`--layout-mobile-gutter:${settings.layout.mobileGutter}px`);
   const styleClasses = settings.styleClasses
     .map((styleClass) => visualStyleClassCss(styleClass.id, styleClass.visual))
     .join("");
-  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${themeComponentCssText(settings.components)}${styleClasses}`;
+  const darkAliases = settings.tokenAliases
+    .map((token) => `--mg-token-${token.id}:${token.dark}`)
+    .join(";");
+  const lightAliases = settings.tokenAliases
+    .map((token) => `--mg-token-${token.id}:${token.light}`)
+    .join(";");
+  const aliasCss = settings.tokenAliases.length
+    ? `:root:root{${darkAliases}}html[data-mgtheme="light"]:root{${lightAliases}}`
+    : "";
+  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${aliasCss}${themeComponentCssText(settings.components)}${styleClasses}`;
 }

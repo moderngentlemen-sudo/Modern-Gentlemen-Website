@@ -49,6 +49,30 @@ export function isSubscriberSource(value: unknown): value is SubscriberSource {
 export const SUBSCRIBER_STATUSES = ["pending", "confirmed", "unsubscribed"] as const;
 export type SubscriberStatus = (typeof SUBSCRIBER_STATUSES)[number];
 
+export interface SubscriberExportRow {
+  email: string;
+  source: string;
+  status: string;
+  createdAt: string;
+  confirmedAt: string | null;
+}
+
+/** Portable ESP handoff with spreadsheet-formula protection for public input. */
+export function subscriberCsv(rows: SubscriberExportRow[]): string {
+  const header = ["email", "source", "status", "created_at", "confirmed_at"];
+  const lines = rows.map((row) =>
+    [row.email, row.source, row.status, row.createdAt, row.confirmedAt ?? ""].map(csvCell).join(",")
+  );
+  return [header.join(","), ...lines].join("\r\n") + "\r\n";
+}
+
+function csvCell(value: string): string {
+  // Quoting handles commas/newlines; the apostrophe prevents Excel/Sheets from
+  // executing a public value that begins with a formula marker.
+  const safe = /^[=+\-@]/.test(value) ? `'${value}` : value;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
 /** The longest address this accepts. RFC 5321 caps a path at 254 octets. */
 export const MAX_EMAIL_LENGTH = 254;
 

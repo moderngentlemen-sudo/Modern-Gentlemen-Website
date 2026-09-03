@@ -11,6 +11,125 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — remaining credential-free builder and Shopify gaps are closed
+
+Theme payload v12 adds reusable light/dark local color tokens plus bounded
+hover, focus-within and active appearance states for both individual elements
+and reusable classes. Manifest fields with defaults now show the effective
+inherited value and can return an explicit local value to inheritance in one
+click. Template preview capabilities now retain a validated published record
+context, so page, archive, article and product templates can be reviewed against
+several real instances without exposing any second draft. Header controls add an
+opt-in announcement strip, account destination and wide-screen social links;
+all are empty/off by default, preserving the published chrome and page offset.
+
+Shopify sources may opt into a cursor-paginated GraphQL transport that keeps the
+existing REST-shaped mapping vocabulary while exposing direct collection nodes
+at `collections/title`. Product pages, pages per run and collections per product
+remain independently bounded; REST stays the default for every existing source.
+Focused TypeScript and **284/284 tests** pass after correcting two new test
+assertions to match established scalar-collapse and coalesced-undo behavior.
+
+### 2026-09-03 — new Shopify sources target the current stable API
+
+New Shopify source configurations now default to Admin API `2026-07`, the
+latest stable version documented by Shopify at this audit date. The default is
+centralized across schema validation and the integration editor, while existing
+sources retain their explicitly stored version so an automatic deployment
+cannot silently change production behavior. The existing schema-default test
+now guards that central value. Live merchant validation and a future REST to
+GraphQL migration remain isolated from this credential-free compatibility fix.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,888/1,888 unit tests**.
+
+### 2026-09-03 — newsletter subscribers have a safe provider-neutral handoff
+
+`/admin/newsletter` now gives staff holding `integration.read` a read-only view
+of recent Supabase-captured addresses, honest pending/confirmed/unsubscribed
+counts, capture source and date. A permission-gated CSV route exports up to
+5,000 rows with private/no-store headers and neutralises spreadsheet-formula
+prefixes in public input. The public endpoint still has INSERT-only anonymous
+access, and no UI may mark a subscriber confirmed: provider selection,
+double-opt-in mail and unsubscribe synchronization remain explicit owner/ESP
+work. Focused domain, service and admin-navigation coverage passes with
+TypeScript.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,888/1,888 unit tests**.
+
+### 2026-09-03 — Railway deployment now fails fast on unsafe configuration
+
+Railway now runs `npm run deploy:check` before `next build`. The zero-dependency
+preflight requires the production site origin, both public Supabase values, the
+server-only service key and the jobs bearer secret; validates HTTPS origins,
+placeholder/masked values, plausible secret length and public/privileged key
+separation; and never echoes values into logs. Four isolated tests cover a valid
+deployment, missing values, malformed/placeholding values and the explicit
+Stripe demo warning. `RAILWAY_DEPLOYMENT.md` no longer claims the database-backed
+site deploys without variables, pins obsolete Node 20, or tells an owner to
+register a nonexistent Stripe webhook. Checkout remains truthfully blocked on
+the payment/fulfillment decisions and credentials that code cannot invent.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,882/1,882 unit tests**.
+
+### 2026-09-03 — imported Section Library provenance is now enforced
+
+The checked-in standalone design source contains **125** compositions, not 145:
+01–68, 69–115 and 116–125. The existing modules 126–145 are still valuable and
+remain selectable, but are now truthfully labeled as 20 additive platform
+presets derived from the product brief rather than imports from that artifact.
+Non-hero module labels 02–68 now match the source instead of using invented
+three-digit padding; persisted variant ids and every renderer remain unchanged.
+A new source-of-truth test parses the checked-in HTML and compatibility ledger,
+then proves all 125 source ids map one-to-one to native preset identifiers and
+all 20 supplemental modules retain explicit Platform provenance. Existing
+component tests continue to render all 145 presets and exercise their accessible
+interactive controls. Screenshot-level comparison still requires the real
+Supabase-backed browser environment.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,878/1,878 unit tests**.
+
+### 2026-09-03 — footer content and responsive behavior are theme-controlled
+
+Theme payload v10 adds footer controls without changing the shipped footer:
+Responsive columns, the original tagline, the social row, its label and all four
+destinations remain the defaults. Editors may instead stack or center the
+footer, hide its optional copy/social regions, and set each social destination
+to an HTTPS URL or leave it blank. Navigation and legal links remain driven by
+their existing menus, while global footer templates still provide arbitrary
+composition around—or in place of—the compatibility chrome marker. The strict
+write schema rejects unsafe destinations and overlong copy; forgiving public
+reads retain every valid stored field and restore defaults independently. No
+database migration is required because the versioned theme payload is JSON.
+Focused footer/theme verification passes, and the full credential-free gate is
+clean: Prettier, ESLint, TypeScript and **1,875/1,875 unit tests** pass.
+
+### 2026-09-03 — page and article template inheritance is explicit
+
+Page builders and article detail screens now offer a record-level **Layout**
+control. Editors can inherit the current site-wide page/article template or
+choose a published template for only that record; the inheritance option names
+the live default without copying it, so later global changes still flow through.
+Draft templates remain visible for recovery but cannot be assigned to a live
+entry. The server rechecks permissions, record existence, matching template
+kind and publication state, and clearing an override removes only that entry's
+assignment. Focused component, derivation and builder coverage passes with
+repository-wide ESLint and TypeScript; the full credential-free gate is
+clean as well: Prettier, ESLint, TypeScript and **1,871/1,871 unit tests** pass.
+
+### 2026-09-03 — dynamic bindings support typed conditional expressions
+
+Dynamic fields can now combine the original strict-equality filters with up to
+eight typed conditional rules using **match all** or **match any** logic. Text
+fields expose equality, containment and prefix/suffix operators; numeric fields
+expose bounded comparisons; booleans stay boolean; and every field supports
+presence checks. The demo and Supabase-backed sources use one shared evaluator,
+so a saved query cannot acquire different semantics between test data and the
+published site. Existing descriptors with only `filter` retain their exact
+meaning, and the expression schema accepts no JavaScript, SQL or arbitrary
+operator strings. Focused binding and editor coverage passes, along with ESLint
+and TypeScript. The full credential-free gate passes: repository-wide Prettier,
+ESLint, TypeScript and **1,864/1,864 unit tests**.
+
 ### 2026-09-03 — dynamic bindings preserve safe fallback content
 
 Switching a bindable field from Literal to Dynamic now carries its current
@@ -312,7 +431,7 @@ Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **
 
 **Schematic extraction — header compositions implemented 2026-09-02.** Theme → Header now offers three renderer-backed compositions: Balanced preserves the existing chrome exactly, Centered Logo splits the current data-driven primary menu around the brand, and Navigation Left groups the full menu with the brand while retaining the action cluster at the far edge. The same mega-menu, keyboard focus, touch-first-open behavior, drawer fallback and overlay pinning are shared by all three compositions rather than copied. Editors may also author an optional header CTA label and internal/HTTPS destination; an incomplete pair renders nothing, and stored unsafe schemes are dropped by the forgiving public parser while the strict write schema rejects them. The existing initial/compact heights, smart hide/reveal, backgrounds and icon settings remain independent. Theme payload version is now 8; old payloads field-fallback to Balanced, so no migration is required. Focused header and theme verification is **77/77 tests**; typecheck is clean.
 
-**Numbered Section Library migration — all 145 presets implemented 2026-09-02.** The supplied standalone mockup catalogue now has a complete 145-entry native ledger in `design_handoff_modern_gentlemen/MODULE_MAP.md`; the former map stopped at 28 and described the retired Sanity architecture. `heroStudio` covers 001 and the complete 069–125 hero catalogue, including Vogue 6A–6J, through shared cover, masthead, split, collage, film, ranking, ticker and editorial archetypes. `sectionStudio` covers 002–068 and 126–145 through shared card, list, feature, people, data, commerce, media and utility archetypes. Every source number and name is selectable in the existing insert menu, while content, media, actions, hierarchy, responsive layout and color treatment remain editable. This is additive: all earlier sections stay registered, preserving the project's compatibility rule. Focused verification is **578/578 tests**; lint, typecheck and the full unit/CI gates follow before release.
+**Numbered Section Library migration — 125 imported and 20 platform presets implemented 2026-09-02.** The supplied standalone mockup catalogue has a complete 125-entry native inventory in `design_handoff_modern_gentlemen/MODULE_MAP.md`; the same ledger retains 20 additive CMS/site presets from the product brief. `heroStudio` covers 01 and the complete 69–125 hero catalogue, including Vogue 6A–6J, through shared cover, masthead, split, collage, film, ranking, ticker and editorial archetypes. `sectionStudio` covers imported 02–68 and platform 126–145 through shared card, list, feature, people, data, commerce, media and utility archetypes. Every source number and name is selectable in the existing insert menu, while content, media, actions, hierarchy, responsive layout and color treatment remain editable. This is additive: all earlier sections stay registered, preserving the project's compatibility rule. Focused verification is **578/578 tests**; lint, typecheck and the full unit/CI gates follow before release.
 
 **Multi-select and direct manipulation — implemented 2026-08-31.** Shift/Ctrl/Command selection now works on both canvas and Navigator, with one-undo group duplicate, delete and style operations; selected ancestors suppress duplicate child operations, and locked elements remain protected. The visual model adds bounded per-device percentage/pixel width, exact height/minimum/maximum sizing, relative/absolute/sticky positioning, four offsets and stack order. A right-edge canvas handle writes the same validated percentage width used by the properties panel and public renderer. Unset values emit no CSS and preserve every existing composition. Verified locally: format, lint, typecheck and **1,583/1,583 unit tests**.
 
@@ -851,7 +970,7 @@ The repository _also_ needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 
 - [x] ~~`resolve_preview` still has no rate limiting (carried over from Phase 3).~~ — **closed 2026-09-03.** Tokens remain 256-bit and are not used as a bucket identity, because a token-scoped allowance would give anyone holding the link a denial-of-service lever over every other reviewer. The route consumes one caller bucket derived from the same proxy identity as forms/newsletter and one unforgeable global bucket before resolving the capability; when no proxy identity exists, only the global bucket is spent. A refusal deliberately renders the same unavailable state as an unknown, expired or revoked token, so the limiter creates no new oracle.
 - [x] ~~The builder has no keyboard shortcuts beyond `Cmd/Ctrl+S`.~~ — **closed 2026-09-03.** Select all, duplicate, undo/redo, delete and clear-selection now use the store's existing multi-selection operations and explicitly stand down in inputs, content-editable regions and dialogs. Drag-from-library remains pointer-only by decision: the library entries wire dnd-kit's pointer activator and deliberately _not_ its keyboard one, because the `KeyboardSensor` claims Enter and Space and calls `preventDefault`, which would replace click-to-insert with a keyboard drag and leave no accessible path at all. Insert-at-the-selection by click is still that path. A keyboard _drag_ would need its own affordance and its own announcements, and is a separate accessibility enhancement rather than part of the editing-shortcut gap.
-- [ ] `visibility.devices` is written but **not applied at render** — the control says so in its help text rather than pretending otherwise.
+- [x] ~~`visibility.devices` is written but not applied at render.~~ — **closed** by the renderer-backed responsive visibility wrapper and canvas device preview; publish validation rejects malformed device sets.
 - [x] ~~`products.status` permits `'scheduled'` with no `scheduled_for` column~~ — **fixed in `0026`**: the CHECK is narrowed to `draft`/`published`/`archived`. This bullet framed it as "either dropping the value from a live CHECK or adding the column", and narrowing won — scheduling a _product_ is a feature nobody has asked for, and adding the column would have been inventing it. Verified zero rows used it, and the migration raises rather than corrupting if that is ever false elsewhere.
 - [x] ~~an asset used only in a product gallery is not "in use" as far as the delete refusal is concerned~~ — **fixed.** `media_usages` reconciliation still does not cover `product_media` (they are different tables with different lifecycles, and merging them would mean teaching reconciliation about a join no block tree mentions). Instead `deleteAsset` now asks **both**, via `productsForAsset` in the products repository, and `lib/domain/media.ts#galleryReferences` maps the result into the same `AssetUsage` shape so it flows through `AssetInUseError` and the admin's "Used in" panel unchanged. The panel therefore shows gallery references _before_ an editor tries to delete, and `getAssetUsageViews` learned to link `product` — which also fixed a product's block-tree usage resolving a title and then offering nowhere to go.
   - **Why it mattered when it did.** The gap was harmless while the public store rendered from `lib/catalog.ts`: nothing downstream read the join. Phase 7b made `/shop` and every PDP read `product_media`, so the same unguarded delete cascades the gallery rows away and takes photographs off the live storefront. The bug did not change; its blast radius did. Worth remembering as a shape — a dormant defect that a _different_ change arms.
@@ -863,4 +982,4 @@ The repository _also_ needs `JOBS_SECRET` as an Actions **secret** and `SITE_URL
 - [ ] Real membership subscriptions vs. flag-only
 - [~] **Newsletter ESP integration.** ⚠️ The parenthetical here read "(Supabase capture works standalone)" and was false — nothing was captured at all until `0024`. **The capture layer is done now**: a table `anon` may INSERT and not read, `POST /api/newsletter`, and both bands wired to it with real error states. What remains is genuinely two things, in order: **consent + double opt-in** (a decision, not a task — UK GDPR/PECR wants a recorded lawful basis, wording beside the button, and a privacy notice to link to; rows are `pending` and nothing writes `confirmed` until it exists), then **the ESP adapter itself**, which should follow the `SourceAdapter` precedent in `lib/integrations/commerce/`.
 - [ ] Production imagery/video + rights
-- [ ] Remaining article templates & Section Library modules
+- [x] ~~Remaining article templates & Section Library modules.~~ — **closed**: all 20 article layouts and all 125 imported plus 20 platform Section Library presets are registered, rendered and provenance-validated.

@@ -220,30 +220,103 @@ boundary and rejected by the admin write schema. Composition remains
 independent from initial/compact height, smart scrolling, background and icon
 controls. Version-7 payloads read as Balanced without a data migration.
 
+## Entry template overrides (v2.0)
+
+Page and article editing surfaces expose the assignment hierarchy at the point
+where an editor works on the record. Each record may explicitly inherit its
+content-type template or choose one published template of the matching kind.
+The inheritance option names the current live default without copying its id
+into an entry assignment, so a later site-wide change still reaches inheriting
+records. Entry assignments continue to outrank content-type assignments.
+
+Draft templates remain visible when already selected so stored state is never
+silently discarded, but cannot be newly saved as a live override. The service
+rechecks the entry, the template kind, publication state and permissions rather
+than trusting the picker. Removing an override clears only that entry target;
+it never unassigns the chosen template from other records.
+
+## Typed binding conditions (v1.9)
+
+Dynamic fields retain the original strict-equality `filter` map permanently,
+then add an optional bounded `where` expression. Up to eight typed conditions
+may match all or any of their members. Text supports equality, containment and
+prefix/suffix checks; numbers support equality and ordered comparisons; every
+field supports presence checks. The editor derives its operators and value
+control from the source field vocabulary, so a boolean never becomes the string
+`"true"` and a numeric comparison cannot be authored against text.
+
+The demo and Supabase sources share one evaluator. Existing filters are ANDed
+with a new expression, old payloads therefore keep their exact meaning, and a
+query with no `where` key follows the same path as before. Conditions are a
+closed schema with a maximum size; no stored JavaScript, SQL fragment or raw
+expression language reaches the renderer.
+
+## Footer controls (v2.1)
+
+Theme payload v10 moves the compatibility footer's composition and optional
+content behind renderer-backed controls. Responsive columns reproduce the
+existing desktop/mobile behavior exactly; Always stacked and Centered stack add
+bounded alternatives. Editors may show or hide the tagline and social row,
+change their copy, and configure each existing social mark with an HTTPS URL or
+an empty value that hides only that destination.
+
+Footer navigation and legal links deliberately remain menu-managed. Published
+footer templates remain the higher-level composition tool and may frame or hide
+the compatibility marker, so these theme controls add convenient chrome
+variation without narrowing the arbitrary template path. Older payloads acquire
+the verified original footer defaults field by field and require no migration.
+
 ## Next engine layers
 
-1. Run screenshot-level responsive comparison for all numbered Section Library presets and refine any visual divergence without changing their content contracts.
-2. Add reusable symbols, component states and named responsive breakpoints
-   without permitting arbitrary stored CSS.
+1. Continue screenshot-level responsive comparison for numbered Section Library presets as designs evolve, without changing their content contracts.
+2. Add editor-named responsive breakpoints if the owner chooses to replace the current stable desktop/tablet/mobile contract.
 3. Continue the transcript and Schematic extraction with deeper navigation
    surfaces and footer composition in small renderer-backed groups.
 4. Add migration fixtures and visual baselines for every current page before a
    native primitive is allowed to replace an existing component.
 
+## Shared tokens, field inheritance and component states (v2.2)
+
+Theme payload v12 adds up to 24 stable-id color tokens, each with light and dark
+values validated by the same CSS-color boundary as the core theme. A local
+element or reusable class may reference one by id for its background or text;
+the renderer emits only `var(--mg-token-<safe-id>)`, never authored CSS.
+
+The visual model also accepts bounded hover, focus-within and active appearance
+states. These reuse the existing background, color, border, radius, shadow and
+opacity vocabularies and work both locally and through reusable classes. The
+older transform-based hover presets remain compatible.
+
+Manifest defaults are now visible inheritance rather than invisible renderer
+behavior: an unset field displays its effective component default, and an
+explicit value can be cleared back to that default even when the field is
+required. Clearing removes the stored key; it does not copy the current default,
+so future component-default changes continue to cascade.
+
+## Contextual template previews (v2.3)
+
+Template builders may preview a compatible published page, category, article or
+product at the `documentContent` marker. The selected record id and type live in
+the existing preview capability's context JSON. `resolve_preview` returns that
+context alongside exactly one authorized draft, while the record itself is read
+through the anonymous published-content path. Old tokens and automatic
+assignment-based stand-ins continue to work with an empty context.
+
 ## Numbered Hero Studio (v1.8)
 
 The standalone Modern Gentlemen Section Library is now governed by a complete
-145-entry compatibility map rather than the former partial 1–28 inventory.
-Every source composition has a stable number, a target builder family and an
-honest Native, Compatible or Queued status.
+125-entry imported-source inventory rather than the former partial 1–28 map.
+The same ledger also records 20 additive platform presets from the product
+brief. Every source composition has a stable number and target builder family;
+the provenance-aware Native/Platform status prevents brief-derived modules from
+being mistaken for source-file imports.
 
-`heroStudio` covers 001 and every hero from 069–125, including Vogue 6A–6J,
+`heroStudio` covers 01 and every hero from 69–125, including Vogue 6A–6J,
 through shared cover, masthead, split, collage, film, ranking, ticker and
 editorial archetypes. `sectionStudio` covers every remaining composition,
-002–068 and 126–145, through shared card, list, feature, people, data,
-commerce, media and utility archetypes. Editors can change content, media,
-actions, hierarchy, responsive layout and color treatment without breaking a
-preset's numbered identity. Both renderers are additive: every original hero
-and section remains registered, so this migration does not narrow what the
-existing site can reproduce.
-
+imported 02–68 and platform 126–145, through shared card, list, feature, people,
+data, commerce, media and utility archetypes. Editors can change content,
+media, actions, hierarchy, responsive layout and color treatment without
+breaking a preset's numbered identity. Both renderers are additive: every
+original hero and section remains registered, so this migration does not narrow
+what the existing site can reproduce.

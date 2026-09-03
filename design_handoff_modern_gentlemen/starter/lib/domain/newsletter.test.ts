@@ -5,6 +5,7 @@ import {
   isSubscriberSource,
   MAX_EMAIL_LENGTH,
   normaliseEmail,
+  subscriberCsv,
   SUBSCRIBER_SOURCES,
   SUBSCRIBER_STATUSES,
 } from "./newsletter";
@@ -95,5 +96,36 @@ describe("the stored vocabularies", () => {
     // Nothing sends a confirmation email, so nothing may claim `confirmed`.
     expect(SUBSCRIBER_STATUSES[0]).toBe("pending");
     expect([...SUBSCRIBER_STATUSES]).toEqual(["pending", "confirmed", "unsubscribed"]);
+  });
+});
+
+describe("subscriberCsv", () => {
+  it("quotes portable rows and keeps honest lifecycle fields", () => {
+    expect(
+      subscriberCsv([
+        {
+          email: "reader@example.com",
+          source: "newsletter",
+          status: "pending",
+          createdAt: "2026-09-03T12:00:00.000Z",
+          confirmedAt: null,
+        },
+      ])
+    ).toBe(
+      'email,source,status,created_at,confirmed_at\r\n"reader@example.com","newsletter","pending","2026-09-03T12:00:00.000Z",""\r\n'
+    );
+  });
+
+  it("neutralises spreadsheet formulas in public input", () => {
+    const csv = subscriberCsv([
+      {
+        email: "=IMPORTXML@example.com",
+        source: "ctaBand",
+        status: "pending",
+        createdAt: "now",
+        confirmedAt: null,
+      },
+    ]);
+    expect(csv).toContain('"\'=IMPORTXML@example.com"');
   });
 });

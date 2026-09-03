@@ -15,6 +15,7 @@
 import type { ZodTypeAny } from "zod";
 
 import { bindingQuerySchema, hasBindingShape } from "./bindingDescriptor";
+import { conditionOperatorsFor, filterableFieldFor } from "./bindingFields";
 import { fieldToZod } from "./fields";
 import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
@@ -170,6 +171,41 @@ export function validateBlock(node: BlockNode): ValidationResult {
             message: issue.message,
           });
         }
+      } else if (parsedQuery.data.where) {
+        parsedQuery.data.where.conditions.forEach((condition, index) => {
+          const field = filterableFieldFor(parsedQuery.data.source, condition.field);
+          if (!field) {
+            issues.push({
+              key,
+              type: node._type,
+              path: [name, "$bind", "where", "conditions", index, "field"].join("."),
+              message: `“${condition.field}” is not a condition field for this source`,
+            });
+            return;
+          }
+
+          if (
+            !conditionOperatorsFor(field.type).some(({ value }) => value === condition.operator)
+          ) {
+            issues.push({
+              key,
+              type: node._type,
+              path: [name, "$bind", "where", "conditions", index, "operator"].join("."),
+              message: `“${condition.operator}” cannot be used with ${field.type} fields`,
+            });
+          }
+
+          const value = condition.value;
+          const hasValue = value !== undefined;
+          if (hasValue && typeof value !== field.type) {
+            issues.push({
+              key,
+              type: node._type,
+              path: [name, "$bind", "where", "conditions", index, "value"].join("."),
+              message: `Expected ${field.type}, received ${typeof value}`,
+            });
+          }
+        });
       }
 
       if (Object.prototype.hasOwnProperty.call(descriptor, "fallback")) {

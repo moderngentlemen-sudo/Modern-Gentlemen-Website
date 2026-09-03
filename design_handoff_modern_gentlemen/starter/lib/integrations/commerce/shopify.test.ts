@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { coerceValue, shopifyConfigSchema, type ShopifyConfig } from "@/lib/domain/ingestion";
+import {
+  coerceValue,
+  DEFAULT_SHOPIFY_API_VERSION,
+  shopifyConfigSchema,
+  type ShopifyConfig,
+} from "@/lib/domain/ingestion";
 import { shopifyAdapter } from "./shopify";
 import { AdapterError } from "./types";
 
@@ -19,6 +24,8 @@ interface Call {
   url: string;
   headers: Headers;
   redirect?: RequestRedirect;
+  method?: string;
+  body?: string;
 }
 
 /** A fake Shopify that serves the given pages in order, recording every call. */
@@ -31,6 +38,8 @@ function shopServing(pages: Array<{ body: string; headers?: Record<string, strin
       url: String(url),
       headers: new Headers(init?.headers),
       redirect: init?.redirect,
+      method: init?.method,
+      body: typeof init?.body === "string" ? init.body : undefined,
     });
     const page = pages[Math.min(served, pages.length - 1)];
     served += 1;
@@ -44,7 +53,7 @@ function shopServing(pages: Array<{ body: string; headers?: Record<string, strin
 }
 
 function config(overrides: Partial<ShopifyConfig> = {}): ShopifyConfig {
-  return {
+  return shopifyConfigSchema.parse({
     shop_domain: SHOP,
     api_version: "2025-01",
     page_size: 250,
@@ -53,8 +62,10 @@ function config(overrides: Partial<ShopifyConfig> = {}): ShopifyConfig {
     fulfilment: "direct",
     currency: "GBP",
     timeout_ms: 5_000,
+    transport: "rest",
+    collection_limit: 50,
     ...overrides,
-  };
+  });
 }
 
 function pageOf(...products: unknown[]): string {
@@ -122,6 +133,66 @@ describe("fetchRecords", () => {
     // The token is in a custom header, which `fetch` does not strip across
     // origins — so a redirect must not be followed.
     expect(calls[0].redirect).toBe("manual");
+  });
+
+  it("uses bounded GraphQL pagination and returns REST-compatible collection records", async () => {
+    const first = JSON.stringify({
+      data: {
+        products: {
+          nodes: [
+            {
+              legacyResourceId: "8100000000001",
+              title: "Waxed Cotton Jacket",
+              handle: "waxed-cotton-jacket",
+              status: "ACTIVE",
+              productType: "Outerwear",
+              tags: ["style"],
+              variants: { nodes: [{ legacyResourceId: "1", sku: "MG-001", price: "145.00" }] },
+              images: { nodes: [{ url: "https://cdn.example/jacket.jpg", altText: "Jacket" }] },
+              collections: {
+                nodes: [
+                  {
+                    id: "gid://shopify/Collection/9",
+                    handle: "editors-picks",
+                    title: "Editors' picks",
+                  },
+                ],
+              },
+            },
+          ],
+          pageInfo: { hasNextPage: true, endCursor: "cursor-one" },
+        },
+      },
+    });
+    const second = JSON.stringify({
+      data: { products: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } },
+    });
+    const { result, calls } = await records([{ body: first }, { body: second }], {
+      transport: "graphql",
+      page_size: 25,
+      collection_limit: 12,
+    });
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0].url).toBe(`https://${SHOP}/admin/api/2025-01/graphql.json`);
+    expect(calls[0].method).toBe("POST");
+    expect(JSON.parse(calls[0].body ?? "{}").variables).toEqual({
+      first: 25,
+      after: null,
+      query: "status:active",
+      collections: 12,
+    });
+    expect(JSON.parse(calls[1].body ?? "{}").variables.after).toBe("cursor-one");
+    expect(shopifyAdapter.readPath(result[0], "collections/title")).toBe("Editors' picks");
+    expect(shopifyAdapter.readPath(result[0], "variants/0/price")).toBe("145.00");
+  });
+
+  it("reports GraphQL application errors returned with HTTP 200", async () => {
+    await expect(
+      records([{ body: JSON.stringify({ errors: [{ message: "Access denied" }] }) }], {
+        transport: "graphql",
+      })
+    ).rejects.toThrow(/Access denied/);
   });
 
   it("fails before making a request when no credential is set", async () => {
@@ -376,13 +447,15 @@ describe("shopifyConfigSchema", () => {
   it("applies its defaults", () => {
     const parsed = shopifyConfigSchema.parse({ shop_domain: SHOP });
     expect(parsed).toMatchObject({
-      api_version: "2025-01",
+      api_version: DEFAULT_SHOPIFY_API_VERSION,
       page_size: 250,
       max_pages: 20,
       status: "active",
       fulfilment: "direct",
       currency: "GBP",
       timeout_ms: 30_000,
+      transport: "rest",
+      collection_limit: 50,
     });
   });
 

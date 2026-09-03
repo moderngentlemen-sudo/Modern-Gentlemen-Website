@@ -112,6 +112,19 @@ describe("help and required", () => {
 });
 
 describe("writing values", () => {
+  it("shows an inherited manifest default without persisting a copy", () => {
+    const ctx = renderField(field.boolean({ label: "Featured", default: true }), undefined);
+    expect(screen.getByRole("switch", { name: "Featured" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Inherited: true" })).toBeDisabled();
+    expect(ctx.writes).toEqual([]);
+  });
+
+  it("clears an explicit value to restore field inheritance", async () => {
+    const ctx = renderField(field.text({ label: "Heading", default: "The Latest" }), "Custom");
+    await userEvent.click(screen.getByRole("button", { name: "Use component default" }));
+    expect(ctx.writes).toContainEqual(["target", "<cleared>"]);
+  });
+
   it("writes a text edit at its own path", async () => {
     const ctx = renderField(field.text({ label: "Headline" }), "");
     await userEvent.type(screen.getByLabelText("Headline"), "A");
@@ -417,7 +430,11 @@ describe("binding filters", () => {
 
     await userEvent.selectOptions(screen.getByLabelText(/^Source/), "products");
 
-    expect(onChange).toHaveBeenCalledWith({ source: "products", filter: undefined });
+    expect(onChange).toHaveBeenCalledWith({
+      source: "products",
+      filter: undefined,
+      where: undefined,
+    });
   });
 
   it("shows a stored key the vocabulary no longer knows, instead of dropping it", () => {
@@ -431,6 +448,38 @@ describe("binding filters", () => {
   it("says what no filter means", () => {
     renderEditor({ source: "articles" });
     expect(screen.getByText(/Everything in the source, newest first/)).toBeTruthy();
+  });
+
+  it("authors typed conditional expressions with all-or-any matching", async () => {
+    const { onChange } = renderEditor({ source: "products" });
+
+    await userEvent.selectOptions(screen.getByLabelText("Add a condition"), "price");
+    await userEvent.selectOptions(screen.getByLabelText("Condition 1 operator"), "greater_than");
+    await userEvent.type(screen.getByLabelText("Condition 1 value"), "100");
+    await userEvent.selectOptions(screen.getByLabelText("Add a condition"), "group");
+    await userEvent.selectOptions(screen.getByLabelText("Match"), "any");
+
+    const last = onChange.mock.calls.at(-1)?.[0] as Partial<BindingQuery>;
+    expect(last.where).toEqual({
+      match: "any",
+      conditions: [
+        { field: "price", operator: "greater_than", value: 100 },
+        { field: "group", operator: "exists" },
+      ],
+    });
+  });
+
+  it("offers only operators valid for the selected field type", async () => {
+    renderEditor({ source: "articles" });
+
+    await userEvent.selectOptions(screen.getByLabelText("Add a condition"), "lead");
+
+    const operators = [
+      ...screen.getByLabelText("Condition 1 operator").querySelectorAll("option"),
+    ].map((option) => option.getAttribute("value"));
+    expect(operators).toContain("equals");
+    expect(operators).not.toContain("contains");
+    expect(operators).not.toContain("greater_than");
   });
 
   it("lets an editor enable persisted fallback content", async () => {

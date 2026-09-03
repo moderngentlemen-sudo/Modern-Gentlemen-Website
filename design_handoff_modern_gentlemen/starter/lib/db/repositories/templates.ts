@@ -179,7 +179,7 @@ export async function assignTemplate(
 }
 
 /** Removes whatever claims this target, whichever template holds it. */
-async function clearAssignmentTarget(
+export async function clearAssignmentTarget(
   db: Db,
   target: { contentType: string; entryId?: string | null }
 ): Promise<void> {

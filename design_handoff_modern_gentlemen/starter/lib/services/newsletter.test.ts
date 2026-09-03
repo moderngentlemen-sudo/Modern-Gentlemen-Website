@@ -6,19 +6,25 @@ import type * as RateLimit from "./rateLimit";
 // and a factory that names a `const` from below it throws "Cannot access before
 // initialization" — reported as a mocking error pointing at the *module under
 // test*, which is a long way from the line responsible.
-const { insertSubscriber, consumeRateLimit } = vi.hoisted(() => ({
-  insertSubscriber: vi.fn(),
-  consumeRateLimit: vi.fn(),
-}));
+const { insertSubscriber, listSubscribers, consumeRateLimit, requirePermission, createClient } =
+  vi.hoisted(() => ({
+    insertSubscriber: vi.fn(),
+    listSubscribers: vi.fn(),
+    consumeRateLimit: vi.fn(),
+    requirePermission: vi.fn(),
+    createClient: vi.fn(),
+  }));
 
 vi.mock("@/lib/db/public", () => ({ createPublicClient: () => ({}) }));
-vi.mock("@/lib/db/repositories/newsletter", () => ({ insertSubscriber }));
+vi.mock("@/lib/db/server", () => ({ createClient }));
+vi.mock("@/lib/db/repositories/newsletter", () => ({ insertSubscriber, listSubscribers }));
+vi.mock("./auth", () => ({ requirePermission }));
 vi.mock("./rateLimit", async (importOriginal) => ({
   ...(await importOriginal<typeof RateLimit>()),
   consumeRateLimit,
 }));
 
-import { subscribeToNewsletter } from "./newsletter";
+import { listNewsletterSubscribers, subscribeToNewsletter } from "./newsletter";
 
 /**
  * The sign-up service's decisions, in the order it takes them.
@@ -94,5 +100,24 @@ describe("subscribeToNewsletter", () => {
       ok: false,
       reason: "unavailable",
     });
+  });
+});
+
+describe("listNewsletterSubscribers", () => {
+  beforeEach(() => {
+    requirePermission.mockReset().mockResolvedValue({});
+    createClient.mockReset().mockResolvedValue({ session: true });
+    listSubscribers.mockReset().mockResolvedValue([]);
+  });
+
+  it("requires integration access and bounds export-sized reads", async () => {
+    await listNewsletterSubscribers(99_000);
+    expect(requirePermission).toHaveBeenCalledWith("integration.read");
+    expect(listSubscribers).toHaveBeenCalledWith({ session: true }, 5_000);
+  });
+
+  it("never asks the repository for fewer than one row", async () => {
+    await listNewsletterSubscribers(-5);
+    expect(listSubscribers).toHaveBeenCalledWith(expect.anything(), 1);
   });
 });

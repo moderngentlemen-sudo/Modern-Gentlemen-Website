@@ -1,6 +1,6 @@
 # Original Scope Acceptance Audit
 
-Audit date: 2026-08-30
+Audit date: 2026-09-03
 
 This is the acceptance checklist for the original “production-grade
 backend/admin platform” brief. It is deliberately stricter than a feature list:
@@ -46,21 +46,21 @@ or function impossible to reproduce.
 | Native low-level elements                          | Complete | Heading, Text, Image, Video, Embed, Icon, Product, Form, Button, Divider and responsive Spacer are available alongside every legacy section. Product resolves the live catalogue and shared bag; Form captures configurable bounded fields through an RLS-protected public path.                       |
 | Responsive visual styling                          | Complete | Per-device layout, grid/flex, sizing, spacing, surface, border, corner, shadow, opacity, overflow, hover and motion controls use the shared visual renderer.                                                                                                                                           |
 | Direct manipulation                                | Complete | Canvas/Navigator multi-select, group operations, drag/drop, direct resize with optional 5% grid snapping and smart canvas/peer alignment, persistent and Space-key hand panning, rulers, 50–150% zoom, exact responsive dimensions and bounded positioning work. All viewport aids remain editor-only. |
-| Shared classes/design tokens/symbol states         | Partial  | Global theme roles, reusable patterns and published responsive style classes with local overrides exist; component states and shared local token aliases remain.                                                                                                                                       |
+| Shared classes/design tokens/symbol states         | Complete | Global theme roles, synced/detachable patterns, published responsive style classes, reusable light/dark local color tokens and bounded hover/focus/active component-state overrides all share the same renderer-backed cascade.                                                                         |
 
 ## Templates, binding and preview
 
-| Requirement                                                        | Status   | Evidence / remaining work                                                                                                                                                |
-| ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Template kinds: page/article/product/archive/header/footer/section | Complete | All kinds are modeled, editable, publishable and revisioned.                                                                                                             |
-| Named template areas                                               | Complete | Create, rename, switch, validate, preview and delete area workflows are covered end to end.                                                                              |
-| Template assignment                                                | Complete | Page, category, article, product, shop, header and footer targets are assignable, publicly consumed and revalidated; entry assignments override content-type defaults.   |
-| Dynamic data binding                                               | Partial  | Field selection, filtering, sorting, limit/offset, mapping, plucking, real DB sources and editor-retained runtime fallback content work. Conditional expressions remain. |
-| Local template overrides                                           | Partial  | Document sections and the `documentContent` marker allow local content composition for framed types; a formal per-field override/inheritance UI remains.                 |
-| Live unsaved canvas preview                                        | Complete | The canvas renders real production components from the in-memory undoable tree at desktop/tablet/mobile widths.                                                          |
-| Signed draft previews                                              | Complete | Expiring preview sessions resolve draft content separately from public published reads.                                                                                  |
-| Preview all page/article/product/template instances                | Partial  | Shared preview actions exist for all builder documents; contextual switching between several records inside one editor session remains.                                  |
-| Safe preview routing                                               | Complete | Tokenized preview sessions and separated anonymous published reads are tested at the database and route layers.                                                          |
+| Requirement                                                        | Status   | Evidence / remaining work                                                                                                                                                                                                        |
+| ------------------------------------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Template kinds: page/article/product/archive/header/footer/section | Complete | All kinds are modeled, editable, publishable and revisioned.                                                                                                                                                                     |
+| Named template areas                                               | Complete | Create, rename, switch, validate, preview and delete area workflows are covered end to end.                                                                                                                                      |
+| Template assignment                                                | Complete | Page, category, article, product, shop, header and footer targets are assignable, publicly consumed and revalidated; entry assignments override content-type defaults.                                                           |
+| Dynamic data binding                                               | Complete | Field selection, legacy equality filters, typed all/any conditional expressions, sorting, limit/offset, mapping, plucking, real DB sources and editor-retained runtime fallback content work.                                    |
+| Local template overrides                                           | Complete | Pages and articles expose explicit entry-level template inheritance/override controls; every manifest field with a component default now shows its inherited value and offers a one-click return from an explicit local value to inheritance.                                               |
+| Live unsaved canvas preview                                        | Complete | The canvas renders real production components from the in-memory undoable tree at desktop/tablet/mobile widths.                                                                                                                  |
+| Signed draft previews                                              | Complete | Expiring preview sessions resolve draft content separately from public published reads.                                                                                                                                          |
+| Preview all page/article/product/template instances                | Complete | Shared preview actions cover all builder documents. Template editors can select any compatible published page, category, article or product; the signed capability stores that context and uses it at the content marker without exposing another draft.                              |
+| Safe preview routing                                               | Complete | Tokenized preview sessions and separated anonymous published reads are tested at the database and route layers.                                                                                                                  |
 
 ## Theme, header and footer design
 
@@ -70,8 +70,8 @@ or function impossible to reproduce.
 | Layout widths and gutters                                  | Complete | Global content width and desktop/mobile gutters cascade through shared CSS variables.                                                                                                                                                                                                                                                            |
 | Global spacing, borders, shadows, buttons, cards and forms | Complete | Reusable responsive recipes cover spacing/borders/shadows, while published semantic defaults control button shape/case/shadow/interaction, card shape/border/shadow/media hover and form shape/border/fill/focus.                                                                                                                                |
 | Animation presets                                          | Complete | Local elements and reusable global style classes offer bounded fade/rise/slide/scale viewport entrances, sequencing delays, once/repeat behavior, shared motion timing, dynamic-builder observation and reduced-motion/no-JavaScript safety.                                                                                                     |
-| Header customization                                       | Partial  | Balanced, centered-logo and navigation-left compositions now work with editable initial/compact heights, smart scroll/background behavior, divider, safe optional CTA, search/theme/bag visibility, icon bubbles and hover styles. Announcement bars, arbitrary element layout, account/social controls and the remaining Claude presets remain. |
-| Footer customization                                       | Partial  | Menus are data-driven, but tagline, social destinations and arbitrary footer composition remain fixed in the component.                                                                                                                                                                                                                          |
+| Header customization                                       | Complete | Balanced, centered-logo and navigation-left compositions work with editable initial/compact heights, scroll/background/divider behavior, CTA, announcement strip, account/social/search/theme/bag controls, icon surfaces and hover styles. Global header templates provide arbitrary composition. Transcript-only exploration knobs remain catalogued, not misrepresented as product requirements. |
+| Footer customization                                       | Complete | Menus and legal links remain data-driven; theme payload v10 controls responsive/stacked/centered layout, tagline visibility/copy, social-row visibility/label and safe per-network destinations. Global footer templates provide arbitrary composition while retaining or replacing the compatibility marker.                                    |
 | Site-wide cascading defaults with local overrides          | Complete | Published theme variables and semantic component defaults feed public component hooks, reusable classes sit above them, and higher-specificity per-element settings remain local overrides.                                                                                                                                                      |
 
 ## Editorial CMS and media
@@ -103,9 +103,11 @@ or function impossible to reproduce.
 | XML dedupe, change detection, source tracking and approval | Complete | Staged import items record source identity/action/diffs and require review/apply workflows.                                                                                                                               |
 | Scheduled XML sync                                         | Complete | Source schedules and signed background job routing are implemented.                                                                                                                                                       |
 | XML error reporting                                        | Complete | Job/item status, errors and review screens expose failures without publishing partial data.                                                                                                                               |
-| Shopify abstraction and product/inventory/status sync      | Complete | Shopify is a `SourceAdapter` behind the same ingestion pipeline, with paginated transforms and hybrid local/source products.                                                                                              |
-| Shopify collection sync                                    | Partial  | Shopify tags or product type can map additively into created/reused local collections without pruning curated memberships. Direct manual/smart collection-graph mirroring still needs a bounded GraphQL bulk-sync stream. |
+| Shopify abstraction and product/inventory/status sync      | Complete | Shopify is a `SourceAdapter` behind the same ingestion pipeline, with paginated transforms and hybrid local/source products. New sources default to stable Admin API `2026-07`; stored sources remain explicitly pinned. |
+| Shopify collection sync                                    | Complete | Tags/product type mapping remains compatible. An opt-in, cursor-paginated GraphQL transport returns direct manual/smart collection memberships in a REST-compatible record shape, with bounded products/pages/collections and no per-product N+1 requests. |
 | Live Shopify credential verification/E2E                   | Partial  | Config validation and adapter/unit coverage exist; CI deliberately does not call a real merchant store. Production connection requires merchant credentials.                                                              |
+| Newsletter capture and staff handoff                       | Complete | Public INSERT-only Supabase capture is rate-limited; staff can inspect lifecycle/source data and export formula-safe CSV through an `integration.read`-gated route without choosing an ESP.                               |
+| Newsletter double opt-in and ESP delivery                  | Partial  | Pending status is honest and provider-neutral. Confirmation mail, unsubscribe synchronization and campaign delivery require the owner's ESP/consent decisions and credentials.                                            |
 
 ## Navigation, revisions and publishing
 
@@ -144,8 +146,12 @@ or function impossible to reproduce.
 3. ~~Expose media tagging and conditional navigation rules.~~ Complete
    2026-09-03.
 4. ~~Add source-to-local Shopify collection mapping.~~ Complete 2026-09-03.
-   Direct Shopify collection-graph mirroring and credential-backed execution of
-   the new browser acceptance scenarios remain.
+5. ~~Add shared local tokens, component states, explicit field inheritance,
+   contextual template previews and remaining compatibility-header controls.~~
+   Complete 2026-09-03.
+6. ~~Add bounded direct Shopify collection-graph ingestion.~~ Complete
+   2026-09-03 through the opt-in GraphQL transport. Credential-backed execution
+   against the owner's merchant remains an external launch verification.
 
 This backlog is additive. Existing high-fidelity sections and the fixed article
 template library remain supported until migration fixtures and visual proof

@@ -110,6 +110,12 @@ test.describe("page builder", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByText("Speed, considered.")).toBeVisible();
 
+    // The public breakpoint assertion above deliberately leaves this browser
+    // at phone width. Restore the desktop editing viewport before returning to
+    // the three-column builder; at 390px its fixed sidebars correctly leave no
+    // usable canvas width, so a block exists in the DOM but cannot be clicked.
+    await page.setViewportSize({ width: 1440, height: 900 });
+
     // --- history + rollback ----------------------------------------------
     await page.goto(`${builderUrl}/history`);
     await expect(page).toHaveURL(/\/history$/);

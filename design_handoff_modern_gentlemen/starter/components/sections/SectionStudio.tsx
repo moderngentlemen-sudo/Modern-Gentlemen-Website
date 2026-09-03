@@ -83,9 +83,10 @@ const splitLayouts: SectionStudioLayout[] = [
 ];
 
 /**
- * Native presets for Section Library 002–068 and 126–145. The source designs
- * reduce to a bounded set of editorial archetypes; presets retain their exact
- * number/name while this renderer keeps content and presentation independent.
+ * Native presets for imported Section Library entries 02–68 plus additive
+ * platform modules 126–145. The source designs reduce to a bounded set of
+ * editorial archetypes; presets retain their exact number/name while this
+ * renderer keeps content and presentation independent.
  */
 export function SectionStudio({
   variant = "categoryRail",

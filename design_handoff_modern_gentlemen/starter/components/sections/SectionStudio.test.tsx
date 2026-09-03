@@ -25,7 +25,7 @@ describe("SectionStudio", () => {
     expect(new Set(SECTION_STUDIO_PRESETS.map(([value]) => value))).toHaveProperty("size", 87);
     expect(new Set(SECTION_STUDIO_PRESETS.map(([, module]) => module))).toHaveProperty("size", 87);
     expect(SECTION_STUDIO_PRESETS.map(([, module]) => module)).toEqual([
-      ...Array.from({ length: 67 }, (_, index) => String(index + 2).padStart(3, "0")),
+      ...Array.from({ length: 67 }, (_, index) => String(index + 2).padStart(2, "0")),
       ...Array.from({ length: 20 }, (_, index) => String(index + 126)),
     ]);
   });

@@ -25,7 +25,7 @@ import { createPublicClient } from "@/lib/db/public";
 import { supabaseUrl } from "@/lib/db/env";
 import {
   shapeRows,
-  type BindingQuery,
+  filterRows,
   type BindingSource,
   type BindingSources,
 } from "@/lib/blocks/binding";
@@ -192,14 +192,8 @@ async function productRows(): Promise<Row[]> {
   }));
 }
 
-/** Equality-only matching, exactly as the demo source does it. */
-function applyFilter(rows: Row[], filter: BindingQuery["filter"]): Row[] {
-  if (!filter) return rows;
-  return rows.filter((row) => Object.entries(filter).every(([key, value]) => row[key] === value));
-}
-
 function sourceOver(load: () => Promise<Row[]>): BindingSource {
-  return { fetch: async (query) => shapeRows(applyFilter(await load(), query.filter), query) };
+  return { fetch: async (query) => shapeRows(filterRows(await load(), query), query) };
 }
 
 export const supabaseBindingSources: BindingSources = Object.freeze({
