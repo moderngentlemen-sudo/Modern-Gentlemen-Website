@@ -76,6 +76,15 @@ export async function getPatternByKey(db: Db, key: string): Promise<PatternRow |
   );
 }
 
+export async function getPattern(db: Db, id: string): Promise<PatternRow | null> {
+  return (
+    (unwrap(
+      "getPattern",
+      await db.from("patterns").select("*").eq("id", id).maybeSingle()
+    ) as PatternRow | null) ?? null
+  );
+}
+
 export async function listPatterns(
   db: Db,
   { categoryId }: { categoryId?: string } = {}

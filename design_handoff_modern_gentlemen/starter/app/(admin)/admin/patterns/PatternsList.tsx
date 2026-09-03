@@ -14,10 +14,12 @@ import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { useToast } from "@/components/admin/ui/Toast";
 import type { DocumentStatus } from "@/lib/domain/documents";
+import { DuplicateDocumentDialog } from "@/components/admin/DuplicateDocumentDialog";
 
 import {
   createPatternAction,
   deletePatternAction,
+  duplicatePatternAction,
   renamePatternAction,
   setPatternDetailsAction,
 } from "./actions";
@@ -151,6 +153,7 @@ export function PatternsList({
   const [keyTouched, setKeyTouched] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<PatternRow | null>(null);
+  const [duplicating, setDuplicating] = useState<PatternRow | null>(null);
 
   // Renaming edits the row in place, so the dialog opens holding what is there
   // rather than empty — the create dialog's `slugify`-as-you-type would be
@@ -302,6 +305,16 @@ export function PatternsList({
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => setDuplicating(pattern)}
+                          disabled={pending}
+                        >
+                          Duplicate
+                        </Button>
+                      )}
+                      {canWrite && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => openRename(pattern)}
                           disabled={pending}
                         >
@@ -402,6 +415,18 @@ export function PatternsList({
           />
         </div>
       </Dialog>
+
+      {duplicating && (
+        <DuplicateDocumentDialog
+          key={duplicating.id}
+          source={duplicating}
+          noun="pattern"
+          slugNoun="key"
+          action={duplicatePatternAction}
+          destination={(id) => `/admin/patterns/${id}`}
+          onClose={() => setDuplicating(null)}
+        />
+      )}
 
       <Dialog
         open={renaming !== null}

@@ -30,6 +30,15 @@ export interface PageRow {
   updated_at: string;
 }
 
+export async function getPage(db: Db, id: string): Promise<PageRow | null> {
+  return (
+    (unwrap(
+      "getPage",
+      await db.from("pages").select("*").eq("id", id).maybeSingle()
+    ) as PageRow | null) ?? null
+  );
+}
+
 export async function createPage(
   db: Db,
   input: {

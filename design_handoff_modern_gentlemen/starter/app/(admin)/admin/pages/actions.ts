@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   createPage,
   deleteDocument,
+  duplicateDocument,
   renamePage,
   setDocumentStatus,
 } from "@/lib/services/documents";
@@ -42,6 +43,24 @@ export async function createPageAction(input: unknown): Promise<ActionResult<{ i
     const page = await createPage(parsed.data);
     revalidatePath("/admin/pages");
     return ok({ id: page.id });
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+const DuplicateInput = CreateInput.extend({ id: z.string().uuid() });
+
+export async function duplicatePageAction(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const parsed = DuplicateInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  try {
+    const { id, title, slug } = parsed.data;
+    const page = await duplicateDocument("page", id, { title, slug });
+    revalidatePath("/admin/pages");
+    return ok(page);
   } catch (error) {
     return toActionResult(error);
   }

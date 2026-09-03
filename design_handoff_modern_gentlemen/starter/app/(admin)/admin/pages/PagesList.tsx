@@ -13,8 +13,9 @@ import { EmptyState } from "@/components/admin/ui/EmptyState";
 import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { useToast } from "@/components/admin/ui/Toast";
 import type { DocumentStatus } from "@/lib/domain/documents";
+import { DuplicateDocumentDialog } from "@/components/admin/DuplicateDocumentDialog";
 
-import { createPageAction, deletePageAction } from "./actions";
+import { createPageAction, deletePageAction, duplicatePageAction } from "./actions";
 
 export interface PageRow {
   id: string;
@@ -53,6 +54,7 @@ export function PagesList({
   const [slugTouched, setSlugTouched] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<PageRow | null>(null);
+  const [duplicating, setDuplicating] = useState<PageRow | null>(null);
 
   function create() {
     setError(undefined);
@@ -137,6 +139,16 @@ export function PagesList({
                     </Td>
                     <Td className="font-mono text-[12px] text-mg-fg/60">v{page.version}</Td>
                     <Td className="text-right">
+                      {canWrite && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDuplicating(page)}
+                          disabled={pending}
+                        >
+                          Duplicate
+                        </Button>
+                      )}
                       {canDelete && (
                         <Button
                           size="sm"
@@ -196,6 +208,18 @@ export function PagesList({
           />
         </div>
       </Dialog>
+
+      {duplicating && (
+        <DuplicateDocumentDialog
+          key={duplicating.id}
+          source={duplicating}
+          noun="page"
+          slugNoun="slug"
+          action={duplicatePageAction}
+          destination={(id) => `/admin/pages/${id}`}
+          onClose={() => setDuplicating(null)}
+        />
+      )}
 
       <Dialog
         open={confirmDelete !== null}

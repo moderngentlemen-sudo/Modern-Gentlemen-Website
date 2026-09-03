@@ -20,11 +20,13 @@ import {
   type TemplateKind,
 } from "@/lib/domain/templates";
 import type { DocumentStatus } from "@/lib/domain/documents";
+import { DuplicateDocumentDialog } from "@/components/admin/DuplicateDocumentDialog";
 
 import {
   assignTemplateAction,
   createTemplateAction,
   deleteTemplateAction,
+  duplicateTemplateAction,
   renameTemplateAction,
 } from "./actions";
 
@@ -102,6 +104,7 @@ export function TemplatesList({
   const [keyTouched, setKeyTouched] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<TemplateRow | null>(null);
+  const [duplicating, setDuplicating] = useState<TemplateRow | null>(null);
 
   const [assigning, setAssigning] = useState<TemplateRow | null>(null);
   // `""` is "applies to nothing" — the select needs a value for that option and
@@ -283,6 +286,16 @@ export function TemplatesList({
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => setDuplicating(template)}
+                            disabled={pending}
+                          >
+                            Duplicate
+                          </Button>
+                        )}
+                        {canWrite && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => openRename(template)}
                             disabled={pending}
                           >
@@ -360,6 +373,22 @@ export function TemplatesList({
           />
         </div>
       </Dialog>
+
+      {duplicating && (
+        <DuplicateDocumentDialog
+          key={duplicating.id}
+          source={{
+            id: duplicating.id,
+            title: duplicating.name,
+            slug: duplicating.key,
+          }}
+          noun="template"
+          slugNoun="key"
+          action={duplicateTemplateAction}
+          destination={(id) => `/admin/templates/${id}`}
+          onClose={() => setDuplicating(null)}
+        />
+      )}
 
       <Dialog
         open={renaming !== null}

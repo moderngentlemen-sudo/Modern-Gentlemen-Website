@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createPattern, setPatternDetails } from "@/lib/services/patterns";
-import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
+import {
+  deleteDocument,
+  duplicateDocument,
+  renameDocument,
+  setDocumentStatus,
+} from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
 import { ok, type ActionResult } from "../_lib/action-result";
@@ -99,6 +104,30 @@ export async function createPatternAction(input: unknown): Promise<ActionResult<
     });
     revalidatePath("/admin/patterns");
     return ok({ id: pattern.id });
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+const DuplicateInput = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(1, "Enter a name").max(200),
+  slug: Key,
+});
+
+export async function duplicatePatternAction(
+  input: unknown
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = DuplicateInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  try {
+    const { id, title, slug } = parsed.data;
+    const pattern = await duplicateDocument("pattern", id, { title, slug });
+    revalidatePath("/admin/patterns");
+    return ok(pattern);
   } catch (error) {
     return toActionResult(error);
   }

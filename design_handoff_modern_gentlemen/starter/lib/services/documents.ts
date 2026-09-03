@@ -13,7 +13,9 @@
 import { createClient } from "@/lib/db/server";
 import * as repo from "@/lib/db/repositories/documents";
 import { autosaveDocument, latestRevision } from "@/lib/db/repositories/revisions";
-import { createPage as createPageRow, EMPTY_PAGE_PAYLOAD } from "@/lib/db/repositories/pages";
+import * as pageRepo from "@/lib/db/repositories/pages";
+import * as templateRepo from "@/lib/db/repositories/templates";
+import * as patternRepo from "@/lib/db/repositories/patterns";
 import { RepositoryError } from "@/lib/db/repositories/errors";
 import type { Json } from "@/lib/db/database.types";
 import { validateTree, type BlockIssue } from "@/lib/blocks/validate";
@@ -36,6 +38,7 @@ import type { Permission } from "@/lib/domain/permissions";
 import { requirePermission } from "./auth";
 import { clearEntityMedia, reconcileEntityMedia } from "./media";
 import { articleFeaturedMediaUsages } from "@/lib/domain/articles";
+import { rekeyBlockTree } from "@/lib/blocks/rekey";
 
 export type DocumentAction = "read" | "write" | "publish" | "delete";
 
@@ -244,13 +247,82 @@ export async function createPage(input: { slug: string; title: string; templateI
   const user = await requirePermission("page.write");
   const db = await createClient();
 
-  return createPageRow(db, {
+  return pageRepo.createPage(db, {
     slug: input.slug,
     title: input.title,
     templateId: input.templateId ?? null,
-    draftData: EMPTY_PAGE_PAYLOAD,
+    draftData: pageRepo.EMPTY_PAGE_PAYLOAD,
     createdBy: user.id,
   });
+}
+
+export type DuplicableDocumentType = "page" | "template" | "pattern";
+
+/**
+ * Clones a reusable document as a fresh draft.
+ *
+ * Publication state, revisions, assignments and system/locked flags are never
+ * copied. Content and safe document-specific metadata are. A pattern's block
+ * keys are reminted because two synced siblings expand into one page tree;
+ * retaining the source keys there would create collisions at render time.
+ */
+export async function duplicateDocument(
+  type: DuplicableDocumentType,
+  id: string,
+  input: { title: string; slug: string }
+): Promise<{ id: string }> {
+  const user = await requirePermission(permissionFor(type, "write"));
+  const db = await createClient();
+  let created: { id: string };
+  let draftData: Json;
+
+  if (type === "page") {
+    const source = await pageRepo.getPage(db, id);
+    if (!source) throw new Error(`No such page: ${id}`);
+    draftData = source.draft_data;
+    created = await pageRepo.createPage(db, {
+      slug: input.slug,
+      title: input.title,
+      templateId: source.template_id,
+      draftData,
+      createdBy: user.id,
+    });
+  } else if (type === "template") {
+    const source = await templateRepo.getTemplate(db, id);
+    if (!source) throw new Error(`No such template: ${id}`);
+    draftData = source.draft_data;
+    created = await templateRepo.createTemplate(db, {
+      key: input.slug,
+      name: input.title,
+      kind: source.kind,
+      description: source.description ?? undefined,
+      draftData,
+      createdBy: user.id,
+    });
+  } else {
+    const source = await patternRepo.getPattern(db, id);
+    if (!source) throw new Error(`No such pattern: ${id}`);
+    const payload = (source.draft_data ?? {}) as Record<string, unknown>;
+    const blocks = Array.isArray(payload.blocks) ? (payload.blocks as BlockNode[]) : [];
+    draftData = { ...payload, blocks: rekeyBlockTree(blocks) } as Json;
+    created = await patternRepo.createPattern(db, {
+      key: input.slug,
+      name: input.title,
+      description: source.description ?? undefined,
+      categoryId: source.category_id ?? undefined,
+      syncMode: source.sync_mode,
+      draftData,
+      createdBy: user.id,
+    });
+  }
+
+  try {
+    await reconcileEntityMedia(type, created.id, blockTreesOf(type, draftData));
+  } catch (error) {
+    console.error(`Media usage reconciliation failed for duplicated ${type} ${created.id}:`, error);
+  }
+
+  return { id: created.id };
 }
 
 export async function deleteDocument(type: DocumentType, id: string): Promise<void> {

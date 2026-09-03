@@ -9,7 +9,12 @@ import {
   getTemplate,
   publicPathsForTemplate,
 } from "@/lib/services/templates";
-import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
+import {
+  deleteDocument,
+  duplicateDocument,
+  renameDocument,
+  setDocumentStatus,
+} from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
 import { TEMPLATE_KINDS } from "@/lib/domain/templates";
 import { ok, type ActionResult } from "../_lib/action-result";
@@ -52,6 +57,30 @@ export async function createTemplateAction(input: unknown): Promise<ActionResult
     });
     revalidatePath("/admin/templates");
     return ok({ id: template.id });
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+const DuplicateInput = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(1, "Enter a name").max(200),
+  slug: Key,
+});
+
+export async function duplicateTemplateAction(
+  input: unknown
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = DuplicateInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  try {
+    const { id, title, slug } = parsed.data;
+    const template = await duplicateDocument("template", id, { title, slug });
+    revalidatePath("/admin/templates");
+    return ok(template);
   } catch (error) {
     return toActionResult(error);
   }
