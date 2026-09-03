@@ -282,6 +282,21 @@ describe("remove and move", () => {
 });
 
 describe("multi-selection", () => {
+  it("selects every root and nested element in tree order", () => {
+    const store = makeStore([
+      {
+        _key: "parent",
+        _type: "layoutContainer",
+        children: [{ _key: "child", _type: "pullQuote" }],
+      },
+      { _key: "last", _type: "masthead" },
+    ]);
+
+    store.getState().selectAll();
+    expect(store.getState().selectedKeys).toEqual(["parent", "child", "last"]);
+    expect(store.getState().selectedKey).toBe("last");
+  });
+
   it("adds and toggles blocks while keeping the last selected block active", () => {
     const tree: BlockTree = [
       { _key: "a", _type: "pullQuote" },

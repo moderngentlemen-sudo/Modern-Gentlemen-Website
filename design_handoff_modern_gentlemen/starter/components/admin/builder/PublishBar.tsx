@@ -185,10 +185,20 @@ export function PublishBar({
         </div>
 
         <div className="flex items-center gap-1">
-          <IconButton label="Undo" disabled={!canUndo} onClick={undo}>
+          <IconButton
+            label="Undo"
+            aria-keyshortcuts="Control+Z Meta+Z"
+            disabled={!canUndo}
+            onClick={undo}
+          >
             ↶
           </IconButton>
-          <IconButton label="Redo" disabled={!canRedo} onClick={redo}>
+          <IconButton
+            label="Redo"
+            aria-keyshortcuts="Control+Y Meta+Shift+Z"
+            disabled={!canRedo}
+            onClick={redo}
+          >
             ↷
           </IconButton>
         </div>

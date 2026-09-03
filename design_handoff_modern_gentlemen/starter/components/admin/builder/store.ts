@@ -150,6 +150,7 @@ export interface BuilderState {
 
 export interface BuilderActions {
   select: (key: string | null, additive?: boolean) => void;
+  selectAll: () => void;
   hover: (key: string | null) => void;
   setDevice: (device: BuilderState["device"]) => void;
   setCanvasZoom: (zoom: number) => void;
@@ -496,6 +497,10 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
             : [...state.selectedKeys, key];
           return { selectedKey: selectedKeys.at(-1) ?? null, selectedKeys };
         }),
+      selectAll: () => {
+        const selectedKeys = [...keysOf(get().tree)];
+        set({ selectedKey: selectedKeys.at(-1) ?? null, selectedKeys });
+      },
       hover: (key) => set({ hoveredKey: key }),
       setDevice: (device) => set({ device }),
       setCanvasZoom: (zoom) => set({ canvasZoom: Math.min(1.5, Math.max(0.5, zoom)) }),

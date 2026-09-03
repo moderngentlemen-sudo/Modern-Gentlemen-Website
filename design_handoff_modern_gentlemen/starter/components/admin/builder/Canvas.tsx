@@ -329,10 +329,20 @@ export function Canvas({
               {selectedKeys.length} elements selected
             </span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={duplicateSelected}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={duplicateSelected}
+                title="Duplicate selection (Ctrl/Cmd+D)"
+              >
                 Duplicate
               </Button>
-              <Button size="sm" variant="outline" onClick={removeSelected}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={removeSelected}
+                title="Delete selection (Delete/Backspace)"
+              >
                 Delete
               </Button>
             </div>

@@ -36,6 +36,7 @@ import { PublishBar } from "./PublishBar";
 import { SaveSelectionAsPattern } from "./SaveSelectionAsPattern";
 import { ValidationTray } from "./ValidationTray";
 import { useAutosave } from "./useAutosave";
+import { useBuilderShortcuts } from "./useBuilderShortcuts";
 import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
 import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
@@ -192,6 +193,7 @@ function BuilderLayout({
   styleClasses: readonly ThemeStyleClass[];
 }) {
   useAutosave(callbacks.saveDraft);
+  useBuilderShortcuts();
   const [leftPanel, setLeftPanel] = useState<"add" | "navigator">("add");
 
   // `documentContent` is offered in a template and nowhere else — see
