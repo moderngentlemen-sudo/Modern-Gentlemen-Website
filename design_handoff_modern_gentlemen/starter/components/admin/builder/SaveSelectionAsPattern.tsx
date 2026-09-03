@@ -95,9 +95,7 @@ export function SaveSelectionAsPattern({ action }: SaveSelectionAsPatternProps) 
             setOpen(true);
           }}
           disabled={selectedCount === 0}
-          title={
-            selectedCount === 0 ? "Select one or more canvas elements first" : undefined
-          }
+          title={selectedCount === 0 ? "Select one or more canvas elements first" : undefined}
         >
           Save selection as pattern
         </Button>

@@ -182,6 +182,11 @@ The four credential-free pre-commit gates are:
 npm run format:check && npm run lint && npm run typecheck && npm test
 ```
 
+Railway additionally runs `npm run deploy:check` before its build. That command
+is expected to fail in a credential-free checkout and must be exercised only
+with the intended deployment variables; it reports names/problems without
+printing values.
+
 In the current Codex desktop environment, `npm` is not on `PATH`. Run local module CLIs through the bundled Node executable, for example:
 
 ```powershell
@@ -343,12 +348,16 @@ The original visual defaults must remain a no-op when no custom setting is selec
 
 ## 13. Section library
 
-All 145 entries from the supplied standalone Modern Gentlemen Section Library mockup were made native/selectable builder presets.
+All 125 entries from the supplied standalone Modern Gentlemen Section Library
+mockup were made native/selectable builder presets. Twenty CMS/site presets from
+the product brief remain available as additive platform modules.
 
-- `heroStudio` covers entry 001 and entries 069–125.
-- `sectionStudio` covers entries 002–068 and 126–145.
+- `heroStudio` covers entry 01 and entries 69–125.
+- `sectionStudio` covers imported entries 02–68 plus platform entries 126–145.
 
-These are shared archetypes with per-preset data/options, not 145 unrelated screenshot-hardcoded React files. Treat them as a compatibility and creativity library: settings may be expanded, but current presets must continue to render.
+These are shared archetypes with per-preset data/options, not 145 unrelated
+screenshot-hardcoded React files. Treat them as a compatibility and creativity
+library: settings may be expanded, but current presets must continue to render.
 
 ## 14. Admin routes
 
@@ -366,6 +375,7 @@ Primary admin destinations:
 /admin/navigation
 /admin/theme
 /admin/integrations
+/admin/newsletter
 /admin/taxonomy
 ```
 

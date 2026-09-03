@@ -2,7 +2,8 @@
  * What a binding may be filtered on, per source.
  *
  * `BindingQuery.filter` is `Record<string, string | number | boolean>` and both
- * sources match with `===`. That is a small contract with one large trap in it:
+ * sources match with `===`. The same vocabulary drives typed `where`
+ * conditions. That is a small contract with one large trap in it:
  * **a filter whose value is the wrong type matches nothing, silently.** `issue`
  * is the string `"040"`, not the number 40; `lead` is a real boolean, not
  * `"true"`. Either mistake returns an empty list, which renders as an empty
@@ -26,6 +27,8 @@
  * in, whether it leads its category.
  */
 
+import type { BindingConditionOperator } from "./bindingDescriptor";
+
 export type FilterValueType = "string" | "number" | "boolean";
 
 export interface FilterableField {
@@ -34,6 +37,34 @@ export interface FilterableField {
   type: FilterValueType;
   help?: string;
 }
+
+export interface ConditionOperatorOption {
+  value: BindingConditionOperator;
+  label: string;
+}
+
+const UNIVERSAL_OPERATORS: readonly ConditionOperatorOption[] = [
+  { value: "equals", label: "is" },
+  { value: "not_equals", label: "is not" },
+  { value: "exists", label: "is present" },
+  { value: "not_exists", label: "is missing" },
+];
+
+const STRING_OPERATORS: readonly ConditionOperatorOption[] = [
+  ...UNIVERSAL_OPERATORS,
+  { value: "contains", label: "contains" },
+  { value: "not_contains", label: "does not contain" },
+  { value: "starts_with", label: "starts with" },
+  { value: "ends_with", label: "ends with" },
+];
+
+const NUMBER_OPERATORS: readonly ConditionOperatorOption[] = [
+  ...UNIVERSAL_OPERATORS,
+  { value: "greater_than", label: "is greater than" },
+  { value: "greater_than_or_equal", label: "is at least" },
+  { value: "less_than", label: "is less than" },
+  { value: "less_than_or_equal", label: "is at most" },
+];
 
 export const FILTERABLE_FIELDS: Readonly<Record<string, readonly FilterableField[]>> =
   Object.freeze({
@@ -98,6 +129,16 @@ export function filterableFieldFor(
   key: string
 ): FilterableField | undefined {
   return filterableFieldsFor(source).find((field) => field.key === key);
+}
+
+export function conditionOperatorsFor(type: FilterValueType): readonly ConditionOperatorOption[] {
+  if (type === "string") return STRING_OPERATORS;
+  if (type === "number") return NUMBER_OPERATORS;
+  return UNIVERSAL_OPERATORS;
+}
+
+export function conditionNeedsValue(operator: BindingConditionOperator): boolean {
+  return operator !== "exists" && operator !== "not_exists";
 }
 
 /**

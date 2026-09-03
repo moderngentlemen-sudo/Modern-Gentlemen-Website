@@ -42,6 +42,8 @@ import { dropTargetFor, locate } from "./tree";
 import type { BuilderInit } from "./store";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { ThemeStyleClass } from "@/lib/domain/theme";
+import type { TemplateOverrideState } from "@/lib/services/templates";
+import type { TemplateOverrideAction } from "@/components/admin/TemplateOverrideControl";
 
 type CollisionArguments = Parameters<CollisionDetection>[0];
 
@@ -132,6 +134,7 @@ export function Builder({
   canPreview,
   patterns = [],
   styleClasses = [],
+  templateOverride,
 }: {
   init: BuilderInit;
   actions: BuilderServerActions;
@@ -139,6 +142,10 @@ export function Builder({
   canPreview: boolean;
   patterns?: BuilderPattern[];
   styleClasses?: readonly ThemeStyleClass[];
+  templateOverride?: {
+    state: TemplateOverrideState;
+    action: TemplateOverrideAction;
+  };
 }) {
   const id = init.doc.id;
   // `treeKey` is a payload *path*, and for a template it is `areas.<name>`.
@@ -173,6 +180,7 @@ export function Builder({
           canPreview={canPreview}
           patterns={patterns}
           styleClasses={styleClasses}
+          templateOverride={templateOverride}
         />
       </PatternsProvider>
     </BuilderStoreProvider>
@@ -185,12 +193,17 @@ function BuilderLayout({
   canPreview,
   patterns,
   styleClasses,
+  templateOverride,
 }: {
   callbacks: BuilderCallbacks;
   canPublish: boolean;
   canPreview: boolean;
   patterns: BuilderPattern[];
   styleClasses: readonly ThemeStyleClass[];
+  templateOverride?: {
+    state: TemplateOverrideState;
+    action: TemplateOverrideAction;
+  };
 }) {
   useAutosave(callbacks.saveDraft);
   useBuilderShortcuts();
@@ -418,7 +431,12 @@ function BuilderLayout({
 
   return (
     <div className="flex h-screen flex-col">
-      <PublishBar callbacks={callbacks} canPublish={canPublish} canPreview={canPreview} />
+      <PublishBar
+        callbacks={callbacks}
+        canPublish={canPublish}
+        canPreview={canPreview}
+        templateOverride={templateOverride}
+      />
 
       <DndContext
         sensors={sensors}

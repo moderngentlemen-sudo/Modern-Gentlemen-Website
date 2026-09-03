@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THEME_COLORS,
   DEFAULT_THEME_COMPONENTS,
+  DEFAULT_THEME_FOOTER,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_SETTINGS,
@@ -25,6 +26,7 @@ import {
   TOKENS_BY_CONTEXT,
   accentChannels,
   parseThemeHeader,
+  parseThemeFooter,
   parseThemeLayout,
   parseThemeColors,
   parseThemeComponentDefaults,
@@ -158,6 +160,7 @@ describe("editable typography and header settings", () => {
     expect(parsed.colors).toEqual(DEFAULT_THEME_COLORS);
     expect(parsed.typography).toEqual(DEFAULT_THEME_TYPOGRAPHY);
     expect(parsed.header).toEqual(DEFAULT_THEME_HEADER);
+    expect(parsed.footer).toEqual(DEFAULT_THEME_FOOTER);
     expect(parsed.layout).toEqual(DEFAULT_THEME_LAYOUT);
     expect(parsed.styleClasses).toEqual([]);
     expect(parsed.components).toEqual(DEFAULT_THEME_COMPONENTS);
@@ -307,6 +310,39 @@ describe("editable typography and header settings", () => {
         },
       })
     ).toEqual({ ...DEFAULT_THEME_HEADER, height: 88, ctaLabel: "Join us" });
+
+    expect(
+      parseThemeFooter({
+        footer: {
+          layout: "centered",
+          showTagline: false,
+          tagline: "  A quieter footer.  ",
+          instagramHref: "javascript:alert(1)",
+          xHref: "https://example.com/modern-gentlemen",
+        },
+      })
+    ).toEqual({
+      ...DEFAULT_THEME_FOOTER,
+      layout: "centered",
+      showTagline: false,
+      tagline: "A quieter footer.",
+      xHref: "https://example.com/modern-gentlemen",
+    });
+  });
+
+  it("strictly rejects unsafe footer destinations", () => {
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        footer: { ...DEFAULT_THEME_FOOTER, instagramHref: "/social" },
+      }).success
+    ).toBe(false);
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        footer: { ...DEFAULT_THEME_FOOTER, instagramHref: "https://example.com/profile" },
+      }).success
+    ).toBe(true);
   });
 
   it("emits role variables from presets rather than arbitrary CSS", () => {

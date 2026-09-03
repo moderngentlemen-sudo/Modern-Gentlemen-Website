@@ -394,6 +394,35 @@ export const DEFAULT_THEME_HEADER: ThemeHeader = {
   iconHover: "scale",
 };
 
+export const FOOTER_LAYOUTS = ["responsive", "stacked", "centered"] as const;
+export type FooterLayout = (typeof FOOTER_LAYOUTS)[number];
+
+export interface ThemeFooter {
+  /** Responsive preserves the original two-column desktop composition. */
+  layout: FooterLayout;
+  showTagline: boolean;
+  tagline: string;
+  showSocials: boolean;
+  followLabel: string;
+  instagramHref: string;
+  xHref: string;
+  youtubeHref: string;
+  linkedinHref: string;
+}
+
+export const DEFAULT_THEME_FOOTER: ThemeFooter = {
+  layout: "responsive",
+  showTagline: true,
+  tagline:
+    "A field guide to the considered life — style, watches, film & the art of doing things properly.",
+  showSocials: true,
+  followLabel: "Follow Modern Gentlemen",
+  instagramHref: "https://instagram.com",
+  xHref: "https://x.com",
+  youtubeHref: "https://youtube.com",
+  linkedinHref: "https://linkedin.com",
+};
+
 export interface ThemeLayout {
   /** Maximum width of the site's standard content column. */
   contentWidth: number;
@@ -453,6 +482,7 @@ export interface ThemeSettings {
   colors: ThemeColors;
   typography: ThemeTypography;
   header: ThemeHeader;
+  footer: ThemeFooter;
   layout: ThemeLayout;
   /** Reusable, responsive visual recipes applied by builder elements. */
   styleClasses: ThemeStyleClass[];
@@ -470,13 +500,14 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   colors: DEFAULT_THEME_COLORS,
   typography: DEFAULT_THEME_TYPOGRAPHY,
   header: DEFAULT_THEME_HEADER,
+  footer: DEFAULT_THEME_FOOTER,
   layout: DEFAULT_THEME_LAYOUT,
   styleClasses: [],
   components: DEFAULT_THEME_COMPONENTS,
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 9;
+export const THEME_PAYLOAD_VERSION = 10;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -722,6 +753,9 @@ const safeHeaderHref = (value: string): boolean =>
   (value.startsWith("/") && !value.startsWith("//")) ||
   /^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(value);
 
+const safeSocialHref = (value: string): boolean =>
+  value === "" || /^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(value);
+
 export const themeHeaderSchema = z.object({
   composition: z.enum(HEADER_COMPOSITIONS),
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
@@ -738,6 +772,18 @@ export const themeHeaderSchema = z.object({
   scale: z.number().min(0.8).max(1.4),
   iconBubbles: z.boolean(),
   iconHover: z.enum(HEADER_ICON_HOVERS),
+});
+
+export const themeFooterSchema = z.object({
+  layout: z.enum(FOOTER_LAYOUTS),
+  showTagline: z.boolean(),
+  tagline: z.string().trim().max(240),
+  showSocials: z.boolean(),
+  followLabel: z.string().trim().max(80),
+  instagramHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  xHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  youtubeHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  linkedinHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
 });
 
 export const themeLayoutSchema = z.object({
@@ -813,6 +859,7 @@ export const themeSettingsSchema = z.object({
   colors: themeColorsSchema,
   typography: themeTypographySchema,
   header: themeHeaderSchema,
+  footer: themeFooterSchema,
   layout: themeLayoutSchema,
   styleClasses: themeStyleClassesSchema,
   components: themeComponentDefaultsSchema,
@@ -823,6 +870,7 @@ export const themePayloadSchema = z.object({
   colors: themeColorsSchema.optional(),
   typography: themeTypographySchema.optional(),
   header: themeHeaderSchema.optional(),
+  footer: themeFooterSchema.optional(),
   layout: themeLayoutSchema.optional(),
   styleClasses: themeStyleClassesSchema.optional(),
   components: themeComponentDefaultsSchema.optional(),
@@ -970,6 +1018,32 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   return out;
 }
 
+/** Forgiving public read for footer copy, layout and external destinations. */
+export function parseThemeFooter(value: unknown): ThemeFooter {
+  const incoming = asRecord(asRecord(value)?.footer);
+  if (!incoming) return { ...DEFAULT_THEME_FOOTER };
+
+  const out = { ...DEFAULT_THEME_FOOTER };
+  if ((FOOTER_LAYOUTS as readonly unknown[]).includes(incoming.layout)) {
+    out.layout = incoming.layout as FooterLayout;
+  }
+  if (typeof incoming.showTagline === "boolean") out.showTagline = incoming.showTagline;
+  if (typeof incoming.tagline === "string" && incoming.tagline.length <= 240) {
+    out.tagline = incoming.tagline.trim();
+  }
+  if (typeof incoming.showSocials === "boolean") out.showSocials = incoming.showSocials;
+  if (typeof incoming.followLabel === "string" && incoming.followLabel.length <= 80) {
+    out.followLabel = incoming.followLabel.trim();
+  }
+  for (const key of ["instagramHref", "xHref", "youtubeHref", "linkedinHref"] as const) {
+    const candidate = incoming[key];
+    if (typeof candidate === "string" && safeSocialHref(candidate.trim())) {
+      out[key] = candidate.trim();
+    }
+  }
+  return out;
+}
+
 /** Forgiving public read for site-wide content width and page gutters. */
 export function parseThemeLayout(value: unknown): ThemeLayout {
   const incoming = asRecord(asRecord(value)?.layout);
@@ -1062,6 +1136,7 @@ export function parseThemeSettings(value: unknown): ThemeSettings {
     colors: parseThemeColors(value),
     typography: parseThemeTypography(value),
     header: parseThemeHeader(value),
+    footer: parseThemeFooter(value),
     layout: parseThemeLayout(value),
     styleClasses: parseThemeStyleClasses(value),
     components: parseThemeComponentDefaults(value),

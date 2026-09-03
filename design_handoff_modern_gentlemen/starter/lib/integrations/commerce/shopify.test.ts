@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { coerceValue, shopifyConfigSchema, type ShopifyConfig } from "@/lib/domain/ingestion";
+import {
+  coerceValue,
+  DEFAULT_SHOPIFY_API_VERSION,
+  shopifyConfigSchema,
+  type ShopifyConfig,
+} from "@/lib/domain/ingestion";
 import { shopifyAdapter } from "./shopify";
 import { AdapterError } from "./types";
 
@@ -376,7 +381,7 @@ describe("shopifyConfigSchema", () => {
   it("applies its defaults", () => {
     const parsed = shopifyConfigSchema.parse({ shop_domain: SHOP });
     expect(parsed).toMatchObject({
-      api_version: "2025-01",
+      api_version: DEFAULT_SHOPIFY_API_VERSION,
       page_size: 250,
       max_pages: 20,
       status: "active",

@@ -58,7 +58,9 @@ describe("InsertMenu", () => {
   it("still inserts from the keyboard — the drag must not claim Enter", async () => {
     const onInsert = renderMenu();
 
-    screen.getByRole("button", { name: new RegExp(LABEL) }).focus();
+    await act(async () => {
+      screen.getByRole("button", { name: new RegExp(LABEL) }).focus();
+    });
     await userEvent.keyboard("{Enter}");
 
     expect(onInsert).toHaveBeenCalledWith("pullQuote");

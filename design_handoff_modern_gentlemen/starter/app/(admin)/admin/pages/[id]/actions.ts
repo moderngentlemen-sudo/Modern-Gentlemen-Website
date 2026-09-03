@@ -7,6 +7,7 @@ import { getDocument, saveDraft } from "@/lib/services/documents";
 import { publish, rollback, schedule, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview, revokePreview } from "@/lib/services/preview";
 import { publicPathForPage } from "@/lib/domain/routes";
+import { setTemplateOverrideForEntry } from "@/lib/services/templates";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../../_lib/action-result";
 import { toActionResult } from "../../_lib/errors";
@@ -22,6 +23,20 @@ import { toActionResult } from "../../_lib/errors";
  * import and leaves the store testable with fakes.
  */
 const Id = z.string().uuid();
+
+export async function setPageTemplateOverrideAction(input: unknown): Promise<ActionResult> {
+  const parsed = z.object({ id: Id, templateId: z.string().uuid().nullable() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid template selection" };
+
+  try {
+    await setTemplateOverrideForEntry("page", parsed.data.id, parsed.data.templateId);
+    revalidatePage(parsed.data.id);
+    await revalidatePublicPage(parsed.data.id);
+    return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
 
 /**
  * Structural validation only.

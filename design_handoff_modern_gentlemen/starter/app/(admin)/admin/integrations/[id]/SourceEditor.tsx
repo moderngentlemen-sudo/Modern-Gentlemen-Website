@@ -13,6 +13,7 @@ import { Table, Td, Th } from "@/components/admin/ui/Table";
 import { Checkbox, Toggle } from "@/components/admin/ui/Toggle";
 import { useToast } from "@/components/admin/ui/Toast";
 import {
+  DEFAULT_SHOPIFY_API_VERSION,
   FEED_TARGET_FIELDS,
   FEED_TARGET_FIELD_NAMES,
   FEED_TRANSFORMS,
@@ -258,7 +259,7 @@ export function SourceEditor({
                     value={apiVersion}
                     onChange={setApiVersion}
                     disabled={!canWrite}
-                    placeholder="2025-01"
+                    placeholder={DEFAULT_SHOPIFY_API_VERSION}
                     help="Shopify versions quarterly and retires a version after a year."
                     required
                   />

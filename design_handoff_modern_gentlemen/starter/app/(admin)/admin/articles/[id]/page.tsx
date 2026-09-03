@@ -8,6 +8,9 @@ import { listTaxonomy } from "@/lib/services/taxonomy";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Button } from "@/components/admin/ui/Button";
 import { StatusPill } from "@/components/admin/ui/Badge";
+import { TemplateOverrideControl } from "@/components/admin/TemplateOverrideControl";
+import { getTemplateOverrideState } from "@/lib/services/templates";
+import { setArticleTemplateOverrideAction } from "../actions";
 
 import { ArticleDetails } from "./ArticleDetails";
 import {
@@ -66,6 +69,9 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
   };
 
   const canWrite = user.permissions.has("article.write");
+  const canManageTemplate =
+    user.permissions.has("template.read") && user.permissions.has("template.write");
+  const templateOverride = canManageTemplate ? await getTemplateOverrideState("article", id) : null;
 
   return (
     <>
@@ -74,6 +80,14 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
         title={document.title}
         actions={
           <>
+            {templateOverride && (
+              <TemplateOverrideControl
+                id={id}
+                noun="article"
+                state={templateOverride}
+                action={setArticleTemplateOverrideAction}
+              />
+            )}
             <Button href={`/admin/articles/${id}/builder`} variant="outline" size="sm">
               Compose sections
             </Button>

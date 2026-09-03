@@ -7,7 +7,7 @@ export const heroStudio = defineBlock({
   label: "Hero studio",
   category: "hero",
   description:
-    "The complete Section Library hero catalogue: 01, every standard hero from 69–115, and Vogue 6A–6J from 116–125.",
+    "The complete imported Section Library hero catalogue: 01, every standard hero from 69–115, and Vogue 6A–6J from 116–125.",
   fields: {
     variant: field.select({
       label: "Library preset",

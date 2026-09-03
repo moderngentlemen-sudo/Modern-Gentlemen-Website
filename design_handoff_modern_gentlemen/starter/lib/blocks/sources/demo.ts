@@ -16,7 +16,7 @@
 import { categorySlugs, getCategory, slugify, type CategoryData } from "@/lib/demo/editorial";
 import { readingTimes } from "@/lib/domain/articles";
 import { allProducts } from "@/lib/demo/catalog";
-import { shapeRows, type BindingQuery, type BindingSource, type BindingSources } from "../binding";
+import { filterRows, shapeRows, type BindingSource, type BindingSources } from "../binding";
 
 /** Rows are flat and string-keyed so `filter`, `sort` and `map` work uniformly. */
 type Row = Record<string, unknown>;
@@ -114,14 +114,8 @@ function productRows(): Row[] {
   }));
 }
 
-/** Equality-only matching. Enough for the demo; the Supabase source will push filters into SQL. */
-function applyFilter(rows: Row[], filter: BindingQuery["filter"]): Row[] {
-  if (!filter) return rows;
-  return rows.filter((row) => Object.entries(filter).every(([key, value]) => row[key] === value));
-}
-
 function sourceOver(load: () => Row[]): BindingSource {
-  return { fetch: (query) => shapeRows(applyFilter(load(), query.filter), query) };
+  return { fetch: (query) => shapeRows(filterRows(load(), query), query) };
 }
 
 export const demoBindingSources: BindingSources = Object.freeze({

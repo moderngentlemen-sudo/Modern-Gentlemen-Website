@@ -112,6 +112,93 @@ export async function resolveTemplateFor(target: {
   return id ? repo.getTemplate(db, id) : null;
 }
 
+export interface TemplateOverrideState {
+  explicitTemplateId: string | null;
+  inheritedTemplate: { id: string; name: string } | null;
+  options: { id: string; name: string; status: string }[];
+}
+
+export function deriveTemplateOverrideState(
+  templates: readonly Pick<repo.TemplateRow, "id" | "name" | "status">[],
+  assignments: readonly repo.AssignmentRow[],
+  contentType: "page" | "article",
+  entryId: string
+): TemplateOverrideState {
+  const explicit = assignments.find((row) => row.scope === "entry" && row.entry_id === entryId);
+  const inherited = assignments.find(
+    (row) => row.scope === "content_type" && row.content_type === contentType
+  );
+  const byId = new Map(templates.map((template) => [template.id, template] as const));
+  const inheritedCandidate = inherited ? byId.get(inherited.template_id) : null;
+  const inheritedTemplate = inheritedCandidate?.status === "published" ? inheritedCandidate : null;
+
+  return {
+    explicitTemplateId: explicit?.template_id ?? null,
+    inheritedTemplate: inheritedTemplate
+      ? { id: inheritedTemplate.id, name: inheritedTemplate.name }
+      : null,
+    options: templates.map((template) => ({
+      id: template.id,
+      name: template.name,
+      status: template.status,
+    })),
+  };
+}
+
+/**
+ * The small, explicit state an entry-level template picker needs.
+ *
+ * `explicitTemplateId === null` means inherit the content-type assignment. It
+ * does not mean that no template renders: `inheritedTemplate` says what the
+ * current fallback is, which prevents an editor from mistaking inheritance for
+ * an unframed page.
+ */
+export async function getTemplateOverrideState(
+  contentType: "page" | "article",
+  entryId: string
+): Promise<TemplateOverrideState> {
+  await requirePermission("template.read");
+  const db = await createClient();
+  const [templates, assignments] = await Promise.all([
+    repo.listTemplates(db, { kind: contentType }),
+    repo.listAssignments(db),
+  ]);
+
+  return deriveTemplateOverrideState(templates, assignments, contentType, entryId);
+}
+
+/** Assign one entry to a template, or remove its override and inherit again. */
+export async function setTemplateOverrideForEntry(
+  contentType: "page" | "article",
+  entryId: string,
+  templateId: string | null
+): Promise<void> {
+  await requirePermission("template.write");
+  const db = await createClient();
+
+  const entry =
+    contentType === "page"
+      ? await db.from("pages").select("id").eq("id", entryId).maybeSingle()
+      : await db.from("articles").select("id").eq("id", entryId).maybeSingle();
+  if (entry.error) throw new Error(`Could not verify this ${contentType}: ${entry.error.message}`);
+  if (!entry.data) throw new Error(`That ${contentType} no longer exists.`);
+
+  if (templateId === null) {
+    await repo.clearAssignmentTarget(db, { contentType, entryId });
+    return;
+  }
+
+  const template = await repo.getTemplate(db, templateId);
+  if (!template || !framedContentTypesFor(template.kind).includes(contentType)) {
+    throw new Error(`That template cannot frame a ${contentType}.`);
+  }
+  if (template.status !== "published") {
+    throw new Error("Publish that template before assigning it to a live entry.");
+  }
+
+  await repo.assignTemplate(db, { templateId, contentType, entryId });
+}
+
 /**
  * The public paths a template's publish invalidates.
  *

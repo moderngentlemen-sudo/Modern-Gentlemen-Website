@@ -12,6 +12,9 @@ import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 import { isSchedulable } from "@/lib/domain/documents";
 import { areaNameOf } from "@/lib/blocks/areas";
 import { DOCUMENT_NOUN, adminPathForDocument, publicPathForDocument } from "@/lib/domain/routes";
+import { TemplateOverrideControl } from "@/components/admin/TemplateOverrideControl";
+import type { TemplateOverrideState } from "@/lib/services/templates";
+import type { TemplateOverrideAction } from "@/components/admin/TemplateOverrideControl";
 
 import { useBuilder } from "./StoreContext";
 import type { BuilderCallbacks } from "./Builder";
@@ -37,10 +40,12 @@ export function PublishBar({
   callbacks,
   canPublish,
   canPreview,
+  templateOverride,
 }: {
   callbacks: BuilderCallbacks;
   canPublish: boolean;
   canPreview: boolean;
+  templateOverride?: { state: TemplateOverrideState; action: TemplateOverrideAction };
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -204,6 +209,14 @@ export function PublishBar({
         </div>
 
         <div className="flex items-center gap-2">
+          {doc.type === "page" && templateOverride && (
+            <TemplateOverrideControl
+              id={doc.id}
+              noun="page"
+              state={templateOverride.state}
+              action={templateOverride.action}
+            />
+          )}
           {canPreview && (
             <Button size="sm" variant="outline" onClick={makePreview} loading={pending}>
               Preview

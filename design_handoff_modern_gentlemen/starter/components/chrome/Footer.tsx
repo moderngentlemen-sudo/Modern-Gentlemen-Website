@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { clsx } from "@/components/ui/clsx";
 import type { NavLink } from "@/lib/domain/navigation";
+import { DEFAULT_THEME_FOOTER, type ThemeFooter } from "@/lib/domain/theme";
 import { useVisibleNavigation } from "@/lib/useVisibleNavigation";
 
-const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
+const SOCIAL: {
+  label: string;
+  hrefKey: "instagramHref" | "xHref" | "youtubeHref" | "linkedinHref";
+  icon: React.ReactNode;
+}[] = [
   {
     label: "Instagram",
-    href: "https://instagram.com",
+    hrefKey: "instagramHref",
     icon: (
       <svg
         width="16"
@@ -25,7 +31,7 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   },
   {
     label: "X",
-    href: "https://x.com",
+    hrefKey: "xHref",
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.96 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23Zm-1.16 17.52h1.83L7.02 4.13H5.05l12.03 15.64Z" />
@@ -34,7 +40,7 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   },
   {
     label: "YouTube",
-    href: "https://youtube.com",
+    hrefKey: "youtubeHref",
     icon: (
       <svg
         width="17"
@@ -51,7 +57,7 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
   },
   {
     label: "LinkedIn",
-    href: "https://linkedin.com",
+    hrefKey: "linkedinHref",
     icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
         <path d="M4.98 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0 0-5ZM3 9.5h4v11H3v-11Zm6.5 0h3.83v1.5h.05c.53-.95 1.83-1.95 3.77-1.95 4.03 0 4.78 2.5 4.78 5.75v5.7h-4v-5.05c0-1.2-.02-2.75-1.7-2.75-1.7 0-1.96 1.31-1.96 2.66v5.14h-4v-11Z" />
@@ -59,35 +65,58 @@ const SOCIAL: { label: string; href: string; icon: React.ReactNode }[] = [
     ),
   },
 ];
-/** Footer is ALWAYS dark, regardless of theme — do not wire to data-mgtheme.
- *
- *  Both link rows come from the database (`footer-primary` and `footer-legal`);
- *  the socials do not, because they are inline SVG marks rather than content. */
-export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavLink[] }) {
+/** Footer is ALWAYS dark, regardless of theme — do not wire to data-mgtheme. */
+export function Footer({
+  nav = [],
+  legal = [],
+  settings = DEFAULT_THEME_FOOTER,
+}: {
+  nav?: NavLink[];
+  legal?: NavLink[];
+  settings?: ThemeFooter;
+}) {
   const visibleNav = useVisibleNavigation(nav);
   const visibleLegal = useVisibleNavigation(legal);
+  const centered = settings.layout === "centered";
+  const responsive = settings.layout === "responsive";
+  const socials = SOCIAL.flatMap((social) => {
+    const href = settings[social.hrefKey];
+    return href ? [{ ...social, href }] : [];
+  });
 
   return (
     <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band">
       {/* ≤680 every footer row insets 22px, matching the sections. */}
       {/* Brand + nav */}
-      <div className="container-mg grid grid-cols-1 min-[681px]:grid-cols-[1fr_auto] gap-6 min-[681px]:gap-10 min-[681px]:items-center py-11 border-b border-white/10">
+      <div
+        className={clsx(
+          "container-mg grid grid-cols-1 gap-6 py-11 border-b border-white/10",
+          responsive &&
+            "min-[681px]:grid-cols-[1fr_auto] min-[681px]:gap-10 min-[681px]:items-center",
+          centered && "text-center"
+        )}
+      >
         <div className="flex flex-col gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/mg-logo-wide.svg"
             alt="Modern Gentlemen"
-            className="h-[22px] w-auto self-start"
+            className={clsx("h-[22px] w-auto", centered ? "self-center" : "self-start")}
           />
-          <span className="font-serif italic text-[19px] leading-[1.3] text-[#f4f4f4]/60">
-            A field guide to the considered life — style, watches, film &amp; the art of doing
-            things properly.
-          </span>
+          {settings.showTagline && settings.tagline && (
+            <span className="font-serif italic text-[19px] leading-[1.3] text-[#f4f4f4]/60">
+              {settings.tagline}
+            </span>
+          )}
         </div>
         {/* Same grow-underline treatment as the top nav (prototype reuses
             `[data-navmenu]` here, which also sets the 6px underline offset). */}
         <nav
-          className="flex flex-wrap gap-x-5 gap-y-3.5 min-[681px]:gap-x-7 min-[681px]:justify-end"
+          className={clsx(
+            "flex flex-wrap gap-x-5 gap-y-3.5",
+            responsive && "min-[681px]:gap-x-7 min-[681px]:justify-end",
+            centered && "justify-center"
+          )}
           aria-label="Footer"
         >
           {visibleNav.map((link) => (
@@ -103,29 +132,45 @@ export function Footer({ nav = [], legal = [] }: { nav?: NavLink[]; legal?: NavL
       </div>
 
       {/* Follow + socials */}
-      <div className="container-mg flex flex-col min-[681px]:flex-row min-[681px]:items-center justify-between gap-3.5 min-[681px]:gap-5 py-[26px] border-b border-white/[0.06]">
-        <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/50">
-          Follow Modern Gentlemen
-        </span>
-        <div className="flex gap-3 text-[#f4f4f4]/55">
-          {SOCIAL.map((s) => (
-            <a
-              key={s.label}
-              href={s.href}
-              title={s.label}
-              aria-label={s.label}
-              className="flex items-center justify-center h-10 w-10 rounded-full border border-white/[0.18] transition-colors hover:bg-mg-accent hover:border-mg-accent hover:text-white"
-            >
-              {s.icon}
-            </a>
-          ))}
+      {settings.showSocials && (settings.followLabel || socials.length > 0) && (
+        <div
+          className={clsx(
+            "container-mg flex flex-col justify-between gap-3.5 py-[26px] border-b border-white/[0.06]",
+            responsive && "min-[681px]:flex-row min-[681px]:items-center min-[681px]:gap-5",
+            centered && "items-center text-center"
+          )}
+        >
+          {settings.followLabel && (
+            <span className="font-mono uppercase text-[9px] tracking-[0.24em] text-[#f4f4f4]/50">
+              {settings.followLabel}
+            </span>
+          )}
+          <div className="flex gap-3 text-[#f4f4f4]/55">
+            {socials.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                title={social.label}
+                aria-label={social.label}
+                className="flex items-center justify-center h-10 w-10 rounded-full border border-white/[0.18] transition-colors hover:bg-mg-accent hover:border-mg-accent hover:text-white"
+              >
+                {social.icon}
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Legal. The prototype sets this line as plain text; the labels stay
           linked here, with literal " · " separators so the run measures the
           same as the design's single string. */}
-      <div className="container-mg flex flex-col min-[681px]:flex-row justify-between gap-3.5 min-[681px]:gap-3 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/50">
+      <div
+        className={clsx(
+          "container-mg flex flex-col justify-between gap-3.5 py-[22px] font-mono uppercase text-[10px] leading-[normal] tracking-[0.14em] text-[#f4f4f4]/50",
+          responsive && "min-[681px]:flex-row min-[681px]:gap-3",
+          centered && "items-center text-center"
+        )}
+      >
         <span>© {new Date().getFullYear()} Modern Gentlemen — Est. 2026</span>
         <span className="whitespace-pre-wrap">
           {visibleLegal.map((link, i) => (

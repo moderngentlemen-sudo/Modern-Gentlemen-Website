@@ -11,6 +11,106 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — new Shopify sources target the current stable API
+
+New Shopify source configurations now default to Admin API `2026-07`, the
+latest stable version documented by Shopify at this audit date. The default is
+centralized across schema validation and the integration editor, while existing
+sources retain their explicitly stored version so an automatic deployment
+cannot silently change production behavior. The existing schema-default test
+now guards that central value. Live merchant validation and a future REST to
+GraphQL migration remain isolated from this credential-free compatibility fix.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,888/1,888 unit tests**.
+
+### 2026-09-03 — newsletter subscribers have a safe provider-neutral handoff
+
+`/admin/newsletter` now gives staff holding `integration.read` a read-only view
+of recent Supabase-captured addresses, honest pending/confirmed/unsubscribed
+counts, capture source and date. A permission-gated CSV route exports up to
+5,000 rows with private/no-store headers and neutralises spreadsheet-formula
+prefixes in public input. The public endpoint still has INSERT-only anonymous
+access, and no UI may mark a subscriber confirmed: provider selection,
+double-opt-in mail and unsubscribe synchronization remain explicit owner/ESP
+work. Focused domain, service and admin-navigation coverage passes with
+TypeScript.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,888/1,888 unit tests**.
+
+### 2026-09-03 — Railway deployment now fails fast on unsafe configuration
+
+Railway now runs `npm run deploy:check` before `next build`. The zero-dependency
+preflight requires the production site origin, both public Supabase values, the
+server-only service key and the jobs bearer secret; validates HTTPS origins,
+placeholder/masked values, plausible secret length and public/privileged key
+separation; and never echoes values into logs. Four isolated tests cover a valid
+deployment, missing values, malformed/placeholding values and the explicit
+Stripe demo warning. `RAILWAY_DEPLOYMENT.md` no longer claims the database-backed
+site deploys without variables, pins obsolete Node 20, or tells an owner to
+register a nonexistent Stripe webhook. Checkout remains truthfully blocked on
+the payment/fulfillment decisions and credentials that code cannot invent.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,882/1,882 unit tests**.
+
+### 2026-09-03 — imported Section Library provenance is now enforced
+
+The checked-in standalone design source contains **125** compositions, not 145:
+01–68, 69–115 and 116–125. The existing modules 126–145 are still valuable and
+remain selectable, but are now truthfully labeled as 20 additive platform
+presets derived from the product brief rather than imports from that artifact.
+Non-hero module labels 02–68 now match the source instead of using invented
+three-digit padding; persisted variant ids and every renderer remain unchanged.
+A new source-of-truth test parses the checked-in HTML and compatibility ledger,
+then proves all 125 source ids map one-to-one to native preset identifiers and
+all 20 supplemental modules retain explicit Platform provenance. Existing
+component tests continue to render all 145 presets and exercise their accessible
+interactive controls. Screenshot-level comparison still requires the real
+Supabase-backed browser environment.
+The full credential-free gate passes: Prettier, ESLint, TypeScript and
+**1,878/1,878 unit tests**.
+
+### 2026-09-03 — footer content and responsive behavior are theme-controlled
+
+Theme payload v10 adds footer controls without changing the shipped footer:
+Responsive columns, the original tagline, the social row, its label and all four
+destinations remain the defaults. Editors may instead stack or center the
+footer, hide its optional copy/social regions, and set each social destination
+to an HTTPS URL or leave it blank. Navigation and legal links remain driven by
+their existing menus, while global footer templates still provide arbitrary
+composition around—or in place of—the compatibility chrome marker. The strict
+write schema rejects unsafe destinations and overlong copy; forgiving public
+reads retain every valid stored field and restore defaults independently. No
+database migration is required because the versioned theme payload is JSON.
+Focused footer/theme verification passes, and the full credential-free gate is
+clean: Prettier, ESLint, TypeScript and **1,875/1,875 unit tests** pass.
+
+### 2026-09-03 — page and article template inheritance is explicit
+
+Page builders and article detail screens now offer a record-level **Layout**
+control. Editors can inherit the current site-wide page/article template or
+choose a published template for only that record; the inheritance option names
+the live default without copying it, so later global changes still flow through.
+Draft templates remain visible for recovery but cannot be assigned to a live
+entry. The server rechecks permissions, record existence, matching template
+kind and publication state, and clearing an override removes only that entry's
+assignment. Focused component, derivation and builder coverage passes with
+repository-wide ESLint and TypeScript; the full credential-free gate is
+clean as well: Prettier, ESLint, TypeScript and **1,871/1,871 unit tests** pass.
+
+### 2026-09-03 — dynamic bindings support typed conditional expressions
+
+Dynamic fields can now combine the original strict-equality filters with up to
+eight typed conditional rules using **match all** or **match any** logic. Text
+fields expose equality, containment and prefix/suffix operators; numeric fields
+expose bounded comparisons; booleans stay boolean; and every field supports
+presence checks. The demo and Supabase-backed sources use one shared evaluator,
+so a saved query cannot acquire different semantics between test data and the
+published site. Existing descriptors with only `filter` retain their exact
+meaning, and the expression schema accepts no JavaScript, SQL or arbitrary
+operator strings. Focused binding and editor coverage passes, along with ESLint
+and TypeScript. The full credential-free gate passes: repository-wide Prettier,
+ESLint, TypeScript and **1,864/1,864 unit tests**.
+
 ### 2026-09-03 — dynamic bindings preserve safe fallback content
 
 Switching a bindable field from Literal to Dynamic now carries its current
@@ -312,7 +412,7 @@ Two tracks now exist. **Track A (front-end)** is complete and pixel-verified. **
 
 **Schematic extraction — header compositions implemented 2026-09-02.** Theme → Header now offers three renderer-backed compositions: Balanced preserves the existing chrome exactly, Centered Logo splits the current data-driven primary menu around the brand, and Navigation Left groups the full menu with the brand while retaining the action cluster at the far edge. The same mega-menu, keyboard focus, touch-first-open behavior, drawer fallback and overlay pinning are shared by all three compositions rather than copied. Editors may also author an optional header CTA label and internal/HTTPS destination; an incomplete pair renders nothing, and stored unsafe schemes are dropped by the forgiving public parser while the strict write schema rejects them. The existing initial/compact heights, smart hide/reveal, backgrounds and icon settings remain independent. Theme payload version is now 8; old payloads field-fallback to Balanced, so no migration is required. Focused header and theme verification is **77/77 tests**; typecheck is clean.
 
-**Numbered Section Library migration — all 145 presets implemented 2026-09-02.** The supplied standalone mockup catalogue now has a complete 145-entry native ledger in `design_handoff_modern_gentlemen/MODULE_MAP.md`; the former map stopped at 28 and described the retired Sanity architecture. `heroStudio` covers 001 and the complete 069–125 hero catalogue, including Vogue 6A–6J, through shared cover, masthead, split, collage, film, ranking, ticker and editorial archetypes. `sectionStudio` covers 002–068 and 126–145 through shared card, list, feature, people, data, commerce, media and utility archetypes. Every source number and name is selectable in the existing insert menu, while content, media, actions, hierarchy, responsive layout and color treatment remain editable. This is additive: all earlier sections stay registered, preserving the project's compatibility rule. Focused verification is **578/578 tests**; lint, typecheck and the full unit/CI gates follow before release.
+**Numbered Section Library migration — 125 imported and 20 platform presets implemented 2026-09-02.** The supplied standalone mockup catalogue has a complete 125-entry native inventory in `design_handoff_modern_gentlemen/MODULE_MAP.md`; the same ledger retains 20 additive CMS/site presets from the product brief. `heroStudio` covers 01 and the complete 69–125 hero catalogue, including Vogue 6A–6J, through shared cover, masthead, split, collage, film, ranking, ticker and editorial archetypes. `sectionStudio` covers imported 02–68 and platform 126–145 through shared card, list, feature, people, data, commerce, media and utility archetypes. Every source number and name is selectable in the existing insert menu, while content, media, actions, hierarchy, responsive layout and color treatment remain editable. This is additive: all earlier sections stay registered, preserving the project's compatibility rule. Focused verification is **578/578 tests**; lint, typecheck and the full unit/CI gates follow before release.
 
 **Multi-select and direct manipulation — implemented 2026-08-31.** Shift/Ctrl/Command selection now works on both canvas and Navigator, with one-undo group duplicate, delete and style operations; selected ancestors suppress duplicate child operations, and locked elements remain protected. The visual model adds bounded per-device percentage/pixel width, exact height/minimum/maximum sizing, relative/absolute/sticky positioning, four offsets and stack order. A right-edge canvas handle writes the same validated percentage width used by the properties panel and public renderer. Unset values emit no CSS and preserve every existing composition. Verified locally: format, lint, typecheck and **1,583/1,583 unit tests**.
 

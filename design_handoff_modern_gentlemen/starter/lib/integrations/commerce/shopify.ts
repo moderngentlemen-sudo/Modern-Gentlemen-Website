@@ -136,7 +136,7 @@ function productsIn(body: string): unknown[] {
 
 /**
  * Shopify paginates by cursor, in a `Link` header:
- * `<https://shop.myshopify.com/admin/api/2025-01/products.json?limit=250&page_info=xyz>; rel="next"`
+ * `<https://shop.myshopify.com/admin/api/2026-07/products.json?limit=250&page_info=xyz>; rel="next"`
  *
  * The URL is used **verbatim** because Shopify refuses `page_info` combined with
  * any other filter — rebuilding it from the config would drop the cursor or be

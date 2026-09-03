@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyBindings,
+  bindingQuerySchema,
   collectBindings,
+  filterRows,
   isBindingDescriptor,
   resolveBindings,
   shapeRows,
@@ -225,6 +227,128 @@ describe("shapeRows", () => {
   it("returns one record when single is set, and null when there are none", () => {
     expect(shapeRows([{ a: 1 }], { source: "x", single: true })).toEqual({ a: 1 });
     expect(shapeRows([], { source: "x", single: true })).toBeNull();
+  });
+});
+
+describe("conditional expressions", () => {
+  const rows = [
+    { title: "Field Notes", category: "style", price: 80, lead: true },
+    { title: "The Watch Edit", category: "watches", price: 240, lead: false },
+    { title: "Evening Ritual", category: "grooming", price: 45 },
+  ];
+
+  it("matches all typed conditions", () => {
+    expect(
+      filterRows(rows, {
+        source: "products",
+        where: {
+          match: "all",
+          conditions: [
+            { field: "price", operator: "greater_than_or_equal", value: 80 },
+            { field: "title", operator: "contains", value: "watch" },
+          ],
+        },
+      })
+    ).toEqual([rows[1]]);
+  });
+
+  it("matches any condition and compares text without case surprises", () => {
+    expect(
+      filterRows(rows, {
+        source: "articles",
+        where: {
+          match: "any",
+          conditions: [
+            { field: "title", operator: "starts_with", value: "field" },
+            { field: "category", operator: "ends_with", value: "ING" },
+          ],
+        },
+      })
+    ).toEqual([rows[0], rows[2]]);
+  });
+
+  it("supports presence checks without treating false as missing", () => {
+    expect(
+      filterRows(rows, {
+        source: "articles",
+        where: {
+          match: "all",
+          conditions: [{ field: "lead", operator: "exists" }],
+        },
+      })
+    ).toEqual([rows[0], rows[1]]);
+  });
+
+  it("ANDs legacy equality filters with new conditional rules", () => {
+    expect(
+      filterRows(rows, {
+        source: "articles",
+        filter: { category: "style" },
+        where: {
+          match: "all",
+          conditions: [{ field: "price", operator: "less_than", value: 100 }],
+        },
+      })
+    ).toEqual([rows[0]]);
+  });
+
+  it("rejects unbounded or value-less expressions before publish", () => {
+    expect(
+      bindingQuerySchema.safeParse({
+        source: "articles",
+        where: { match: "all", conditions: [{ field: "title", operator: "contains" }] },
+      }).success
+    ).toBe(false);
+    expect(
+      bindingQuerySchema.safeParse({
+        source: "products",
+        where: {
+          match: "all",
+          conditions: [{ field: "price", operator: "greater_than", value: "100" }],
+        },
+      }).success
+    ).toBe(false);
+    expect(
+      bindingQuerySchema.safeParse({
+        source: "articles",
+        where: {
+          match: "all",
+          conditions: [{ field: "lead", operator: "exists", value: true }],
+        },
+      }).success
+    ).toBe(false);
+    expect(
+      bindingQuerySchema.safeParse({
+        source: "articles",
+        where: {
+          match: "all",
+          conditions: Array.from({ length: 9 }, () => ({
+            field: "lead",
+            operator: "exists",
+          })),
+        },
+      }).success
+    ).toBe(false);
+  });
+
+  it("reports source-field and operator mismatches at publish paths", () => {
+    const tree = grid({
+      source: "products",
+      where: {
+        match: "all",
+        conditions: [
+          { field: "category", operator: "equals", value: "style" },
+          { field: "group", operator: "greater_than", value: 2 },
+        ],
+      },
+    });
+
+    expect(validateTree(tree).issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "items.$bind.where.conditions.0.field" }),
+        expect.objectContaining({ path: "items.$bind.where.conditions.1.operator" }),
+      ])
+    );
   });
 });
 

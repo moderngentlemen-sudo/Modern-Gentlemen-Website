@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   DEFAULT_THEME_COLORS,
   DEFAULT_THEME_COMPONENTS,
+  DEFAULT_THEME_FOOTER,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
   DEFAULT_THEME_TYPOGRAPHY,
   FONT_PRESET_OPTIONS,
+  FOOTER_LAYOUTS,
   HEADER_BACKGROUNDS,
   HEADER_CART_VISIBILITY,
   HEADER_COMPOSITIONS,
@@ -35,6 +37,7 @@ import {
   WEBFONT_SOURCES,
   WEBFONT_STYLES,
   type FontSelection,
+  type FooterLayout,
   type HeaderBackground,
   type HeaderCartVisibility,
   type HeaderComposition,
@@ -44,6 +47,7 @@ import {
   type ThemeLayout,
   type ThemeContext,
   type ThemeComponentDefaults,
+  type ThemeFooter,
   type ThemeSettings,
   type ThemeStyleClass,
   type ThemeToken,
@@ -51,7 +55,7 @@ import {
   type ThemeWebfont,
 } from "@/lib/domain/theme";
 import { Panel, PanelSection } from "@/components/admin/ui/Panel";
-import { ColorInput, TextInput } from "@/components/admin/ui/Input";
+import { ColorInput, TextArea, TextInput } from "@/components/admin/ui/Input";
 import { Button } from "@/components/admin/ui/Button";
 import { Select } from "@/components/admin/ui/Select";
 import { NumberInput } from "@/components/admin/ui/NumberInput";
@@ -178,6 +182,12 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, header: { ...current.header, [key]: value } }));
+  }
+
+  function setFooter<K extends keyof ThemeFooter>(key: K, value: ThemeFooter[K]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({ ...current, footer: { ...current.footer, [key]: value } }));
   }
 
   function setLayout<K extends keyof ThemeLayout>(key: K, value: ThemeLayout[K]) {
@@ -979,6 +989,93 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               placeholder="/newsletter"
               help="Internal path or HTTPS URL."
             />
+          </div>
+        </PanelSection>
+
+        <PanelSection
+          title="Footer"
+          actions={
+            canWrite ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setDirty(true);
+                  setDraft((current) => ({
+                    ...current,
+                    footer: { ...DEFAULT_THEME_FOOTER },
+                  }));
+                }}
+              >
+                Reset to defaults
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Select
+              label="Footer layout"
+              value={draft.footer.layout}
+              disabled={!canWrite || pending}
+              options={FOOTER_LAYOUTS.map((value) => ({
+                value,
+                label:
+                  value === "responsive"
+                    ? "Responsive columns"
+                    : value === "stacked"
+                      ? "Always stacked"
+                      : "Centered stack",
+              }))}
+              onChange={(value) => setFooter("layout", value as FooterLayout)}
+            />
+            <Toggle
+              label="Show tagline"
+              checked={draft.footer.showTagline}
+              disabled={!canWrite || pending}
+              onChange={(value) => setFooter("showTagline", value)}
+            />
+            <Toggle
+              label="Show social row"
+              checked={draft.footer.showSocials}
+              disabled={!canWrite || pending}
+              onChange={(value) => setFooter("showSocials", value)}
+            />
+            <div className="sm:col-span-2 xl:col-span-3">
+              <TextArea
+                label="Footer tagline"
+                value={draft.footer.tagline}
+                rows={2}
+                disabled={!canWrite || pending || !draft.footer.showTagline}
+                onChange={(value) => setFooter("tagline", value)}
+                help="Up to 240 characters. Navigation and legal links remain menu-managed."
+              />
+            </div>
+            <TextInput
+              label="Social row label"
+              value={draft.footer.followLabel}
+              disabled={!canWrite || pending || !draft.footer.showSocials}
+              onChange={(value) => setFooter("followLabel", value)}
+            />
+            {(
+              [
+                ["instagramHref", "Instagram URL"],
+                ["xHref", "X URL"],
+                ["youtubeHref", "YouTube URL"],
+                ["linkedinHref", "LinkedIn URL"],
+              ] as const
+            ).map(([key, label]) => (
+              <TextInput
+                key={key}
+                label={label}
+                type="url"
+                value={draft.footer[key]}
+                disabled={!canWrite || pending || !draft.footer.showSocials}
+                onChange={(value) => setFooter(key, value)}
+                placeholder="https://"
+                help="HTTPS only. Leave blank to hide this destination."
+              />
+            ))}
           </div>
         </PanelSection>
       </Panel>

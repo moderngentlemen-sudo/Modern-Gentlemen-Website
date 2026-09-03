@@ -72,10 +72,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         {footerTemplate ? (
           <SectionRenderer
             sections={footerTemplate}
-            documentContent={<Footer nav={nav.footer} legal={nav.footerLegal} />}
+            documentContent={
+              <Footer nav={nav.footer} legal={nav.footerLegal} settings={design.footer} />
+            }
           />
         ) : (
-          <Footer nav={nav.footer} legal={nav.footerLegal} />
+          <Footer nav={nav.footer} legal={nav.footerLegal} settings={design.footer} />
         )}
       </CartProvider>
     </CatalogProvider>

@@ -279,6 +279,9 @@ export type XmlFeedConfig = z.infer<typeof xmlFeedConfigSchema>;
 // The Shopify source config
 // ---------------------------------------------------------------------------
 
+/** Current stable Admin API version for newly created Shopify sources. */
+export const DEFAULT_SHOPIFY_API_VERSION = "2026-07";
+
 /**
  * `product_sources.config` for `kind = 'shopify'`.
  *
@@ -317,9 +320,9 @@ export const shopifyConfigSchema = z
      */
     api_version: z
       .string()
-      .regex(/^\d{4}-\d{2}$/, "An API version looks like 2025-01.")
+      .regex(/^\d{4}-\d{2}$/, `An API version looks like ${DEFAULT_SHOPIFY_API_VERSION}.`)
       .optional()
-      .default("2025-01"),
+      .default(DEFAULT_SHOPIFY_API_VERSION),
     /** Shopify's own maximum is 250. */
     page_size: z.number().int().min(1).max(250).optional().default(250),
     /** Bounds a run — see the header. */

@@ -16,9 +16,14 @@
 
 import {
   bindingDescriptorSchema,
+  bindingExpressionSchema,
+  bindingConditionOperatorSchema,
   bindingQuerySchema,
   isBindingDescriptor,
+  type BindingCondition,
+  type BindingConditionOperator,
   type BindingDescriptor,
+  type BindingExpression,
   type BindingQuery,
 } from "./bindingDescriptor";
 import { isField, type Field } from "./fields";
@@ -36,9 +41,14 @@ import type { BlockNode, BlockTree } from "./types";
 export {
   bindingQuerySchema,
   bindingDescriptorSchema,
+  bindingExpressionSchema,
+  bindingConditionOperatorSchema,
   isBindingDescriptor,
+  type BindingCondition,
+  type BindingConditionOperator,
   type BindingQuery,
   type BindingDescriptor,
+  type BindingExpression,
 };
 
 /** One descriptor found in a tree, with enough context to put the answer back. */
@@ -228,6 +238,76 @@ export function shapeRows(rows: Record<string, unknown>[], query: BindingQuery):
       : out;
 
   return query.single ? (shaped[0] ?? null) : shaped;
+}
+
+/**
+ * Applies both generations of binding predicates.
+ *
+ * The original `filter` map remains an ANDed set of strict equality checks so
+ * every published descriptor keeps its meaning. `where` adds a bounded typed
+ * expression group. Keeping evaluation here prevents the demo and Supabase
+ * source adapters from acquiring subtly different semantics.
+ */
+export function filterRows(
+  rows: Record<string, unknown>[],
+  query: BindingQuery
+): Record<string, unknown>[] {
+  return rows.filter((row) => {
+    const legacyMatches = query.filter
+      ? Object.entries(query.filter).every(([key, value]) => row[key] === value)
+      : true;
+    if (!legacyMatches || !query.where) return legacyMatches;
+
+    const results = query.where.conditions.map((condition) => matchesCondition(row, condition));
+    return query.where.match === "any" ? results.some(Boolean) : results.every(Boolean);
+  });
+}
+
+function matchesCondition(row: Record<string, unknown>, condition: BindingCondition): boolean {
+  const actual = row[condition.field];
+
+  switch (condition.operator) {
+    case "exists":
+      return actual !== null && actual !== undefined;
+    case "not_exists":
+      return actual === null || actual === undefined;
+    case "equals":
+      return actual === condition.value;
+    case "not_equals":
+      return actual !== condition.value;
+    case "contains":
+      return typeof actual === "string" && typeof condition.value === "string"
+        ? actual.toLowerCase().includes(condition.value.toLowerCase())
+        : false;
+    case "not_contains":
+      return typeof actual === "string" && typeof condition.value === "string"
+        ? !actual.toLowerCase().includes(condition.value.toLowerCase())
+        : false;
+    case "starts_with":
+      return typeof actual === "string" && typeof condition.value === "string"
+        ? actual.toLowerCase().startsWith(condition.value.toLowerCase())
+        : false;
+    case "ends_with":
+      return typeof actual === "string" && typeof condition.value === "string"
+        ? actual.toLowerCase().endsWith(condition.value.toLowerCase())
+        : false;
+    case "greater_than":
+      return typeof actual === "number" && typeof condition.value === "number"
+        ? actual > condition.value
+        : false;
+    case "greater_than_or_equal":
+      return typeof actual === "number" && typeof condition.value === "number"
+        ? actual >= condition.value
+        : false;
+    case "less_than":
+      return typeof actual === "number" && typeof condition.value === "number"
+        ? actual < condition.value
+        : false;
+    case "less_than_or_equal":
+      return typeof actual === "number" && typeof condition.value === "number"
+        ? actual <= condition.value
+        : false;
+  }
 }
 
 function renameKeys(

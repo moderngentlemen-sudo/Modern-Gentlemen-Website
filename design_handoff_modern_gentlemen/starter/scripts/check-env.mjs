@@ -28,9 +28,9 @@
  *   node scripts/check-env.mjs --json   machine-readable
  *
  * WHAT THIS DOES NOT COVER, stated so nobody mistakes it for completeness: it is
- * a regex over source text, not a resolved reference graph. A dynamic read —
- * `process.env[name]` — is invisible to it. Nothing in this codebase does that
- * today; if something starts to, this check silently stops covering it.
+ * a regex over source text, not a resolved reference graph. Dynamic reads such
+ * as the bounded FEED_* credential lookup and deployment-preflight requirement
+ * list are invisible to it; those paths validate their allowed names directly.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
