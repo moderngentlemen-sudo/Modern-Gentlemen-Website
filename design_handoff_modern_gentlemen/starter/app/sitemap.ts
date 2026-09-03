@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
+import { listPublishedPageSlugs } from "@/lib/services/publicContent";
 import {
   listPublishedArticleSlugs,
   listPublishedCategorySlugs,
@@ -10,6 +11,7 @@ import {
   publicPathForArticle,
   publicPathForCategory,
   publicPathForProduct,
+  publicPathForPage,
 } from "@/lib/domain/routes";
 import { canonicalSiteUrl } from "@/lib/db/env";
 
@@ -37,7 +39,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = canonicalSiteUrl();
   const now = new Date();
 
-  const [categorySlugs, articleSlugs, products] = await Promise.all([
+  const [pageSlugs, categorySlugs, articleSlugs, products] = await Promise.all([
+    listPublishedPageSlugs(),
     listPublishedCategorySlugs(),
     listPublishedArticleSlugs(),
     listPublishedProducts(),
@@ -79,6 +82,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  const pages: MetadataRoute.Sitemap = pageSlugs
+    .filter((slug) => !categorySlugs.includes(slug))
+    .map((slug) => ({
+      url: canonicalUrl(base, publicPathForPage(slug)),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    }));
+
   const articles: MetadataRoute.Sitemap = articleSlugs.map((slug) => ({
     url: canonicalUrl(base, publicPathForArticle(slug)),
     lastModified: now,
@@ -93,5 +105,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...categories, ...articles, ...productPages];
+  return [...staticPages, ...pages, ...categories, ...articles, ...productPages];
 }

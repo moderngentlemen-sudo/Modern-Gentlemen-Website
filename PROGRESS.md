@@ -11,6 +11,23 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — every published builder page now has a public route
+
+The shared one-segment public route now resolves editorial categories first and
+then ordinary published pages, so a page built and published with slug
+`contact` is actually served at `/contact` as the builder promises. Static
+parameter generation and the sitemap include those published page slugs while
+deduplicating category collisions, and root pages receive their own title,
+canonical and Open Graph metadata. Four route-level unit tests cover the union,
+page fallback, category precedence and 404 behavior. The browser acceptance
+journey now publishes a mobile-only block, proves the same page hidden on
+desktop and visible on mobile, makes a divergent draft, restores the published
+revision and verifies its content. The article journey now creates, persists
+and publicly renders featured video. All 144 Playwright tests enumerate
+successfully; executing signed-in browser journeys still requires the deferred
+Supabase admin credentials. Formatting, repository-wide ESLint, TypeScript and
+all **1,849/1,849 unit tests** pass locally.
+
 ### 2026-09-03 — source products can map into local collections
 
 The generic ingestion vocabulary now includes a non-column `collections`

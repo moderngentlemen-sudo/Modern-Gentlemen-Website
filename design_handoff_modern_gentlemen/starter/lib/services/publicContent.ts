@@ -75,6 +75,27 @@ export async function getPublishedPage(slug: string): Promise<PublishedPage | nu
 }
 
 /**
+ * Slugs for public, non-home pages.
+ *
+ * The homepage has its own `/` route. Every other page is served by the shared
+ * one-segment route alongside editorial categories, so this list drives both
+ * static generation and the sitemap from the same published source of truth.
+ */
+export async function listPublishedPageSlugs(): Promise<string[]> {
+  const db = createPublicClient();
+
+  const { data, error } = await db
+    .from("pages")
+    .select("slug")
+    .eq("status", "published")
+    .neq("slug", "home")
+    .order("slug", { ascending: true });
+
+  if (error) throw new Error(`Could not list the published pages: ${error.message}`);
+  return (data ?? []).map((row) => row.slug);
+}
+
+/**
  * Substitutes every synced pattern in a tree for the blocks it points at.
  *
  * This is what makes `sync_mode: 'synced'` mean anything. A synced pattern is

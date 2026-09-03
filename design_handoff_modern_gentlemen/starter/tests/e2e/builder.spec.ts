@@ -74,6 +74,12 @@ test.describe("page builder", () => {
     await expect(quote).toBeVisible();
     await quote.fill("Speed, considered.");
 
+    // Publish this block for mobile only. The canvas keeps it selectable on a
+    // desktop preview, while the public renderer must hide it at this viewport.
+    await page.getByRole("button", { name: "Display", exact: true }).click();
+    await page.getByRole("checkbox", { name: "desktop", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "tablet", exact: true }).uncheck();
+
     // --- save -------------------------------------------------------------
     // Autosave debounces; Cmd/Ctrl+S flushes immediately.
     await page.keyboard.press("ControlOrMeta+s");
@@ -88,8 +94,24 @@ test.describe("page builder", () => {
     await expect(page.getByText(/Published v\d+/)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("published", { exact: true })).toBeVisible();
 
+    const builderUrl = page.url();
+
+    // Make an unpublished draft change so restoring the publish revision has
+    // observable content to replace rather than merely producing a toast.
+    await quote.fill("Temporary draft copy.");
+    await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
+
+    // This also proves ordinary builder pages are reachable at their advertised
+    // root slug. Visibility is CSS/media-query based, so the same published
+    // markup changes at the breakpoint without a second publish.
+    await page.goto(`/${pageSlug}`);
+    await expect(page.getByText("Speed, considered.")).toBeHidden();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByText("Speed, considered.")).toBeVisible();
+
     // --- history + rollback ----------------------------------------------
-    await page.getByRole("link", { name: "History", exact: true }).click();
+    await page.goto(`${builderUrl}/history`);
     await expect(page).toHaveURL(/\/history$/);
 
     const publishRow = page.getByRole("row").filter({ hasText: "publish" }).first();
@@ -101,6 +123,10 @@ test.describe("page builder", () => {
     // The wording is the assertion: rollback restores into the DRAFT and
     // publishes nothing.
     await expect(page.getByText(/Restored v\d+ into the draft/)).toBeVisible({ timeout: 15_000 });
+
+    await page.goto(builderUrl);
+    await page.locator("[data-block-key]").first().click();
+    await expect(page.getByRole("textbox", { name: "Quote" })).toHaveValue("Speed, considered.");
   });
 
   test("refuses to publish a page whose blocks fail validation", async ({ page }) => {

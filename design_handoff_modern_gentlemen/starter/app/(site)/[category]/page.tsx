@@ -4,13 +4,18 @@ import { SectionRenderer } from "@/components/SectionRenderer";
 import { resolveBindings } from "@/lib/blocks/binding";
 import { supabaseBindingSources } from "@/lib/services/bindingSources";
 import { getPublishedCategory, listPublishedCategorySlugs } from "@/lib/services/publicEditorial";
-import { composePublishedCategory } from "@/lib/services/publicContent";
+import {
+  composePublishedCategory,
+  composePublishedPage,
+  getPublishedPage,
+  listPublishedPageSlugs,
+} from "@/lib/services/publicContent";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { canonicalUrl, metaDescription, pageTitle } from "@/lib/domain/seo";
-import { publicPathForCategory } from "@/lib/domain/routes";
+import { publicPathForCategory, publicPathForPage } from "@/lib/domain/routes";
 
 /**
- * Category landing (/style, /grooming, /watches, /culture, /film).
+ * Shared one-segment route for category landings and ordinary builder pages.
  *
  * Since Phase 7c the layout is a document — `categories.published_data` — read
  * through the anonymous client and rendered by the same `SectionRenderer` the
@@ -32,7 +37,11 @@ import { publicPathForCategory } from "@/lib/domain/routes";
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  return (await listPublishedCategorySlugs()).map((category) => ({ category }));
+  const [categories, pages] = await Promise.all([
+    listPublishedCategorySlugs(),
+    listPublishedPageSlugs(),
+  ]);
+  return [...new Set([...categories, ...pages])].map((category) => ({ category }));
 }
 
 /**
@@ -55,7 +64,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { category } = await params;
   const doc = await getPublishedCategory(category);
-  if (!doc) return { title: pageTitle("Not found") };
+  if (!doc) {
+    const page = await getPublishedPage(category.toLowerCase());
+    if (!page) return { title: pageTitle("Not found") };
+
+    const url = canonicalUrl(canonicalSiteUrl(), publicPathForPage(page.slug));
+    return {
+      title: pageTitle(page.title),
+      alternates: { canonical: url },
+      openGraph: { type: "website", title: pageTitle(page.title), url },
+    };
+  }
 
   const url = canonicalUrl(canonicalSiteUrl(), publicPathForCategory(doc.slug));
   const description = metaDescription(doc.intro);
@@ -68,14 +87,18 @@ export async function generateMetadata({
   };
 }
 
-export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+export default async function RootSlugPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = await params;
 
   // `notFound()` and not a throw, unlike the homepage: a category that is not
   // published genuinely is a missing resource, and this route has answered 404
   // for an unknown slug since Track A.
   const doc = await getPublishedCategory(category);
-  if (!doc) notFound();
+  if (!doc) {
+    const page = await getPublishedPage(category.toLowerCase());
+    if (!page) notFound();
+    return <SectionRenderer sections={await composePublishedPage(page)} />;
+  }
 
   /**
    * ⚠️ **Expansion runs before binding resolution, and the order is not

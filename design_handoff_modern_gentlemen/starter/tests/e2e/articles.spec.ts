@@ -20,6 +20,7 @@ let articleTitle = "";
 let articleSlug = "";
 let tagLabel = "";
 let authorName = "";
+const featuredVideoUrl = "https://cdn.example.com/modern-gentlemen-e2e.mp4";
 
 async function signIn(page: Page) {
   await page.goto("/sign-in");
@@ -80,12 +81,16 @@ test.describe("articles", () => {
     await page.getByLabel("Author").selectOption({ label: authorName });
     await page.getByRole("button", { name: tagLabel }).click();
     await page.getByLabel("Reading minutes").fill("7");
+    await page.getByLabel("Media type").selectOption("video");
+    await page.getByLabel("Video URL").fill(featuredVideoUrl);
     await page.getByRole("button", { name: "Save details" }).click();
     await expect(page.getByText("Saved")).toBeVisible();
 
     // The reload proves it persisted rather than only living in React state.
     await page.reload();
     await expect(page.getByLabel("Reading minutes")).toHaveValue("7");
+    await expect(page.getByLabel("Media type")).toHaveValue("video");
+    await expect(page.getByLabel("Video URL")).toHaveValue(featuredVideoUrl);
     await expect(page.getByRole("button", { name: tagLabel })).toHaveAttribute(
       "aria-pressed",
       "true"
@@ -154,6 +159,8 @@ test.describe("articles", () => {
     // need a publish. The article was published by the previous test and this
     // save alone is what changes the page.
     await page.goto(`/article/${articleSlug}`);
+    const featuredVideo = page.getByRole("region", { name: "Featured video" }).locator("video");
+    await expect(featuredVideo).toHaveAttribute("src", featuredVideoUrl);
     const keepReading = page.getByRole("link", { name: new RegExp(second) });
     await expect(keepReading.first()).toBeVisible();
     await expect(page.getByRole("link", { name: new RegExp(first) }).first()).toBeVisible();
