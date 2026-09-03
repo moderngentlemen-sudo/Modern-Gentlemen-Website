@@ -291,11 +291,17 @@ export function BindingEditor({
   onChange,
   issues,
   disabled,
+  fallbackAvailable,
+  fallbackEnabled,
+  onFallbackChange,
 }: {
   query: Partial<BindingQuery>;
   onChange: (query: Partial<BindingQuery>) => void;
   issues?: Record<string, string>;
   disabled?: boolean;
+  fallbackAvailable?: boolean;
+  fallbackEnabled?: boolean;
+  onFallbackChange?: (enabled: boolean) => void;
 }) {
   const patch = (next: Partial<BindingQuery>) => onChange({ ...query, ...next });
 
@@ -382,6 +388,16 @@ export function BindingEditor({
         help="For group fields that take one item rather than a list."
         onChange={(single) => patch({ single: single || undefined })}
       />
+
+      {fallbackAvailable && onFallbackChange && (
+        <Toggle
+          label="Fallback content"
+          checked={fallbackEnabled === true}
+          disabled={disabled}
+          help="Use the last literal content when this query is empty or temporarily unavailable. Switch to Literal to edit it."
+          onChange={onFallbackChange}
+        />
+      )}
 
       <span className={HELP_TEXT}>
         Resolved when the page renders, so the block stays current as new content is published.

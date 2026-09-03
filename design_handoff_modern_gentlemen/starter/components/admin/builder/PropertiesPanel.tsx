@@ -731,8 +731,11 @@ function BindableField({
   const path = [name];
   const value = ctx.read(path);
   const bound = hasBindingShape(value);
+  const descriptor = bound
+    ? (value as { $bind: Partial<BindingQuery>; fallback?: unknown })
+    : undefined;
 
-  const [lastLiteral, setLastLiteral] = useState<unknown>(bound ? undefined : value);
+  const [lastLiteral, setLastLiteral] = useState<unknown>(bound ? descriptor?.fallback : value);
   const [lastQuery, setLastQuery] = useState<Partial<BindingQuery>>(
     bound ? ((value as { $bind: Partial<BindingQuery> }).$bind ?? {}) : {}
   );
@@ -748,6 +751,7 @@ function BindableField({
       setLastLiteral(value);
       ctx.write(path, {
         $bind: lastQuery.source ? lastQuery : { ...lastQuery, source: "articles" },
+        ...(value === undefined ? {} : { fallback: value }),
       });
     } else if (lastLiteral === undefined) {
       ctx.clear(path);
@@ -765,12 +769,25 @@ function BindableField({
 
       {bound ? (
         <BindingEditor
-          query={(value as { $bind: Partial<BindingQuery> }).$bind ?? {}}
+          query={descriptor?.$bind ?? {}}
           issues={queryIssues}
           disabled={ctx.disabled}
+          fallbackAvailable={lastLiteral !== undefined}
+          fallbackEnabled={Object.prototype.hasOwnProperty.call(descriptor, "fallback")}
+          onFallbackChange={(enabled) => {
+            ctx.write(path, {
+              $bind: descriptor?.$bind ?? {},
+              ...(enabled && lastLiteral !== undefined ? { fallback: lastLiteral } : {}),
+            });
+          }}
           onChange={(query) => {
             setLastQuery(query);
-            ctx.write(path, { $bind: query });
+            ctx.write(path, {
+              $bind: query,
+              ...(Object.prototype.hasOwnProperty.call(descriptor, "fallback")
+                ? { fallback: descriptor?.fallback }
+                : {}),
+            });
           }}
         />
       ) : (

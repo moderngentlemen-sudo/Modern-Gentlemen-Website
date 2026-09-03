@@ -50,17 +50,17 @@ or function impossible to reproduce.
 
 ## Templates, binding and preview
 
-| Requirement                                                        | Status   | Evidence / remaining work                                                                                                                                              |
-| ------------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Template kinds: page/article/product/archive/header/footer/section | Complete | All kinds are modeled, editable, publishable and revisioned.                                                                                                           |
-| Named template areas                                               | Complete | Create, rename, switch, validate, preview and delete area workflows are covered end to end.                                                                            |
-| Template assignment                                                | Complete | Page, category, article, product, shop, header and footer targets are assignable, publicly consumed and revalidated; entry assignments override content-type defaults. |
-| Dynamic data binding                                               | Partial  | Field selection, filtering, sorting, limit/offset, mapping, plucking and real DB sources work. Explicit runtime fallback values and conditional expressions remain.    |
-| Local template overrides                                           | Partial  | Document sections and the `documentContent` marker allow local content composition for framed types; a formal per-field override/inheritance UI remains.               |
-| Live unsaved canvas preview                                        | Complete | The canvas renders real production components from the in-memory undoable tree at desktop/tablet/mobile widths.                                                        |
-| Signed draft previews                                              | Complete | Expiring preview sessions resolve draft content separately from public published reads.                                                                                |
-| Preview all page/article/product/template instances                | Partial  | Shared preview actions exist for all builder documents; contextual switching between several records inside one editor session remains.                                |
-| Safe preview routing                                               | Complete | Tokenized preview sessions and separated anonymous published reads are tested at the database and route layers.                                                        |
+| Requirement                                                        | Status   | Evidence / remaining work                                                                                                                                                |
+| ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Template kinds: page/article/product/archive/header/footer/section | Complete | All kinds are modeled, editable, publishable and revisioned.                                                                                                             |
+| Named template areas                                               | Complete | Create, rename, switch, validate, preview and delete area workflows are covered end to end.                                                                              |
+| Template assignment                                                | Complete | Page, category, article, product, shop, header and footer targets are assignable, publicly consumed and revalidated; entry assignments override content-type defaults.   |
+| Dynamic data binding                                               | Partial  | Field selection, filtering, sorting, limit/offset, mapping, plucking, real DB sources and editor-retained runtime fallback content work. Conditional expressions remain. |
+| Local template overrides                                           | Partial  | Document sections and the `documentContent` marker allow local content composition for framed types; a formal per-field override/inheritance UI remains.                 |
+| Live unsaved canvas preview                                        | Complete | The canvas renders real production components from the in-memory undoable tree at desktop/tablet/mobile widths.                                                          |
+| Signed draft previews                                              | Complete | Expiring preview sessions resolve draft content separately from public published reads.                                                                                  |
+| Preview all page/article/product/template instances                | Partial  | Shared preview actions exist for all builder documents; contextual switching between several records inside one editor session remains.                                  |
+| Safe preview routing                                               | Complete | Tokenized preview sessions and separated anonymous published reads are tested at the database and route layers.                                                          |
 
 ## Theme, header and footer design
 

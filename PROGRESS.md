@@ -11,6 +11,19 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — dynamic bindings preserve safe fallback content
+
+Switching a bindable field from Literal to Dynamic now carries its current
+content into the descriptor as an optional fallback. Editors can turn the
+fallback on or off, switch back to Literal to revise it, and keep query edits
+without losing it. Runtime resolution uses the fallback when a source is
+unknown, throws, returns `null`, or returns an empty list, while preferring every
+non-empty live result. The fallback is projected through the target field shape
+and publish validation checks it against that field at a dedicated error path,
+so this resilience cannot smuggle malformed content onto a page. Formatting,
+repository-wide ESLint, TypeScript and all **1,856/1,856 unit tests** pass
+locally.
+
 ### 2026-09-03 — every published builder page now has a public route
 
 The shared one-segment public route now resolves editorial categories first and

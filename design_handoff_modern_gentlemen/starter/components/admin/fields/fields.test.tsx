@@ -432,4 +432,22 @@ describe("binding filters", () => {
     renderEditor({ source: "articles" });
     expect(screen.getByText(/Everything in the source, newest first/)).toBeTruthy();
   });
+
+  it("lets an editor enable persisted fallback content", async () => {
+    const onFallbackChange = vi.fn();
+    render(
+      <BindingEditor
+        query={{ source: "articles" }}
+        onChange={vi.fn()}
+        fallbackAvailable
+        fallbackEnabled={false}
+        onFallbackChange={onFallbackChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("switch", { name: "Fallback content" }));
+
+    expect(onFallbackChange).toHaveBeenCalledWith(true);
+    expect(screen.getByText(/Switch to Literal to edit it/)).toBeTruthy();
+  });
 });

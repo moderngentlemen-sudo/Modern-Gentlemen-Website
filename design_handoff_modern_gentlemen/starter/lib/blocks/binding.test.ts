@@ -28,6 +28,15 @@ describe("isBindingDescriptor", () => {
     expect(isBindingDescriptor(bound({ source: "articles" }))).toBe(true);
   });
 
+  it("accepts literal fallback content beside a valid query", () => {
+    expect(
+      isBindingDescriptor({
+        $bind: { source: "articles" },
+        fallback: [{ title: "Editor-curated card" }],
+      })
+    ).toBe(true);
+  });
+
   it("rejects literals and malformed descriptors", () => {
     expect(isBindingDescriptor([{ title: "A card" }])).toBe(false);
     expect(isBindingDescriptor({ $bind: { limit: 3 } })).toBe(false);
@@ -99,6 +108,40 @@ describe("applyBindings", () => {
     // A source that failed must not silently empty the page.
     const next = applyBindings(tree, new Map());
     expect(blockProps(next[0]).items).toEqual(bound({ source: "articles", limit: 2 }));
+  });
+
+  it("uses projected fallback content when a source fails or returns empty", () => {
+    const fallback = [
+      {
+        tag: "STYLE",
+        title: "Always available",
+        read: "4 MIN",
+        image: "/fallback.jpg",
+        href: "/article/fallback",
+        undeclared: "discard me",
+      },
+    ];
+    const tree = grid({ source: "articles" });
+    tree[0].items = { $bind: { source: "articles" }, fallback };
+
+    for (const resolved of [new Map<string, unknown>(), new Map([["grid.items", []]])]) {
+      const items = blockProps(applyBindings(tree, resolved)[0]).items;
+      expect(items).toEqual([expect.not.objectContaining({ undeclared: expect.anything() })]);
+      expect(items).toEqual([
+        expect.objectContaining({ title: "Always available", href: "/article/fallback" }),
+      ]);
+    }
+  });
+
+  it("prefers a non-empty source result over fallback content", () => {
+    const tree = grid({ source: "articles" });
+    tree[0].items = {
+      $bind: { source: "articles" },
+      fallback: [{ title: "Fallback" }],
+    };
+    const live = [{ title: "Live" }];
+
+    expect(blockProps(applyBindings(tree, new Map([["grid.items", live]]))[0]).items).toEqual(live);
   });
 
   it("is order-independent across several bindings", () => {
@@ -254,6 +297,45 @@ describe("resolveBindings over the demo sources", () => {
     const tree = grid({ source: "nosuchsource" });
     const resolved = await resolveBindings(tree, demoBindingSources);
     expect(blockProps(resolved[0]).items).toEqual(bound({ source: "nosuchsource" }));
+  });
+
+  it("uses fallback content when the source name is unknown", async () => {
+    const tree = grid({ source: "nosuchsource" });
+    tree[0].items = {
+      $bind: { source: "nosuchsource" },
+      fallback: [{ title: "Curated fallback", href: "/fallback" }],
+    };
+
+    const resolved = await resolveBindings(tree, demoBindingSources);
+    expect(blockProps(resolved[0]).items).toEqual([
+      expect.objectContaining({ title: "Curated fallback", href: "/fallback" }),
+    ]);
+  });
+});
+
+describe("fallback validation", () => {
+  it("accepts fallback content that satisfies the bound field", () => {
+    const tree = grid({ source: "articles" });
+    tree[0].items = {
+      $bind: { source: "articles" },
+      fallback: [{ tag: "STYLE", title: "Fallback", read: "4 MIN", image: "/f.jpg", href: "/f" }],
+    };
+
+    expect(validateTree(tree).ok).toBe(true);
+  });
+
+  it("reports an invalid fallback at its own path", () => {
+    const tree = grid({ source: "articles" });
+    tree[0].items = { $bind: { source: "articles" }, fallback: "not a card list" };
+
+    const result = validateTree(tree);
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        path: "items.fallback",
+        message: expect.stringContaining("array"),
+      }),
+    ]);
   });
 });
 

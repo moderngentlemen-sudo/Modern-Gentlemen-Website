@@ -49,6 +49,7 @@ export interface BindingRequest {
   blockType: string;
   field: string;
   query: BindingQuery;
+  fallback?: unknown;
 }
 
 export function collectBindings(tree: BlockTree | undefined): BindingRequest[] {
@@ -63,12 +64,16 @@ export function collectBindings(tree: BlockTree | undefined): BindingRequest[] {
       const value = props[fieldName];
       if (!isBindingDescriptor(value)) continue;
 
+      const descriptor = value as BindingDescriptor;
       requests.push({
         id: `${node._key}.${fieldName}`,
         blockKey: node._key,
         blockType: node._type,
         field: fieldName,
-        query: bindingQuerySchema.parse(value.$bind),
+        query: bindingQuerySchema.parse(descriptor.$bind),
+        ...(Object.prototype.hasOwnProperty.call(descriptor, "fallback")
+          ? { fallback: descriptor.fallback }
+          : {}),
       });
     }
   });
@@ -94,16 +99,29 @@ export function applyBindings(
     let patch: Record<string, unknown> | undefined;
 
     for (const fieldName of manifest.bindable) {
-      if (!isBindingDescriptor(props[fieldName])) continue;
+      const descriptor = props[fieldName];
+      if (!isBindingDescriptor(descriptor)) continue;
 
       const id = `${node._key}.${fieldName}`;
-      if (!resolved.has(id)) continue;
+      const hasResolved = resolved.has(id);
+      const value = resolved.get(id);
+      const hasFallback = Object.prototype.hasOwnProperty.call(descriptor, "fallback");
 
-      (patch ??= {})[fieldName] = project(manifest.fields[fieldName], resolved.get(id));
+      if ((!hasResolved || isEmptyResult(value)) && hasFallback) {
+        (patch ??= {})[fieldName] = project(manifest.fields[fieldName], descriptor.fallback);
+        continue;
+      }
+      if (!hasResolved) continue;
+
+      (patch ??= {})[fieldName] = project(manifest.fields[fieldName], value);
     }
 
     return patch ? withSettings(node, patch) : node;
   });
+}
+
+function isEmptyResult(value: unknown): boolean {
+  return value === null || value === undefined || (Array.isArray(value) && value.length === 0);
 }
 
 function withSettings(node: BlockNode, patch: Record<string, unknown>): BlockNode {

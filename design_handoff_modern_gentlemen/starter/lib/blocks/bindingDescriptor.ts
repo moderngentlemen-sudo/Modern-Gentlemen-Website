@@ -45,7 +45,11 @@ export const bindingQuerySchema = z.object({
 
 export type BindingQuery = z.infer<typeof bindingQuerySchema>;
 
-export const bindingDescriptorSchema = z.object({ $bind: bindingQuerySchema });
+export const bindingDescriptorSchema = z.object({
+  $bind: bindingQuerySchema,
+  /** Literal content used when the source is unavailable or resolves empty. */
+  fallback: z.unknown().optional(),
+});
 export type BindingDescriptor = z.infer<typeof bindingDescriptorSchema>;
 
 export function isBindingDescriptor(value: unknown): value is BindingDescriptor {

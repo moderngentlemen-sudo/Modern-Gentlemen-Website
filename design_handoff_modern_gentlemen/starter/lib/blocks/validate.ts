@@ -15,6 +15,7 @@
 import type { ZodTypeAny } from "zod";
 
 import { bindingQuerySchema, hasBindingShape } from "./bindingDescriptor";
+import { fieldToZod } from "./fields";
 import { manifestFor } from "./manifests";
 import { blockProps } from "./normalize";
 import { walkBlocks } from "./traverse";
@@ -157,16 +158,34 @@ export function validateBlock(node: BlockNode): ValidationResult {
     );
 
     for (const name of boundFields) {
-      const query = (props[name] as { $bind: unknown }).$bind;
+      const descriptor = props[name] as { $bind: unknown; fallback?: unknown };
+      const query = descriptor.$bind;
       const parsedQuery = bindingQuerySchema.safeParse(query);
-      if (parsedQuery.success) continue;
-      for (const issue of parsedQuery.error.issues) {
-        issues.push({
-          key,
-          type: node._type,
-          path: [name, "$bind", ...issue.path].join("."),
-          message: issue.message,
-        });
+      if (!parsedQuery.success) {
+        for (const issue of parsedQuery.error.issues) {
+          issues.push({
+            key,
+            type: node._type,
+            path: [name, "$bind", ...issue.path].join("."),
+            message: issue.message,
+          });
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(descriptor, "fallback")) {
+        const parsedFallback = fieldToZod(manifest.fields[name], true).safeParse(
+          descriptor.fallback
+        );
+        if (!parsedFallback.success) {
+          for (const issue of parsedFallback.error.issues) {
+            issues.push({
+              key,
+              type: node._type,
+              path: [name, "fallback", ...issue.path].join("."),
+              message: issue.message,
+            });
+          }
+        }
       }
     }
   }
