@@ -7,6 +7,7 @@ import { DEFAULT_AREA_NAME, areaNamesOf, areaTreeKey, readArea } from "@/lib/blo
 import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
 
 import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "./actions";
+import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
 
 /**
  * The builder route for a template — the first document type whose payload
@@ -75,6 +76,9 @@ export default async function TemplateBuilderPage({ params }: { params: Promise<
         publish: publishAction,
         snapshot: snapshotAction,
         createPreview: createPreviewAction,
+        ...(user.permissions.has("pattern.write")
+          ? { createPatternFromSelection: createPatternFromSelectionAction }
+          : {}),
       }}
       patterns={patterns}
       canPublish={user.permissions.has("template.publish")}

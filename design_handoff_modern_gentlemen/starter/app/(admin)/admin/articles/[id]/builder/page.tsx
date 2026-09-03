@@ -2,11 +2,13 @@ import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
 import { getDocument } from "@/lib/services/documents";
+import { listInsertablePatterns } from "@/lib/services/patterns";
 import { BLOCK_TREE_KEY } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
 import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
 
 import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "../actions";
+import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
 
 /**
  * The article builder.
@@ -27,6 +29,8 @@ export default async function ArticleBuilderPage({ params }: { params: Promise<{
   const user = await requirePermission("article.write");
   const article = await getDocument("article", id);
   if (!article) notFound();
+
+  const patterns = user.permissions.has("pattern.read") ? await listInsertablePatterns() : [];
 
   const treeKey = BLOCK_TREE_KEY.article;
   const draft = (article.draft_data ?? {}) as Record<string, unknown>;
@@ -58,7 +62,11 @@ export default async function ArticleBuilderPage({ params }: { params: Promise<{
         publish: publishAction,
         snapshot: snapshotAction,
         createPreview: createPreviewAction,
+        ...(user.permissions.has("pattern.write")
+          ? { createPatternFromSelection: createPatternFromSelectionAction }
+          : {}),
       }}
+      patterns={patterns}
       canPublish={user.permissions.has("article.publish")}
       canPreview={user.permissions.has("preview.create")}
     />

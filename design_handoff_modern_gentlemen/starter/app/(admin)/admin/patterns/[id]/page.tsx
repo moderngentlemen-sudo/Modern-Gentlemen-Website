@@ -7,6 +7,7 @@ import type { BlockTree } from "@/lib/blocks/types";
 import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
 
 import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "./actions";
+import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
 
 /**
  * The builder route for a pattern.
@@ -56,6 +57,7 @@ export default async function PatternBuilderPage({ params }: { params: Promise<{
         publish: publishAction,
         snapshot: snapshotAction,
         createPreview: createPreviewAction,
+        createPatternFromSelection: createPatternFromSelectionAction,
       }}
       canPublish={user.permissions.has("pattern.publish")}
       canPreview={user.permissions.has("preview.create")}

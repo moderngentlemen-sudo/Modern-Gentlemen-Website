@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createPattern, setPatternDetails } from "@/lib/services/patterns";
 import { deleteDocument, renameDocument, setDocumentStatus } from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
+import type { BlockTree } from "@/lib/blocks/types";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 
@@ -47,6 +48,20 @@ const CreateInput = z.object({
   categoryId: CategoryId,
 });
 
+const BlockNodeish = z
+  .object({
+    _key: z.string().min(1),
+    _type: z.string().min(1),
+  })
+  .passthrough();
+
+const CreateFromSelectionInput = z.object({
+  name: z.string().trim().min(1, "Enter a name").max(200),
+  key: Key,
+  syncMode: z.enum(["detachable", "synced"]),
+  blocks: z.array(BlockNodeish).min(1, "Select at least one element").max(250),
+});
+
 export async function createPatternAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = CreateInput.safeParse(input);
   if (!parsed.success) {
@@ -81,6 +96,37 @@ export async function createPatternAction(input: unknown): Promise<ActionResult<
       description: parsed.data.description ?? undefined,
       categoryId: parsed.data.categoryId ?? undefined,
       blocks: [],
+    });
+    revalidatePath("/admin/patterns");
+    return ok({ id: pattern.id });
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Turns the builder's current top-level selection into a reusable pattern.
+ *
+ * The client sends freshly re-keyed copies, not references into the open
+ * document. That is essential for synced patterns: expanding a reference next
+ * to its source must not put duplicate `_key` values into one rendered tree.
+ * Shape is still parsed here because a Server Action is an HTTP boundary even
+ * when its ordinary caller is trusted UI.
+ */
+export async function createPatternFromSelectionAction(
+  input: unknown
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = CreateFromSelectionInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  try {
+    const pattern = await createPattern({
+      name: parsed.data.name,
+      key: parsed.data.key,
+      syncMode: parsed.data.syncMode,
+      blocks: parsed.data.blocks as BlockTree,
     });
     revalidatePath("/admin/patterns");
     return ok({ id: pattern.id });

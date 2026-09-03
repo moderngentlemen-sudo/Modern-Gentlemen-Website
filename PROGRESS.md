@@ -11,6 +11,24 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — canvas selections can become reusable patterns
+
+Every document builder now offers **Save selection as pattern** in the
+properties rail when the editor holds `pattern.write`. Single or multi-selected
+branches are captured in canvas order, selected descendants are suppressed when
+their ancestor is also selected, and every key in the saved tree is reminted so
+a synced expansion can never collide with the source document. The create
+dialog names and keys the pattern and makes the existing detachable-versus-
+synced behavior explicit. The Server Action validates the HTTP payload and the
+pattern service enforces permission again. Article and product builders now
+load the reusable pattern library too, bringing all six builder routes to the
+same composition surface. Focused verification covers the selection transform
+and end-to-end dialog/action payload. Full local verification: Prettier on every
+changed file, repository-wide ESLint, TypeScript, and **1,816/1,816 unit tests**.
+The production bundle compiles successfully with the Windows certificate store;
+page-data collection still requires the real Supabase URL/key that this clean
+checkout intentionally does not hold, so CI remains the build and browser gate.
+
 ### 2026-09-03 — authenticated CMS drafts are staff-only
 
 The remaining half of the `draft_data` disclosure is closed in migration

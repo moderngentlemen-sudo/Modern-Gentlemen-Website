@@ -33,6 +33,7 @@ import { Navigator } from "./Navigator";
 import { blockCatalogFor } from "@/components/sections/registry";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PublishBar } from "./PublishBar";
+import { SaveSelectionAsPattern } from "./SaveSelectionAsPattern";
 import { ValidationTray } from "./ValidationTray";
 import { useAutosave } from "./useAutosave";
 import { dropLocationFor, parseDragId, type DropLocation } from "./dnd";
@@ -76,6 +77,12 @@ export interface BuilderServerActions {
      */
     area?: string;
   }) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
+  createPatternFromSelection?: (input: {
+    name: string;
+    key: string;
+    syncMode: "detachable" | "synced";
+    blocks: BlockTree;
+  }) => Promise<ActionResult<{ id: string }>>;
 }
 
 /** What the bar and the autosave hook consume, with the id already bound. */
@@ -86,6 +93,7 @@ export interface BuilderCallbacks {
   createPreview: (
     device: "desktop" | "tablet" | "mobile"
   ) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
+  createPatternFromSelection?: BuilderServerActions["createPatternFromSelection"];
 }
 
 export type { SerializedIssue };
@@ -144,6 +152,7 @@ export function Builder({
       publish: () => actions.publish({ id }),
       snapshot: () => actions.snapshot({ id }),
       createPreview: (device) => actions.createPreview({ id, device, area }),
+      createPatternFromSelection: actions.createPatternFromSelection,
     }),
     [actions, id, area]
   );
@@ -499,8 +508,15 @@ function BuilderLayout({
             <Canvas libraryDragType={libraryType} drop={drop} />
           </main>
 
-          <aside className={clsx("w-[320px] shrink-0 overflow-hidden border-l", HAIRLINE)}>
-            <PropertiesPanel styleClasses={styleClasses} />
+          <aside
+            className={clsx("flex w-[320px] shrink-0 flex-col overflow-hidden border-l", HAIRLINE)}
+          >
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <PropertiesPanel styleClasses={styleClasses} />
+            </div>
+            {callbacks.createPatternFromSelection && (
+              <SaveSelectionAsPattern action={callbacks.createPatternFromSelection} />
+            )}
           </aside>
         </div>
 
