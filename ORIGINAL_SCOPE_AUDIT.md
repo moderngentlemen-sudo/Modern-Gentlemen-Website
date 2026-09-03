@@ -42,7 +42,7 @@ or function impossible to reproduce.
 | Hide and responsive visibility | Complete | Global hide and desktop/tablet/mobile targeting now affect the canvas and public renderer, with strict publish validation. |
 | Locked global elements | Complete | Locked blocks cannot be edited, moved, duplicated or deleted until unlocked. |
 | Reusable sections/patterns | Complete | Detachable and synced patterns, categories, insertion, reference expansion, detach behavior, publishing and E2E coverage. |
-| Save current selection as a new pattern | Open | Patterns can be created and composed in their own editor, but the page canvas cannot yet turn a selected subtree into a pattern in one action. |
+| Save current selection as a new pattern | Complete | Every document builder can save one or many selected branches in canvas order as a detachable or synced pattern; descendants selected with an ancestor are suppressed and all persisted block keys are reminted. |
 | Native low-level elements | Complete | Heading, Text, Image, Video, Embed, Icon, Product, Form, Button, Divider and responsive Spacer are available alongside every legacy section. Product resolves the live catalogue and shared bag; Form captures configurable bounded fields through an RLS-protected public path. |
 | Responsive visual styling | Complete | Per-device layout, grid/flex, sizing, spacing, surface, border, corner, shadow, opacity, overflow, hover and motion controls use the shared visual renderer. |
 | Direct manipulation | Complete | Canvas/Navigator multi-select, group operations, drag/drop, direct resize with optional 5% grid snapping and smart canvas/peer alignment, persistent and Space-key hand panning, rulers, 50–150% zoom, exact responsive dimensions and bounded positioning work. All viewport aids remain editor-only. |
@@ -69,7 +69,7 @@ or function impossible to reproduce.
 | Colors, fonts and webfonts | Complete | Context-aware color tokens, five font roles, curated stacks and bounded provider/direct-file webfonts are editable and published. |
 | Layout widths and gutters | Complete | Global content width and desktop/mobile gutters cascade through shared CSS variables. |
 | Global spacing, borders, shadows, buttons, cards and forms | Complete | Reusable responsive recipes cover spacing/borders/shadows, while published semantic defaults control button shape/case/shadow/interaction, card shape/border/shadow/media hover and form shape/border/fill/focus. |
-| Animation presets | Partial | Element hover/motion and advanced header behavior exist; a reusable global animation library with entrance/scroll states remains. |
+| Animation presets | Complete | Local elements and reusable global style classes offer bounded fade/rise/slide/scale viewport entrances, sequencing delays, once/repeat behavior, shared motion timing, dynamic-builder observation and reduced-motion/no-JavaScript safety. |
 | Header customization | Partial | Balanced, centered-logo and navigation-left compositions now work with editable initial/compact heights, smart scroll/background behavior, divider, safe optional CTA, search/theme/bag visibility, icon bubbles and hover styles. Announcement bars, arbitrary element layout, account/social controls and the remaining Claude presets remain. |
 | Footer customization | Partial | Menus are data-driven, but tagline, social destinations and arbitrary footer composition remain fixed in the component. |
 | Site-wide cascading defaults with local overrides | Complete | Published theme variables and semantic component defaults feed public component hooks, reusable classes sit above them, and higher-specificity per-element settings remain local overrides. |
@@ -138,10 +138,9 @@ or function impossible to reproduce.
 
 ## Ordered completion backlog
 
-1. Add reusable entrance and scroll animation states. Semantic button/card/form
-   defaults and reusable responsive style classes are complete.
-2. Add one-click “save selection as pattern,” document duplication and the
-   global command palette.
+1. ~~Add reusable entrance and scroll animation states.~~ Complete 2026-09-03.
+2. ~~Add one-click “save selection as pattern.”~~ Complete 2026-09-03. Document
+   duplication and the global command palette remain.
 3. Expose media tagging and conditional navigation rules.
 4. Add Shopify collection mapping and the remaining explicit E2E acceptance
    scenarios.

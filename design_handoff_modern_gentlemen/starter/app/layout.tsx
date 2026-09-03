@@ -6,6 +6,7 @@ import { canonicalSiteUrl } from "@/lib/db/env";
 import { BRAND } from "@/lib/domain/seo";
 import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
 import { themeDesignCssText, themeWebfontStylesheets } from "@/lib/domain/theme";
+import { RevealObserver } from "@/components/RevealObserver";
 
 // Space Grotesk is a VARIABLE font: leave `weight` off so next/font serves the
 // variable file with a 300–700 axis range. Pinning discrete weights made 300
@@ -102,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {themeCss && <style data-mg-theme="" dangerouslySetInnerHTML={{ __html: themeCss }} />}
       </head>
       <body>
+        <RevealObserver />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

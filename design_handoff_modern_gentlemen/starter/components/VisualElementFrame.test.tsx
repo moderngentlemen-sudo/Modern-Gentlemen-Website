@@ -26,6 +26,7 @@ describe("VisualElementFrame", () => {
 
     expect(html).toContain("data-mg-visual-style");
     expect(html).toContain("data-mg-visual=");
+    expect(html).toContain('data-mg-reveal=""');
     expect(html).toContain("padding-left:24px");
     expect(html.match(/<section/g)).toHaveLength(1);
   });
@@ -38,6 +39,7 @@ describe("VisualElementFrame", () => {
     );
 
     expect(html).toContain('data-mg-style="feature-card"');
+    expect(html).toContain('data-mg-reveal=""');
     expect(html).not.toContain("data-mg-visual-style");
   });
 });

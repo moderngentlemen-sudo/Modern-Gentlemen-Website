@@ -224,15 +224,21 @@ describe("editable typography and header settings", () => {
             desktop: { display: "grid" as const, gap: 24 as const, radius: "rounded" as const },
             mobile: { display: "block" as const, paddingX: 16 as const },
           },
-          effects: { hover: "lift" as const, motion: "gentle" as const },
+          effects: {
+            hover: "lift" as const,
+            motion: "gentle" as const,
+            entrance: "rise" as const,
+            revealBehavior: "once" as const,
+            revealDelay: 200 as const,
+          },
         },
       },
     ];
 
     expect(parseThemeStyleClasses({ styleClasses })).toEqual(styleClasses);
-    expect(themeDesignCssText({ ...DEFAULT_THEME_SETTINGS, styleClasses })).toContain(
-      '[data-mg-style~="feature-card"]'
-    );
+    const css = themeDesignCssText({ ...DEFAULT_THEME_SETTINGS, styleClasses });
+    expect(css).toContain('[data-mg-style~="feature-card"]');
+    expect(css).toContain("--mg-reveal:rise");
     expect(themeSettingsSchema.safeParse({ ...DEFAULT_THEME_SETTINGS, styleClasses }).success).toBe(
       true
     );

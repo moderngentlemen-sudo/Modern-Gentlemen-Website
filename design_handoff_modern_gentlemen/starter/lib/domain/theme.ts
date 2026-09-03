@@ -476,7 +476,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 8;
+export const THEME_PAYLOAD_VERSION = 9;
 
 // ---------------------------------------------------------------------------
 // The injection boundary

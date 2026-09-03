@@ -89,7 +89,7 @@ optional presets only after their rendering behavior exists.
 | Header scale, shrink-on-scroll, shrunk height, divider, icon bubbles and icon hover | Theme → Header                     | Working; original choices are defaults                                   |
 | Global spacing, width, backgrounds, corners, borders, shadows and opacity           | Builder → Visual layout/appearance | Working per breakpoint                                                   |
 | Flex/grid arrangement, gaps, alignment and responsive stacking                      | Builder → Visual layout            | Working per breakpoint                                                   |
-| Hover/motion treatment                                                              | Builder → Visual appearance        | Working                                                                  |
+| Hover, motion and viewport entrance treatment                                       | Builder → Visual appearance        | Working locally and through reusable classes                             |
 | Site fonts and provider/direct-file webfonts                                        | Theme → Typography/Webfonts        | Working                                                                  |
 | Hero size, media, mobile composition and alignment                                  | Hero component manifests           | Existing media/height controls; detailed preset migration next           |
 | Homepage, Latest and Style compositions                                             | Component variants and patterns    | Existing canonical variants remain; transcript presets next              |
@@ -147,7 +147,25 @@ design-preserving until an operator changes and publishes it. The cascade is:
 No database migration is required because the versioned settings live in the
 existing theme JSONB document.
 
-## Query-aware editorial feed (v1.4)
+## Reusable viewport animation (v1.4)
+
+Builder payload v3 and theme payload v9 extend the existing bounded `effects`
+vocabulary with Fade, Rise, Slide left, Slide right and Scale entrances,
+one-time or repeating viewport activation, and five sequencing delays. The
+same fields live in a local element or in a reusable style class, so a global
+animation recipe remains one published definition while local effects can
+override it with the visual engine's existing selector cascade.
+
+One document-level observer reads safe CSS custom properties emitted by those
+recipes. It handles the initial page, elements inserted later and an existing
+canvas element whose styling changes. A revealed element settles after its
+delay and duration so hover transitions do not inherit a stale entrance delay.
+The server never hides content: no JavaScript, no Intersection Observer and
+reduced-motion preferences all fail open to visible content, and reduced motion
+retains any authored opacity while removing reveal transforms and transitions.
+No database migration is required; both additions are optional on read.
+
+## Query-aware editorial feed (v1.5)
 
 The first Schematic theme extraction is a native `editorialFeed` block. It does
 not copy the theme's PHP or depend on Canvas/Powerkit: its `items` field uses the

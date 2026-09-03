@@ -9,6 +9,7 @@ import {
   VISUAL_COLORS,
   VISUAL_DIRECTIONS,
   VISUAL_DISPLAYS,
+  VISUAL_ENTRANCES,
   VISUAL_HOVERS,
   VISUAL_JUSTIFIES,
   VISUAL_MAX_WIDTHS,
@@ -18,6 +19,8 @@ import {
   VISUAL_OVERFLOWS,
   VISUAL_POSITIONS,
   VISUAL_RADII,
+  VISUAL_REVEAL_BEHAVIORS,
+  VISUAL_REVEAL_DELAYS,
   VISUAL_SHADOWS,
   VISUAL_SPACES,
   VISUAL_WIDTHS,
@@ -116,10 +119,21 @@ export function StyleClassEditor({
     });
   }
 
-  function setEffect(property: keyof VisualEffects, next: string) {
+  function setEffect(property: keyof VisualEffects, next: string | number) {
     const effects = { ...value.visual.effects } as Record<string, unknown>;
-    if (!next) delete effects[property];
+    if (next === "") delete effects[property];
     else effects[property] = next;
+    onChange({ ...value, visual: { ...value.visual, effects } });
+  }
+
+  function setEntrance(next: string) {
+    const effects = { ...value.visual.effects } as Record<string, unknown>;
+    if (!next) delete effects.entrance;
+    else effects.entrance = next;
+    if (!next || next === "none") {
+      delete effects.revealBehavior;
+      delete effects.revealDelay;
+    }
     onChange({ ...value, visual: { ...value.visual, effects } });
   }
 
@@ -207,6 +221,32 @@ export function StyleClassEditor({
           disabled={disabled}
           onChange={(next) => setEffect("motion", next)}
         />
+        <Select
+          label="Entrance"
+          value={value.visual.effects?.entrance ?? ""}
+          placeholder="No reveal"
+          options={options(VISUAL_ENTRANCES)}
+          disabled={disabled}
+          onChange={setEntrance}
+        />
+        {value.visual.effects?.entrance && value.visual.effects.entrance !== "none" && (
+          <>
+            <Select
+              label="Scroll behavior"
+              value={value.visual.effects.revealBehavior ?? "once"}
+              options={options(VISUAL_REVEAL_BEHAVIORS)}
+              disabled={disabled}
+              onChange={(next) => setEffect("revealBehavior", next)}
+            />
+            <Select
+              label="Entrance delay"
+              value={String(value.visual.effects.revealDelay ?? 0)}
+              options={options(VISUAL_REVEAL_DELAYS, "ms")}
+              disabled={disabled}
+              onChange={(next) => setEffect("revealDelay", Number(next))}
+            />
+          </>
+        )}
       </div>
     </div>
   );

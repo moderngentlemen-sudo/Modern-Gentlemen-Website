@@ -34,7 +34,7 @@ export function VisualElementFrame({
   return (
     <>
       {local && <style data-mg-visual-style={local.scope}>{local.css}</style>}
-      <div data-mg-visual={local?.scope} data-mg-style={styleClass}>
+      <div data-mg-visual={local?.scope} data-mg-style={styleClass} data-mg-reveal="">
         {children}
       </div>
     </>

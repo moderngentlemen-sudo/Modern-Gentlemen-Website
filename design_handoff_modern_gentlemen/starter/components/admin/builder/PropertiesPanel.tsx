@@ -16,6 +16,7 @@ import {
   VISUAL_COLORS,
   VISUAL_DIRECTIONS,
   VISUAL_DISPLAYS,
+  VISUAL_ENTRANCES,
   VISUAL_HOVERS,
   VISUAL_JUSTIFIES,
   VISUAL_MAX_WIDTHS,
@@ -25,6 +26,8 @@ import {
   VISUAL_OVERFLOWS,
   VISUAL_POSITIONS,
   VISUAL_RADII,
+  VISUAL_REVEAL_BEHAVIORS,
+  VISUAL_REVEAL_DELAYS,
   VISUAL_SHADOWS,
   VISUAL_SPACES,
   VISUAL_WIDTHS,
@@ -433,6 +436,54 @@ function BlockProperties({
             })
           }
         />
+        <Select
+          label="Entrance"
+          value={node.visual?.effects?.entrance ?? ""}
+          disabled={locked}
+          placeholder="No reveal"
+          options={optionsFor(VISUAL_ENTRANCES)}
+          help="Animates into view as the element enters the viewport. Content remains visible when JavaScript is unavailable."
+          onChange={(entrance) =>
+            setVisualEffects(
+              key,
+              entrance === "" || entrance === "none"
+                ? {
+                    entrance: entrance === "" ? undefined : (entrance as VisualEffects["entrance"]),
+                    revealBehavior: undefined,
+                    revealDelay: undefined,
+                  }
+                : { entrance: entrance as VisualEffects["entrance"] }
+            )
+          }
+        />
+        {node.visual?.effects?.entrance && node.visual.effects.entrance !== "none" && (
+          <>
+            <Select
+              label="Scroll behavior"
+              value={node.visual.effects.revealBehavior ?? "once"}
+              disabled={locked}
+              options={optionsFor(VISUAL_REVEAL_BEHAVIORS)}
+              help="Once keeps the element visible after its first reveal; repeat resets it after leaving the viewport."
+              onChange={(revealBehavior) =>
+                setVisualEffects(key, {
+                  revealBehavior: revealBehavior as VisualEffects["revealBehavior"],
+                })
+              }
+            />
+            <Select
+              label="Entrance delay"
+              value={String(node.visual.effects.revealDelay ?? 0)}
+              disabled={locked}
+              options={optionsFor(VISUAL_REVEAL_DELAYS, "ms")}
+              help="Use staggered delays across nearby elements to build a sequence."
+              onChange={(revealDelay) =>
+                setVisualEffects(key, {
+                  revealDelay: Number(revealDelay) as VisualEffects["revealDelay"],
+                })
+              }
+            />
+          </>
+        )}
       </PanelSection>
 
       <PanelSection title={`Precise size — ${device}`} defaultOpen={false}>

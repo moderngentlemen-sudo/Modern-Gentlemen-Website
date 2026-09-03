@@ -19,6 +19,25 @@ describe("visual element design", () => {
     expect(result.css).not.toContain("hero.one");
   });
 
+  it("emits reusable viewport reveal states with bounded timing", () => {
+    const result = visualCss("feature", {
+      effects: {
+        entrance: "rise",
+        revealBehavior: "repeat",
+        revealDelay: 200,
+        motion: "gentle",
+      },
+    });
+
+    expect(result.css).toContain("--mg-reveal:rise");
+    expect(result.css).toContain("--mg-reveal-delay:200");
+    expect(result.css).toContain("--mg-reveal-duration:550");
+    expect(result.css).toContain("--mg-reveal-repeat:1");
+    expect(result.css).toContain('data-mg-reveal-state="pending"');
+    expect(result.css).toContain("transform:translateY(28px)");
+    expect(result.css).toContain("prefers-reduced-motion:reduce");
+  });
+
   it("rejects arbitrary CSS values and unknown responsive properties", () => {
     const issues = validateVisualDesign({
       styles: {
@@ -36,6 +55,18 @@ describe("visual element design", () => {
       "visual.styles.watch",
       "visual.effects.script",
       "visual.effects.hover",
+    ]);
+  });
+
+  it("rejects unbounded reveal configuration", () => {
+    expect(
+      validateVisualDesign({
+        effects: { entrance: "spin", revealBehavior: "forever", revealDelay: 999 },
+      }).map((issue) => issue.path)
+    ).toEqual([
+      "visual.effects.entrance",
+      "visual.effects.revealBehavior",
+      "visual.effects.revealDelay",
     ]);
   });
 
@@ -66,7 +97,9 @@ describe("visual element design", () => {
         radius: "pill",
         opacity: 75,
       })
-    ).toBe("width:100%;max-width:760px;margin-inline:auto;border-radius:999px;opacity:0.75");
+    ).toBe(
+      "width:100%;max-width:760px;margin-inline:auto;border-radius:999px;opacity:0.75;--mg-visual-opacity:0.75"
+    );
   });
 
   it("emits bounded precise dimensions and positioning", () => {

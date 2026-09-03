@@ -26,6 +26,16 @@ export const VISUAL_OPACITIES = [25, 50, 75, 100] as const;
 export const VISUAL_OVERFLOWS = ["visible", "hidden", "auto"] as const;
 export const VISUAL_HOVERS = ["none", "lift", "scale", "glow", "fade"] as const;
 export const VISUAL_MOTIONS = ["instant", "snappy", "smooth", "gentle"] as const;
+export const VISUAL_ENTRANCES = [
+  "none",
+  "fade",
+  "rise",
+  "slide-left",
+  "slide-right",
+  "scale",
+] as const;
+export const VISUAL_REVEAL_BEHAVIORS = ["once", "repeat"] as const;
+export const VISUAL_REVEAL_DELAYS = [0, 100, 200, 400, 600] as const;
 export const VISUAL_STYLE_CLASS_ID = /^[a-z][a-z0-9-]{0,39}$/;
 
 export interface VisualStyle {
@@ -66,6 +76,9 @@ export interface VisualStyle {
 export interface VisualEffects {
   hover?: (typeof VISUAL_HOVERS)[number];
   motion?: (typeof VISUAL_MOTIONS)[number];
+  entrance?: (typeof VISUAL_ENTRANCES)[number];
+  revealBehavior?: (typeof VISUAL_REVEAL_BEHAVIORS)[number];
+  revealDelay?: (typeof VISUAL_REVEAL_DELAYS)[number];
 }
 
 export interface VisualElementDesign {
@@ -202,7 +215,7 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
     } else {
       const effects = design.effects as Record<string, unknown>;
       for (const property of Object.keys(effects)) {
-        if (!["hover", "motion"].includes(property)) {
+        if (!["hover", "motion", "entrance", "revealBehavior", "revealDelay"].includes(property)) {
           issues.push({
             path: `visual.effects.${property}`,
             message: "Unknown visual effect.",
@@ -220,6 +233,33 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
         !(VISUAL_MOTIONS as readonly unknown[]).includes(effects.motion)
       ) {
         issues.push({ path: "visual.effects.motion", message: "Choose a supported motion style." });
+      }
+      if (
+        effects.entrance !== undefined &&
+        !(VISUAL_ENTRANCES as readonly unknown[]).includes(effects.entrance)
+      ) {
+        issues.push({
+          path: "visual.effects.entrance",
+          message: "Choose a supported entrance effect.",
+        });
+      }
+      if (
+        effects.revealBehavior !== undefined &&
+        !(VISUAL_REVEAL_BEHAVIORS as readonly unknown[]).includes(effects.revealBehavior)
+      ) {
+        issues.push({
+          path: "visual.effects.revealBehavior",
+          message: "Choose once or repeat for scroll reveals.",
+        });
+      }
+      if (
+        effects.revealDelay !== undefined &&
+        !(VISUAL_REVEAL_DELAYS as readonly unknown[]).includes(effects.revealDelay)
+      ) {
+        issues.push({
+          path: "visual.effects.revealDelay",
+          message: "Choose a supported reveal delay.",
+        });
       }
     }
   }
@@ -343,7 +383,9 @@ export function visualDeclarations(style: VisualStyle | undefined): string {
             : "none";
     out.push(`box-shadow:${value}`);
   }
-  if (style.opacity !== undefined) out.push(`opacity:${style.opacity / 100}`);
+  if (style.opacity !== undefined) {
+    out.push(`opacity:${style.opacity / 100}`, `--mg-visual-opacity:${style.opacity / 100}`);
+  }
   if (style.overflow) out.push(`overflow:${style.overflow}`);
   if (style.position) out.push(`position:${style.position}`);
   if (style.top !== undefined) out.push(`top:${style.top}px`);
@@ -405,6 +447,31 @@ function rulesForSelector(selector: string, design: VisualElementDesign): string
             ? "box-shadow:0 18px 55px rgba(200,16,46,.24)"
             : "opacity:.72";
     rules.push(`${selector}:hover{${declaration}}`);
+  }
+
+  const entrance = design.effects?.entrance;
+  if (entrance && entrance !== "none") {
+    const initialTransform =
+      entrance === "rise"
+        ? "translateY(28px)"
+        : entrance === "slide-left"
+          ? "translateX(-32px)"
+          : entrance === "slide-right"
+            ? "translateX(32px)"
+            : entrance === "scale"
+              ? "scale(.94)"
+              : "none";
+    const delay = design.effects?.revealDelay ?? 0;
+    const repeat = design.effects?.revealBehavior === "repeat" ? 1 : 0;
+    const durationMs = Number.parseFloat(duration) * 1000;
+
+    rules.push(
+      `${selector}{--mg-reveal:${entrance};--mg-reveal-delay:${delay};--mg-reveal-duration:${durationMs};--mg-reveal-repeat:${repeat}}`,
+      `${selector}[data-mg-reveal-state="pending"]{opacity:0;transform:${initialTransform};transition-delay:0s}`,
+      `${selector}[data-mg-reveal-state="visible"]{transform:none;transition-delay:${delay}ms}`,
+      `${selector}[data-mg-reveal-state="settled"]{transform:none;transition-delay:0s}`,
+      `@media(prefers-reduced-motion:reduce){${selector}[data-mg-reveal-state]{opacity:var(--mg-visual-opacity,1);transform:none;transition:none}}`
+    );
   }
   return rules.join("");
 }

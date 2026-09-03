@@ -11,6 +11,24 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-03 — reusable entrance and scroll animation states
+
+Local visual settings and published reusable style classes now support Fade,
+Rise, Slide left, Slide right and Scale entrance presets, one-time or repeating
+viewport activation, 0–600ms sequencing delays, and the existing bounded
+motion timings. A single document observer activates both local and class-based
+recipes, notices elements inserted or restyled in a live builder session, and
+settles the delay after entry so later hover interactions remain immediate.
+Server HTML remains visible until JavaScript enhances it, Intersection Observer
+absence fails open, and `prefers-reduced-motion` bypasses hiding/transforms while
+preserving an explicitly authored opacity. Builder payload schema is v3 and
+theme payload schema is v9; both additions are optional and older payloads
+remain readable without migration. Focused verification covers CSS emission,
+strict validation, global-class persistence, SSR framing, initial/dynamic/live-
+restyled observation, repeat behavior and reduced motion. The full local gate
+passes: changed-file Prettier, repository-wide ESLint, TypeScript, and
+**1,826/1,826 unit tests**.
+
 ### 2026-09-03 — builder editing shortcuts
 
 The builder's global editing surface now supports Cmd/Ctrl+A (select all),

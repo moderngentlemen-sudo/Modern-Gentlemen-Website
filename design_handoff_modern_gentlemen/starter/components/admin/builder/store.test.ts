@@ -807,7 +807,7 @@ describe("save lifecycle", () => {
     store.getState().insert("pullQuote");
 
     expect(store.getState().payload()).toEqual({
-      _builder: { schemaVersion: 2 },
+      _builder: { schemaVersion: 3 },
       seo: { title: "Home" },
       sections: store.getState().tree,
     });
@@ -958,7 +958,7 @@ describe("areas", () => {
     store.getState().insert("pullQuote");
 
     expect(store.getState().payload()).toEqual({
-      _builder: { schemaVersion: 2 },
+      _builder: { schemaVersion: 3 },
       seo: { title: "Home" },
       sections: store.getState().tree,
     });
