@@ -380,6 +380,7 @@ returns table (
   entity_id   uuid,
   device      text,
   expires_at  timestamptz,
+  context     jsonb,
   data        jsonb
 )
 language plpgsql
@@ -412,7 +413,7 @@ begin
 
   return query
     select v_session.entity_type, v_session.entity_id, v_session.device,
-           v_session.expires_at, v_data;
+           v_session.expires_at, v_session.context, v_data;
 end;
 $$;
 
