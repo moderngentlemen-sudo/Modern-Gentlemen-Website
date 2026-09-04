@@ -6,7 +6,7 @@ import { useScrollLock } from "@/lib/useScrollLock";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 import { useCatalog } from "@/lib/catalog/CatalogProvider";
 import { formatGBP } from "@/lib/domain/money";
-import { slugify } from "@/lib/demo/editorial";
+import { matchesSearchQuery, type EditorialSearchEntry } from "@/lib/domain/search";
 
 type Row = {
   tag: string;
@@ -17,87 +17,42 @@ type Row = {
   section: "Editorial" | "Shop";
 };
 
-/** Editorial search index — the prototype's `searchIndex()`, verbatim and in
- *  order. Track B swaps this for a Supabase-backed index. */
-const EDITORIAL: Omit<Row, "section" | "href">[] = [
-  {
-    tag: "CULTURE",
-    title: "The Art of Arriving Early",
-    meta: "6 MIN",
-    img: "/images/hero-cover.jpg",
-  },
-  {
-    tag: "STYLE",
-    title: "Racing Green Is the New Navy",
-    meta: "5 MIN",
-    img: "/images/style-mono.jpg",
-  },
-  {
-    tag: "WATCHES",
-    title: "Why Dial Symmetry Matters",
-    meta: "8 MIN",
-    img: "/images/watch-gear.jpg",
-  },
-  {
-    tag: "GROOMING",
-    title: "The Case Against 12-Step Routines",
-    meta: "4 MIN",
-    img: "/images/grooming.jpg",
-  },
-  { tag: "CULTURE", title: "The Analog Weekend", meta: "9 MIN", img: "/images/film-workshop.jpg" },
-  {
-    tag: "GROOMING",
-    title: "The Seven-Minute Standard",
-    meta: "FEATURE",
-    img: "/images/grooming.jpg",
-  },
-  {
-    tag: "WATCHES",
-    title: "Chronographs Born on the Grid",
-    meta: "FEATURE",
-    img: "/images/watch-gear.jpg",
-  },
-  {
-    tag: "STYLE",
-    title: "The Monochrome Wardrobe, Engineered",
-    meta: "FEATURE",
-    img: "/images/style-mono.jpg",
-  },
+/**
+ * Four prototype-only destinations cannot come from the articles table. Keep
+ * them as compatibility shortcuts while published article results come from
+ * Supabase. The three film titles intentionally open the film landing, and the
+ * newsletter opens membership, exactly as the original overlay did.
+ */
+const EDITORIAL_SHORTCUTS: EditorialSearchEntry[] = [
   {
     tag: "FILM",
     title: "Inside a Coachbuilder’s Workshop",
     meta: "14:20",
+    href: "/film",
     img: "/images/film-workshop.jpg",
   },
-  { tag: "FILM", title: "A Tailor’s Archive", meta: "09:52", img: "/images/film-tailor.jpg" },
+  {
+    tag: "FILM",
+    title: "A Tailor’s Archive",
+    meta: "09:52",
+    href: "/film",
+    img: "/images/film-tailor.jpg",
+  },
   {
     tag: "FILM",
     title: "The Watchmaker of the Grid",
     meta: "11:38",
+    href: "/film",
     img: "/images/film-watchmaker.jpg",
-  },
-  {
-    tag: "CULTURE",
-    title: "Preserving Taste While Defining New Style",
-    meta: "ESSAY",
-    img: "/images/hero-cover.jpg",
   },
   {
     tag: "MEMBERSHIP",
     title: "The Debrief — Weekly Newsletter",
     meta: "JOIN",
+    href: "/membership",
     img: "/images/film-tailor.jpg",
   },
 ];
-
-/** Prototype `fixHref`: membership and film go to their landings, everything
- *  else resolves to the article route by slug. */
-const editorialHref = (r: { tag: string; title: string }) =>
-  r.tag === "MEMBERSHIP"
-    ? "/membership"
-    : r.tag === "FILM"
-      ? "/film"
-      : `/article/${slugify(r.title)}`;
 
 const POPULAR = ["Watches", "Grooming", "Film", "Racing Green", "The Debrief"];
 
@@ -110,6 +65,10 @@ const POPULAR = ["Watches", "Grooming", "Film", "Racing Green", "The Debrief"];
 export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [q, setQ] = useState("");
   const [closing, setClosing] = useState(false);
+  const [editorialResults, setEditorialResults] = useState<EditorialSearchEntry[]>([]);
+  const [editorialState, setEditorialState] = useState<"idle" | "loading" | "ready" | "error">(
+    "idle"
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const openedAt = useRef(0);
@@ -151,20 +110,53 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const query = q.trim().toLowerCase();
   const { allProducts } = useCatalog();
 
+  useEffect(() => {
+    if (!open || !query) {
+      setEditorialResults([]);
+      setEditorialState("idle");
+      return;
+    }
+
+    const controller = new AbortController();
+    setEditorialResults([]);
+    setEditorialState("loading");
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search/articles?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) throw new Error("Search unavailable");
+        const payload = (await response.json()) as { results?: unknown };
+        const results = Array.isArray(payload.results)
+          ? payload.results.filter(isEditorialSearchEntry)
+          : [];
+        setEditorialResults(results);
+        setEditorialState("ready");
+      } catch {
+        if (controller.signal.aborted) return;
+        setEditorialResults([]);
+        setEditorialState("error");
+      }
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [open, query]);
+
   const results = useMemo<Row[]>(() => {
     if (!query) return [];
-    const ed: Row[] = EDITORIAL.filter((r) =>
-      (r.title + " " + r.tag).toLowerCase().includes(query)
-    ).map((r) => ({
-      ...r,
-      href: editorialHref(r),
-      section: "Editorial",
-    }));
+    const shortcuts = EDITORIAL_SHORTCUTS.filter((row) =>
+      matchesSearchQuery([row.title, row.tag, row.meta], query)
+    );
+    const shortcutTitles = new Set(shortcuts.map((row) => row.title.toLocaleLowerCase()));
+    const ed: Row[] = shortcuts
+      .concat(editorialResults.filter((row) => !shortcutTitles.has(row.title.toLocaleLowerCase())))
+      .map((row) => ({ ...row, section: "Editorial" }));
     const shop: Row[] = allProducts()
-      .filter((p) =>
-        (p.name + " " + p.catLabel + " " + p.material + " " + p.tag).toLowerCase().includes(query)
-      )
-      .slice(0, 8)
+      .filter((p) => matchesSearchQuery([p.name, p.catLabel, p.material, p.tag], query))
       .map((p) => ({
         tag: p.catLabel,
         title: p.name,
@@ -174,7 +166,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
         section: "Shop" as const,
       }));
     return ed.concat(shop);
-  }, [query, allProducts]);
+  }, [query, editorialResults, allProducts]);
 
   const editorial = results.filter((r) => r.section !== "Shop");
   const shop = results.filter((r) => r.section === "Shop");
@@ -268,6 +260,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               ref={inputRef}
               type="text"
               value={q}
+              maxLength={100}
               onChange={(e) => setQ(e.target.value)}
               aria-label="Search editorial and store"
               placeholder="Search style, watches, film…"
@@ -330,13 +323,42 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                 ))}
               </div>
             </div>
+          ) : editorialState === "loading" && results.length === 0 ? (
+            <div
+              className="py-7 px-1 font-grotesk font-light text-base leading-[1.6] text-[rgba(244,244,244,0.55)]"
+              role="status"
+            >
+              Searching editorial and store…
+            </div>
           ) : results.length === 0 ? (
             <div className="py-7 px-1 font-grotesk font-light text-base leading-[1.6] text-[rgba(244,244,244,0.55)]">
-              No results for <span className="text-[#f4f4f4]">&ldquo;{q}&rdquo;</span>. Try
-              &ldquo;watches&rdquo;, &ldquo;grooming&rdquo;, or &ldquo;film&rdquo;.
+              {editorialState === "error" ? (
+                <>Editorial search is temporarily unavailable. Please try again.</>
+              ) : (
+                <>
+                  No results for <span className="text-[#f4f4f4]">&ldquo;{q}&rdquo;</span>. Try
+                  &ldquo;watches&rdquo;, &ldquo;grooming&rdquo;, or &ldquo;film&rdquo;.
+                </>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-0.5">
+              {editorialState === "loading" && (
+                <p
+                  className="px-1.5 pt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[rgba(244,244,244,0.4)]"
+                  role="status"
+                >
+                  Searching editorial…
+                </p>
+              )}
+              {editorialState === "error" && (
+                <p
+                  className="px-1.5 pt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[rgba(244,244,244,0.5)]"
+                  role="status"
+                >
+                  Editorial results unavailable
+                </p>
+              )}
               {editorial.length > 0 && <GroupHead label="EDITORIAL" n={editorial.length} />}
               {editorial.map((r, i) => (
                 <ResultRow key={`e${i}`} row={r} onGo={go} />
@@ -351,6 +373,12 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       </div>
     </div>
   );
+}
+
+function isEditorialSearchEntry(value: unknown): value is EditorialSearchEntry {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return ["tag", "title", "meta", "href", "img"].every((key) => typeof row[key] === "string");
 }
 
 function GroupHead({ label, n }: { label: string; n: number }) {

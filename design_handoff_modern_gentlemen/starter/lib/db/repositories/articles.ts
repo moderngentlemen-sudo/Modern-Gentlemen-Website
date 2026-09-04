@@ -13,6 +13,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "../database.types";
 import { unwrap } from "./errors";
 import type { DocumentSummary } from "./documents";
+import { matchesSearchQuery } from "@/lib/domain/search";
+import { articleSearchVectorIsMissing } from "@/lib/db/articleSearch";
 
 type Db = SupabaseClient<Database>;
 
@@ -68,23 +70,7 @@ export function articleMatchesFallbackSearch(
   row: Pick<SearchFallbackRow, "title" | "slug" | "subtitle" | "excerpt">,
   term: string
 ): boolean {
-  const words = term.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
-  if (words.length === 0) return false;
-  const haystack = [row.title, row.subtitle, row.excerpt, row.slug.replaceAll("-", " ")]
-    .filter((value): value is string => typeof value === "string")
-    .join(" ")
-    .toLocaleLowerCase();
-  return words.every((word) => haystack.includes(word));
-}
-
-function searchVectorIsMissing(error: { code?: string; message: string }): boolean {
-  const missingColumnCode = error.code === "42703" || error.code === "PGRST204";
-  return (
-    missingColumnCode &&
-    /search_vector.*(?:does not exist|schema cache)|(?:does not exist|schema cache).*search_vector/i.test(
-      error.message
-    )
-  );
+  return matchesSearchQuery([row.title, row.subtitle, row.excerpt, row.slug], term);
 }
 
 async function listArticlesWithoutSearchVector(
@@ -148,7 +134,7 @@ export async function listArticles(
 
   const { data, error, count } = await query;
   if (error) {
-    if (term && searchVectorIsMissing(error)) {
+    if (term && articleSearchVectorIsMissing(error)) {
       return listArticlesWithoutSearchVector(db, term, limit, offset);
     }
     throw new Error(`Could not list the articles: ${error.message}`);

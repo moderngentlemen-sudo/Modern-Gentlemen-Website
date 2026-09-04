@@ -14,6 +14,7 @@ import {
   RelatedArticles,
   type RelatedCandidate,
 } from "@/components/admin/articles/RelatedArticles";
+import { ArticlePresentationPreview } from "@/components/admin/articles/ArticlePresentationPreview";
 import {
   ARTICLE_FEATURED_MEDIA_KINDS,
   ARTICLE_APPEARANCES,
@@ -239,6 +240,17 @@ export function ArticleDetails({
               help="Adjust the hero title scale while retaining the selected composition."
             />
           </div>
+          <ArticlePresentationPreview
+            template={form.template}
+            presentation={form.presentation}
+            title={form.title}
+            dek={form.subtitle || form.excerpt}
+            category={categories.find((category) => category.id === form.categoryId)?.label}
+            issue={form.issueNo}
+            author={authors.find((author) => author.id === form.authorId)?.label}
+            readingMinutes={form.readingMinutes}
+            image={featuredUrl}
+          />
           <div className="grid grid-cols-2 gap-3">
             <NumberInput
               label="Reading minutes"

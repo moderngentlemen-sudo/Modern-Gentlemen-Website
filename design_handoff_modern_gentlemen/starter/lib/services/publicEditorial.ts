@@ -42,6 +42,8 @@ import {
 } from "@/lib/domain/articles";
 import { resolveAssetUrl } from "@/lib/domain/media";
 import { publicPathForArticle } from "@/lib/domain/routes";
+import { matchesSearchQuery, searchWords, type EditorialSearchEntry } from "@/lib/domain/search";
+import { articleSearchVectorIsMissing } from "@/lib/db/articleSearch";
 
 // ---------------------------------------------------------------------------
 // Shared payload and asset reading
@@ -179,6 +181,10 @@ const ARTICLE_SELECT =
 const CARD_SELECT =
   "slug, title, issue_no, published_data, categories(name), media_assets(bucket, storage_path, external_url)";
 
+const SEARCH_SELECT =
+  "slug, title, subtitle, excerpt, issue_no, reading_minutes, published_data, categories(name), media_assets(bucket, storage_path, external_url)";
+const SEARCH_BATCH = 500;
+
 export async function listPublishedArticleSlugs(): Promise<string[]> {
   const db = createPublicClient();
 
@@ -250,6 +256,92 @@ const cardOf = (row: CardRow): RelatedItem => ({
 
 export interface PublishedArticleCard extends RelatedItem {
   read: string;
+}
+
+interface SearchRow extends CardRow {
+  subtitle: string | null;
+  excerpt: string | null;
+  reading_minutes: number | null;
+}
+
+/**
+ * Public editorial results for the site-wide search overlay.
+ *
+ * This intentionally does not use the admin-only list or its pagination. The
+ * anonymous client plus the explicit published filter makes draft exclusion a
+ * property of the read itself. The indexed path returns every match in batches;
+ * the compatibility path does the same over published rows if production code
+ * temporarily arrives before migration 0030.
+ */
+export async function searchPublishedArticles(term: string): Promise<EditorialSearchEntry[]> {
+  const normalized = term.trim();
+  if (searchWords(normalized).length === 0) return [];
+
+  const db = createPublicClient();
+  const rows: SearchRow[] = [];
+
+  for (let start = 0; ; start += SEARCH_BATCH) {
+    const { data, error } = await db
+      .from("articles")
+      .select(SEARCH_SELECT)
+      .eq("status", "published")
+      .textSearch("search_vector", normalized, { type: "websearch", config: "english" })
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("title", { ascending: true })
+      .range(start, start + SEARCH_BATCH - 1);
+
+    if (error) {
+      if (articleSearchVectorIsMissing(error)) {
+        return searchPublishedArticlesWithoutVector(normalized);
+      }
+      throw new Error(`Could not search the published articles: ${error.message}`);
+    }
+
+    const batch = (data ?? []) as unknown as SearchRow[];
+    rows.push(...batch);
+    if (batch.length < SEARCH_BATCH) break;
+  }
+
+  return rows.map(searchEntryOf);
+}
+
+async function searchPublishedArticlesWithoutVector(term: string): Promise<EditorialSearchEntry[]> {
+  const db = createPublicClient();
+  const rows: SearchRow[] = [];
+
+  for (let start = 0; ; start += SEARCH_BATCH) {
+    const { data, error } = await db
+      .from("articles")
+      .select(SEARCH_SELECT)
+      .eq("status", "published")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("title", { ascending: true })
+      .range(start, start + SEARCH_BATCH - 1);
+
+    if (error) throw new Error(`Could not search the published articles: ${error.message}`);
+    const batch = (data ?? []) as unknown as SearchRow[];
+    rows.push(...batch);
+    if (batch.length < SEARCH_BATCH) break;
+  }
+
+  return rows
+    .filter((row) =>
+      matchesSearchQuery(
+        [row.title, row.subtitle, row.excerpt, row.slug, categoryLabel(row), row.issue_no],
+        term
+      )
+    )
+    .map(searchEntryOf);
+}
+
+function searchEntryOf(row: SearchRow): EditorialSearchEntry {
+  return {
+    tag: categoryLabel(row) || "Editorial",
+    title: row.title,
+    meta: row.reading_minutes === null ? "ARTICLE" : `${row.reading_minutes} MIN`,
+    href: publicPathForArticle(row.slug),
+    img: assetUrl(row.media_assets) ?? FALLBACK_RELATED_IMAGE,
+  };
 }
 
 /**

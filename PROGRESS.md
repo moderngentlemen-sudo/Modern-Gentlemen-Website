@@ -11,6 +11,30 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-04 — article presentation previews and complete public search
+
+Article Details now renders an immediate, unsaved composition preview below its
+three presentation controls. It uses the same `ArticleHero`, `ArticleBody` and
+twenty-template layout map as the public article route, so changing the template,
+article header or compact/large appearance cannot drift from what will publish;
+the current article copy, taxonomy, byline, reading time and selected media feed
+the preview as well.
+
+The public search overlay is no longer restricted to the prototype's fixed
+13-entry editorial array. A bounded public API searches every published Supabase
+article through anonymous RLS and migration `0030`'s GIN-backed vector; follow-up
+migration `0031` grants anonymous readers only that derived public-data column
+after `0020`'s fail-closed column restrictions. Search pages through every match
+rather than accepting a row cap and uses the same guarded missing-vector
+compatibility path as the admin while production catches up. The
+prototype-only film and membership destinations remain as compatibility
+shortcuts. Input is length-bounded, stale requests are aborted, failures degrade
+inside the modal instead of taking down the page, and store matches are no longer
+truncated at eight. Focused domain, API, renderer and modal coverage passes;
+hosted integration and browser coverage now explicitly exercise an article that
+was absent from the old prototype index. Prettier, ESLint, TypeScript and
+**1,927/1,927 unit tests** pass locally.
+
 ### 2026-09-04 — backend article search tolerates a trailing production schema
 
 The production article search exception was traced to Railway deploying the

@@ -47,6 +47,18 @@ test.describe("public site smoke", () => {
     expect(secondPage.filter((href) => firstPage.includes(href))).toEqual([]);
   });
 
+  test("the search overlay finds a published article outside its old prototype list", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("textbox", { name: "Search editorial and store" }).fill("wardrobe ten");
+
+    await expect(
+      page.getByRole("link", { name: /Building a Wardrobe of Ten Things/ })
+    ).toHaveAttribute("href", "/article/building-a-wardrobe-of-ten-things");
+  });
+
   test("theme toggle persists across a reload", async ({ page }) => {
     await page.goto("/");
 
