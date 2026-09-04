@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ARTICLE_TEMPLATES } from "@/lib/demo/articles";
+import { ARTICLE_TEMPLATES, FILED_UNDER, articleSlugs } from "@/lib/demo/articles";
 import {
   articleEmbedUrl,
   articleFeaturedMediaOf,
@@ -58,6 +58,20 @@ describe("article templates", () => {
     // "Feature — Standard" uses an em dash, not a hyphen. A silent substitution
     // here would not match the library key and the article would fall back.
     expect(ARTICLE_TEMPLATE_NAMES).toContain("Feature — Standard");
+  });
+});
+
+describe("article listing inventory", () => {
+  it("retains all 53 seeded articles while category pages reproduce their seven-story designs", () => {
+    expect(articleSlugs).toHaveLength(53);
+    expect(Object.keys(FILED_UNDER)).toHaveLength(35);
+    expect(articleSlugs.length - Object.keys(FILED_UNDER).length).toBe(18);
+
+    const perCategory = Object.values(FILED_UNDER).reduce<Record<string, number>>(
+      (counts, category) => ({ ...counts, [category]: (counts[category] ?? 0) + 1 }),
+      {}
+    );
+    expect(perCategory).toEqual({ style: 7, grooming: 7, watches: 7, culture: 7, film: 7 });
   });
 });
 

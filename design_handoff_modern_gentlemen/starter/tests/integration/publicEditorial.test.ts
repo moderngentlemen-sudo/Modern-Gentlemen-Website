@@ -41,6 +41,17 @@ const renderedProps = (tree: BlockNode[]) =>
   tree.map((node) => ({ _type: node._type, props: normalizeBlock(node) }));
 
 describe("the published articles", () => {
+  it("indexes article copy and URL words for backend search", async () => {
+    const db = adminClient();
+    const { data, error } = await db
+      .from("articles")
+      .select("slug")
+      .textSearch("search_vector", '"slow car"', { type: "websearch", config: "english" });
+
+    expect(error).toBeNull();
+    expect(data?.map((row) => row.slug)).toContain("the-slow-car-fast-philosophy");
+  });
+
   it("publishes every article the demo content describes", async () => {
     const slugs = await listPublishedArticleSlugs();
 
