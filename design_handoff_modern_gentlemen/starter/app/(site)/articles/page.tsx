@@ -51,7 +51,7 @@ export default async function ArticlesPage({
               regular sections.
             </p>
           </div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mg-fg/50">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mg-fg/60">
             {total} {total === 1 ? "article" : "articles"}
           </p>
         </div>
@@ -85,7 +85,7 @@ export default async function ArticlesPage({
           ) : (
             <span />
           )}
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/45">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60">
             {page} / {pages}
           </span>
           {page < pages ? (
