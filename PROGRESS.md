@@ -11,6 +11,23 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-05 — additive MG Study 01–36 builder options (hosted review pending)
+
+Added independently searchable numbered manifests and a scoped responsive renderer
+for the 36 approved section concept names. Existing Section Studio presets and
+public content remain unchanged. Each new option participates in normal builder
+insertion, preview, property editing, bindings, validation and media tracking.
+Picker-only sample media never enters saved defaults. Study 31 reuses the real
+newsletter endpoint and reports pending, invalid, throttled and failed responses.
+The full baseline was clean: formatting, lint, TypeScript and 1,927 unit tests.
+The final formatting, lint, TypeScript and full unit gate passes with **2,332/2,332**
+tests, including new link-safety, preview isolation and newsletter coverage. Hosted
+browser/visual review remains pending; do not interpret unit success as a visual
+fidelity or production-deployment claim. See `design_handoff_modern_gentlemen/SECTION_STUDIES.md`
+for the stable 36-option mapping and the new CS01–CS20/UI01–UI06 concept index.
+No production page, theme assignment, migration, or coming-soon mode was changed.
+
+
 ### 2026-09-04 — article presentation previews and complete public search
 
 Article Details now renders an immediate, unsaved composition preview below its
