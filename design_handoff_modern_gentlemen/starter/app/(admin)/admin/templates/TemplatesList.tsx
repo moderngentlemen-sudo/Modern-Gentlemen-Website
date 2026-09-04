@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioDesignPicker } from "@/components/admin/builder/StudioDesignPicker";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -97,6 +98,7 @@ export function TemplatesList({
   const toast = useToast();
   const [pending, startTransition] = useTransition();
 
+  const [comingSoon, setComingSoon] = useState("");
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
@@ -179,12 +181,18 @@ export function TemplatesList({
   function create() {
     setError(undefined);
     startTransition(async () => {
-      const result = await createTemplateAction({ name, key: key || slugify(name), kind });
+      const result = await createTemplateAction({
+        name,
+        key: key || slugify(name),
+        kind,
+        comingSoon: kind === "page" ? comingSoon || undefined : undefined,
+      });
       if (!result.ok) {
         setError(result.error);
         return;
       }
       setCreating(false);
+      setComingSoon("");
       setName("");
       setKey("");
       setKeyTouched(false);
@@ -339,6 +347,15 @@ export function TemplatesList({
         }
       >
         <div className="space-y-4">
+          {kind === "page" && (
+            <StudioDesignPicker
+              kind="comingSoon"
+              value={comingSoon}
+              onChange={setComingSoon}
+              allowBlank
+            />
+          )}
+
           <TextInput
             label="Name"
             value={name}

@@ -11,6 +11,7 @@ export const sectionStudyManifests = Object.fromEntries(
       type: sectionStudyType(id),
       label: `MG Study ${id} · ${name}`,
       category: "editorial",
+      hidden: true,
       description: `Mockup ${id}: ${name}. Editable ${layout} composition for pages and templates. Replace illustrative copy and select your own media before publishing.`,
       fields: {
         title: field.textarea({ label: "Heading", required: true }),
@@ -87,3 +88,44 @@ export const sectionStudyManifests = Object.fromEntries(
     }),
   ])
 ) as Record<SectionStudyType, BlockManifest>;
+
+/** New insertions use one studio; legacy identities remain valid forever. */
+export const mgDesignStudio = defineBlock({
+  type: "mgDesignStudio",
+  label: "MG design studio",
+  category: "editorial",
+  description:
+    "36 numbered mockup designs: " +
+    SECTION_STUDIES.map(([id, name]) => `${id} ${name}`).join("; "),
+  fields: {
+    variant: field.select({
+      label: "Studio design",
+      default: "01",
+      options: SECTION_STUDIES.map(([value, label]) => ({
+        value,
+        label: `MG ${value} · ${label}`,
+      })),
+    }),
+    ...sectionStudyManifests.mgStudy01.fields,
+    tone: field.select({
+      label: "Color treatment",
+      default: "preset",
+      options: [
+        { value: "preset", label: "Design default" },
+        { value: "light", label: "Theme-aware light" },
+        { value: "dark", label: "Always dark" },
+        { value: "accent", label: "Racing red" },
+      ],
+    }),
+    buttonLabel: field.text({
+      label: "Newsletter signup button (design 31)",
+      default: "Subscribe",
+    }),
+  },
+  insertDefaults: {
+    ...sectionStudyManifests.mgStudy01.insertDefaults,
+    variant: "01",
+    tone: "preset",
+  },
+  bindable: ["items"],
+});

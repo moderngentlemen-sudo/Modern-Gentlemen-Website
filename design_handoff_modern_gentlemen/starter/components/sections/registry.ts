@@ -2,9 +2,10 @@ import type { ComponentType } from "react";
 import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks/manifests";
 import type { BlockCategory } from "@/lib/blocks/types";
 import { HeroCoverStar } from "./HeroCoverStar";
+import { ComingSoonStudio } from "./ComingSoonStudio";
 import { HeroStudio } from "./HeroStudio";
 import { SectionStudio } from "./SectionStudio";
-import { sectionStudyRegistry } from "./SectionStudies";
+import { MGDesignStudio, sectionStudyRegistry } from "./SectionStudies";
 import { LatestGrid } from "./LatestGrid";
 import { FeatureSplit } from "./FeatureSplit";
 import { TwoUpCategory } from "./TwoUpCategory";
@@ -64,7 +65,9 @@ import { NativeForm } from "../elements/NativeForm";
  */
 export const registry = {
   ...sectionStudyRegistry,
+  mgDesignStudio: MGDesignStudio,
   heroStudio: HeroStudio,
+  comingSoonStudio: ComingSoonStudio,
   sectionStudio: SectionStudio,
   heroCoverStar: HeroCoverStar,
   latestGrid: LatestGrid,

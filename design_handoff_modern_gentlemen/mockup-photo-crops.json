@@ -1,0 +1,2384 @@
+{
+  "status": "Metadata only. No crop or image edit performed.",
+  "count": 108,
+  "bounds_convention": "Left/top inclusive, right/bottom exclusive. All coordinates in native source pixels.",
+  "fidelity_note": "Overlay cases use smaller clean areas and may omit parts of the subject. No generated reconstruction is authorized.",
+  "items": [
+    {
+      "source_board": "exec-8459be4a-bb56-48fd-b9a4-e699dfc92140.png",
+      "mockup_id": "01",
+      "subject": "Suited man",
+      "pixel_bounds_xyxy": [
+        244,
+        168,
+        616,
+        550
+      ],
+      "native_crop_resolution": [
+        372,
+        382
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-8459be4a-bb56-48fd-b9a4-e699dfc92140.png",
+      "mockup_id": "02a",
+      "subject": "Chronograph",
+      "pixel_bounds_xyxy": [
+        93,
+        936,
+        318,
+        1138
+      ],
+      "native_crop_resolution": [
+        225,
+        202
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-8459be4a-bb56-48fd-b9a4-e699dfc92140.png",
+      "mockup_id": "02b",
+      "subject": "Sunglasses",
+      "pixel_bounds_xyxy": [
+        353,
+        936,
+        574,
+        1138
+      ],
+      "native_crop_resolution": [
+        221,
+        202
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-8459be4a-bb56-48fd-b9a4-e699dfc92140.png",
+      "mockup_id": "02c",
+      "subject": "Leather weekender",
+      "pixel_bounds_xyxy": [
+        590,
+        936,
+        815,
+        1138
+      ],
+      "native_crop_resolution": [
+        225,
+        202
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-8459be4a-bb56-48fd-b9a4-e699dfc92140.png",
+      "mockup_id": "03",
+      "subject": "Coastal terrace",
+      "pixel_bounds_xyxy": [
+        72,
+        1294,
+        536,
+        1749
+      ],
+      "native_crop_resolution": [
+        464,
+        455
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-123c93a5-4f7a-4118-9a17-99a2b92896b9.png",
+      "mockup_id": "04",
+      "subject": "Tailor stitching hands",
+      "pixel_bounds_xyxy": [
+        342,
+        163,
+        835,
+        610
+      ],
+      "native_crop_resolution": [
+        493,
+        447
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-123c93a5-4f7a-4118-9a17-99a2b92896b9.png",
+      "mockup_id": "05",
+      "subject": "Dining room",
+      "pixel_bounds_xyxy": [
+        319,
+        770,
+        817,
+        1127
+      ],
+      "native_crop_resolution": [
+        498,
+        357
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-123c93a5-4f7a-4118-9a17-99a2b92896b9.png",
+      "mockup_id": "06a",
+      "subject": "Lapel and measuring tape",
+      "pixel_bounds_xyxy": [
+        50,
+        1479,
+        234,
+        1671
+      ],
+      "native_crop_resolution": [
+        184,
+        192
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-123c93a5-4f7a-4118-9a17-99a2b92896b9.png",
+      "mockup_id": "06b",
+      "subject": "Chronograph",
+      "pixel_bounds_xyxy": [
+        252,
+        1479,
+        431,
+        1671
+      ],
+      "native_crop_resolution": [
+        179,
+        192
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-123c93a5-4f7a-4118-9a17-99a2b92896b9.png",
+      "mockup_id": "06c",
+      "subject": "Concrete stairs",
+      "pixel_bounds_xyxy": [
+        448,
+        1479,
+        623,
+        1671
+      ],
+      "native_crop_resolution": [
+        175,
+        192
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-123c93a5-4f7a-4118-9a17-99a2b92896b9.png",
+      "mockup_id": "06d",
+      "subject": "Book stack",
+      "pixel_bounds_xyxy": [
+        639,
+        1479,
+        817,
+        1671
+      ],
+      "native_crop_resolution": [
+        178,
+        192
+      ],
+      "source_resolution": [
+        864,
+        1821
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "07",
+      "subject": "Man overlooking city",
+      "pixel_bounds_xyxy": [
+        21,
+        352,
+        364,
+        588
+      ],
+      "native_crop_resolution": [
+        343,
+        236
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "08",
+      "subject": "Cloth texture",
+      "pixel_bounds_xyxy": [
+        853,
+        254,
+        983,
+        560
+      ],
+      "native_crop_resolution": [
+        130,
+        306
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "09",
+      "subject": "Notebook and pen",
+      "pixel_bounds_xyxy": [
+        44,
+        711,
+        175,
+        965
+      ],
+      "native_crop_resolution": [
+        131,
+        254
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "10a",
+      "subject": "Male profile",
+      "pixel_bounds_xyxy": [
+        515,
+        675,
+        748,
+        813
+      ],
+      "native_crop_resolution": [
+        233,
+        138
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "10b",
+      "subject": "Classical column",
+      "pixel_bounds_xyxy": [
+        753,
+        675,
+        1000,
+        813
+      ],
+      "native_crop_resolution": [
+        247,
+        138
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "11a",
+      "subject": "Jacket closeup",
+      "pixel_bounds_xyxy": [
+        343,
+        1128,
+        470,
+        1180
+      ],
+      "native_crop_resolution": [
+        127,
+        52
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "11b",
+      "subject": "Classical bust",
+      "pixel_bounds_xyxy": [
+        343,
+        1207,
+        470,
+        1259
+      ],
+      "native_crop_resolution": [
+        127,
+        52
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "11c",
+      "subject": "Coast",
+      "pixel_bounds_xyxy": [
+        343,
+        1286,
+        470,
+        1337
+      ],
+      "native_crop_resolution": [
+        127,
+        51
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "11d",
+      "subject": "Watch",
+      "pixel_bounds_xyxy": [
+        343,
+        1364,
+        470,
+        1417
+      ],
+      "native_crop_resolution": [
+        127,
+        53
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-5040909c-9643-4a86-8845-3e452d3ce45d.png",
+      "mockup_id": "12",
+      "subject": "Reading book and coffee",
+      "pixel_bounds_xyxy": [
+        522,
+        1133,
+        672,
+        1413
+      ],
+      "native_crop_resolution": [
+        150,
+        280
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "13a",
+      "subject": "Gray suit full body",
+      "pixel_bounds_xyxy": [
+        24,
+        233,
+        207,
+        578
+      ],
+      "native_crop_resolution": [
+        183,
+        345
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "13b",
+      "subject": "Jacket",
+      "pixel_bounds_xyxy": [
+        275,
+        335,
+        347,
+        443
+      ],
+      "native_crop_resolution": [
+        72,
+        108
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "13c",
+      "subject": "Loafers",
+      "pixel_bounds_xyxy": [
+        352,
+        335,
+        431,
+        443
+      ],
+      "native_crop_resolution": [
+        79,
+        108
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "13d",
+      "subject": "Knitwear",
+      "pixel_bounds_xyxy": [
+        275,
+        448,
+        347,
+        566
+      ],
+      "native_crop_resolution": [
+        72,
+        118
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "13e",
+      "subject": "Carryall bag",
+      "pixel_bounds_xyxy": [
+        352,
+        448,
+        431,
+        566
+      ],
+      "native_crop_resolution": [
+        79,
+        118
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "14a",
+      "subject": "Herringbone main texture",
+      "pixel_bounds_xyxy": [
+        728,
+        234,
+        1000,
+        466
+      ],
+      "native_crop_resolution": [
+        272,
+        232
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "14b",
+      "subject": "Texture swatch",
+      "pixel_bounds_xyxy": [
+        712,
+        472,
+        802,
+        559
+      ],
+      "native_crop_resolution": [
+        90,
+        87
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "14c",
+      "subject": "Button",
+      "pixel_bounds_xyxy": [
+        806,
+        472,
+        891,
+        559
+      ],
+      "native_crop_resolution": [
+        85,
+        87
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "14d",
+      "subject": "Lining",
+      "pixel_bounds_xyxy": [
+        895,
+        472,
+        985,
+        559
+      ],
+      "native_crop_resolution": [
+        90,
+        87
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "15",
+      "subject": "Dress watch",
+      "pixel_bounds_xyxy": [
+        204,
+        783,
+        318,
+        901
+      ],
+      "native_crop_resolution": [
+        114,
+        118
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Watch dial only: full watch includes baked headline behind its strap and sides. Full product cannot be preserved by clean rectangular crop.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "16a",
+      "subject": "Black sneaker",
+      "pixel_bounds_xyxy": [
+        539,
+        831,
+        736,
+        946
+      ],
+      "native_crop_resolution": [
+        197,
+        115
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "16b",
+      "subject": "Oxford shoe",
+      "pixel_bounds_xyxy": [
+        779,
+        831,
+        988,
+        946
+      ],
+      "native_crop_resolution": [
+        209,
+        115
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "17a",
+      "subject": "Lookbook man one",
+      "pixel_bounds_xyxy": [
+        104,
+        1163,
+        207,
+        1355
+      ],
+      "native_crop_resolution": [
+        103,
+        192
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "17b",
+      "subject": "Lookbook man two",
+      "pixel_bounds_xyxy": [
+        223,
+        1133,
+        357,
+        1379
+      ],
+      "native_crop_resolution": [
+        134,
+        246
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "17c",
+      "subject": "Lookbook man three",
+      "pixel_bounds_xyxy": [
+        372,
+        1173,
+        476,
+        1361
+      ],
+      "native_crop_resolution": [
+        104,
+        188
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "18a",
+      "subject": "Cleanse products",
+      "pixel_bounds_xyxy": [
+        529,
+        1235,
+        680,
+        1433
+      ],
+      "native_crop_resolution": [
+        151,
+        198
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "18b",
+      "subject": "Prepare products",
+      "pixel_bounds_xyxy": [
+        686,
+        1235,
+        840,
+        1433
+      ],
+      "native_crop_resolution": [
+        154,
+        198
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-9979cf98-5bca-41a3-95f9-7e6a44d42ad4.png",
+      "mockup_id": "18c",
+      "subject": "Finish products",
+      "pixel_bounds_xyxy": [
+        847,
+        1235,
+        1000,
+        1433
+      ],
+      "native_crop_resolution": [
+        153,
+        198
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "19a",
+      "subject": "City street man",
+      "pixel_bounds_xyxy": [
+        217,
+        225,
+        343,
+        559
+      ],
+      "native_crop_resolution": [
+        126,
+        334
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "19b",
+      "subject": "Cafe table",
+      "pixel_bounds_xyxy": [
+        350,
+        225,
+        483,
+        382
+      ],
+      "native_crop_resolution": [
+        133,
+        157
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "19c",
+      "subject": "Facade",
+      "pixel_bounds_xyxy": [
+        350,
+        390,
+        483,
+        559
+      ],
+      "native_crop_resolution": [
+        133,
+        169
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "20",
+      "subject": "Ocean-view room",
+      "pixel_bounds_xyxy": [
+        528,
+        217,
+        997,
+        479
+      ],
+      "native_crop_resolution": [
+        469,
+        262
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "21a",
+      "subject": "Bedroom",
+      "pixel_bounds_xyxy": [
+        202,
+        674,
+        323,
+        749
+      ],
+      "native_crop_resolution": [
+        121,
+        75
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "21b",
+      "subject": "Dining table",
+      "pixel_bounds_xyxy": [
+        202,
+        775,
+        323,
+        850
+      ],
+      "native_crop_resolution": [
+        121,
+        75
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "21c",
+      "subject": "Minimalist interior",
+      "pixel_bounds_xyxy": [
+        202,
+        880,
+        323,
+        956
+      ],
+      "native_crop_resolution": [
+        121,
+        76
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "22",
+      "subject": "Coastal road",
+      "pixel_bounds_xyxy": [
+        653,
+        657,
+        997,
+        923
+      ],
+      "native_crop_resolution": [
+        344,
+        266
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "23",
+      "subject": "Overhead table setting",
+      "pixel_bounds_xyxy": [
+        39,
+        1154,
+        476,
+        1332
+      ],
+      "native_crop_resolution": [
+        437,
+        178
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "24a",
+      "subject": "Concrete stairs",
+      "pixel_bounds_xyxy": [
+        669,
+        1078,
+        844,
+        1433
+      ],
+      "native_crop_resolution": [
+        175,
+        355
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "24b",
+      "subject": "Concrete wall",
+      "pixel_bounds_xyxy": [
+        855,
+        1078,
+        988,
+        1223
+      ],
+      "native_crop_resolution": [
+        133,
+        145
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-77913795-da46-4738-b693-75e8a84fbd16.png",
+      "mockup_id": "24c",
+      "subject": "Slatted detail",
+      "pixel_bounds_xyxy": [
+        855,
+        1236,
+        988,
+        1433
+      ],
+      "native_crop_resolution": [
+        133,
+        197
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "25",
+      "subject": "Conversation portrait",
+      "pixel_bounds_xyxy": [
+        285,
+        212,
+        497,
+        455
+      ],
+      "native_crop_resolution": [
+        212,
+        243
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "26a",
+      "subject": "Gallery visitor",
+      "pixel_bounds_xyxy": [
+        863,
+        228,
+        993,
+        310
+      ],
+      "native_crop_resolution": [
+        130,
+        82
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "26b",
+      "subject": "Cinema",
+      "pixel_bounds_xyxy": [
+        863,
+        325,
+        993,
+        411
+      ],
+      "native_crop_resolution": [
+        130,
+        86
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "26c",
+      "subject": "Stage performer",
+      "pixel_bounds_xyxy": [
+        863,
+        428,
+        993,
+        514
+      ],
+      "native_crop_resolution": [
+        130,
+        86
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "27a",
+      "subject": "Waterfront figure",
+      "pixel_bounds_xyxy": [
+        32,
+        658,
+        333,
+        863
+      ],
+      "native_crop_resolution": [
+        301,
+        205
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "27b",
+      "subject": "Man in vehicle",
+      "pixel_bounds_xyxy": [
+        348,
+        658,
+        482,
+        751
+      ],
+      "native_crop_resolution": [
+        134,
+        93
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "27c",
+      "subject": "Wet night street",
+      "pixel_bounds_xyxy": [
+        348,
+        766,
+        482,
+        863
+      ],
+      "native_crop_resolution": [
+        134,
+        97
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "28",
+      "subject": "Four-book shelf ensemble",
+      "pixel_bounds_xyxy": [
+        549,
+        756,
+        984,
+        901
+      ],
+      "native_crop_resolution": [
+        435,
+        145
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "29a",
+      "subject": "Drawing hands",
+      "pixel_bounds_xyxy": [
+        32,
+        1193,
+        171,
+        1378
+      ],
+      "native_crop_resolution": [
+        139,
+        185
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "29b",
+      "subject": "Carving hands",
+      "pixel_bounds_xyxy": [
+        188,
+        1193,
+        327,
+        1378
+      ],
+      "native_crop_resolution": [
+        139,
+        185
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "29c",
+      "subject": "Wood sculpture",
+      "pixel_bounds_xyxy": [
+        345,
+        1193,
+        484,
+        1378
+      ],
+      "native_crop_resolution": [
+        139,
+        185
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "30a",
+      "subject": "London embankment",
+      "pixel_bounds_xyxy": [
+        541,
+        1114,
+        879,
+        1357
+      ],
+      "native_crop_resolution": [
+        338,
+        243
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "30b",
+      "subject": "Balcony figure",
+      "pixel_bounds_xyxy": [
+        895,
+        1114,
+        992,
+        1181
+      ],
+      "native_crop_resolution": [
+        97,
+        67
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "30c",
+      "subject": "Window silhouette",
+      "pixel_bounds_xyxy": [
+        895,
+        1195,
+        992,
+        1261
+      ],
+      "native_crop_resolution": [
+        97,
+        66
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-99dc6351-7717-4ebb-8e02-26517cbe1c1b.png",
+      "mockup_id": "30d",
+      "subject": "Rainy pavement figure",
+      "pixel_bounds_xyxy": [
+        895,
+        1277,
+        992,
+        1357
+      ],
+      "native_crop_resolution": [
+        97,
+        80
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "31",
+      "subject": "Desk still life",
+      "pixel_bounds_xyxy": [
+        21,
+        427,
+        498,
+        564
+      ],
+      "native_crop_resolution": [
+        477,
+        137
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "32",
+      "subject": "Library armchair",
+      "pixel_bounds_xyxy": [
+        774,
+        224,
+        1004,
+        491
+      ],
+      "native_crop_resolution": [
+        230,
+        267
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "33a",
+      "subject": "Conversation",
+      "pixel_bounds_xyxy": [
+        21,
+        780,
+        176,
+        937
+      ],
+      "native_crop_resolution": [
+        155,
+        157
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "33b",
+      "subject": "Gallery visitor",
+      "pixel_bounds_xyxy": [
+        180,
+        780,
+        340,
+        937
+      ],
+      "native_crop_resolution": [
+        160,
+        157
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "33c",
+      "subject": "Candlelit table",
+      "pixel_bounds_xyxy": [
+        345,
+        780,
+        497,
+        937
+      ],
+      "native_crop_resolution": [
+        152,
+        157
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "34",
+      "subject": "Creative studio",
+      "pixel_bounds_xyxy": [
+        680,
+        682,
+        1003,
+        995
+      ],
+      "native_crop_resolution": [
+        323,
+        313
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "36a",
+      "subject": "Jacket closeup",
+      "pixel_bounds_xyxy": [
+        547,
+        1204,
+        758,
+        1315
+      ],
+      "native_crop_resolution": [
+        211,
+        111
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-64101a74-3604-488e-84ac-7d94659ea838.png",
+      "mockup_id": "36b",
+      "subject": "Coastal village",
+      "pixel_bounds_xyxy": [
+        772,
+        1204,
+        987,
+        1315
+      ],
+      "native_crop_resolution": [
+        215,
+        111
+      ],
+      "source_resolution": [
+        1024,
+        1536
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-fa6ca0ce-64eb-4cd8-b68f-0898eb136503.png",
+      "mockup_id": "CS02",
+      "subject": "Herringbone suit",
+      "pixel_bounds_xyxy": [
+        1131,
+        114,
+        1515,
+        493
+      ],
+      "native_crop_resolution": [
+        384,
+        379
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-fa6ca0ce-64eb-4cd8-b68f-0898eb136503.png",
+      "mockup_id": "CS03",
+      "subject": "Panoramic coastal road",
+      "pixel_bounds_xyxy": [
+        22,
+        648,
+        746,
+        797
+      ],
+      "native_crop_resolution": [
+        724,
+        149
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-0b9e3ba4-dfd0-403d-8489-59fb140f9495.png",
+      "mockup_id": "CS05",
+      "subject": "Wet night street figure",
+      "pixel_bounds_xyxy": [
+        146,
+        83,
+        667,
+        385
+      ],
+      "native_crop_resolution": [
+        521,
+        302
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-0b9e3ba4-dfd0-403d-8489-59fb140f9495.png",
+      "mockup_id": "CS06",
+      "subject": "Concrete stairs figure",
+      "pixel_bounds_xyxy": [
+        865,
+        90,
+        1119,
+        472
+      ],
+      "native_crop_resolution": [
+        254,
+        382
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-0b9e3ba4-dfd0-403d-8489-59fb140f9495.png",
+      "mockup_id": "CS08a",
+      "subject": "Tailoring detail",
+      "pixel_bounds_xyxy": [
+        922,
+        600,
+        1114,
+        720
+      ],
+      "native_crop_resolution": [
+        192,
+        120
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-0b9e3ba4-dfd0-403d-8489-59fb140f9495.png",
+      "mockup_id": "CS08b",
+      "subject": "Wristwatch",
+      "pixel_bounds_xyxy": [
+        1238,
+        600,
+        1419,
+        723
+      ],
+      "native_crop_resolution": [
+        181,
+        123
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-0b9e3ba4-dfd0-403d-8489-59fb140f9495.png",
+      "mockup_id": "CS08c",
+      "subject": "Book",
+      "pixel_bounds_xyxy": [
+        843,
+        841,
+        1128,
+        934
+      ],
+      "native_crop_resolution": [
+        285,
+        93
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-0b9e3ba4-dfd0-403d-8489-59fb140f9495.png",
+      "mockup_id": "CS08d",
+      "subject": "Classical column",
+      "pixel_bounds_xyxy": [
+        1359,
+        770,
+        1463,
+        930
+      ],
+      "native_crop_resolution": [
+        104,
+        160
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-95c20939-88be-470e-ad4f-bac9995d0e49.png",
+      "mockup_id": "CS09",
+      "subject": "Gallery visitor",
+      "pixel_bounds_xyxy": [
+        311,
+        155,
+        460,
+        329
+      ],
+      "native_crop_resolution": [
+        149,
+        174
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-95c20939-88be-470e-ad4f-bac9995d0e49.png",
+      "mockup_id": "CS10",
+      "subject": "Black tie",
+      "pixel_bounds_xyxy": [
+        1302,
+        88,
+        1514,
+        433
+      ],
+      "native_crop_resolution": [
+        212,
+        345
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-95c20939-88be-470e-ad4f-bac9995d0e49.png",
+      "mockup_id": "CS11",
+      "subject": "Mature man with sunglasses",
+      "pixel_bounds_xyxy": [
+        270,
+        711,
+        457,
+        1003
+      ],
+      "native_crop_resolution": [
+        187,
+        292
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-95c20939-88be-470e-ad4f-bac9995d0e49.png",
+      "mockup_id": "CS12",
+      "subject": "Classical bust",
+      "pixel_bounds_xyxy": [
+        1318,
+        753,
+        1497,
+        945
+      ],
+      "native_crop_resolution": [
+        179,
+        192
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-e25f9937-1a2f-448e-80f5-bdb4cd75a237.png",
+      "mockup_id": "CS13a",
+      "subject": "Coastal villa",
+      "pixel_bounds_xyxy": [
+        51,
+        88,
+        253,
+        365
+      ],
+      "native_crop_resolution": [
+        202,
+        277
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-e25f9937-1a2f-448e-80f5-bdb4cd75a237.png",
+      "mockup_id": "CS13b",
+      "subject": "Tailor mannequin",
+      "pixel_bounds_xyxy": [
+        281,
+        88,
+        491,
+        365
+      ],
+      "native_crop_resolution": [
+        210,
+        277
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-e25f9937-1a2f-448e-80f5-bdb4cd75a237.png",
+      "mockup_id": "CS13c",
+      "subject": "Cafe table",
+      "pixel_bounds_xyxy": [
+        517,
+        88,
+        724,
+        365
+      ],
+      "native_crop_resolution": [
+        207,
+        277
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-e25f9937-1a2f-448e-80f5-bdb4cd75a237.png",
+      "mockup_id": "CS15",
+      "subject": "Mountain lake",
+      "pixel_bounds_xyxy": [
+        119,
+        588,
+        653,
+        881
+      ],
+      "native_crop_resolution": [
+        534,
+        293
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-e25f9937-1a2f-448e-80f5-bdb4cd75a237.png",
+      "mockup_id": "CS16",
+      "subject": "Stitching hands",
+      "pixel_bounds_xyxy": [
+        789,
+        598,
+        1332,
+        908
+      ],
+      "native_crop_resolution": [
+        543,
+        310
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-6145b5f9-7869-47ae-b647-160f92e73113.png",
+      "mockup_id": "CS17",
+      "subject": "Ocean horizon",
+      "pixel_bounds_xyxy": [
+        20,
+        273,
+        749,
+        443
+      ],
+      "native_crop_resolution": [
+        729,
+        170
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-6145b5f9-7869-47ae-b647-160f92e73113.png",
+      "mockup_id": "CS19",
+      "subject": "Mature male portrait",
+      "pixel_bounds_xyxy": [
+        357,
+        584,
+        748,
+        1001
+      ],
+      "native_crop_resolution": [
+        391,
+        417
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI01a",
+      "subject": "Colonnade figure",
+      "pixel_bounds_xyxy": [
+        328,
+        79,
+        585,
+        313
+      ],
+      "native_crop_resolution": [
+        257,
+        234
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI01b",
+      "subject": "Related style man",
+      "pixel_bounds_xyxy": [
+        610,
+        104,
+        650,
+        146
+      ],
+      "native_crop_resolution": [
+        40,
+        42
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI01c",
+      "subject": "Related travel scene",
+      "pixel_bounds_xyxy": [
+        610,
+        178,
+        650,
+        220
+      ],
+      "native_crop_resolution": [
+        40,
+        42
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI01d",
+      "subject": "Related colonnade figure",
+      "pixel_bounds_xyxy": [
+        610,
+        252,
+        650,
+        293
+      ],
+      "native_crop_resolution": [
+        40,
+        41
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI02a",
+      "subject": "Obscured coastal background",
+      "pixel_bounds_xyxy": [
+        1359,
+        85,
+        1498,
+        318
+      ],
+      "native_crop_resolution": [
+        139,
+        233
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI02b",
+      "subject": "Search style man",
+      "pixel_bounds_xyxy": [
+        1250,
+        179,
+        1318,
+        216
+      ],
+      "native_crop_resolution": [
+        68,
+        37
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI02c",
+      "subject": "Search mountain lake",
+      "pixel_bounds_xyxy": [
+        1250,
+        235,
+        1318,
+        273
+      ],
+      "native_crop_resolution": [
+        68,
+        38
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI02d",
+      "subject": "Search coastal lake",
+      "pixel_bounds_xyxy": [
+        1250,
+        292,
+        1318,
+        329
+      ],
+      "native_crop_resolution": [
+        68,
+        37
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI03a",
+      "subject": "Style man",
+      "pixel_bounds_xyxy": [
+        305,
+        466,
+        496,
+        587
+      ],
+      "native_crop_resolution": [
+        191,
+        121
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI03b",
+      "subject": "Concrete stairs figure",
+      "pixel_bounds_xyxy": [
+        522,
+        466,
+        713,
+        587
+      ],
+      "native_crop_resolution": [
+        191,
+        121
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI04a",
+      "subject": "Mountain lake",
+      "pixel_bounds_xyxy": [
+        961,
+        500,
+        1127,
+        578
+      ],
+      "native_crop_resolution": [
+        166,
+        78
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI04b",
+      "subject": "Coffee cup",
+      "pixel_bounds_xyxy": [
+        1147,
+        500,
+        1313,
+        578
+      ],
+      "native_crop_resolution": [
+        166,
+        78
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI04c",
+      "subject": "Chair",
+      "pixel_bounds_xyxy": [
+        1334,
+        500,
+        1499,
+        578
+      ],
+      "native_crop_resolution": [
+        165,
+        78
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI04d",
+      "subject": "Continuing colonnade figure",
+      "pixel_bounds_xyxy": [
+        961,
+        668,
+        1058,
+        702
+      ],
+      "native_crop_resolution": [
+        97,
+        34
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": false,
+      "crop_strategy": "Rectangular photo bounds inset from interface edges.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    },
+    {
+      "source_board": "exec-7b84a5c1-f6ab-4299-9356-8e487401ba84.png",
+      "mockup_id": "UI05",
+      "subject": "Dining event hero",
+      "pixel_bounds_xyxy": [
+        379,
+        793,
+        745,
+        999
+      ],
+      "native_crop_resolution": [
+        366,
+        206
+      ],
+      "source_resolution": [
+        1536,
+        1024
+      ],
+      "overlay_in_source_photo": true,
+      "crop_strategy": "Conservative crop excluding visible interface text; original full photo has overlays.",
+      "coordinate_status": "Manual visual estimate; inspect at native resolution before extraction."
+    }
+  ]
+}

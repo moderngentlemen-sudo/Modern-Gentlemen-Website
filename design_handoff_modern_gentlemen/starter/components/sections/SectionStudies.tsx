@@ -132,3 +132,15 @@ export const sectionStudyRegistry = Object.fromEntries(
     return [sectionStudyType(study[0]), Study];
   })
 ) as Record<SectionStudyType, ComponentType<SectionStudyProps>>;
+
+export function MGDesignStudio({
+  variant = "01",
+  tone = "preset",
+  ...props
+}: Omit<SectionStudyProps, "tone"> & {
+  variant?: string;
+  tone?: SectionStudyProps["tone"] | "preset";
+}) {
+  const study = SECTION_STUDIES.find(([id]) => id === variant) ?? SECTION_STUDIES[0];
+  return <SectionStudyView {...props} study={study} tone={tone === "preset" ? undefined : tone} />;
+}

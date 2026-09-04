@@ -1,3 +1,4 @@
+import { comingSoonSections, type ComingSoonId } from "@/lib/blocks/comingSoon";
 /**
  * Document service — reading and saving drafts.
  *
@@ -243,7 +244,12 @@ export async function saveDraft(
   }
 }
 
-export async function createPage(input: { slug: string; title: string; templateId?: string }) {
+export async function createPage(input: {
+  slug: string;
+  title: string;
+  templateId?: string;
+  comingSoon?: ComingSoonId;
+}) {
   const user = await requirePermission("page.write");
   const db = await createClient();
 
@@ -251,7 +257,9 @@ export async function createPage(input: { slug: string; title: string; templateI
     slug: input.slug,
     title: input.title,
     templateId: input.templateId ?? null,
-    draftData: pageRepo.EMPTY_PAGE_PAYLOAD,
+    draftData: input.comingSoon
+      ? { sections: comingSoonSections(input.comingSoon) as Json, seo: {} }
+      : pageRepo.EMPTY_PAGE_PAYLOAD,
     createdBy: user.id,
   });
 }

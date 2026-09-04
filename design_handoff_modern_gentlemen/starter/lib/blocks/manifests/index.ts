@@ -12,6 +12,7 @@
 
 import type { BlockManifest } from "../types";
 
+import { comingSoonStudio } from "./comingSoonStudio";
 import { articleGrid } from "./articleGrid";
 import { categoryHero } from "./categoryHero";
 import { column } from "./column";
@@ -26,7 +27,7 @@ import { filmStills } from "./filmStills";
 import { heroCoverStar } from "./heroCoverStar";
 import { heroStudio } from "./heroStudio";
 import { sectionStudio } from "./sectionStudio";
-import { sectionStudyManifests } from "./sectionStudies";
+import { mgDesignStudio, sectionStudyManifests } from "./sectionStudies";
 import { interview } from "./interview";
 import { latestGrid } from "./latestGrid";
 import { layoutContainer } from "./layoutContainer";
@@ -61,6 +62,8 @@ import { twoUpCategory } from "./twoUpCategory";
 
 export const blockManifests = {
   ...sectionStudyManifests,
+  comingSoonStudio,
+  mgDesignStudio,
   heroStudio,
   sectionStudio,
   heroCoverStar,

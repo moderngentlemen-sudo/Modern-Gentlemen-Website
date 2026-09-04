@@ -23,10 +23,9 @@ describe("MG section studies", () => {
     expect(new Set(SECTION_STUDIES.map(([, , layout]) => layout)).size).toBe(36);
     for (const documentType of ["page", "article", "template", "category"]) {
       const catalog = blockCatalogFor(documentType);
-      for (const [id, name] of SECTION_STUDIES)
-        expect(catalog).toContainEqual(
-          expect.objectContaining({ type: sectionStudyType(id), label: `MG Study ${id} · ${name}` })
-        );
+      expect(catalog).toContainEqual(expect.objectContaining({ type: "mgDesignStudio" }));
+      for (const [id] of SECTION_STUDIES)
+        expect(catalog.some((block) => block.type === sectionStudyType(id))).toBe(false);
     }
   });
 

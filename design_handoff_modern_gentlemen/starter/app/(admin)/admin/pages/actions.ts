@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { COMING_SOON_IDS } from "@/lib/blocks/comingSoon";
 import { z } from "zod";
 
 import {
@@ -31,6 +32,7 @@ const Slug = z
 const CreateInput = z.object({
   title: z.string().trim().min(1, "Enter a title").max(200),
   slug: Slug,
+  comingSoon: z.enum(COMING_SOON_IDS).optional(),
 });
 
 export async function createPageAction(input: unknown): Promise<ActionResult<{ id: string }>> {

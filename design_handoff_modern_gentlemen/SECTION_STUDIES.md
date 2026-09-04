@@ -85,3 +85,34 @@ with section studies. No coming-soon page is activated by this change.
 | CS13–CS16 | Contact Sheet; Manifesto; The Window; Atelier Notes |
 | CS17–CS20 | Horizon Line; Index of Intent; The Portrait; The Invitation |
 | UI01–UI06 | Article Page; Search Modal; Mega-menu; Member Dashboard; Event Detail; Editorial Footer |
+
+
+## Studio consolidation and coming-soon starters
+
+New insertions now use **MG design studio**, then **Studio design** to choose
+MG 01–36. **Preview design** mounts only the selected variant. Switching changes
+only the variant, preserving authored fields and supporting Undo. Color treatment
+can follow the design default or use a manual override. Legacy individual study
+blocks remain editable and renderable, preserving saved pages and patterns.
+
+For coming-soon pages, use **Pages → New page → Coming soon design**. For a reusable
+frame, use **Templates → New template**, kind **page**, and select CS01–CS20.
+Both paths create drafts. Customize the resulting Coming soon studio in the
+builder; the template path also retains a Page content marker, so assigning it
+never discards the page's own sections. Publish and assign using the existing
+controls when ready. Creating a starter does not put the live homepage into a
+maintenance mode and does not hide global header/footer navigation.
+
+All 20 stable IDs and labels live in `starter/lib/blocks/comingSoon.ts`.
+Signup is off by default. Enable it only when you want to use the site's existing
+newsletter endpoint. No countdown, launch date, price, or generated photograph
+is inserted by a starter. Preview-only bundled imagery does not enter drafts.
+Photographic fidelity depends on selecting final media; the source boards are
+raster concepts rather than standalone source photographs.
+
+The media audit found 108 photographic occurrences across the 13 boards: 84
+unobstructed, 24 with overlaid text or interface elements. `mockup-photo-crops.json`
+records candidate extraction metadata, not approved crops or uploaded assets.
+Native resolution is limited, and conservative overlay-free bounds sometimes
+exclude substantial subject details. Exact cropping vs reconstruction is pending
+owner direction; upload additionally needs website admin sign-in.
