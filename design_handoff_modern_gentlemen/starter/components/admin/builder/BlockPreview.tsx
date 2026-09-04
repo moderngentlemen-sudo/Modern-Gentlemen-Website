@@ -11,6 +11,7 @@ import { manifestFor } from "@/lib/blocks/manifests";
 
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { newBlockNode } from "./node";
+import { studyPreview } from "./studyPreview";
 
 /**
  * What a section looks like, before it is added.
@@ -106,7 +107,7 @@ export function BlockPreview({ type }: { type: string }) {
                   </div>
                 </Component>
               ) : (
-                <Component {...normalizeBlock(newBlockNode(type))} />
+                <Component {...normalizeBlock(newBlockNode(type))} {...studyPreview(type)} />
               )}
             </BlockErrorBoundary>
           </CartProvider>

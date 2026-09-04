@@ -4,6 +4,7 @@ import type { BlockCategory } from "@/lib/blocks/types";
 import { HeroCoverStar } from "./HeroCoverStar";
 import { HeroStudio } from "./HeroStudio";
 import { SectionStudio } from "./SectionStudio";
+import { sectionStudyRegistry } from "./SectionStudies";
 import { LatestGrid } from "./LatestGrid";
 import { FeatureSplit } from "./FeatureSplit";
 import { TwoUpCategory } from "./TwoUpCategory";
@@ -62,6 +63,7 @@ import { NativeForm } from "../elements/NativeForm";
  * the ~125 modules so nothing is lost.
  */
 export const registry = {
+  ...sectionStudyRegistry,
   heroStudio: HeroStudio,
   sectionStudio: SectionStudio,
   heroCoverStar: HeroCoverStar,

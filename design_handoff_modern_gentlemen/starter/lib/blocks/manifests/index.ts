@@ -26,6 +26,7 @@ import { filmStills } from "./filmStills";
 import { heroCoverStar } from "./heroCoverStar";
 import { heroStudio } from "./heroStudio";
 import { sectionStudio } from "./sectionStudio";
+import { sectionStudyManifests } from "./sectionStudies";
 import { interview } from "./interview";
 import { latestGrid } from "./latestGrid";
 import { layoutContainer } from "./layoutContainer";
@@ -59,6 +60,7 @@ import { timeline } from "./timeline";
 import { twoUpCategory } from "./twoUpCategory";
 
 export const blockManifests = {
+  ...sectionStudyManifests,
   heroStudio,
   sectionStudio,
   heroCoverStar,
