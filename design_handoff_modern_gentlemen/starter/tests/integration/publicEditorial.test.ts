@@ -29,6 +29,7 @@ import {
   listPublishedArticleCards,
   listPublishedArticleSlugs,
   listPublishedCategorySlugs,
+  searchPublishedArticles,
 } from "@/lib/services/publicEditorial";
 import { ARTICLES, articleSlugs, getArticleBySlug } from "@/lib/demo/articles";
 import { categoryDocumentSections, demoCategorySections } from "@/lib/demo/category-sections";
@@ -120,6 +121,19 @@ describe("the published articles", () => {
     expect(hrefs).toHaveLength(articleSlugs.length);
     expect(new Set(hrefs).size).toBe(articleSlugs.length);
     expect(hrefs).toContain("/article/speed-considered");
+  });
+
+  it("searches the complete published inventory rather than a prototype allowlist", async () => {
+    const entries = await searchPublishedArticles("wardrobe ten");
+
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Building a Wardrobe of Ten Things",
+          href: "/article/building-a-wardrobe-of-ten-things",
+        }),
+      ])
+    );
   });
 });
 

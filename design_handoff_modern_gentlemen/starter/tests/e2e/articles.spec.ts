@@ -78,6 +78,26 @@ test.describe("articles", () => {
     await expect(page).toHaveURL(/\/admin\/articles\/[0-9a-f-]{36}$/);
     await expect(page.getByLabel("Template")).toHaveValue("Cover Story");
 
+    const preview = page.getByLabel("Article presentation preview");
+    await expect(preview).toHaveAttribute("data-preview-template", "Cover Story");
+    await expect(preview).toHaveAttribute("data-preview-hero", "cover");
+    await expect(preview).toHaveAttribute("data-preview-body", "prose");
+
+    // These are unsaved choices: the preview must follow all three presentation
+    // axes immediately, while the public article stays unchanged until Save.
+    await page.getByLabel("Template").selectOption("The Big Read");
+    await expect(preview).toHaveAttribute("data-preview-hero", "wide");
+    await expect(preview).toHaveAttribute("data-preview-body", "essay");
+    await page.getByLabel("Article header").selectOption("standard");
+    await page.getByLabel("Article appearance").selectOption("compact");
+    await expect(preview).toHaveAttribute("data-preview-header", "standard");
+    await expect(preview).toHaveAttribute("data-preview-appearance", "compact");
+
+    // Restore the article this serial journey expects before persisting it.
+    await page.getByLabel("Template").selectOption("Cover Story");
+    await page.getByLabel("Article header").selectOption("template");
+    await page.getByLabel("Article appearance").selectOption("template");
+
     await page.getByLabel("Author").selectOption({ label: authorName });
     await page.getByRole("button", { name: tagLabel }).click();
     await page.getByLabel("Reading minutes").fill("7");
