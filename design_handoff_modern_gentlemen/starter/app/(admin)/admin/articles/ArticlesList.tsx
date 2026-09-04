@@ -40,10 +40,18 @@ const TEMPLATE_OPTIONS = ARTICLE_TEMPLATE_NAMES.map((name) => ({ value: name, la
 
 export function ArticlesList({
   articles,
+  search,
+  total,
+  page,
+  pageCount,
   canWrite,
   canDelete,
 }: {
   articles: ArticleRow[];
+  search: string;
+  total: number;
+  page: number;
+  pageCount: number;
   canWrite: boolean;
   canDelete: boolean;
 }) {
@@ -58,6 +66,14 @@ export function ArticlesList({
   const [template, setTemplate] = useState<string>(DEFAULT_ARTICLE_TEMPLATE);
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<ArticleRow | null>(null);
+
+  function pageHref(nextPage: number): string {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (nextPage > 1) params.set("page", String(nextPage));
+    const query = params.toString();
+    return query ? `/admin/articles?${query}` : "/admin/articles";
+  }
 
   function create() {
     setError(undefined);
@@ -96,29 +112,73 @@ export function ArticlesList({
   return (
     <>
       <div className="px-8 py-8">
-        {canWrite && (
-          <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex flex-col gap-3 min-[760px]:flex-row min-[760px]:items-end min-[760px]:justify-between">
+          <form
+            action="/admin/articles"
+            method="get"
+            role="search"
+            className="flex max-w-xl flex-1 flex-wrap items-end gap-2"
+          >
+            <div className="w-full min-[520px]:flex-1">
+              <label
+                htmlFor="article-search"
+                className="block font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/70"
+              >
+                Search articles
+              </label>
+              <input
+                id="article-search"
+                name="q"
+                type="search"
+                defaultValue={search}
+                maxLength={100}
+                placeholder="Title, subtitle, excerpt, or slug"
+                className="mt-1.5 min-h-10 w-full border border-mg-bd/25 bg-mg-surface px-3 py-2 text-[14px] text-mg-fg outline-none placeholder:text-mg-fg/60 focus:border-mg-accent focus:ring-2 focus:ring-mg-accent/20"
+              />
+            </div>
+            <Button type="submit">Search</Button>
+            {search && (
+              <Button href="/admin/articles" variant="ghost">
+                Clear
+              </Button>
+            )}
+          </form>
+          {canWrite && (
             <Button variant="solid" onClick={() => setCreating(true)}>
               New article
             </Button>
-          </div>
-        )}
+          )}
+        </div>
+
+        <p
+          className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/60"
+          aria-live="polite"
+        >
+          {search
+            ? `${total} ${total === 1 ? "result" : "results"} for “${search}”`
+            : `${total} ${total === 1 ? "article" : "articles"}`}
+        </p>
 
         <Panel>
           {articles.length === 0 ? (
             <EmptyState
               eyebrow="Articles"
-              title="No articles yet"
+              title={search ? "No matching articles" : "No articles yet"}
               action={
-                canWrite ? (
+                search ? (
+                  <Button href="/admin/articles" variant="solid">
+                    Clear search
+                  </Button>
+                ) : canWrite ? (
                   <Button variant="solid" onClick={() => setCreating(true)}>
                     Create the first article
                   </Button>
                 ) : undefined
               }
             >
-              An article picks one of the twenty templates for its hero and body, and composes
-              anything beyond that as sections in the builder.
+              {search
+                ? "Try a different title, phrase, or URL slug."
+                : "An article picks one of the twenty templates for its hero and body, and composes anything beyond that as sections in the builder."}
             </EmptyState>
           ) : (
             <Table caption="All articles">
@@ -165,6 +225,20 @@ export function ArticlesList({
             </Table>
           )}
         </Panel>
+
+        {pageCount > 1 && (
+          <nav aria-label="Article pages" className="mt-5 flex items-center justify-between gap-4">
+            <Button href={pageHref(page - 1)} variant="ghost" disabled={page <= 1}>
+              Previous
+            </Button>
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-mg-fg/60">
+              Page {page} of {pageCount}
+            </span>
+            <Button href={pageHref(page + 1)} variant="ghost" disabled={page >= pageCount}>
+              Next
+            </Button>
+          </nav>
+        )}
       </div>
 
       <Dialog

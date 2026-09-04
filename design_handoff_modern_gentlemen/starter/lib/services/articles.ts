@@ -20,6 +20,12 @@ import { requirePermission } from "./auth";
 
 export type ArticleMeta = repo.ArticleMetaRow;
 
+export async function listArticles(options: repo.ArticleListOptions = {}) {
+  await requirePermission("article.read");
+  const db = await createClient();
+  return repo.listArticles(db, options);
+}
+
 export async function getArticleMeta(id: string): Promise<ArticleMeta | null> {
   await requirePermission("article.read");
   const db = await createClient();

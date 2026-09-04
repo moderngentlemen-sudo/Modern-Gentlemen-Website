@@ -11,6 +11,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-04 — the backend article index is complete and searchable
+
+The article inventory audit confirms **53** seeded articles: 35 filed stories
+reproduce the five public category designs at one lead plus six cards each, and
+18 standalone/template-showcase articles remain reachable at their direct URLs
+but are intentionally not filed into a category. The admin index did not lose
+those records at today's volume, but its hard 100-row ceiling would have hidden
+older work as the catalogue grew. `/admin/articles` now provides indexed,
+server-side full-text search across title, subtitle, excerpt and slug, an exact
+result count, 25-row pagination, preserved search terms between pages and
+distinct no-results guidance. Migration `0030` materialises the existing search
+expression as a generated vector and replaces the prior equivalent GIN index;
+no editor input is interpolated into raw PostgREST filter grammar. Existing
+public category composition remains unchanged pending an explicit product
+decision about whether its decorative Load more control should become a real
+archive interaction. Focused TypeScript, formatting and **30/30 tests** pass.
+The full credential-free gate is clean as well: Prettier, ESLint, TypeScript and
+**1,903/1,903 unit tests** pass.
+
 ### 2026-09-03 — remaining credential-free builder and Shopify gaps are closed
 
 Theme payload v12 adds reusable light/dark local color tokens plus bounded
