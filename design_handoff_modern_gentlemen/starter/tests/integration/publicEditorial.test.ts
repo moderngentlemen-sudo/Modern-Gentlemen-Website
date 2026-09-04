@@ -26,6 +26,7 @@ import { supabaseBindingSources } from "@/lib/services/bindingSources";
 import {
   getPublishedArticle,
   getPublishedCategory,
+  listPublishedArticleCards,
   listPublishedArticleSlugs,
   listPublishedCategorySlugs,
 } from "@/lib/services/publicEditorial";
@@ -107,6 +108,18 @@ describe("the published articles", () => {
     expect(listed.has("speed-considered")).toBe(false);
     // And every listed story is a real article rather than a dangling link.
     for (const slug of listed) expect(ARTICLES[slug], slug).toBeDefined();
+  });
+
+  it("pages every published story through the complete public archive", async () => {
+    const first = await listPublishedArticleCards({ limit: 12, offset: 0 });
+    const remaining = await listPublishedArticleCards({ limit: 48, offset: 12 });
+    const hrefs = [...first.items, ...remaining.items].map((item) => item.href);
+
+    expect(first.total).toBe(articleSlugs.length);
+    expect(remaining.total).toBe(articleSlugs.length);
+    expect(hrefs).toHaveLength(articleSlugs.length);
+    expect(new Set(hrefs).size).toBe(articleSlugs.length);
+    expect(hrefs).toContain("/article/speed-considered");
   });
 });
 

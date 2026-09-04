@@ -235,6 +235,7 @@ interface CardRow {
   slug: string;
   title: string;
   issue_no: string | null;
+  reading_minutes?: number | null;
   published_data: Json | null;
   categories: { name: string } | null;
   media_assets: AssetRow | null;
@@ -246,6 +247,46 @@ const cardOf = (row: CardRow): RelatedItem => ({
   image: assetUrl(row.media_assets) ?? FALLBACK_RELATED_IMAGE,
   href: publicPathForArticle(row.slug),
 });
+
+export interface PublishedArticleCard extends RelatedItem {
+  read: string;
+}
+
+/**
+ * Complete, paged public article inventory. Unlike category bindings this does
+ * not require a category, so standalone template showcases remain discoverable.
+ */
+export async function listPublishedArticleCards({
+  limit = 12,
+  offset = 0,
+}: {
+  limit?: number;
+  offset?: number;
+} = {}): Promise<{ items: PublishedArticleCard[]; total: number }> {
+  const db = createPublicClient();
+  const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 48);
+  const safeOffset = Math.max(Math.trunc(offset), 0);
+  const { data, error, count } = await db
+    .from("articles")
+    .select(
+      "slug, title, issue_no, reading_minutes, published_data, categories(name), media_assets(bucket, storage_path, external_url)",
+      { count: "exact" }
+    )
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("issue_no", { ascending: false })
+    .order("title", { ascending: true })
+    .range(safeOffset, safeOffset + safeLimit - 1);
+
+  if (error) throw new Error(`Could not list the published articles: ${error.message}`);
+  return {
+    items: ((data ?? []) as unknown as CardRow[]).map((row) => ({
+      ...cardOf(row),
+      read: row.reading_minutes === null ? "" : `${row.reading_minutes ?? ""} MIN`,
+    })),
+    total: count ?? 0,
+  };
+}
 
 /**
  * KEEP READING: the curated list if there is one, siblings if there is not.

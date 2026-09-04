@@ -19,7 +19,10 @@ const nav = [
   { id: "film", label: "Film", href: "/film", children: [] },
 ];
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("Header compositions", () => {
   it.each(["balanced", "navigation-left"] as const)(
@@ -99,6 +102,52 @@ describe("Header compositions", () => {
       "href",
       "https://x.com/moderngents"
     );
+  });
+
+  it("applies independent mobile composition, announcement and action limits", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(max-width: 820px)",
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    const { container } = render(
+      <Header
+        nav={nav}
+        settings={{
+          ...DEFAULT_THEME_HEADER,
+          composition: "navigation-left",
+          announcementText: "Desktop only",
+          showAccount: false,
+          mobile: {
+            ...DEFAULT_THEME_HEADER.mobile,
+            enabled: true,
+            composition: "brand-centered",
+            showAnnouncement: false,
+            showAccount: true,
+            cartVisibility: "always",
+            actionOrder: ["theme", "search", "bag", "account"],
+            maxActions: 2,
+          },
+        }}
+      />
+    );
+
+    expect(container.querySelector("header")).toHaveAttribute(
+      "data-header-composition",
+      "centered-logo"
+    );
+    expect(container.querySelector("header")).toHaveAttribute("data-mobile-customized", "true");
+    expect(screen.queryByTestId("header-announcement")).toBeNull();
+    expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Bag" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
   });
 });
 

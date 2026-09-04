@@ -8,7 +8,7 @@ import { publicPathForArticle, publicPathForCategory } from "@/lib/domain/routes
  *
  * Since Phase 7c `/article/[slug]` reads the `articles` table and `/[category]`
  * reads a document whose lead and grid are **bound** to that same table, both
- * statically rendered. So an article affects two paths, not one: its own page,
+ * statically rendered. So an article affects its own page, the complete archive,
  * and the category page that lists it. Revalidating only the first is a bug that
  * looks like everything working — the article is live at its URL and absent from
  * the section it belongs to.
@@ -46,6 +46,7 @@ export async function publicPathsForArticle(id: string): Promise<string[]> {
 
     return [
       publicPathForArticle(routing.slug),
+      "/articles",
       ...(routing.categorySlug ? [publicPathForCategory(routing.categorySlug)] : []),
     ];
   } catch (error) {

@@ -74,17 +74,18 @@ describe("pathsToRevalidate", () => {
     expect(pathsToRevalidate([published({ entityType: "page", slug: "home" })])).toEqual(["/"]);
   });
 
-  it("gives an article both its own page and its category's", () => {
+  it("gives an article its own page, the archive and its category", () => {
     // Revalidating only the article is the bug that looks like everything
     // working: live at its URL, absent from the section it belongs to.
     expect(
       pathsToRevalidate([published({ slug: "speed-considered", categorySlug: "culture" })])
-    ).toEqual(["/article/speed-considered", "/culture"]);
+    ).toEqual(["/article/speed-considered", "/articles", "/culture"]);
   });
 
-  it("gives an unfiled article one path", () => {
+  it("still refreshes the archive for an unfiled article", () => {
     expect(pathsToRevalidate([published({ slug: "orphan", categorySlug: null })])).toEqual([
       "/article/orphan",
+      "/articles",
     ]);
   });
 
@@ -94,8 +95,9 @@ describe("pathsToRevalidate", () => {
       published({ slug: "two", categorySlug: "style" }),
     ]);
 
-    expect(paths).toEqual(["/article/one", "/style", "/article/two"]);
+    expect(paths).toEqual(["/article/one", "/articles", "/style", "/article/two"]);
     expect(paths.filter((p) => p === "/style")).toHaveLength(1);
+    expect(paths.filter((p) => p === "/articles")).toHaveLength(1);
   });
 
   it("returns nothing for an empty run", () => {

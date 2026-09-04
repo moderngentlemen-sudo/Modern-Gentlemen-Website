@@ -81,11 +81,13 @@ export function Drawer({
   onClose,
   groups = [],
   secondary = [],
+  customCta,
 }: {
   open: boolean;
   onClose: () => void;
   groups?: NavLink[];
   secondary?: NavLink[];
+  customCta?: { label: string; href: string };
 }) {
   // `expanded` is the open group; `collapsing` holds it for the 300ms exit.
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -300,11 +302,21 @@ export function Drawer({
           ))}
         </div>
 
+        {customCta && (
+          <Link
+            href={customCta.href}
+            onClick={close}
+            className="mt-auto mb-3 flex items-center justify-center border border-white/25 p-[13px] font-mono text-[11px] leading-[normal] tracking-[0.2em] text-white"
+          >
+            {customCta.label.toUpperCase()} →
+          </Link>
+        )}
+
         {/* Member CTA — pinned to the bottom of the scroll area */}
         <Link
           href="/membership"
           onClick={close}
-          className="mt-auto flex items-center justify-center p-[13px] bg-mg-accent text-white font-mono text-[11px] leading-[normal] tracking-[0.2em]"
+          className={`${customCta ? "" : "mt-auto"} flex items-center justify-center p-[13px] bg-mg-accent text-white font-mono text-[11px] leading-[normal] tracking-[0.2em]`}
         >
           BECOME A MEMBER →
         </Link>

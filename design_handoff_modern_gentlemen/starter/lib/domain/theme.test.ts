@@ -19,6 +19,7 @@ import {
   DEFAULT_THEME_FOOTER,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
+  DEFAULT_THEME_MOBILE_HEADER,
   DEFAULT_THEME_SETTINGS,
   DEFAULT_THEME_TYPOGRAPHY,
   THEME_CONTEXTS,
@@ -26,6 +27,7 @@ import {
   TOKENS_BY_CONTEXT,
   accentChannels,
   parseThemeHeader,
+  parseThemeMobileHeader,
   parseThemeFooter,
   parseThemeLayout,
   parseThemeColors,
@@ -422,6 +424,67 @@ describe("editable typography and header settings", () => {
         header: { ...DEFAULT_THEME_HEADER, height: 80, announcementText: "New issue" },
       })
     ).toContain("--header-height:108px");
+  });
+
+  it("keeps legacy mobile rendering disabled and parses mobile overrides field by field", () => {
+    expect(parseThemeMobileHeader(undefined)).toEqual(DEFAULT_THEME_MOBILE_HEADER);
+    expect(
+      parseThemeHeader({
+        header: {
+          mobile: {
+            enabled: true,
+            composition: "brand-centered",
+            height: 84,
+            maxActions: 2,
+            actionOrder: ["theme", "search", "bag", "account"],
+            ctaPlacement: "drawer",
+            background: "unsafe",
+          },
+        },
+      }).mobile
+    ).toEqual({
+      ...DEFAULT_THEME_MOBILE_HEADER,
+      enabled: true,
+      composition: "brand-centered",
+      height: 84,
+      maxActions: 2,
+      actionOrder: ["theme", "search", "bag", "account"],
+      ctaPlacement: "drawer",
+    });
+  });
+
+  it("rejects incomplete action orders and emits a mobile-only safe-area offset", () => {
+    expect(
+      themeSettingsSchema.safeParse({
+        ...DEFAULT_THEME_SETTINGS,
+        header: {
+          ...DEFAULT_THEME_HEADER,
+          mobile: {
+            ...DEFAULT_THEME_MOBILE_HEADER,
+            enabled: true,
+            actionOrder: ["search", "search", "bag", "theme"],
+          },
+        },
+      }).success
+    ).toBe(false);
+
+    const css = themeDesignCssText({
+      ...DEFAULT_THEME_SETTINGS,
+      header: {
+        ...DEFAULT_THEME_HEADER,
+        announcementText: "Desktop announcement",
+        mobile: {
+          ...DEFAULT_THEME_MOBILE_HEADER,
+          enabled: true,
+          height: 64,
+          showAnnouncement: false,
+        },
+      },
+    });
+    expect(css).toContain("--header-height:100px");
+    expect(css).toContain(
+      "@media(max-width:820px){:root:root{--header-height:calc(64px + env(safe-area-inset-top,0px))}}"
+    );
   });
 
   it("keeps valid layout settings and falls back field by field", () => {

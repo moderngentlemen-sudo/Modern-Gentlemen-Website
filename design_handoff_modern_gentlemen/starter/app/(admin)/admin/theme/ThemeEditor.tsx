@@ -9,6 +9,7 @@ import {
   DEFAULT_THEME_FOOTER,
   DEFAULT_THEME_HEADER,
   DEFAULT_THEME_LAYOUT,
+  DEFAULT_THEME_MOBILE_HEADER,
   DEFAULT_THEME_TYPOGRAPHY,
   FONT_PRESET_OPTIONS,
   FOOTER_LAYOUTS,
@@ -17,6 +18,9 @@ import {
   HEADER_COMPOSITIONS,
   HEADER_ICON_HOVERS,
   HEADER_SCROLL_BEHAVIORS,
+  MOBILE_HEADER_ACTIONS,
+  MOBILE_HEADER_COMPOSITIONS,
+  MOBILE_HEADER_CTA_PLACEMENTS,
   THEME_BUTTON_CASES,
   THEME_BUTTON_INTERACTIONS,
   THEME_BUTTON_SHADOWS,
@@ -43,7 +47,11 @@ import {
   type HeaderComposition,
   type HeaderIconHover,
   type HeaderScrollBehavior,
+  type MobileHeaderAction,
+  type MobileHeaderComposition,
+  type MobileHeaderCtaPlacement,
   type ThemeHeader,
+  type ThemeMobileHeader,
   type ThemeLayout,
   type ThemeContext,
   type ThemeComponentDefaults,
@@ -183,6 +191,60 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
     setDirty(true);
     setError(null);
     setDraft((current) => ({ ...current, header: { ...current.header, [key]: value } }));
+  }
+
+  function setMobileHeader<K extends keyof ThemeMobileHeader>(key: K, value: ThemeMobileHeader[K]) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({
+      ...current,
+      header: {
+        ...current.header,
+        mobile: { ...current.header.mobile, [key]: value },
+      },
+    }));
+  }
+
+  function setMobileHeaderEnabled(enabled: boolean) {
+    setDirty(true);
+    setError(null);
+    setDraft((current) => ({
+      ...current,
+      header: {
+        ...current.header,
+        mobile:
+          enabled && !current.header.mobile.enabled
+            ? {
+                ...current.header.mobile,
+                enabled: true,
+                composition:
+                  current.header.composition === "centered-logo" ? "brand-centered" : "brand-left",
+                scrollBehavior: current.header.scrollBehavior,
+                background: current.header.background,
+                height: current.header.height,
+                shrinkOnScroll: current.header.shrinkOnScroll,
+                shrunkHeight: current.header.shrunkHeight,
+                divider: current.header.divider,
+                scale: current.header.scale,
+                iconBubbles: current.header.iconBubbles,
+                iconHover: current.header.iconHover,
+                showSearch: current.header.showSearch,
+                showThemeToggle: current.header.showThemeToggle,
+                showAccount: current.header.showAccount,
+                cartVisibility: current.header.cartVisibility,
+              }
+            : { ...current.header.mobile, enabled },
+      },
+    }));
+  }
+
+  function moveMobileAction(action: MobileHeaderAction, direction: -1 | 1) {
+    const order = [...draft.header.mobile.actionOrder];
+    const from = order.indexOf(action);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= order.length) return;
+    [order[from], order[to]] = [order[to], order[from]];
+    setMobileHeader("actionOrder", order);
   }
 
   function setFooter<K extends keyof ThemeFooter>(key: K, value: ThemeFooter[K]) {
@@ -1138,6 +1200,244 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               placeholder="https://x.com/..."
               help="HTTPS only."
             />
+          </div>
+
+          <div className="mt-6 border-t border-admin-border pt-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <Toggle
+                label="Customize mobile independently"
+                checked={draft.header.mobile.enabled}
+                disabled={!canWrite || pending}
+                help="Uses dedicated settings at 820px and below. Turning this on starts from the current header design."
+                onChange={setMobileHeaderEnabled}
+              />
+              {canWrite && draft.header.mobile.enabled && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() =>
+                    setHeader("mobile", {
+                      ...DEFAULT_THEME_MOBILE_HEADER,
+                      actionOrder: [...DEFAULT_THEME_MOBILE_HEADER.actionOrder],
+                    })
+                  }
+                >
+                  Disable and reset mobile
+                </Button>
+              )}
+            </div>
+
+            {draft.header.mobile.enabled && (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <Select
+                  label="Mobile composition"
+                  value={draft.header.mobile.composition}
+                  disabled={!canWrite || pending}
+                  options={MOBILE_HEADER_COMPOSITIONS.map((value) => ({
+                    value,
+                    label: value === "brand-left" ? "Brand left" : "Brand centered",
+                  }))}
+                  onChange={(value) =>
+                    setMobileHeader("composition", value as MobileHeaderComposition)
+                  }
+                />
+                <Select
+                  label="Mobile scroll behavior"
+                  value={draft.header.mobile.scrollBehavior}
+                  disabled={!canWrite || pending}
+                  options={HEADER_SCROLL_BEHAVIORS.map((value) => ({
+                    value,
+                    label: value === "hide-on-scroll" ? "Hide on scroll" : "Always visible",
+                  }))}
+                  onChange={(value) =>
+                    setMobileHeader("scrollBehavior", value as HeaderScrollBehavior)
+                  }
+                />
+                <Select
+                  label="Mobile background"
+                  value={draft.header.mobile.background}
+                  disabled={!canWrite || pending}
+                  options={HEADER_BACKGROUNDS.map((value) => ({
+                    value,
+                    label:
+                      value === "dynamic"
+                        ? "Transparent → frosted"
+                        : value === "solid"
+                          ? "Always frosted"
+                          : "Always transparent",
+                  }))}
+                  onChange={(value) => setMobileHeader("background", value as HeaderBackground)}
+                />
+                <NumberInput
+                  label="Mobile height"
+                  help="56–96px, with safe-area inset support."
+                  min={56}
+                  max={96}
+                  integer
+                  value={draft.header.mobile.height}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => value !== undefined && setMobileHeader("height", value)}
+                />
+                <NumberInput
+                  label="Mobile scale"
+                  min={0.8}
+                  max={1.4}
+                  value={draft.header.mobile.scale}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => value !== undefined && setMobileHeader("scale", value)}
+                />
+                <Select
+                  label="Mobile icon hover"
+                  value={draft.header.mobile.iconHover}
+                  disabled={!canWrite || pending}
+                  options={HEADER_ICON_HOVERS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  onChange={(value) => setMobileHeader("iconHover", value as HeaderIconHover)}
+                />
+                <Toggle
+                  label="Shrink mobile header on scroll"
+                  checked={draft.header.mobile.shrinkOnScroll}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => setMobileHeader("shrinkOnScroll", value)}
+                />
+                <NumberInput
+                  label="Mobile shrunk height"
+                  min={44}
+                  max={90}
+                  integer
+                  value={draft.header.mobile.shrunkHeight}
+                  disabled={!canWrite || pending || !draft.header.mobile.shrinkOnScroll}
+                  onChange={(value) =>
+                    value !== undefined && setMobileHeader("shrunkHeight", value)
+                  }
+                />
+                <Toggle
+                  label="Mobile divider"
+                  checked={draft.header.mobile.divider}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => setMobileHeader("divider", value)}
+                />
+                <Toggle
+                  label="Mobile icon bubbles"
+                  checked={draft.header.mobile.iconBubbles}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => setMobileHeader("iconBubbles", value)}
+                />
+                <Toggle
+                  label="Show mobile announcement"
+                  checked={draft.header.mobile.showAnnouncement}
+                  disabled={!canWrite || pending}
+                  help="Uses the desktop announcement unless mobile copy is supplied."
+                  onChange={(value) => setMobileHeader("showAnnouncement", value)}
+                />
+                <TextInput
+                  label="Mobile announcement copy"
+                  value={draft.header.mobile.announcementText}
+                  disabled={!canWrite || pending || !draft.header.mobile.showAnnouncement}
+                  placeholder="Leave empty to inherit desktop copy"
+                  onChange={(value) => setMobileHeader("announcementText", value)}
+                />
+                <Toggle
+                  label="Show mobile search"
+                  checked={draft.header.mobile.showSearch}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => setMobileHeader("showSearch", value)}
+                />
+                <Toggle
+                  label="Show mobile theme toggle"
+                  checked={draft.header.mobile.showThemeToggle}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => setMobileHeader("showThemeToggle", value)}
+                />
+                <Toggle
+                  label="Show mobile account"
+                  checked={draft.header.mobile.showAccount}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => setMobileHeader("showAccount", value)}
+                />
+                <Select
+                  label="Mobile bag icon"
+                  value={draft.header.mobile.cartVisibility}
+                  disabled={!canWrite || pending}
+                  options={HEADER_CART_VISIBILITY.map((value) => ({
+                    value,
+                    label:
+                      value === "store-only"
+                        ? "Store pages only"
+                        : value === "always"
+                          ? "All pages"
+                          : "Hidden",
+                  }))}
+                  onChange={(value) =>
+                    setMobileHeader("cartVisibility", value as HeaderCartVisibility)
+                  }
+                />
+                <Select
+                  label="Mobile CTA placement"
+                  value={draft.header.mobile.ctaPlacement}
+                  disabled={!canWrite || pending || !draft.header.ctaLabel || !draft.header.ctaHref}
+                  options={MOBILE_HEADER_CTA_PLACEMENTS.map((value) => ({
+                    value,
+                    label: optionLabel(value),
+                  }))}
+                  onChange={(value) =>
+                    setMobileHeader("ctaPlacement", value as MobileHeaderCtaPlacement)
+                  }
+                />
+                <NumberInput
+                  label="Maximum mobile actions"
+                  help="0–4. Applies after hidden and store-only actions are removed."
+                  min={0}
+                  max={MOBILE_HEADER_ACTIONS.length}
+                  integer
+                  value={draft.header.mobile.maxActions}
+                  disabled={!canWrite || pending}
+                  onChange={(value) => value !== undefined && setMobileHeader("maxActions", value)}
+                />
+                <div className="sm:col-span-2 xl:col-span-3">
+                  <div className="mb-2 text-xs font-medium text-admin-text">
+                    Mobile action order
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    {draft.header.mobile.actionOrder.map((action, index) => (
+                      <div
+                        key={action}
+                        className="flex items-center justify-between gap-2 border border-admin-border bg-admin-surface px-3 py-2"
+                      >
+                        <span className="text-sm text-admin-text">{optionLabel(action)}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Move ${action} earlier`}
+                            disabled={!canWrite || pending || index === 0}
+                            onClick={() => moveMobileAction(action, -1)}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Move ${action} later`}
+                            disabled={
+                              !canWrite ||
+                              pending ||
+                              index === draft.header.mobile.actionOrder.length - 1
+                            }
+                            onClick={() => moveMobileAction(action, 1)}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </PanelSection>
 

@@ -355,6 +355,61 @@ export const HEADER_CART_VISIBILITY = ["store-only", "always", "hidden"] as cons
 export type HeaderCartVisibility = (typeof HEADER_CART_VISIBILITY)[number];
 export const HEADER_ICON_HOVERS = ["none", "scale", "lift", "circle", "glow"] as const;
 export type HeaderIconHover = (typeof HEADER_ICON_HOVERS)[number];
+export const MOBILE_HEADER_COMPOSITIONS = ["brand-left", "brand-centered"] as const;
+export type MobileHeaderComposition = (typeof MOBILE_HEADER_COMPOSITIONS)[number];
+export const MOBILE_HEADER_CTA_PLACEMENTS = ["hidden", "header", "drawer"] as const;
+export type MobileHeaderCtaPlacement = (typeof MOBILE_HEADER_CTA_PLACEMENTS)[number];
+export const MOBILE_HEADER_ACTIONS = ["account", "search", "bag", "theme"] as const;
+export type MobileHeaderAction = (typeof MOBILE_HEADER_ACTIONS)[number];
+
+export interface ThemeMobileHeader {
+  /** False is the compatibility mode: every legacy desktop setting still drives mobile. */
+  enabled: boolean;
+  composition: MobileHeaderComposition;
+  scrollBehavior: HeaderScrollBehavior;
+  background: HeaderBackground;
+  height: number;
+  shrinkOnScroll: boolean;
+  shrunkHeight: number;
+  divider: boolean;
+  scale: number;
+  iconBubbles: boolean;
+  iconHover: HeaderIconHover;
+  showAnnouncement: boolean;
+  /** Empty inherits the desktop announcement copy and destination. */
+  announcementText: string;
+  showSearch: boolean;
+  showThemeToggle: boolean;
+  showAccount: boolean;
+  cartVisibility: HeaderCartVisibility;
+  ctaPlacement: MobileHeaderCtaPlacement;
+  actionOrder: MobileHeaderAction[];
+  /** Caps visible icon actions after visibility and route rules are applied. */
+  maxActions: number;
+}
+
+export const DEFAULT_THEME_MOBILE_HEADER: ThemeMobileHeader = {
+  enabled: false,
+  composition: "brand-left",
+  scrollBehavior: "hide-on-scroll",
+  background: "dynamic",
+  height: 72,
+  shrinkOnScroll: false,
+  shrunkHeight: 58,
+  divider: false,
+  scale: 1,
+  iconBubbles: false,
+  iconHover: "scale",
+  showAnnouncement: true,
+  announcementText: "",
+  showSearch: true,
+  showThemeToggle: true,
+  showAccount: false,
+  cartVisibility: "store-only",
+  ctaPlacement: "hidden",
+  actionOrder: [...MOBILE_HEADER_ACTIONS],
+  maxActions: 4,
+};
 
 export interface ThemeHeader {
   composition: HeaderComposition;
@@ -382,6 +437,7 @@ export interface ThemeHeader {
   showSocials: boolean;
   instagramHref: string;
   xHref: string;
+  mobile: ThemeMobileHeader;
 }
 
 export const DEFAULT_THEME_HEADER: ThemeHeader = {
@@ -407,6 +463,7 @@ export const DEFAULT_THEME_HEADER: ThemeHeader = {
   showSocials: false,
   instagramHref: "",
   xHref: "",
+  mobile: DEFAULT_THEME_MOBILE_HEADER,
 };
 
 export const FOOTER_LAYOUTS = ["responsive", "stacked", "centered"] as const;
@@ -532,7 +589,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 12;
+export const THEME_PAYLOAD_VERSION = 13;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -781,6 +838,34 @@ const safeHeaderHref = (value: string): boolean =>
 const safeSocialHref = (value: string): boolean =>
   value === "" || /^https:\/\/[a-z0-9.-]+(?::\d+)?(?:[/?#]|$)/i.test(value);
 
+export const themeMobileHeaderSchema = z.object({
+  enabled: z.boolean(),
+  composition: z.enum(MOBILE_HEADER_COMPOSITIONS),
+  scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
+  background: z.enum(HEADER_BACKGROUNDS),
+  height: z.number().int().min(56).max(96),
+  shrinkOnScroll: z.boolean(),
+  shrunkHeight: z.number().int().min(44).max(90),
+  divider: z.boolean(),
+  scale: z.number().min(0.8).max(1.4),
+  iconBubbles: z.boolean(),
+  iconHover: z.enum(HEADER_ICON_HOVERS),
+  showAnnouncement: z.boolean(),
+  announcementText: z.string().trim().max(160),
+  showSearch: z.boolean(),
+  showThemeToggle: z.boolean(),
+  showAccount: z.boolean(),
+  cartVisibility: z.enum(HEADER_CART_VISIBILITY),
+  ctaPlacement: z.enum(MOBILE_HEADER_CTA_PLACEMENTS),
+  actionOrder: z
+    .array(z.enum(MOBILE_HEADER_ACTIONS))
+    .length(MOBILE_HEADER_ACTIONS.length)
+    .refine((actions) => new Set(actions).size === MOBILE_HEADER_ACTIONS.length, {
+      message: "List each mobile action exactly once",
+    }),
+  maxActions: z.number().int().min(0).max(MOBILE_HEADER_ACTIONS.length),
+});
+
 export const themeHeaderSchema = z.object({
   composition: z.enum(HEADER_COMPOSITIONS),
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
@@ -812,6 +897,7 @@ export const themeHeaderSchema = z.object({
   showSocials: z.boolean(),
   instagramHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
   xHref: z.string().trim().max(2048).refine(safeSocialHref, "Use an HTTPS URL"),
+  mobile: themeMobileHeaderSchema,
 });
 
 export const themeFooterSchema = z.object({
@@ -1041,12 +1127,89 @@ export function parseThemeTypography(value: unknown): ThemeTypography {
   return out;
 }
 
+/** Forgiving public read for the optional mobile-only header layer. */
+export function parseThemeMobileHeader(value: unknown): ThemeMobileHeader {
+  const incoming = asRecord(value);
+  const out: ThemeMobileHeader = {
+    ...DEFAULT_THEME_MOBILE_HEADER,
+    actionOrder: [...DEFAULT_THEME_MOBILE_HEADER.actionOrder],
+  };
+  if (!incoming) return out;
+
+  if (typeof incoming.enabled === "boolean") out.enabled = incoming.enabled;
+  if ((MOBILE_HEADER_COMPOSITIONS as readonly unknown[]).includes(incoming.composition)) {
+    out.composition = incoming.composition as MobileHeaderComposition;
+  }
+  if ((HEADER_SCROLL_BEHAVIORS as readonly unknown[]).includes(incoming.scrollBehavior)) {
+    out.scrollBehavior = incoming.scrollBehavior as HeaderScrollBehavior;
+  }
+  if ((HEADER_BACKGROUNDS as readonly unknown[]).includes(incoming.background)) {
+    out.background = incoming.background as HeaderBackground;
+  }
+  for (const key of [
+    "shrinkOnScroll",
+    "divider",
+    "iconBubbles",
+    "showAnnouncement",
+    "showSearch",
+    "showThemeToggle",
+    "showAccount",
+  ] as const) {
+    if (typeof incoming[key] === "boolean") out[key] = incoming[key];
+  }
+  for (const [key, min, max] of [
+    ["height", 56, 96],
+    ["shrunkHeight", 44, 90],
+    ["maxActions", 0, MOBILE_HEADER_ACTIONS.length],
+  ] as const) {
+    const candidate = incoming[key];
+    if (
+      typeof candidate === "number" &&
+      Number.isInteger(candidate) &&
+      candidate >= min &&
+      candidate <= max
+    ) {
+      out[key] = candidate;
+    }
+  }
+  if (typeof incoming.scale === "number" && incoming.scale >= 0.8 && incoming.scale <= 1.4) {
+    out.scale = incoming.scale;
+  }
+  if ((HEADER_ICON_HOVERS as readonly unknown[]).includes(incoming.iconHover)) {
+    out.iconHover = incoming.iconHover as HeaderIconHover;
+  }
+  if (typeof incoming.announcementText === "string" && incoming.announcementText.length <= 160) {
+    out.announcementText = incoming.announcementText.trim();
+  }
+  if ((HEADER_CART_VISIBILITY as readonly unknown[]).includes(incoming.cartVisibility)) {
+    out.cartVisibility = incoming.cartVisibility as HeaderCartVisibility;
+  }
+  if ((MOBILE_HEADER_CTA_PLACEMENTS as readonly unknown[]).includes(incoming.ctaPlacement)) {
+    out.ctaPlacement = incoming.ctaPlacement as MobileHeaderCtaPlacement;
+  }
+  const actionOrder = incoming.actionOrder;
+  if (
+    Array.isArray(actionOrder) &&
+    actionOrder.length === MOBILE_HEADER_ACTIONS.length &&
+    new Set(actionOrder).size === MOBILE_HEADER_ACTIONS.length &&
+    actionOrder.every((action) => (MOBILE_HEADER_ACTIONS as readonly unknown[]).includes(action))
+  ) {
+    out.actionOrder = actionOrder as MobileHeaderAction[];
+  }
+  return out;
+}
+
 /** Forgiving public read for the header portion of a stored theme payload. */
 export function parseThemeHeader(value: unknown): ThemeHeader {
   const incoming = asRecord(asRecord(value)?.header);
-  if (!incoming) return { ...DEFAULT_THEME_HEADER };
+  if (!incoming) {
+    return {
+      ...DEFAULT_THEME_HEADER,
+      mobile: parseThemeMobileHeader(undefined),
+    };
+  }
 
-  const out = { ...DEFAULT_THEME_HEADER };
+  const out = { ...DEFAULT_THEME_HEADER, mobile: parseThemeMobileHeader(undefined) };
   if ((HEADER_COMPOSITIONS as readonly unknown[]).includes(incoming.composition)) {
     out.composition = incoming.composition as HeaderComposition;
   }
@@ -1111,6 +1274,7 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   if (typeof incoming.xHref === "string" && safeSocialHref(incoming.xHref.trim())) {
     out.xHref = incoming.xHref.trim();
   }
+  out.mobile = parseThemeMobileHeader(incoming.mobile);
   return out;
 }
 
@@ -1467,5 +1631,13 @@ export function themeDesignCssText(settings: ThemeSettings): string {
   const aliasCss = settings.tokenAliases.length
     ? `:root:root{${darkAliases}}html[data-mgtheme="light"]:root{${lightAliases}}`
     : "";
-  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${aliasCss}${themeComponentCssText(settings.components)}${styleClasses}`;
+  const mobileAnnouncement =
+    settings.header.mobile.showAnnouncement &&
+    (settings.header.mobile.announcementText || settings.header.announcementText)
+      ? 28
+      : 0;
+  const mobileHeaderCss = settings.header.mobile.enabled
+    ? `@media(max-width:820px){:root:root{--header-height:calc(${settings.header.mobile.height + mobileAnnouncement}px + env(safe-area-inset-top,0px))}}`
+    : "";
+  return `${themeWebfontFaceCssText(settings.typography)}${themeCssText(settings.colors)}:root:root{${declarations.join(";")}}${mobileHeaderCss}${aliasCss}${themeComponentCssText(settings.components)}${styleClasses}`;
 }

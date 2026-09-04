@@ -83,8 +83,8 @@ function sha256Width(bytes: Uint8Array): Buffer {
 /**
  * The public paths a scheduled publish invalidated.
  *
- * An article touches two — its own page and the category page whose lead and
- * grid are bound to the `articles` table. Revalidating only the first is the bug
+ * An article touches its own page, the complete archive and the category page
+ * whose lead and grid are bound to the `articles` table. Revalidating only the first is the bug
  * that looks like everything working: the article is live at its URL and absent
  * from the section it belongs to. `app/(admin)/admin/articles/revalidate.ts`
  * records the same reasoning for the editor path; this is the jobs-side copy,
@@ -96,6 +96,7 @@ export function pathsToRevalidate(published: PublishedOnSchedule[]): string[] {
       ? [publicPathForPage(row.slug)]
       : [
           publicPathForArticle(row.slug),
+          "/articles",
           ...(row.categorySlug ? [publicPathForCategory(row.categorySlug)] : []),
         ]
   );

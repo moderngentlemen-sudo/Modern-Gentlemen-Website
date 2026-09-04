@@ -11,6 +11,28 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-04 — independent mobile header controls and complete article archive
+
+Theme payload v13 adds a compatibility-safe mobile header layer at the existing
+820px breakpoint. It is disabled by default, so every published header continues
+to reproduce its prior desktop and mobile behavior until an editor opts in. On
+enable it starts from the current desktop choices, then independently controls
+brand placement, scroll/background behavior, size and shrink state, divider,
+scale, icon treatment, announcement visibility/short copy, search/theme/account/
+bag visibility, promotional CTA placement, action priority and the maximum
+visible action count. The renderer uses one header implementation, accounts for
+mobile safe-area insets, and keeps the fixed page offset in step.
+
+`/articles` now provides a public, anonymous-RLS-backed, 12-story paginated
+archive across every published article, including the 18 intentionally unfiled
+template showcases. The five category compositions remain unchanged; their
+existing Load more treatment is now a real link to the archive. Publishing,
+unpublishing, deleting, re-filing and scheduled publishing invalidate the archive
+alongside the article and category paths, and the sitemap includes it. Formatting,
+ESLint, TypeScript and **1,908/1,908 unit tests** pass locally. The database and
+browser suites require the repository's external test credentials and are left
+to the same full hosted CI gate that validated the preceding search slice.
+
 ### 2026-09-04 — the backend article index is complete and searchable
 
 The article inventory audit confirms **53** seeded articles: 35 filed stories
