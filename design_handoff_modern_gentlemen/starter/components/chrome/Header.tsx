@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useTheme } from "@/lib/theme";
 import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import { useCart } from "@/lib/cart/CartProvider";
@@ -11,7 +11,12 @@ import { SearchOverlay } from "./SearchOverlay";
 import { BagDrawer } from "./BagDrawer";
 import { MegaMenu } from "./MegaMenu";
 import type { NavLink } from "@/lib/domain/navigation";
-import { DEFAULT_THEME_HEADER, type ThemeHeader } from "@/lib/domain/theme";
+import {
+  DEFAULT_THEME_HEADER,
+  MOBILE_HEADER_ACTIONS,
+  type MobileHeaderAction,
+  type ThemeHeader,
+} from "@/lib/domain/theme";
 import { useVisibleNavigation } from "@/lib/useVisibleNavigation";
 
 /** Routes that show the bag button. The editorial prototypes' header carries
@@ -22,6 +27,15 @@ import { useVisibleNavigation } from "@/lib/useVisibleNavigation";
 const STORE_ROUTES = ["/shop", "/product", "/bag", "/checkout"];
 const isStoreRoute = (path: string | null) =>
   !!path && STORE_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+
+const MOBILE_HEADER_QUERY = "(max-width: 820px)";
+const subscribeMobileHeader = (listener: () => void) => {
+  const query = window.matchMedia(MOBILE_HEADER_QUERY);
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+};
+const mobileHeaderSnapshot = () => window.matchMedia(MOBILE_HEADER_QUERY).matches;
+const mobileHeaderServerSnapshot = () => false;
 
 /** Full chrome header: dark, frosted-on-scroll nav that slides away on
  *  scroll-down and returns on scroll-up. The compatibility preset does not
@@ -50,9 +64,41 @@ export function Header({
   const { theme, toggle } = useTheme();
   const cart = useCart();
   const storeRoute = isStoreRoute(usePathname());
+  const isMobileViewport = useSyncExternalStore(
+    subscribeMobileHeader,
+    mobileHeaderSnapshot,
+    mobileHeaderServerSnapshot
+  );
+  const mobileActive = settings.mobile.enabled && isMobileViewport;
+  const mobile = settings.mobile;
+  const effective: ThemeHeader = mobileActive
+    ? {
+        ...settings,
+        composition: mobile.composition === "brand-centered" ? "centered-logo" : "balanced",
+        scrollBehavior: mobile.scrollBehavior,
+        background: mobile.background,
+        showSearch: mobile.showSearch,
+        showThemeToggle: mobile.showThemeToggle,
+        cartVisibility: mobile.cartVisibility,
+        height: mobile.height,
+        shrinkOnScroll: mobile.shrinkOnScroll,
+        shrunkHeight: mobile.shrunkHeight,
+        divider: mobile.divider,
+        scale: mobile.scale,
+        iconBubbles: mobile.iconBubbles,
+        iconHover: mobile.iconHover,
+        announcementText: mobile.showAnnouncement
+          ? mobile.announcementText || settings.announcementText
+          : "",
+        showAccount: mobile.showAccount,
+        showSocials: false,
+        ctaLabel: mobile.ctaPlacement === "header" ? settings.ctaLabel : "",
+        ctaHref: mobile.ctaPlacement === "header" ? settings.ctaHref : "",
+      }
+    : settings;
   const showBag =
-    settings.cartVisibility === "always" ||
-    (settings.cartVisibility === "store-only" && storeRoute);
+    effective.cartVisibility === "always" ||
+    (effective.cartVisibility === "store-only" && storeRoute);
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [bag, setBag] = useState(false);
@@ -88,17 +134,17 @@ export function Header({
   } = useHideOnScroll({
     pinned: drawer || search || (bag && showBag) || !!menuKey || navHover,
   });
-  const hidden = settings.scrollBehavior === "hide-on-scroll" && scrollHidden;
-  const compact = settings.shrinkOnScroll && scrolled && !drawer && !search && !bag && !menuKey;
-  const headerHeight = compact ? settings.shrunkHeight : settings.height;
-  const announcementHeight = settings.announcementText ? 28 : 0;
+  const hidden = effective.scrollBehavior === "hide-on-scroll" && scrollHidden;
+  const compact = effective.shrinkOnScroll && scrolled && !drawer && !search && !bag && !menuKey;
+  const headerHeight = compact ? effective.shrunkHeight : effective.height;
+  const announcementHeight = effective.announcementText ? 28 : 0;
   const chromeHeight = headerHeight + announcementHeight;
 
   // Dynamic is the verified prototype behavior; the other two are explicit
   // editor choices and leave menu/overlay behavior unchanged.
   const frosted =
-    settings.background === "solid" ||
-    (settings.background === "dynamic" && (scrolled || !!menuKey || navHover));
+    effective.background === "solid" ||
+    (effective.background === "dynamic" && (scrolled || !!menuKey || navHover));
 
   // An entry opens the mega-menu if it has children. `menuKey` is that entry's
   // id — the allowlist it replaced was a constant that had to be kept in step
@@ -118,7 +164,7 @@ export function Header({
     <nav
       className={`hidden min-[821px]:flex min-w-0 gap-6 whitespace-nowrap ${align}`}
       aria-label={label}
-      style={{ transform: `scale(${settings.scale})` }}
+      style={{ transform: `scale(${effective.scale})` }}
     >
       {items.map((item) => {
         const hasMenu = megaKeys.has(item.id);
@@ -149,7 +195,7 @@ export function Header({
   const logoLink = <LogoLink />;
   const actions = (
     <HeaderActions
-      settings={settings}
+      settings={effective}
       theme={theme}
       cartCount={cart.count}
       showBag={showBag}
@@ -162,6 +208,9 @@ export function Header({
         toggle();
         setSpin((value) => value + 1);
       }}
+      actionOrder={mobileActive ? mobile.actionOrder : [...MOBILE_HEADER_ACTIONS]}
+      maxActions={mobileActive ? mobile.maxActions : MOBILE_HEADER_ACTIONS.length}
+      compactCta={mobileActive && mobile.ctaPlacement === "header"}
     />
   );
 
@@ -173,7 +222,9 @@ export function Header({
         aria-hidden
         className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
-          height: chromeHeight + 13,
+          height: mobileActive
+            ? `calc(${chromeHeight + 13}px + env(safe-area-inset-top, 0px))`
+            : chromeHeight + 13,
           opacity: frosted ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
@@ -189,7 +240,11 @@ export function Header({
         data-darkband
         data-hidden={hidden || undefined}
         className="fixed inset-x-0 top-[-2px] z-50 text-white will-change-transform"
-        style={{ transform: slide, transition: `transform ${MOTION}` }}
+        style={{
+          transform: slide,
+          transition: `transform ${MOTION}`,
+          paddingTop: mobileActive ? "env(safe-area-inset-top, 0px)" : undefined,
+        }}
         // Frost/pin follows the pointer being over a nav LINK or the open
         // panel — not merely over the bar. Hovering the logo, the icons or the
         // gaps unfrosts (but never closes an open panel: that empty space
@@ -217,25 +272,26 @@ export function Header({
         // Tabbing into chrome that has slid away must bring it back into view.
         onFocus={reveal}
       >
-        {settings.announcementText && (
+        {effective.announcementText && (
           <div
             className="flex h-7 items-center justify-center border-b border-white/10 bg-[#0d0d0d]/90 px-5 text-center font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white/85 backdrop-blur-xl"
             data-testid="header-announcement"
           >
-            {settings.announcementHref ? (
-              <Link className="mg-underline hover:text-white" href={settings.announcementHref}>
-                {settings.announcementText}
+            {effective.announcementHref ? (
+              <Link className="mg-underline hover:text-white" href={effective.announcementHref}>
+                {effective.announcementText}
               </Link>
             ) : (
-              <span>{settings.announcementText}</span>
+              <span>{effective.announcementText}</span>
             )}
           </div>
         )}
         <header
           // ≤680 the bar insets 20px, two below the sections' 22px.
-          data-header-composition={settings.composition}
+          data-header-composition={effective.composition}
+          data-mobile-customized={mobileActive || undefined}
           className={`container-mg max-[680px]:!px-5 box-border items-center pt-[2px] border-b ${
-            settings.composition === "centered-logo"
+            effective.composition === "centered-logo"
               ? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
               : "flex"
           }`}
@@ -245,12 +301,12 @@ export function Header({
             backdropFilter: frosted ? "blur(20px)" : "none",
             WebkitBackdropFilter: frosted ? "blur(20px)" : "none",
             borderBottomColor:
-              frosted || settings.divider ? "rgba(255,255,255,0.12)" : "transparent",
+              frosted || effective.divider ? "rgba(255,255,255,0.12)" : "transparent",
             // The global prefers-reduced-motion rule zeroes the durations.
             transition: `height ${MOTION}, background ${MOTION}, backdrop-filter ${MOTION}, border-color ${MOTION}`,
           }}
         >
-          {settings.composition === "centered-logo" ? (
+          {effective.composition === "centered-logo" ? (
             <>
               <div className="flex min-w-0 items-center gap-6 overflow-hidden">
                 {burgerButton}
@@ -260,7 +316,7 @@ export function Header({
                   "justify-start"
                 )}
               </div>
-              <div style={{ transform: `scale(${settings.scale})` }}>{logoLink}</div>
+              <div style={{ transform: `scale(${effective.scale})` }}>{logoLink}</div>
               <div className="flex min-w-0 items-center justify-end gap-6 overflow-hidden">
                 {navigation(
                   visibleNav.slice(splitAt),
@@ -274,20 +330,20 @@ export function Header({
             <>
               <div
                 className="flex shrink-0 items-center gap-1 transition-transform"
-                style={{ transform: `scale(${settings.scale})` }}
+                style={{ transform: `scale(${effective.scale})` }}
               >
                 {burgerButton}
                 {logoLink}
               </div>
               <div
                 className={`min-w-0 px-4 ${
-                  settings.composition === "navigation-left" ? "flex-none" : "flex-1"
+                  effective.composition === "navigation-left" ? "flex-none" : "flex-1"
                 }`}
               >
                 {navigation(
                   visibleNav,
                   "Primary",
-                  settings.composition === "navigation-left" ? "justify-start" : "justify-center"
+                  effective.composition === "navigation-left" ? "justify-start" : "justify-center"
                 )}
               </div>
               <div className="ml-auto">{actions}</div>
@@ -303,8 +359,13 @@ export function Header({
         onClose={() => setDrawer(false)}
         groups={visibleNav}
         secondary={visibleSecondary}
+        customCta={
+          mobileActive && mobile.ctaPlacement === "drawer" && settings.ctaLabel && settings.ctaHref
+            ? { label: settings.ctaLabel, href: settings.ctaHref }
+            : undefined
+        }
       />
-      <SearchOverlay open={settings.showSearch && search} onClose={() => setSearch(false)} />
+      <SearchOverlay open={effective.showSearch && search} onClose={() => setSearch(false)} />
       {/* Gated on `showBag` too, so navigating off the store journey with the
           drawer open can't leave it hanging with no trigger to close it. */}
       <BagDrawer open={bag && showBag} onClose={() => setBag(false)} />
@@ -350,6 +411,9 @@ function HeaderActions({
   onSearch,
   onBag,
   onTheme,
+  actionOrder,
+  maxActions,
+  compactCta,
 }: {
   settings: ThemeHeader;
   theme: "light" | "dark";
@@ -361,7 +425,88 @@ function HeaderActions({
   onSearch: () => void;
   onBag: () => void;
   onTheme: () => void;
+  actionOrder: MobileHeaderAction[];
+  maxActions: number;
+  compactCta: boolean;
 }) {
+  const actionNodes: Record<MobileHeaderAction, React.ReactNode | null> = {
+    account:
+      settings.showAccount && settings.accountHref ? (
+        <Link
+          key="account"
+          href={settings.accountHref}
+          aria-label="Account"
+          title="Account"
+          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border text-white transition-all duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] active:scale-95 ${
+            settings.iconBubbles ? "border-white/15 bg-white/[0.08]" : "border-transparent"
+          } ${headerHoverClass(settings.iconHover)}`}
+        >
+          <AccountIcon />
+        </Link>
+      ) : null,
+    search: settings.showSearch ? (
+      <IconButton
+        key="search"
+        label="Search"
+        title="Search"
+        expanded={search}
+        controls="mg-search-overlay"
+        bubbles={settings.iconBubbles}
+        hover={settings.iconHover}
+        onClick={onSearch}
+      >
+        <SearchIcon />
+      </IconButton>
+    ) : null,
+    bag: showBag ? (
+      <IconButton
+        key="bag"
+        label="Bag"
+        title="Bag"
+        expanded={bag}
+        controls="mg-bag-drawer"
+        bubbles={settings.iconBubbles}
+        hover={settings.iconHover}
+        onClick={onBag}
+      >
+        <BagIcon />
+        {cartCount > 0 && (
+          <span className="absolute -top-[3px] -right-[3px] box-border grid h-[17px] min-w-[17px] place-items-center bg-mg-accent px-1 font-grotesk text-[10px] font-semibold leading-none text-white">
+            {cartCount}
+          </span>
+        )}
+      </IconButton>
+    ) : null,
+    theme: settings.showThemeToggle ? (
+      <IconButton
+        key="theme"
+        label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+        title="Toggle light / dark"
+        className="overflow-hidden"
+        bubbles={settings.iconBubbles}
+        hover={settings.iconHover}
+        onClick={onTheme}
+      >
+        <span
+          key={spin}
+          className={`flex ${
+            spin === 0
+              ? ""
+              : spin % 2 === 1
+                ? "motion-safe:animate-[mgSpin_.5s_cubic-bezier(.34,1.4,.5,1)]"
+                : "motion-safe:animate-[mgSpinB_.5s_cubic-bezier(.34,1.4,.5,1)]"
+          }`}
+        >
+          <ThemeIcon dark={theme === "dark"} />
+        </span>
+      </IconButton>
+    ) : null,
+  };
+  const visibleActions = actionOrder.flatMap((action) => {
+    const node = actionNodes[action];
+    return node ? [node] : [];
+  });
+
   return (
     <div
       className="flex shrink-0 items-center gap-[5px] transition-transform min-[681px]:gap-3.5"
@@ -370,7 +515,7 @@ function HeaderActions({
       {settings.ctaLabel && settings.ctaHref && (
         <Link
           href={settings.ctaHref}
-          className="hidden border border-white/25 px-4 py-2 font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white transition-colors hover:border-mg-accent hover:bg-mg-accent min-[681px]:block"
+          className={`${compactCta ? "block" : "hidden min-[681px]:block"} border border-white/25 px-4 py-2 font-nav text-[10px] font-medium uppercase tracking-[0.14em] text-white transition-colors hover:border-mg-accent hover:bg-mg-accent`}
         >
           {settings.ctaLabel}
         </Link>
@@ -393,72 +538,7 @@ function HeaderActions({
           X
         </Link>
       )}
-      {settings.showAccount && settings.accountHref && (
-        <Link
-          href={settings.accountHref}
-          aria-label="Account"
-          title="Account"
-          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border text-white transition-all duration-[240ms] ease-[cubic-bezier(.34,1.4,.5,1)] active:scale-95 ${
-            settings.iconBubbles ? "border-white/15 bg-white/[0.08]" : "border-transparent"
-          } ${headerHoverClass(settings.iconHover)}`}
-        >
-          <AccountIcon />
-        </Link>
-      )}
-      {settings.showSearch && (
-        <IconButton
-          label="Search"
-          title="Search"
-          expanded={search}
-          controls="mg-search-overlay"
-          bubbles={settings.iconBubbles}
-          hover={settings.iconHover}
-          onClick={onSearch}
-        >
-          <SearchIcon />
-        </IconButton>
-      )}
-      {showBag && (
-        <IconButton
-          label="Bag"
-          title="Bag"
-          expanded={bag}
-          controls="mg-bag-drawer"
-          bubbles={settings.iconBubbles}
-          hover={settings.iconHover}
-          onClick={onBag}
-        >
-          <BagIcon />
-          {cartCount > 0 && (
-            <span className="absolute -top-[3px] -right-[3px] box-border grid h-[17px] min-w-[17px] place-items-center bg-mg-accent px-1 font-grotesk text-[10px] font-semibold leading-none text-white">
-              {cartCount}
-            </span>
-          )}
-        </IconButton>
-      )}
-      {settings.showThemeToggle && (
-        <IconButton
-          label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-          title="Toggle light / dark"
-          className="overflow-hidden"
-          bubbles={settings.iconBubbles}
-          hover={settings.iconHover}
-          onClick={onTheme}
-        >
-          <span
-            key={spin}
-            className={`flex ${
-              spin === 0
-                ? ""
-                : spin % 2 === 1
-                  ? "motion-safe:animate-[mgSpin_.5s_cubic-bezier(.34,1.4,.5,1)]"
-                  : "motion-safe:animate-[mgSpinB_.5s_cubic-bezier(.34,1.4,.5,1)]"
-            }`}
-          >
-            <ThemeIcon dark={theme === "dark"} />
-          </span>
-        </IconButton>
-      )}
+      {visibleActions.slice(0, maxActions)}
     </div>
   );
 }

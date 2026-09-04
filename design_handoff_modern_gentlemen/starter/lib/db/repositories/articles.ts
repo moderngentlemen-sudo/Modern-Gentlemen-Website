@@ -12,6 +12,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "../database.types";
 import { unwrap } from "./errors";
+import type { DocumentSummary } from "./documents";
 
 type Db = SupabaseClient<Database>;
 
@@ -41,6 +42,51 @@ export interface ArticleMetaRow {
 const META_COLUMNS =
   "id, slug, title, subtitle, excerpt, template, category_id, author_id, " +
   "featured_asset_id, reading_minutes, issue_no";
+
+const LIST_COLUMNS =
+  "id, title, slug, status, version, published_at, scheduled_for, created_at, updated_at";
+
+export interface ArticleListOptions {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ArticleListResult {
+  articles: DocumentSummary[];
+  total: number;
+}
+
+/**
+ * The admin article index, including an exact result count for pagination.
+ *
+ * Search targets a generated tsvector rather than interpolating editor input
+ * into PostgREST's raw `or` syntax. Besides using the GIN index, that keeps
+ * punctuation in a title as data rather than filter grammar.
+ */
+export async function listArticles(
+  db: Db,
+  { search, limit = 25, offset = 0 }: ArticleListOptions = {}
+): Promise<ArticleListResult> {
+  let query = db
+    .from("articles")
+    .select(LIST_COLUMNS, { count: "exact" })
+    .order("updated_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const term = search?.trim();
+  if (term) {
+    query = query.textSearch("search_vector", term, { type: "websearch", config: "english" });
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw new Error(`Could not list the articles: ${error.message}`);
+
+  return {
+    articles: (data ?? []) as unknown as DocumentSummary[],
+    total: count ?? 0,
+  };
+}
 
 export async function createArticle(
   db: Db,

@@ -23,6 +23,11 @@ export const articleGrid = defineBlock({
       },
     }),
     loadMoreLabel: field.text({ label: "Load-more label", default: "LOAD MORE STORIES" }),
+    loadMoreHref: field.url({
+      label: "Load-more destination",
+      default: "/articles",
+      help: "Clear this field to reproduce the original decorative, non-clickable treatment.",
+    }),
   },
   insertDefaults: {
     label: "MORE STORIES",

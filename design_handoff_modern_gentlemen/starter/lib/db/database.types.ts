@@ -92,6 +92,7 @@ export type Database = {
           published_data: Json | null
           reading_minutes: number | null
           scheduled_for: string | null
+          search_vector: unknown
           slug: string
           status: string
           subtitle: string | null
@@ -116,6 +117,7 @@ export type Database = {
           published_data?: Json | null
           reading_minutes?: number | null
           scheduled_for?: string | null
+          search_vector?: never
           slug: string
           status?: string
           subtitle?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           published_data?: Json | null
           reading_minutes?: number | null
           scheduled_for?: string | null
+          search_vector?: never
           slug?: string
           status?: string
           subtitle?: string | null

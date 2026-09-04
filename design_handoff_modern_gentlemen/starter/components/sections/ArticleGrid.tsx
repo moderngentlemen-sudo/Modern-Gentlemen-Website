@@ -10,16 +10,19 @@ interface Card {
   href: string;
 }
 
-/** Category "MORE IN {CAT}" — a 3-up article-card grid (2-up ≤1024, 1-up ≤680)
- *  with a decorative LOAD MORE control (the demo has no further pages). */
+/** Category "MORE IN {CAT}" — a 3-up article-card grid (2-up ≤1024, 1-up ≤680).
+ *  The original load-more treatment now links to the complete archive without
+ *  changing the verified category-page composition. */
 export function ArticleGrid({
   label,
   items,
   loadMoreLabel = "LOAD MORE STORIES",
+  loadMoreHref = "/articles",
 }: {
   label: string;
   items: Card[];
   loadMoreLabel?: string;
+  loadMoreHref?: string | null;
 }) {
   return (
     <section className="container-mg pt-[52px]">
@@ -52,11 +55,16 @@ export function ArticleGrid({
           </Link>
         ))}
       </div>
-      <div className="mt-[44px] flex justify-center">
-        <span className="border border-mg-bd/25 px-[34px] py-[14px] font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/85">
-          {loadMoreLabel}
-        </span>
-      </div>
+      {loadMoreHref && (
+        <div className="mt-[44px] flex justify-center">
+          <Link
+            href={loadMoreHref}
+            className="border border-mg-bd/25 px-[34px] py-[14px] font-mono text-[10px] uppercase tracking-[0.2em] text-mg-fg/85 transition-colors hover:border-mg-accent hover:text-mg-accentInk"
+          >
+            {loadMoreLabel}
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

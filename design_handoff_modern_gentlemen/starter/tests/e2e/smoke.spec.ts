@@ -26,6 +26,27 @@ test.describe("public site smoke", () => {
     await expect(page).toHaveURL(/\/product\//);
   });
 
+  test("the public archive exposes every article through pagination", async ({ page }) => {
+    await page.goto("/style");
+    await expect(page.getByRole("link", { name: "LOAD MORE STORIES" })).toHaveAttribute(
+      "href",
+      "/articles"
+    );
+
+    await page.goto("/articles");
+    const firstPage = await page
+      .locator('main a[href^="/article/"]')
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+    expect(firstPage).toHaveLength(12);
+    await page.getByRole("link", { name: "Older stories →" }).click();
+    await expect(page).toHaveURL(/\/articles\?page=2$/);
+    const secondPage = await page
+      .locator('main a[href^="/article/"]')
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+    expect(secondPage).toHaveLength(12);
+    expect(secondPage.filter((href) => firstPage.includes(href))).toEqual([]);
+  });
+
   test("theme toggle persists across a reload", async ({ page }) => {
     await page.goto("/");
 

@@ -21,6 +21,21 @@ Three zones:
 - **CENTER:** primary menu — `STYLE · GROOMING · WATCHES · CULTURE · FILM · SHOP` — Futura stack, each link with a **red animated underline 6px below the text** (`padding-bottom:6px`, underline grows on hover/active).
 - **RIGHT:** icon cluster — **bag** (with red count badge) · **search** · **dark-mode toggle**.
 
+### Independent mobile header (opt-in)
+
+Theme payload v13 keeps the original shared header behavior as the compatibility
+default. Editors may explicitly enable a dedicated mobile layer for the existing
+`≤820px` breakpoint; enabling begins from the current desktop values rather than
+silently replacing a customized header. Mobile may then independently set brand
+placement, scroll and background behavior, normal/shrunk height, divider, scale,
+icon bubbles/hover, announcement visibility and shorter copy, search/theme/account/
+bag visibility, promotional CTA placement (`hidden`, header or drawer), action
+priority, and a 0–4 visible-action cap. The account and CTA destinations remain
+shared content so responsive variants cannot drift to different URLs. The one
+`Header` renderer selects the effective settings with a hydration-safe media
+query and includes `safe-area-inset-top` in both chrome placement and the page
+offset on customized mobile headers.
+
 ### Top vignette scrim
 A `position:fixed`, **85px** tall gradient bar behind the nav at the very top, improving nav legibility over hero photos:
 `background: linear-gradient(180deg, rgba(8,8,9,0.34) 0%, rgba(8,8,9,0.14) 52%, transparent 100%)`. Opacity ties to scroll. One instance in React (the prototype has two copies to keep in sync — you won't).

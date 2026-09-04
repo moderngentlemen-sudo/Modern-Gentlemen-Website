@@ -36,6 +36,7 @@ import { expect, test, type Page } from "@playwright/test";
 const ROUTES = [
   { name: "home", path: "/" },
   { name: "shop", path: "/shop" },
+  { name: "articles", path: "/articles" },
   { name: "about", path: "/about" },
   { name: "membership", path: "/membership" },
   { name: "bag", path: "/bag" },
