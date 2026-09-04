@@ -43,6 +43,10 @@ Next.js `next start` automatically listens on the port Railway provides via the 
 ### 5. Deploy
 
 - Railway builds on the first save and on **every push to the default branch** thereafter.
+- A Railway deploy does **not** apply Supabase migrations. Before deploying code
+  that depends on a new migration, apply every pending file in
+  `design_handoff_modern_gentlemen/starter/supabase/migrations/` to the same
+  Supabase project configured in Railway.
 - Watch **Deployments → Logs**; when it's live, open the generated `*.up.railway.app` URL.
 - **This project's is https://modern-gentlemen-website-production.up.railway.app** — worth knowing without opening the dashboard, since a deploy is now checkable with `curl -o /dev/null -w '%{http_code}' <url>`.
 
@@ -107,6 +111,10 @@ You do **not** need a Dockerfile — Railway's Nixpacks builder detects Next.js 
   only, without a path or trailing subdirectory.
 - **Build says no published `home` page exists:** apply all migrations and run
   the idempotent seed script against the intended Supabase project.
+- **Article search throws a server-side exception:** verify migration
+  `0030_article_search.sql` is applied. The application includes a temporary
+  compatibility fallback for a database that trails this migration, but the
+  migration is still required for indexed search performance.
 - **Node version errors:** confirm `nixpacks.toml` pins Node 22, matching
   `package.json` and `.nvmrc`.
 - **Type/lint errors fail the build:** `next build` runs type-checking. Fix reported errors, or (temporary) set `typescript.ignoreBuildErrors`/`eslint.ignoreDuringBuilds` in `next.config.mjs` — prefer fixing.

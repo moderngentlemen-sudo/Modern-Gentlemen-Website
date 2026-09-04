@@ -11,6 +11,19 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-04 — backend article search tolerates a trailing production schema
+
+The production article search exception was traced to Railway deploying the
+application without applying Supabase migration `0030_article_search.sql`; the
+normal article list remained healthy because only a searched request referenced
+the absent generated `search_vector` column. The repository now detects only
+that specific missing-column response and temporarily falls back to bounded,
+batched matching over title, subtitle, excerpt and slug with exact pagination.
+All other database errors continue to surface. Applying `0030` to production
+remains required for indexed performance, and the Railway guide now states
+explicitly that application deploys do not apply database migrations. Prettier,
+ESLint, TypeScript and **1,911/1,911 unit tests** pass locally.
+
 ### 2026-09-04 — independent mobile header controls and complete article archive
 
 Theme payload v13 adds a compatibility-safe mobile header layer at the existing
