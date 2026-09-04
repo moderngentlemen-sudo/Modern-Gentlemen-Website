@@ -45,6 +45,7 @@ const META_COLUMNS =
 
 const LIST_COLUMNS =
   "id, title, slug, status, version, published_at, scheduled_for, created_at, updated_at";
+const SEARCH_FALLBACK_BATCH = 500;
 
 export interface ArticleListOptions {
   search?: string;
@@ -55,6 +56,72 @@ export interface ArticleListOptions {
 export interface ArticleListResult {
   articles: DocumentSummary[];
   total: number;
+}
+
+type SearchFallbackRow = DocumentSummary & {
+  subtitle: string | null;
+  excerpt: string | null;
+};
+
+/** Temporary compatibility path for a deployment whose database trails code migration 0030. */
+export function articleMatchesFallbackSearch(
+  row: Pick<SearchFallbackRow, "title" | "slug" | "subtitle" | "excerpt">,
+  term: string
+): boolean {
+  const words = term.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  if (words.length === 0) return false;
+  const haystack = [row.title, row.subtitle, row.excerpt, row.slug.replaceAll("-", " ")]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLocaleLowerCase();
+  return words.every((word) => haystack.includes(word));
+}
+
+function searchVectorIsMissing(error: { code?: string; message: string }): boolean {
+  const missingColumnCode = error.code === "42703" || error.code === "PGRST204";
+  return (
+    missingColumnCode &&
+    /search_vector.*(?:does not exist|schema cache)|(?:does not exist|schema cache).*search_vector/i.test(
+      error.message
+    )
+  );
+}
+
+async function listArticlesWithoutSearchVector(
+  db: Db,
+  term: string,
+  limit: number,
+  offset: number
+): Promise<ArticleListResult> {
+  const rows: SearchFallbackRow[] = [];
+
+  for (let start = 0; ; start += SEARCH_FALLBACK_BATCH) {
+    const { data, error } = await db
+      .from("articles")
+      .select(`${LIST_COLUMNS}, subtitle, excerpt`)
+      .order("updated_at", { ascending: false })
+      .range(start, start + SEARCH_FALLBACK_BATCH - 1);
+    if (error) throw new Error(`Could not list the articles: ${error.message}`);
+    const batch = (data ?? []) as unknown as SearchFallbackRow[];
+    rows.push(...batch);
+    if (batch.length < SEARCH_FALLBACK_BATCH) break;
+  }
+
+  const matches = rows.filter((row) => articleMatchesFallbackSearch(row, term));
+  return {
+    articles: matches.slice(offset, offset + limit).map((row) => ({
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      status: row.status,
+      version: row.version,
+      published_at: row.published_at,
+      scheduled_for: row.scheduled_for,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    })),
+    total: matches.length,
+  };
 }
 
 /**
@@ -80,7 +147,12 @@ export async function listArticles(
   }
 
   const { data, error, count } = await query;
-  if (error) throw new Error(`Could not list the articles: ${error.message}`);
+  if (error) {
+    if (term && searchVectorIsMissing(error)) {
+      return listArticlesWithoutSearchVector(db, term, limit, offset);
+    }
+    throw new Error(`Could not list the articles: ${error.message}`);
+  }
 
   return {
     articles: (data ?? []) as unknown as DocumentSummary[],
