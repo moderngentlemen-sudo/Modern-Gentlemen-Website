@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Leave multipart overhead above the media service's 20 MiB file limit.
+  experimental: { serverActions: { bodySizeLimit: "25mb" } },
   images: {
     // `imageUrl` requests 70 for editorial media; keep Next's default 75 for
     // direct `<Image>` consumers. Next 16 requires every requested quality in

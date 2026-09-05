@@ -25,6 +25,8 @@ import {
   CENTRE,
   galleryReferences,
   MEDIA_BUCKET,
+  MAX_MEDIA_UPLOAD_BYTES,
+  MEDIA_UPLOAD_SIZE_MESSAGE,
   mediaKindFromMime,
   normalizeMediaTags,
   resolveAssetUrl,
@@ -312,6 +314,10 @@ export interface UploadInput {
 export async function uploadAsset(input: UploadInput): Promise<AssetView> {
   const user = await requirePermission("media.write");
   const db = await createClient();
+
+  if (input.bytes.byteLength > MAX_MEDIA_UPLOAD_BYTES) {
+    throw new MediaUploadError(MEDIA_UPLOAD_SIZE_MESSAGE);
+  }
 
   const kind = mediaKindFromMime(input.mimeType);
   if (!kind) {

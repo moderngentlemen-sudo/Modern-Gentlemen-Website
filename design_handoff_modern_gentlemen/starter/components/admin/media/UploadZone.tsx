@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { MAX_MEDIA_UPLOAD_BYTES, MEDIA_UPLOAD_SIZE_MESSAGE } from "@/lib/domain/media";
 import { clsx } from "@/components/ui/clsx";
 import type { ActionResult } from "@/app/(admin)/admin/_lib/action-result";
 import type { AssetView } from "@/lib/services/media";
@@ -30,13 +31,15 @@ export function UploadZone({
   onUploaded: (asset: AssetView) => void;
   onError: (message: string) => void;
 }) {
+  const sendingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
 
   async function send(files: FileList | File[]) {
     const list = Array.from(files);
-    if (list.length === 0) return;
+    if (list.length === 0 || sendingRef.current) return;
+    sendingRef.current = true;
 
     setBusy({ done: 0, total: list.length });
 
@@ -45,13 +48,22 @@ export function UploadZone({
       formData.set("file", file);
       if (folderId) formData.set("folderId", folderId);
 
-      const result = await upload(formData);
-      if (result.ok) onUploaded(result.data);
-      else onError(`${file.name}: ${result.error}`);
+      try {
+        if (file.size > MAX_MEDIA_UPLOAD_BYTES)
+          onError(`${file.name}: ${MEDIA_UPLOAD_SIZE_MESSAGE}`);
+        else {
+          const result = await upload(formData);
+          if (result.ok) onUploaded(result.data);
+          else onError(`${file.name}: ${result.error}`);
+        }
+      } catch {
+        onError(`${file.name}: Upload failed. Please try this file again.`);
+      }
 
       setBusy({ done: index + 1, total: list.length });
     }
 
+    sendingRef.current = false;
     setBusy(null);
     // Clearing the input matters: re-picking the same file after a failed
     // upload fires no change event otherwise, and the editor gets no response.
@@ -76,8 +88,11 @@ export function UploadZone({
       )}
     >
       <p className={LABEL_SM}>
-        {busy ? `Uploading ${busy.done + 1} of ${busy.total}` : "Drop files here"}
+        {busy
+          ? `Uploading ${Math.min(busy.done + 1, busy.total)} of ${busy.total}`
+          : "Drop files here"}
       </p>
+      <p className="text-[12px] text-mg-fg/60">Up to 20 MiB per file. Uploads run one at a time.</p>
       <Button size="sm" onClick={() => inputRef.current?.click()} disabled={busy !== null}>
         {busy ? "Uploading…" : "Choose files"}
       </Button>

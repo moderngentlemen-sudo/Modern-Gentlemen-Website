@@ -8,6 +8,31 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-05 — High-resolution media recreations and upload capacity
+
+- PR #80 merged at `3a6b1ac`; hosted CI `33931397681` passed every gate,
+  including all 20 coming-soon variants, and Railway reports deployment success.
+- Owner selected clean high-resolution recreations of the mockup photography.
+  Asset generation is in progress for all 108 inventoried photo occurrences;
+  clearly repeated photos share an explicit mapping. Originals are generated
+  photo-only PNGs, not screenshots/layouts, and are kept outside the Git tree.
+  Current native outputs are 1024×1536 or 1536×1024 (not interpolated 4K).
+  No recreated assets have been uploaded yet; the website Media area requires
+  fresh secure admin sign-in after preparation and deployment are complete.
+- A native generated original exceeds 2 MB, revealing Next's default 1 MiB
+  Server Action request limit. Set the request envelope to 25 MB and enforce
+  a shared 20 MiB per-file limit in the upload UI, action before reading bytes,
+  and authenticated media service. Existing session/RLS authorization remains.
+- Sequential batch uploads now continue after a transport failure, identify
+  the failed filename and reject overlapping drops. Originals remain unchanged;
+  the existing SHA-256 deduplication still handles retries.
+- Formatting, lint, TypeScript and the full local unit suite passed: **2,442
+  tests across 114 files**. Five new tests exercise oversized-file rejection,
+  accepted 2 MiB input, continued uploads after failure and overlapping drops.
+  The existing hosted media E2E lifecycle now crosses the old request limit
+  with a 2 MiB PNG. Hosted build/integration/E2E/visual/a11y/performance gates
+  are pending on this review branch before merge and production upload.
+
 ### 2026-09-04 — MG design studio and 20 coming-soon starters (review branch)
 
 - Verified PR #79 was merged by the owner; fetched main at `642cbfa` and verified

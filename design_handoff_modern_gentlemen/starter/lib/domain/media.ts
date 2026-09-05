@@ -19,6 +19,10 @@ import { z } from "zod";
 /** The one bucket this project owns. Matches `media_assets.bucket`'s default. */
 export const MEDIA_BUCKET = "media";
 
+/** Bounded originals; Next allows additional multipart envelope overhead. */
+export const MAX_MEDIA_UPLOAD_BYTES = 20 * 1024 * 1024;
+export const MEDIA_UPLOAD_SIZE_MESSAGE = "Choose a file no larger than 20 MiB.";
+
 /** Mirrors the check constraint on `media_assets.kind` in 0002_media.sql. */
 export const MEDIA_KINDS = ["image", "video", "gif", "audio", "document"] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
