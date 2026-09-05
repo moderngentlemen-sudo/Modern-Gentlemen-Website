@@ -52,6 +52,7 @@ import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issue
 import { findBlock } from "@/lib/blocks/traverse";
 import type { ThemeStyleClass, ThemeTokenAlias } from "@/lib/domain/theme";
 
+import { StudioDesignPicker } from "./StudioDesignPicker";
 import { useBuilder } from "./StoreContext";
 
 const DEVICES = ["mobile", "tablet", "desktop"] as const;
@@ -354,7 +355,15 @@ function BlockProperties({
 
       <PanelSection title="Content" issueCount={issues.filter((i) => i.path !== "").length}>
         {Object.entries(manifest.fields).map(([name, field]) =>
-          manifest.bindable.includes(name) ? (
+          name === "variant" && ["mgDesignStudio", "comingSoonStudio"].includes(node._type) ? (
+            <StudioDesignPicker
+              key={name}
+              kind={node._type === "mgDesignStudio" ? "studies" : "comingSoon"}
+              value={String(props.variant ?? "01")}
+              onChange={(value) => setSetting(key, [name], value)}
+              disabled={locked}
+            />
+          ) : manifest.bindable.includes(name) ? (
             <BindableField key={name} name={name} field={field} ctx={ctx} />
           ) : (
             <FieldControl key={name} name={name} field={field} path={[name]} ctx={ctx} />

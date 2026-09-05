@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { COMING_SOON_IDS, comingSoonTemplateAreas } from "@/lib/blocks/comingSoon";
 import { z } from "zod";
 
 import {
@@ -37,6 +38,7 @@ const CreateInput = z.object({
   name: z.string().trim().min(1, "Enter a name").max(200),
   key: Key,
   kind: z.enum(TEMPLATE_KINDS),
+  comingSoon: z.enum(COMING_SOON_IDS).optional(),
 });
 
 export async function createTemplateAction(input: unknown): Promise<ActionResult<{ id: string }>> {
@@ -45,15 +47,17 @@ export async function createTemplateAction(input: unknown): Promise<ActionResult
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  if (parsed.data.comingSoon && parsed.data.kind !== "page")
+    return { ok: false, error: "Coming-soon starters require a page template." };
+
   try {
-    // `areas` is deliberately not taken from the client. The service seeds
-    // exactly one — `main` — because a template with no areas opens in the
-    // builder with no tree to show, and the only way out is a control the
-    // editor has no reason to look for.
+    // The client selects an allowlisted design id, never an arbitrary tree.
+    // Both paths retain exactly one document-content marker.
     const template = await createTemplate({
       name: parsed.data.name,
       key: parsed.data.key,
       kind: parsed.data.kind,
+      ...(parsed.data.comingSoon ? { areas: comingSoonTemplateAreas(parsed.data.comingSoon) } : {}),
     });
     revalidatePath("/admin/templates");
     return ok({ id: template.id });

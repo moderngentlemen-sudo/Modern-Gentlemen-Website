@@ -1360,3 +1360,19 @@ describe("pattern references", () => {
     });
   });
 });
+
+it("switches studio designs as one undoable setting while preserving authored content", () => {
+  const node = newBlockNode("mgDesignStudio");
+  node.settings = {
+    ...node.settings,
+    title: "My own heading",
+    image: "/images/style-mono.jpg",
+    items: [{ title: "Keep this entry" }],
+  };
+  const store = makeStore([node]);
+  const before = structuredClone(store.getState().tree);
+  store.getState().setSetting(node._key, ["variant"], "31");
+  expect(store.getState().tree[0].settings).toEqual({ ...before[0].settings, variant: "31" });
+  store.getState().undo();
+  expect(store.getState().tree).toEqual(before);
+});

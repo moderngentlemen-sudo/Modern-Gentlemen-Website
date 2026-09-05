@@ -1,8 +1,10 @@
 import { SECTION_STUDIES, sectionStudyType } from "@/lib/blocks/sectionStudies";
 
 /** Picker-only media: never included in newBlockNode, saved documents or public rendering. */
-export function studyPreview(type: string): Record<string, unknown> {
-  const study = SECTION_STUDIES.find(([id]) => sectionStudyType(id) === type);
+export function studyPreview(type: string, variant = "01"): Record<string, unknown> {
+  const study = SECTION_STUDIES.find(([id]) =>
+    type === "mgDesignStudio" ? id === variant : sectionStudyType(id) === type
+  );
   if (!study) return {};
   const [id, name, layout] = study;
   const images = [

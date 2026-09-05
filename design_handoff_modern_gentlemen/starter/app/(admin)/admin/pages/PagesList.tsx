@@ -15,6 +15,7 @@ import { useToast } from "@/components/admin/ui/Toast";
 import type { DocumentStatus } from "@/lib/domain/documents";
 import { DuplicateDocumentDialog } from "@/components/admin/DuplicateDocumentDialog";
 
+import { StudioDesignPicker } from "@/components/admin/builder/StudioDesignPicker";
 import { createPageAction, deletePageAction, duplicatePageAction } from "./actions";
 
 export interface PageRow {
@@ -48,6 +49,7 @@ export function PagesList({
   const toast = useToast();
   const [pending, startTransition] = useTransition();
 
+  const [comingSoon, setComingSoon] = useState("");
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -59,7 +61,11 @@ export function PagesList({
   function create() {
     setError(undefined);
     startTransition(async () => {
-      const result = await createPageAction({ title, slug: slug || slugify(title) });
+      const result = await createPageAction({
+        title,
+        slug: slug || slugify(title),
+        comingSoon: comingSoon || undefined,
+      });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -68,6 +74,7 @@ export function PagesList({
       setTitle("");
       setSlug("");
       setSlugTouched(false);
+      setComingSoon("");
       toast.push("Page created", "success");
       router.push(`/admin/pages/${result.data.id}`);
     });
@@ -185,6 +192,12 @@ export function PagesList({
         }
       >
         <div className="space-y-4">
+          <StudioDesignPicker
+            kind="comingSoon"
+            value={comingSoon}
+            onChange={setComingSoon}
+            allowBlank
+          />
           <TextInput
             label="Title"
             value={title}
