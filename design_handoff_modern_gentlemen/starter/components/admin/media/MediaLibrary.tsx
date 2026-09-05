@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { clsx } from "@/components/ui/clsx";
 import type { ActionResult } from "@/app/(admin)/admin/_lib/action-result";
 import { MEDIA_KINDS } from "@/lib/domain/media";
@@ -13,6 +13,7 @@ import { CONTROL, FOCUS_RING, LABEL_SM } from "../ui/styles";
 import { AssetDetails } from "./AssetDetails";
 import { MediaGrid } from "./MediaGrid";
 import { UploadZone, type UploadAction } from "./UploadZone";
+import { usePagedMedia } from "./usePagedMedia";
 
 export interface MediaFolder {
   id: string;
@@ -59,64 +60,38 @@ export function MediaLibrary({
 }) {
   const toast = useToast();
 
-  const [assets, setAssets] = useState(initialAssets);
-  const [total, setTotal] = useState(initialTotal);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState("");
   const [folderId, setFolderId] = useState<string | null | undefined>(undefined);
   const [tagSlug, setTagSlug] = useState("");
   const [tags, setTags] = useState(initialTags);
-  const [loading, setLoading] = useState(false);
+  const { result, setResult, loading, loadingMore, error, loadMore, hasMore, retry } =
+    usePagedMedia({
+      list: actions.list,
+      search,
+      kind,
+      folderId,
+      tagSlug,
+      initialAssets,
+      initialTotal,
+    });
+  const { assets, total } = result;
 
   const selected = useMemo(
     () => assets.find((asset) => asset.id === selectedId) ?? null,
     [assets, selectedId]
   );
 
-  // A request in flight when the filters change again must not be allowed to
-  // land after the newer one. The counter is the cheapest correct answer:
-  // whichever request was started last is the only one permitted to write state.
-  const requestId = useRef(0);
-
-  useEffect(() => {
-    const id = ++requestId.current;
-
-    const handle = setTimeout(async () => {
-      setLoading(true);
-      const result = await actions.list({
-        search: search.trim() || undefined,
-        kind: kind || undefined,
-        folderId,
-        tagSlug: tagSlug || undefined,
-        limit: 60,
-      });
-      if (id !== requestId.current) return;
-
-      setLoading(false);
-      if (result.ok) {
-        setAssets(result.data.assets);
-        setTotal(result.data.total);
-      } else {
-        toast.push(result.error, "error");
-      }
-    }, 250);
-
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `actions` and `toast` are stable
-  }, [search, kind, folderId, tagSlug]);
-
   function onUploaded(asset: AssetView) {
-    let added = false;
-    setAssets((current) => {
-      // An upload of bytes already in the library returns the *existing* asset
-      // rather than a new one. Selecting it and leaving the count alone is the
-      // honest response: nothing was added.
-      if (current.some((a) => a.id === asset.id)) return current;
-      added = true;
-      return [asset, ...current];
+    setResult((current) => {
+      if (current.assets.some((existing) => existing.id === asset.id)) return current;
+      return {
+        assets: [asset, ...current.assets],
+        total: current.total + 1,
+        nextOffset: current.nextOffset + 1,
+      };
     });
-    if (added) setTotal((n) => n + 1);
     setSelectedId(asset.id);
   }
 
@@ -186,6 +161,14 @@ export function MediaLibrary({
           {loading ? "Searching…" : `${total} ${total === 1 ? "asset" : "assets"}`}
         </p>
 
+        {error && (
+          <p role="alert" className="mb-3 text-[12px] text-mg-accentSerif">
+            {error}{" "}
+            <Button size="sm" onClick={retry}>
+              Retry
+            </Button>
+          </p>
+        )}
         {assets.length === 0 && !loading && !filtered ? (
           <EmptyState eyebrow="Media" title="The library is empty">
             {canWrite
@@ -199,6 +182,13 @@ export function MediaLibrary({
             onSelect={(a) => setSelectedId(a.id)}
           />
         )}
+        {hasMore && (
+          <div className="mt-4">
+            <Button onClick={loadMore} disabled={loading || loadingMore}>
+              {loadingMore ? "Loading more…" : "Load more assets"}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="min-w-0">
@@ -209,7 +199,10 @@ export function MediaLibrary({
             canWrite={canWrite}
             canDelete={canDelete}
             onUpdated={(updated) => {
-              setAssets((current) => current.map((a) => (a.id === updated.id ? updated : a)));
+              setResult((current) => ({
+                ...current,
+                assets: current.assets.map((a) => (a.id === updated.id ? updated : a)),
+              }));
               setTags((current) => {
                 const bySlug = new Map(current.map((tag) => [tag.slug, tag]));
                 for (const tag of updated.tags) bySlug.set(tag.slug, tag);
@@ -217,8 +210,11 @@ export function MediaLibrary({
               });
             }}
             onDeleted={(id) => {
-              setAssets((current) => current.filter((a) => a.id !== id));
-              setTotal((n) => Math.max(0, n - 1));
+              setResult((current) => ({
+                assets: current.assets.filter((a) => a.id !== id),
+                total: Math.max(0, current.total - 1),
+                nextOffset: Math.max(0, current.nextOffset - 1),
+              }));
               setSelectedId(null);
             }}
             onMessage={(message, tone) => toast.push(message, tone)}

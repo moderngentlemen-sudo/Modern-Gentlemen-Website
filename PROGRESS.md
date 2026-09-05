@@ -8,6 +8,36 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-05 — Photo upload complete; browse beyond the first 60 assets
+
+- PR #81 merged at `b502512`; hosted CI `33933049451` passed every gate
+  and Railway deployment succeeded. Native 2–4 MB image uploads now succeed.
+- All **104 unique photo-only PNGs covering 108 mockup placements** were
+  uploaded to website Media in **MG mockup photography**, with numbered titles,
+  tags, alt text and an AI-generated recreation credit. Four repeated UI
+  placements share assets, with every applicable mockup number in their tags.
+  Every saved filename, native dimension and public URL matches the catalog.
+  The original eight Media assets remain; the total is now 112.
+- User-requested local downloads are saved as `Modern-Gentlemen-Mockup-Photos.zip`
+  plus Markdown/JSON catalogs. The pack contains 104 unchanged native PNGs and
+  the catalogs, including website image URLs; no layouts or superseded drafts.
+- Reload validation found a pre-existing browsing limit: Media and the builder
+  picker fetched only 60 rows and offered no way to reach later pages. All
+  uploaded rows are persisted, but the oldest 44 disappear from the unfiltered
+  folder grid after reload until this fix deploys.
+- Added shared paged Media loading and **Load more assets** controls to both
+  surfaces. Search/folder/tag changes reset the cursor and invalidate old
+  responses; closing the picker also invalidates requests. Failed requests
+  retain existing results and expose retry controls. Appends deduplicate ids,
+  and the cursor counts fetched rows before picker kind filtering. Upload and
+  delete counts update together with their cursor; database ordering adds id
+  as a stable tie-breaker for equal timestamps. No migration is required.
+- Formatting, lint, TypeScript and all **2,449 unit tests across 115 files**
+  passed. Seven new tests cover append/deduplication, stale responses,
+  transport failures/retry, closed pickers, duplicate load-more clicks, library
+  browsing and selecting an image beyond 60 incompatible rows.
+  Full hosted CI and deployed browse validation are pending on this branch.
+
 ### 2026-09-05 — High-resolution media recreations and upload capacity
 
 - PR #80 merged at `3a6b1ac`; hosted CI `33931397681` passed every gate,

@@ -133,6 +133,7 @@ export async function listAssets(
       .from("media_assets")
       .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (options.kind) query = query.eq("kind", options.kind);
