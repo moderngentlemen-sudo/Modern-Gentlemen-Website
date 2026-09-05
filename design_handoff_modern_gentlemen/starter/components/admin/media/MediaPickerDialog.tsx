@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { clsx } from "@/components/ui/clsx";
 import { isPickableAs, type MediaKind, type MediaTag } from "@/lib/domain/media";
 import type { AssetView } from "@/lib/services/media";
@@ -8,6 +8,8 @@ import { Dialog } from "../ui/Dialog";
 import { CONTROL } from "../ui/styles";
 import { MediaGrid } from "./MediaGrid";
 import { useMediaPicker } from "./MediaPickerContext";
+import { usePagedMedia } from "./usePagedMedia";
+import { Button } from "../ui/Button";
 
 /**
  * Choose an asset for an `image` or `video` field.
@@ -34,16 +36,17 @@ export function MediaPickerDialog({
   kind: "image" | "video";
 }) {
   const picker = useMediaPicker();
-  const [assets, setAssets] = useState<AssetView[]>([]);
   const [search, setSearch] = useState("");
   const [tagSlug, setTagSlug] = useState("");
   const [tags, setTags] = useState<MediaTag[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Same staleness guard as the library: the last request started is the only
-  // one allowed to write state.
-  const requestId = useRef(0);
+  const { result, loading, loadingMore, error, loadMore, hasMore, retry } = usePagedMedia({
+    list: picker?.search,
+    search,
+    kind: kind === "video" ? "video" : undefined,
+    tagSlug,
+    enabled: open,
+  });
+  const assets = result.assets.filter((asset) => isPickableAs(asset.kind as MediaKind, kind));
 
   useEffect(() => {
     if (!open || !picker?.listTags) return;
@@ -55,36 +58,6 @@ export function MediaPickerDialog({
       cancelled = true;
     };
   }, [open, picker]);
-
-  useEffect(() => {
-    if (!open || !picker) return;
-
-    const id = ++requestId.current;
-    const handle = setTimeout(async () => {
-      setLoading(true);
-      setError(null);
-
-      // Fetch by kind where the mapping is one-to-one, and filter locally for
-      // an image field, which legitimately accepts two kinds. One query either
-      // way; `listAssets` takes a single `kind`.
-      const result = await picker.search({
-        search: search.trim() || undefined,
-        kind: kind === "video" ? "video" : undefined,
-        tagSlug: tagSlug || undefined,
-        limit: 60,
-      });
-      if (id !== requestId.current) return;
-
-      setLoading(false);
-      if (result.ok) {
-        setAssets(result.data.assets.filter((a) => isPickableAs(a.kind as MediaKind, kind)));
-      } else {
-        setError(result.error);
-      }
-    }, 200);
-
-    return () => clearTimeout(handle);
-  }, [open, search, tagSlug, kind, picker]);
 
   return (
     <Dialog
@@ -121,7 +94,14 @@ export function MediaPickerDialog({
         )}
       </div>
 
-      {error && <p className="mb-3 text-[12px] text-mg-accentSerif">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-3 text-[12px] text-mg-accentSerif">
+          {error}{" "}
+          <Button size="sm" onClick={retry}>
+            Retry
+          </Button>
+        </p>
+      )}
 
       {loading ? (
         <p className="py-10 text-center text-[13px] text-mg-fg/60">Searching…</p>
@@ -133,11 +113,20 @@ export function MediaPickerDialog({
             onClose();
           }}
           emptyLabel={
-            search || tagSlug
-              ? "Nothing in the library matches."
-              : `No ${kind === "image" ? "images" : "videos"} in the library yet.`
+            hasMore
+              ? `Load more to find ${kind === "image" ? "an image" : "a video"}.`
+              : search || tagSlug
+                ? "Nothing in the library matches."
+                : `No ${kind === "image" ? "images" : "videos"} in the library yet.`
           }
         />
+      )}
+      {hasMore && (
+        <div className="mt-4">
+          <Button onClick={loadMore} disabled={loading || loadingMore}>
+            {loadingMore ? "Loading more…" : "Load more assets"}
+          </Button>
+        </div>
       )}
     </Dialog>
   );

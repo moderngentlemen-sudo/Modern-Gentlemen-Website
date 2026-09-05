@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { CENTRE } from "@/lib/domain/media";
@@ -18,6 +18,7 @@ import { ok } from "@/app/(admin)/admin/_lib/action-result";
 import { MediaUrlControl } from "../fields/MediaUrlControl";
 import { AssetDetails } from "./AssetDetails";
 import { MediaGrid } from "./MediaGrid";
+import { MediaLibrary } from "./MediaLibrary";
 import { MediaPickerProvider } from "./MediaPickerContext";
 
 function makeAsset(overrides: Partial<AssetView> = {}): AssetView {
@@ -250,5 +251,62 @@ describe("AssetDetails", () => {
 
     expect(await screen.findByText(/Nothing references this asset/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Danger/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("media pagination", () => {
+  it("loads another library page without replacing the first", async () => {
+    const first = makeAsset({ id: "first", fileName: "first.jpg" });
+    const second = makeAsset({ id: "second", fileName: "second.jpg" });
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ assets: [first], total: 2 }))
+      .mockResolvedValueOnce(ok({ assets: [second], total: 2 }));
+    render(
+      <MediaLibrary
+        initialAssets={[first]}
+        initialTotal={2}
+        initialFolders={[]}
+        initialTags={[]}
+        canWrite={false}
+        canDelete={false}
+        actions={{
+          list,
+          upload: vi.fn(),
+          update: vi.fn(),
+          remove: vi.fn(),
+          usages: vi.fn(),
+          createFolder: vi.fn(),
+        }}
+      />
+    );
+    const more = await screen.findByRole("button", { name: "Load more assets" });
+    await waitFor(() => expect(more).toBeEnabled());
+    await userEvent.click(more);
+    expect(await screen.findByRole("button", { name: /second.jpg/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /first.jpg/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load more assets" })).not.toBeInTheDocument();
+  });
+
+  it("can pick an image after a complete page of incompatible media", async () => {
+    const videos = Array.from({ length: 60 }, (_, i) =>
+      makeAsset({ id: `video-${i}`, kind: "video", mimeType: "video/mp4" })
+    );
+    const image = makeAsset({ id: "last-image", fileName: "last-image.jpg" });
+    const search = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ assets: videos, total: 61 }))
+      .mockResolvedValueOnce(ok({ assets: [image], total: 61 }));
+    const onChange = vi.fn();
+    render(
+      <MediaPickerProvider search={search}>
+        <MediaUrlControl kind="image" label="Image" value="" onChange={onChange} />
+      </MediaPickerProvider>
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Browse library" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Load more assets" }));
+    await userEvent.click(await screen.findByRole("button", { name: /last-image.jpg/ }));
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 60 }));
+    expect(onChange).toHaveBeenCalledWith(image.url);
   });
 });
