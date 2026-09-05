@@ -62,7 +62,9 @@ test.describe("media library", () => {
     await page.locator('input[type="file"]').setInputFiles({
       name: assetName,
       mimeType: "image/png",
-      buffer: PNG,
+      // Bytes after IEND preserve the rendered pixel while crossing Next's
+      // old 1 MiB action limit. Exercise the real multipart upload boundary.
+      buffer: Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]),
     });
 
     // The details panel opens on the freshly uploaded asset.

@@ -16,7 +16,11 @@ import {
   type AssetUsageView,
   type AssetView,
 } from "@/lib/services/media";
-import { mediaMetadataSchema } from "@/lib/domain/media";
+import {
+  MAX_MEDIA_UPLOAD_BYTES,
+  MEDIA_UPLOAD_SIZE_MESSAGE,
+  mediaMetadataSchema,
+} from "@/lib/domain/media";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 
@@ -39,6 +43,8 @@ export async function uploadAssetAction(formData: FormData): Promise<ActionResul
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Choose a file to upload." };
   }
+
+  if (file.size > MAX_MEDIA_UPLOAD_BYTES) return { ok: false, error: MEDIA_UPLOAD_SIZE_MESSAGE };
 
   const folderId = formData.get("folderId");
 
