@@ -303,10 +303,3 @@
     width: 100%;
   }
 }
-/* Scoped opt-in: normal pages retain their original chrome and offset. */
-:global(body:has(main [data-after-hours-standalone="true"]) [data-site-chrome]) {
-  display: none !important;
-}
-:global(body:has(main [data-after-hours-standalone="true"]) main) {
-  padding-top: 0 !important;
-}

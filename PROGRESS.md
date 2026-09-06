@@ -10,6 +10,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ### 2026-09-06 — Refined After Hours page in the existing builder (review branch)
 
+- First hosted build caught a CSS Modules pure-selector restriction. Moved the
+  standalone selectors into global CSS and scoped them to `data-site-main`, also
+  preventing admin-canvas padding changes. The complete local four-gate suite
+  passes again; the corrected hosted build is pending.
 - Fetched main at `2919121` and verified its credential-free baseline: formatting,
   lint, TypeScript and 2,449 unit tests. No existing local work was present.
 - Added **CS21 · After Hours — Refined Countdown** to Coming Soon Studio and the

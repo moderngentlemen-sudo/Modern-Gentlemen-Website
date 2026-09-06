@@ -513,3 +513,11 @@ a:hover {
     overflow-x: auto;
   }
 }
+
+/* After Hours standalone pages: never match editor canvases or ordinary pages. */
+body:has([data-site-main] [data-after-hours-standalone="true"]) [data-site-chrome] {
+  display: none !important;
+}
+[data-site-main]:has([data-after-hours-standalone="true"]) {
+  padding-top: 0 !important;
+}
