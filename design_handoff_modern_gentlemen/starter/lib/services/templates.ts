@@ -131,10 +131,19 @@ export interface TemplateOverrideState {
   options: { id: string; name: string; status: string }[];
 }
 
+export const ENTRY_TEMPLATE_CONFIG = {
+  page: { kind: "page", table: "pages" },
+  category: { kind: "archive", table: "categories" },
+  article: { kind: "article", table: "articles" },
+  product: { kind: "product", table: "products" },
+} as const satisfies Record<string, { kind: repo.TemplateKind; table: string }>;
+
+export type EntryTemplateContentType = keyof typeof ENTRY_TEMPLATE_CONFIG;
+
 export function deriveTemplateOverrideState(
   templates: readonly Pick<repo.TemplateRow, "id" | "name" | "status">[],
   assignments: readonly repo.AssignmentRow[],
-  contentType: "page" | "article",
+  contentType: EntryTemplateContentType,
   entryId: string
 ): TemplateOverrideState {
   const explicit = assignments.find((row) => row.scope === "entry" && row.entry_id === entryId);
@@ -167,13 +176,13 @@ export function deriveTemplateOverrideState(
  * an unframed page.
  */
 export async function getTemplateOverrideState(
-  contentType: "page" | "article",
+  contentType: EntryTemplateContentType,
   entryId: string
 ): Promise<TemplateOverrideState> {
   await requirePermission("template.read");
   const db = await createClient();
   const [templates, assignments] = await Promise.all([
-    repo.listTemplates(db, { kind: contentType }),
+    repo.listTemplates(db, { kind: ENTRY_TEMPLATE_CONFIG[contentType].kind }),
     repo.listAssignments(db),
   ]);
 
@@ -182,17 +191,18 @@ export async function getTemplateOverrideState(
 
 /** Assign one entry to a template, or remove its override and inherit again. */
 export async function setTemplateOverrideForEntry(
-  contentType: "page" | "article",
+  contentType: EntryTemplateContentType,
   entryId: string,
   templateId: string | null
 ): Promise<void> {
   await requirePermission("template.write");
   const db = await createClient();
 
-  const entry =
-    contentType === "page"
-      ? await db.from("pages").select("id").eq("id", entryId).maybeSingle()
-      : await db.from("articles").select("id").eq("id", entryId).maybeSingle();
+  const entry = await db
+    .from(ENTRY_TEMPLATE_CONFIG[contentType].table)
+    .select("id")
+    .eq("id", entryId)
+    .maybeSingle();
   if (entry.error) throw new Error(`Could not verify this ${contentType}: ${entry.error.message}`);
   if (!entry.data) throw new Error(`That ${contentType} no longer exists.`);
 

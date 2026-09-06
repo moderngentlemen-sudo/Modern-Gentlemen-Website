@@ -6,6 +6,7 @@ import { z } from "zod";
 import { saveDraft } from "@/lib/services/documents";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview } from "@/lib/services/preview";
+import { setTemplateOverrideForEntry } from "@/lib/services/templates";
 import { revalidatePublicProduct } from "../revalidate";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../../_lib/action-result";
@@ -143,6 +144,21 @@ export async function createPreviewAction(
       device: parsed.data.device,
     });
     return ok({ path: preview.path, expiresAt: preview.expiresAt });
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+export async function setProductTemplateOverrideAction(input: unknown): Promise<ActionResult> {
+  const parsed = z.object({ id: Id, templateId: z.string().uuid().nullable() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+
+  try {
+    await setTemplateOverrideForEntry("product", parsed.data.id, parsed.data.templateId);
+    revalidatePath(`/admin/products/${parsed.data.id}`);
+    revalidatePath(`/admin/products/${parsed.data.id}/builder`);
+    await revalidatePublicProduct(parsed.data.id);
+    return ok(undefined);
   } catch (error) {
     return toActionResult(error);
   }

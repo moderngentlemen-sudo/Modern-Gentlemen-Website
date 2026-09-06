@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveTemplateOverrideState, parseAssignmentTarget } from "./templates";
+import {
+  deriveTemplateOverrideState,
+  ENTRY_TEMPLATE_CONFIG,
+  parseAssignmentTarget,
+} from "./templates";
 
 /**
  * The one pure boundary in the assignment path, and the only place a value an
@@ -143,6 +147,50 @@ describe("deriveTemplateOverrideState", () => {
     expect(deriveTemplateOverrideState(templates, [], "page", "page-1")).toMatchObject({
       explicitTemplateId: null,
       inheritedTemplate: null,
+    });
+  });
+
+  it("derives record overrides for product and category templates", () => {
+    for (const contentType of ["product", "category"] as const) {
+      expect(
+        deriveTemplateOverrideState(
+          templates,
+          [
+            {
+              template_id: "default",
+              scope: "content_type",
+              content_type: contentType,
+              taxonomy_slug: null,
+              entry_id: null,
+              priority: 0,
+            },
+            {
+              template_id: "feature",
+              scope: "entry",
+              content_type: contentType,
+              taxonomy_slug: null,
+              entry_id: `${contentType}-1`,
+              priority: 0,
+            },
+          ],
+          contentType,
+          `${contentType}-1`
+        )
+      ).toMatchObject({
+        explicitTemplateId: "feature",
+        inheritedTemplate: { id: "default", name: "Editorial default" },
+      });
+    }
+  });
+});
+
+describe("ENTRY_TEMPLATE_CONFIG", () => {
+  it("maps each record editor to the template kind and table the public renderer uses", () => {
+    expect(ENTRY_TEMPLATE_CONFIG).toEqual({
+      page: { kind: "page", table: "pages" },
+      category: { kind: "archive", table: "categories" },
+      article: { kind: "article", table: "articles" },
+      product: { kind: "product", table: "products" },
     });
   });
 });

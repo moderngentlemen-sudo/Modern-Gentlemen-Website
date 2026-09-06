@@ -6,8 +6,15 @@ import { listInsertablePatterns } from "@/lib/services/patterns";
 import { BLOCK_TREE_KEY } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
 import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
+import { getTemplateOverrideState } from "@/lib/services/templates";
 
-import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "./actions";
+import {
+  createPreviewAction,
+  publishAction,
+  saveDraftAction,
+  setCategoryTemplateOverrideAction,
+  snapshotAction,
+} from "./actions";
 import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
 
 /**
@@ -33,6 +40,11 @@ export default async function CategoryBuilderPage({ params }: { params: Promise<
   if (!category) notFound();
 
   const patterns = user.permissions.has("pattern.read") ? await listInsertablePatterns() : [];
+  const canManageTemplate =
+    user.permissions.has("template.read") && user.permissions.has("template.write");
+  const templateOverride = canManageTemplate
+    ? await getTemplateOverrideState("category", category.id)
+    : null;
 
   const treeKey = BLOCK_TREE_KEY.category;
   const draft = (category.draft_data ?? {}) as Record<string, unknown>;
@@ -69,6 +81,11 @@ export default async function CategoryBuilderPage({ params }: { params: Promise<
           : {}),
       }}
       patterns={patterns}
+      templateOverride={
+        templateOverride
+          ? { state: templateOverride, action: setCategoryTemplateOverrideAction }
+          : undefined
+      }
       canPublish={user.permissions.has("category.publish")}
       canPreview={user.permissions.has("preview.create")}
     />

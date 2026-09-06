@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getDocument, saveDraft } from "@/lib/services/documents";
 import { publish, rollback, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview } from "@/lib/services/preview";
+import { setTemplateOverrideForEntry } from "@/lib/services/templates";
 import { publicPathForCategory } from "@/lib/domain/routes";
 import type { Json } from "@/lib/db/database.types";
 import { ok, type ActionResult } from "../../_lib/action-result";
@@ -150,6 +151,20 @@ export async function createPreviewAction(
       device: parsed.data.device,
     });
     return ok({ path: preview.path, expiresAt: preview.expiresAt });
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+export async function setCategoryTemplateOverrideAction(input: unknown): Promise<ActionResult> {
+  const parsed = z.object({ id: Id, templateId: z.string().uuid().nullable() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+
+  try {
+    await setTemplateOverrideForEntry("category", parsed.data.id, parsed.data.templateId);
+    revalidateCategoryAdmin(parsed.data.id);
+    await revalidatePublicCategory(parsed.data.id);
+    return ok(undefined);
   } catch (error) {
     return toActionResult(error);
   }

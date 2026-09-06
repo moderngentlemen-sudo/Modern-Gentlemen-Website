@@ -213,14 +213,15 @@ export function PublishBar({
         </div>
 
         <div className="flex items-center gap-2">
-          {doc.type === "page" && templateOverride && (
-            <TemplateOverrideControl
-              id={doc.id}
-              noun="page"
-              state={templateOverride.state}
-              action={templateOverride.action}
-            />
-          )}
+          {(doc.type === "page" || doc.type === "category" || doc.type === "product") &&
+            templateOverride && (
+              <TemplateOverrideControl
+                id={doc.id}
+                noun={doc.type}
+                state={templateOverride.state}
+                action={templateOverride.action}
+              />
+            )}
           {doc.type === "template" && previewContexts.length > 0 && (
             <select
               aria-label="Preview record"
