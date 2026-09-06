@@ -10,6 +10,16 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ### 2026-09-06 — Safari safe-area follow-up (review branch)
 
+- PR #90 initial hosted run `34061111151` passed static/unit, integration and
+  build. Its E2E step failed the existing 1440px footer resize assertion on all
+  retries (expected bottom 1000px, observed 1100px); the five new safe-area tests
+  passed. Visual/a11y/performance steps did not run after the E2E failure.
+  The footer test scrolled once immediately after resizing, before later layout
+  growth could settle. It now follows the current document bottom while polling
+  and independently requires zero document space after the footer. This retains
+  the exact geometry requirement instead of adding tolerance or a fixed sleep.
+  Hosted verification of this synchronization correction remains pending.
+
 - Main `0a34af1` includes PR #89, whose hosted gates and Railway deployment
   passed. The user subsequently confirmed the pale toolbar strip persists and
   supplied screenshots showing it below menu, search and bag overlays too.
