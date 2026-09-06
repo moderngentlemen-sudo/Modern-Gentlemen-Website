@@ -83,7 +83,7 @@ test.describe("page settings", () => {
   });
   test("edits page settings, saves and reloads without changing published data", async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(!email || !password, "Admin required");
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto("/sign-in");
@@ -107,6 +107,10 @@ test.describe("page settings", () => {
     await page.getByRole("button", { name: "Page Settings", exact: true }).click();
     await expect(page.getByLabel("SEO title", { exact: true })).toHaveValue("New draft title");
     await expect(page.getByLabel("Background color", { exact: true })).toHaveValue("#eeeeee");
+    await page.screenshot({
+      path: testInfo.outputPath("builder-page-settings.png"),
+      fullPage: true,
+    });
     await page.getByLabel("URL slug", { exact: true }).fill("shop");
     await page.getByRole("button", { name: "Save title and URL" }).click();
     await expect(page.getByText("That URL is reserved for a built-in site page.")).toBeVisible();
