@@ -28,6 +28,7 @@ import { BuilderStoreProvider, useBuilder } from "./StoreContext";
 import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
 import { Canvas } from "./Canvas";
+import { WidgetLibrary } from "./WidgetLibrary";
 import { InsertMenu } from "./InsertMenu";
 import { Navigator } from "./Navigator";
 import { blockCatalogFor } from "@/components/sections/registry";
@@ -225,7 +226,7 @@ function BuilderLayout({
 }) {
   useAutosave(callbacks.saveDraft);
   useBuilderShortcuts();
-  const [leftPanel, setLeftPanel] = useState<"add" | "navigator">("add");
+  const [leftPanel, setLeftPanel] = useState<"add" | "widgets" | "navigator">("add");
 
   // `documentContent` is offered in a template and nowhere else — see
   // `blockCatalogFor`. Read from the store rather than threaded through props,
@@ -472,8 +473,8 @@ function BuilderLayout({
           <aside
             className={clsx("flex w-[230px] shrink-0 flex-col overflow-hidden border-r", HAIRLINE)}
           >
-            <div className={clsx("grid grid-cols-2 border-b p-1", HAIRLINE)}>
-              {(["add", "navigator"] as const).map((panel) => (
+            <div className={clsx("grid grid-cols-3 border-b p-1", HAIRLINE)}>
+              {(["add", "widgets", "navigator"] as const).map((panel) => (
                 <button
                   key={panel}
                   type="button"
@@ -484,7 +485,7 @@ function BuilderLayout({
                     leftPanel === panel ? "bg-mg-fg text-mg-bg" : "text-mg-fg/60 hover:bg-mg-fg/5"
                   )}
                 >
-                  {panel === "add" ? "Add" : "Navigator"}
+                  {panel === "add" ? "Add" : panel === "widgets" ? "Widgets" : "Navigator"}
                 </button>
               ))}
             </div>
@@ -499,6 +500,11 @@ function BuilderLayout({
                     // `locate`, not a root `findIndex`, so clicking with a block
                     // inside a container selected adds the next one beside it
                     // rather than silently at the end of the page.
+                    const selected = selectedKey ? findBlock(tree, selectedKey) : null;
+                    if (selected?._type === "gridLayout" && !selected.locked) {
+                      insert(type, undefined, selected._key);
+                      return;
+                    }
                     const at = selectedKey ? locate(tree, selectedKey) : null;
                     insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
                   }}
@@ -532,6 +538,8 @@ function BuilderLayout({
                     }
                   }}
                 />
+              ) : leftPanel === "widgets" ? (
+                <WidgetLibrary />
               ) : (
                 <Navigator />
               )}

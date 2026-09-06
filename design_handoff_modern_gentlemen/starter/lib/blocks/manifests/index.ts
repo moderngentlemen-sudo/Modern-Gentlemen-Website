@@ -1,3 +1,5 @@
+import { widgetStudio } from "./widgetStudio";
+import { gridLayout } from "./gridLayout";
 /**
  * The manifest set — one entry per block in `components/sections/registry.ts`.
  *
@@ -92,6 +94,8 @@ export const blockManifests = {
   columns,
   column,
   layoutContainer,
+  widgetStudio,
+  gridLayout,
   stack,
   nativeHeading,
   nativeText,

@@ -1,3 +1,4 @@
+import { responsiveGridSchema, type ResponsiveGrid } from "./grid";
 /**
  * Visual-engine vocabulary shared by persistence, validation, the editor and
  * the renderer. Every value is bounded: the renderer turns this data into CSS,
@@ -98,6 +99,8 @@ export type VisualStateStyle = Pick<
 >;
 
 export interface VisualElementDesign {
+  /** Placement is used only by a Grid canvas parent. */
+  grid?: ResponsiveGrid;
   /** Optional editor-facing name, shown by the hierarchy in a later phase. */
   name?: string;
   /** A reusable class defined by the published global theme. */
@@ -164,12 +167,19 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
   const issues: VisualDesignIssue[] = [];
 
   for (const property of Object.keys(design)) {
-    if (!["name", "styleClass", "styles", "effects", "states"].includes(property)) {
+    if (!["name", "styleClass", "styles", "effects", "states", "grid"].includes(property)) {
       issues.push({
         path: `visual.${property}`,
         message: "Unknown visual setting.",
       });
     }
+  }
+
+  if (design.grid !== undefined) {
+    const result = responsiveGridSchema.safeParse(design.grid);
+    if (!result.success)
+      for (const issue of result.error.issues)
+        issues.push({ path: `visual.grid.${issue.path.join(".")}`, message: issue.message });
   }
 
   if (design.name !== undefined && (typeof design.name !== "string" || design.name.length > 80)) {

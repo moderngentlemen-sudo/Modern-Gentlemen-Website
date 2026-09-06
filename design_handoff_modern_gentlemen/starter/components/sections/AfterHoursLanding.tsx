@@ -300,7 +300,7 @@ function AfterHoursSignup({ settings }: { settings: typeof defaults.signup }) {
     </div>
   );
 }
-function SocialIcon({ network }: { network: string }) {
+export function SocialIcon({ network }: { network: string }) {
   if (network === "instagram")
     return (
       <svg
