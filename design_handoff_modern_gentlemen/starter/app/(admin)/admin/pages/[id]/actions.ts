@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { getDocument, saveDraft } from "@/lib/services/documents";
+import { getDocument, saveDraft, renamePage } from "@/lib/services/documents";
 import { publish, rollback, schedule, snapshot, unpublish } from "@/lib/services/publishing";
 import { createPreview, revokePreview } from "@/lib/services/preview";
 import { publicPathForPage } from "@/lib/domain/routes";
@@ -90,6 +90,7 @@ async function revalidatePublicPage(id: string): Promise<void> {
   try {
     const page = await getDocument("page", id);
     if (page) revalidatePath(publicPathForPage(page.slug));
+    revalidatePath("/sitemap.xml");
   } catch (error) {
     // A publish that succeeded has succeeded. Failing the action because the
     // cache hint could not be sent would report a false failure for something
@@ -210,6 +211,36 @@ export async function revokePreviewAction(input: unknown): Promise<ActionResult>
 
   try {
     await revokePreview(parsed.data.token);
+    return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
+
+export async function savePageIdentityAction(input: unknown): Promise<ActionResult> {
+  const parsed = z
+    .object({
+      id: Id,
+      title: z.string().trim().min(1).max(200),
+      slug: z
+        .string()
+        .trim()
+        .min(1)
+        .max(120)
+        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    })
+    .safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: "Enter a title and a lowercase, hyphen-separated slug." };
+  try {
+    const previous = await getDocument("page", parsed.data.id);
+    if (!previous) return { ok: false, error: "Page not found." };
+    await renamePage(parsed.data.id, { title: parsed.data.title, slug: parsed.data.slug });
+    revalidatePage(parsed.data.id);
+    revalidatePath("/", "layout");
+    revalidatePath(publicPathForPage(previous.slug));
+    revalidatePath(publicPathForPage(parsed.data.slug));
+    revalidatePath("/sitemap.xml");
     return ok(undefined);
   } catch (error) {
     return toActionResult(error);

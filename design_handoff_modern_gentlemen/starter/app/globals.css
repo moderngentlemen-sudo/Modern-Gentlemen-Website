@@ -521,3 +521,29 @@ body:has([data-site-main] [data-after-hours-standalone="true"]) [data-site-chrom
 [data-site-main]:has([data-after-hours-standalone="true"]) {
   padding-top: 0 !important;
 }
+
+/* Page overrides are scoped to the public document, never the editor canvas. */
+@media (min-width: 681px) {
+  body:has([data-page-presentation="public"][data-page-header="hidden"])
+    [data-site-chrome="header"],
+  body:has([data-page-presentation="public"][data-page-footer="hidden"])
+    [data-site-chrome="footer"] {
+    display: none !important;
+  }
+  [data-site-main]:has([data-page-presentation="public"][data-page-header="hidden"]),
+  [data-site-main]:has([data-page-presentation="public"][data-page-header="overlay"]) {
+    padding-top: 0 !important;
+  }
+}
+@media (max-width: 680px) {
+  body:has([data-page-presentation="public"][data-page-mobile-header="hidden"])
+    [data-site-chrome="header"],
+  body:has([data-page-presentation="public"][data-page-mobile-footer="hidden"])
+    [data-site-chrome="footer"] {
+    display: none !important;
+  }
+  [data-site-main]:has([data-page-presentation="public"][data-page-mobile-header="hidden"]),
+  [data-site-main]:has([data-page-presentation="public"][data-page-mobile-header="overlay"]) {
+    padding-top: 0 !important;
+  }
+}

@@ -156,6 +156,7 @@ export interface BuilderState {
 }
 
 export interface BuilderActions {
+  setPageSettings: (patch: Record<string, unknown>) => void;
   select: (key: string | null, additive?: boolean) => void;
   selectAll: () => void;
   hover: (key: string | null) => void;
@@ -398,6 +399,7 @@ function areaIssuesWith(state: BuilderState, count: number): Record<string, numb
 
 export function createBuilderStore(init: BuilderInit): BuilderStore {
   return createStore<BuilderState & BuilderActions>()((set, get) => {
+    const pageRestHistory = new WeakMap<BlockTree, Record<string, unknown>>();
     /**
      * The single write path. Everything structural or field-level goes through
      * here so history, dirtiness and validation cannot drift out of step.
@@ -411,6 +413,10 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
       const next = produce(before, recipe);
       if (next === before) return; // recipe was a no-op (locked node, bad path)
 
+      if (state.doc.type === "page") {
+        pageRestHistory.set(before, state.doc.rest);
+        pageRestHistory.set(next, state.doc.rest);
+      }
       const now = Date.now();
       const coalesce =
         tag !== null && state.historyTag === tag && now - state.historyAt < COALESCE_MS;
@@ -989,6 +995,43 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         return null;
       },
 
+      setPageSettings: (patch) => {
+        const state = get();
+        if (state.doc.type !== "page") return;
+        const previous = state.doc.rest.pageSettings;
+        const settings =
+          previous && typeof previous === "object" && !Array.isArray(previous) ? previous : {};
+        if (
+          Object.entries(patch).every(
+            ([key, value]) => (settings as Record<string, unknown>)[key] === value
+          )
+        )
+          return;
+        const tag = `pageSettings:${Object.keys(patch).sort().join(",")}`;
+        const now = Date.now();
+        const coalesce =
+          state.historyTag === tag &&
+          now - state.historyAt < COALESCE_MS &&
+          state.tree !== state.savedTree &&
+          state.save.kind !== "saving";
+        const rest = { ...state.doc.rest, pageSettings: { ...settings, ...patch } };
+        // A fresh tree identity records a payload edit in the shared undo timeline.
+        const tree = [...state.tree];
+        pageRestHistory.set(state.tree, state.doc.rest);
+        pageRestHistory.set(tree, rest);
+        set({
+          tree,
+          doc: { ...state.doc, rest },
+          past: coalesce ? state.past : [...state.past, state.tree].slice(-HISTORY_LIMIT),
+          future: [],
+          dirty: true,
+          historyTag: tag,
+          historyAt: now,
+          serverIssues: [],
+          save: state.save.kind === "saving" ? state.save : { kind: "dirty" },
+        });
+      },
+
       undo: () => {
         const state = get();
         const previous = state.past[state.past.length - 1];
@@ -996,6 +1039,10 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
 
         set({
           tree: previous,
+          doc:
+            state.doc.type === "page"
+              ? { ...state.doc, rest: pageRestHistory.get(previous) ?? state.doc.rest }
+              : state.doc,
           past: state.past.slice(0, -1),
           future: [...state.future, state.tree],
           dirty: previous !== state.savedTree || state.dirtyElsewhere,
@@ -1015,6 +1062,10 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
 
         set({
           tree: next,
+          doc:
+            state.doc.type === "page"
+              ? { ...state.doc, rest: pageRestHistory.get(next) ?? state.doc.rest }
+              : state.doc,
           past: [...state.past, state.tree].slice(-HISTORY_LIMIT),
           future: state.future.slice(0, -1),
           dirty: next !== state.savedTree || state.dirtyElsewhere,

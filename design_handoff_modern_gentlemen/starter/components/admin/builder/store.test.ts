@@ -1376,3 +1376,36 @@ it("switches studio designs as one undoable setting while preserving authored co
   store.getState().undo();
   expect(store.getState().tree).toEqual(before);
 });
+
+describe("page settings share the document timeline", () => {
+  it("undoes settings and block edits in order without dropping unrelated payload", () => {
+    const store = makeStore();
+    store.getState().setPageSettings({ backgroundColor: "#101010", mobileHeader: "hidden" });
+    store.getState().insert("nativeHeading");
+    expect(store.getState().tree).toHaveLength(1);
+    store.getState().undo();
+    expect(store.getState().tree).toHaveLength(0);
+    expect(store.getState().payload().pageSettings).toMatchObject({ backgroundColor: "#101010" });
+    store.getState().undo();
+    expect(store.getState().payload().pageSettings).toBeUndefined();
+    expect(store.getState().payload().seo).toEqual({ title: "Home" });
+    expect(store.getState().dirty).toBe(false);
+    store.getState().redo();
+    store.getState().redo();
+    expect(store.getState().tree).toHaveLength(1);
+    expect(store.getState().payload().pageSettings).toMatchObject({ mobileHeader: "hidden" });
+  });
+  it("retains settings edited while a save is in flight", () => {
+    const store = makeStore();
+    store.getState().setPageSettings({ seoTitle: "First" });
+    const sent = store.getState();
+    store.getState().markSaving();
+    store.getState().setPageSettings({ seoTitle: "Second" });
+    store.getState().markSaved(sent.tree, sent.doc.rest);
+    expect(store.getState().dirty).toBe(true);
+    expect(store.getState().payload().pageSettings).toMatchObject({ seoTitle: "Second" });
+    store.getState().undo();
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().payload().pageSettings).toMatchObject({ seoTitle: "First" });
+  });
+});

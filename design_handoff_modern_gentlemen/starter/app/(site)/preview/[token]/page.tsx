@@ -1,3 +1,4 @@
+import { PagePresentation } from "@/components/PagePresentation";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
@@ -87,11 +88,19 @@ export default async function PreviewPage({
         areaNames={view.areaNames}
         framing={view.framing}
       />
-      {view.sections.length > 0 ? (
-        <SectionRenderer sections={view.sections} />
-      ) : (
-        <EmptyDraft entityType={preview.entityType} area={view.area} />
-      )}
+      <PagePresentation
+        settings={
+          preview.entityType === "page"
+            ? (preview.data as Record<string, unknown>)?.pageSettings
+            : undefined
+        }
+      >
+        {view.sections.length > 0 ? (
+          <SectionRenderer sections={view.sections} />
+        ) : (
+          <EmptyDraft entityType={preview.entityType} area={view.area} />
+        )}
+      </PagePresentation>
     </>
   );
 }

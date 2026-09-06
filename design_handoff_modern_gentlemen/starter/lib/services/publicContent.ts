@@ -32,6 +32,7 @@ export interface PublishedPage {
   slug: string;
   title: string;
   sections: BlockTree;
+  pageSettings?: unknown;
 }
 
 /**
@@ -71,6 +72,7 @@ export async function getPublishedPage(slug: string): Promise<PublishedPage | nu
     slug: data.slug,
     title: data.title,
     sections: sectionsOf(data.published_data),
+    pageSettings: (data.published_data as Record<string, unknown> | null)?.pageSettings,
   };
 }
 
@@ -508,4 +510,16 @@ export async function composePublishedCategory(
   // category's own descriptors were consumed by the first pass. What the second
   // pass is actually for is the *template's* own blocks.
   return resolve(await expandPublicPatterns(applyTemplate(area, own)));
+}
+
+/** Sitemap excludes noindex pages without changing which routes can render. */
+export async function listNoIndexPageSlugs(): Promise<string[]> {
+  const db = createPublicClient();
+  const { data, error } = await db
+    .from("pages")
+    .select("slug")
+    .eq("status", "published")
+    .eq("published_data->pageSettings->>noIndex", "true");
+  if (error) throw new Error(`Could not read page indexing settings: ${error.message}`);
+  return (data ?? []).map((row) => row.slug);
 }

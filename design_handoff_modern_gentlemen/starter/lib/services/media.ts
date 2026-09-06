@@ -474,7 +474,8 @@ export async function reconcileEntityMedia(
   entityType: string,
   entityId: string,
   trees: { path: string; tree: BlockNode[] }[],
-  directUsages: { assetId: string; fieldPath: string; url: string }[] = []
+  directUsages: { assetId: string; fieldPath: string; url: string }[] = [],
+  mediaUrls: { fieldPath: string; url: string }[] = []
 ): Promise<void> {
   const db = await createClient();
 
@@ -485,6 +486,13 @@ export async function reconcileEntityMedia(
     collectMediaReferences(tree).map((reference) => ({
       fieldPath: [path, reference.key, reference.fieldPath].filter(Boolean).join("."),
       storagePath: storagePathFromPublicUrl(reference.url),
+    }))
+  );
+
+  references.push(
+    ...mediaUrls.map(({ url, fieldPath }) => ({
+      fieldPath,
+      storagePath: storagePathFromPublicUrl(url),
     }))
   );
 

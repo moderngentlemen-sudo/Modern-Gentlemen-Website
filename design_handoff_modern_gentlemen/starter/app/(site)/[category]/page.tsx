@@ -1,3 +1,5 @@
+import { PagePresentation } from "@/components/PagePresentation";
+import { withPageMetadata } from "@/lib/render/pageMetadata";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { SectionRenderer } from "@/components/SectionRenderer";
@@ -69,11 +71,14 @@ export async function generateMetadata({
     if (!page) return { title: pageTitle("Not found") };
 
     const url = canonicalUrl(canonicalSiteUrl(), publicPathForPage(page.slug));
-    return {
-      title: pageTitle(page.title),
-      alternates: { canonical: url },
-      openGraph: { type: "website", title: pageTitle(page.title), url },
-    };
+    return withPageMetadata(
+      {
+        title: pageTitle(page.title),
+        alternates: { canonical: url },
+        openGraph: { type: "website", title: pageTitle(page.title), url },
+      },
+      page.pageSettings
+    );
   }
 
   const url = canonicalUrl(canonicalSiteUrl(), publicPathForCategory(doc.slug));
@@ -97,7 +102,11 @@ export default async function RootSlugPage({ params }: { params: Promise<{ categ
   if (!doc) {
     const page = await getPublishedPage(category.toLowerCase());
     if (!page) notFound();
-    return <SectionRenderer sections={await composePublishedPage(page)} />;
+    return (
+      <PagePresentation settings={page.pageSettings}>
+        <SectionRenderer sections={await composePublishedPage(page)} />
+      </PagePresentation>
+    );
   }
 
   /**
