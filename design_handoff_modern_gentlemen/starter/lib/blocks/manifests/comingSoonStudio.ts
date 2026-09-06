@@ -1,3 +1,4 @@
+import { afterHoursFields } from "../afterHours";
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
 import { COMING_SOON_DESIGNS } from "../comingSoon";
@@ -7,7 +8,7 @@ export const comingSoonStudio = defineBlock({
   label: "Coming soon studio",
   category: "hero",
   description:
-    "CS01–CS20 coming-soon page designs. Switch composition without replacing your copy or media. Signup is optional and uses the newsletter connection.",
+    "CS01–CS21 coming-soon page designs, including the refined After Hours countdown. Switch composition without replacing your copy or media. Signup is optional and uses the newsletter connection.",
   onlyIn: ["page", "template"],
   fields: {
     variant: field.select({
@@ -17,6 +18,24 @@ export const comingSoonStudio = defineBlock({
         value,
         label: `CS${value} · ${label}`,
       })),
+    }),
+    afterHours: afterHoursFields,
+    socialLinks: field.list({
+      label: "After Hours social destinations",
+      itemLabel: "social link",
+      max: 8,
+      of: {
+        network: field.select({
+          label: "Network",
+          default: "instagram",
+          options: ["instagram", "linkedin", "x", "youtube"].map((value) => ({
+            value,
+            label: value,
+          })),
+        }),
+        label: field.text({ label: "Accessible label", required: true }),
+        href: field.url({ label: "Profile URL", required: true }),
+      },
     }),
     brand: field.text({ label: "Masthead", default: "Modern Gentlemen" }),
     eyebrow: field.text({ label: "Eyebrow" }),

@@ -1,3 +1,5 @@
+import type { AfterHoursConfig } from "@/lib/blocks/afterHours";
+import { AfterHoursLanding } from "./AfterHoursLanding";
 import Link from "next/link";
 import { COMING_SOON_DESIGNS } from "@/lib/blocks/comingSoon";
 import { studyHref } from "@/lib/blocks/sectionStudies";
@@ -7,6 +9,8 @@ import styles from "./ComingSoonStudio.module.css";
 
 export interface ComingSoonProps {
   variant?: string;
+  afterHours?: AfterHoursConfig;
+  socialLinks?: { network: string; label: string; href: string }[];
   brand?: string;
   eyebrow?: string;
   title?: string;
@@ -26,6 +30,8 @@ export interface ComingSoonProps {
 }
 export function ComingSoonStudio({
   variant = "01",
+  afterHours,
+  socialLinks,
   brand = "Modern Gentlemen",
   eyebrow,
   title = "Coming soon",
@@ -43,6 +49,19 @@ export function ComingSoonStudio({
   imagePosition = "center",
   height = "screen",
 }: ComingSoonProps) {
+  if (variant === "21")
+    return (
+      <AfterHoursLanding
+        title={title}
+        intro={intro}
+        eyebrow={eyebrow}
+        image={image}
+        imageAlt={imageAlt}
+        showSignup={showSignup}
+        config={afterHours}
+        socialLinks={socialLinks}
+      />
+    );
   const design = COMING_SOON_DESIGNS.find(([id]) => id === variant) ?? COMING_SOON_DESIGNS[0];
   const treatment = tone === "preset" ? design[2] : tone;
   return (

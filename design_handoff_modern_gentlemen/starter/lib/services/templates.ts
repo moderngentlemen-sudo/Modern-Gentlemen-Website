@@ -20,6 +20,7 @@ import {
   type FramedContentType,
 } from "@/lib/domain/templates";
 import { requirePermission } from "./auth";
+import { reconcileEntityMedia } from "./media";
 
 export type { TemplateRow } from "@/lib/db/repositories/templates";
 export type { TemplateKind } from "@/lib/domain/templates";
@@ -73,7 +74,7 @@ export async function createTemplate(input: {
   const user = await requirePermission("template.write");
   const db = await createClient();
 
-  return repo.createTemplate(db, {
+  const created = await repo.createTemplate(db, {
     key: input.key,
     kind: input.kind,
     name: input.name,
@@ -93,6 +94,18 @@ export async function createTemplate(input: {
     } as unknown as Json,
     createdBy: user.id,
   });
+  if (input.areas) {
+    try {
+      await reconcileEntityMedia(
+        "template",
+        created.id,
+        Object.entries(input.areas).map(([name, tree]) => ({ path: `areas.${name}`, tree }))
+      );
+    } catch (error) {
+      console.error(`Media usage reconciliation failed for new template ${created.id}:`, error);
+    }
+  }
+  return created;
 }
 
 /**

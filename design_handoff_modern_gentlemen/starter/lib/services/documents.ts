@@ -253,7 +253,7 @@ export async function createPage(input: {
   const user = await requirePermission("page.write");
   const db = await createClient();
 
-  return pageRepo.createPage(db, {
+  const created = await pageRepo.createPage(db, {
     slug: input.slug,
     title: input.title,
     templateId: input.templateId ?? null,
@@ -262,6 +262,15 @@ export async function createPage(input: {
       : pageRepo.EMPTY_PAGE_PAYLOAD,
     createdBy: user.id,
   });
+  if (input.comingSoon === "21") {
+    try {
+      await reconcileEntityMedia("page", created.id, blockTreesOf("page", created.draft_data));
+    } catch (error) {
+      // The draft exists: match save/duplicate recovery without encouraging a duplicate create.
+      console.error(`Media usage reconciliation failed for new page ${created.id}:`, error);
+    }
+  }
+  return created;
 }
 
 export type DuplicableDocumentType = "page" | "template" | "pattern";

@@ -8,6 +8,51 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-06 — Refined After Hours page in the existing builder (review branch)
+
+- Hosted CI `34013972923` passed every gate on `f2d1d41`. A final media
+  lifecycle audit then found that image-bearing starter creation needed immediate
+  usage reconciliation (old starters contained no images). Added it for CS21
+  pages and supplied template areas, using the existing session/RLS and recovery
+  pattern. Two service tests pass; the full local gate is now **2,460 tests in
+  117 files**. Hosted validation of this final lifecycle fix is pending.
+- First hosted build caught a CSS Modules pure-selector restriction. Moved the
+  standalone selectors into global CSS and scoped them to `data-site-main`, also
+  preventing admin-canvas padding changes. The complete local four-gate suite
+  passes again; the corrected hosted build is pending.
+- Fetched main at `2919121` and verified its credential-free baseline: formatting,
+  lint, TypeScript and 2,449 unit tests. No existing local work was present.
+- Added **CS21 · After Hours — Refined Countdown** to Coming Soon Studio and the
+  existing page/template creation selectors. CS05 and all other original designs
+  remain unchanged; markup equivalence tests cover all 20 with the new fields.
+- The new page uses the existing CS05 photo-only Media recreation, the existing
+  matching MG SVG, an underline email field, thin arrow and configurable social
+  icons. Grouped controls cover content, typography, colors, logo, scrim, image
+  focal points, alignment, size, responsive spacing, countdown, signup, social
+  destinations and About dialog. Theme font roles remain usable.
+- Countdown requires a timezone-qualified owner date; missing/invalid dates hide
+  it. It hydrates without fabricated numbers, ticks against the actual clock,
+  never goes negative and supports hiding, zeros or owner copy at expiry. It does
+  not publish the site automatically. Social destinations start empty.
+- CS21 drafts enable the existing newsletter boundary; its pending capture is
+  never described as confirmed subscription. Rate-limit/error/retry states and
+  accessible labels remain intact. Provider/double-opt-in decisions are unchanged.
+- Standalone mode hides only site chrome and its main offset when an opted-in
+  rendered page contains this design. Turning it off restores the site's chrome.
+  The native About dialog supports modal focus, Escape and focus return. Mobile
+  uses independent spacing, image focal points and type sizes at 680px.
+- Local formatting/lint/TypeScript and 2,458 unit tests across 116 files passed.
+  The hosted CI build, responsive, accessibility and screenshot gates are required
+  before merge; local production build lacks the Supabase environment. Added CS21
+  to the isolated browser fixture with timer, dialog and standalone-chrome checks.
+- No migration, live page publication, homepage replacement or production setting
+  was made. Owner choices remaining: actual launch instant, social profile URLs,
+  optional copy/consent changes and the page's eventual publication/assignment.
+- Expected an additive studio variant; actual scope also required two transparent
+  chrome wrappers and scoped standalone CSS to reproduce the approved full-screen
+  layout. This avoids changing how any existing page chooses its content.
+
+
 ### 2026-09-05 — Photo upload complete; browse beyond the first 60 assets
 
 - PR #81 merged at `b502512`; hosted CI `33933049451` passed every gate
