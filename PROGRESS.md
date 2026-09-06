@@ -31,7 +31,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   routes and navigation. They do not create redirects. Media references are
   reconciled for page backgrounds/social images, including still-published media
   while its replacement is being drafted.
-- Final local formatting, lint, TypeScript and 2,507 unit tests in 123 files
+- Final local formatting, lint, TypeScript and 2,508 unit tests in 123 files
   passed. Hosted build/integration/browser/visual/accessibility/performance CI
   pending.
   Added isolated browser tests for page presentation, responsive chrome, metadata,

@@ -17,6 +17,7 @@ export function PagePresentation({
   const settings = readPageSettings(raw);
   const video = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [hasFrame, setHasFrame] = useState(false);
   const [allowed, setAllowed] = useState(false);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
@@ -35,16 +36,24 @@ export function PagePresentation({
   }, [settings.videoOnMobile, settings.backgroundVideo]);
   useEffect(() => {
     setPlaying(false);
-    if (allowed && !paused) video.current?.play().catch(() => {});
-    else video.current?.pause();
+    if (video.current) {
+      video.current.muted = true;
+      video.current.defaultMuted = true;
+      if (allowed && !paused) video.current.play().catch(() => {});
+      else video.current.pause();
+    }
   }, [allowed, paused, settings.backgroundVideo]);
   const visual =
     settings.backgroundColor ||
     settings.backgroundImage ||
     settings.backgroundVideo ||
     settings.fullHeight;
-  const chrome =
-    settings.header || settings.mobileHeader || settings.footer || settings.mobileFooter;
+  const chrome = [
+    settings.header,
+    settings.mobileHeader,
+    settings.footer,
+    settings.mobileFooter,
+  ].some((value) => value === "hidden" || value === "overlay");
   if (!visual && !chrome) return <>{children}</>;
   const position = `${settings.focalX ?? 50}% ${settings.focalY ?? 50}%`;
   return (
@@ -86,15 +95,21 @@ export function PagePresentation({
               playsInline
               preload="none"
               tabIndex={-1}
-              onPlaying={() => setPlaying(true)}
+              onPlaying={() => {
+                setPlaying(true);
+                setHasFrame(true);
+              }}
               onPause={() => setPlaying(false)}
-              onError={() => setPlaying(false)}
+              onError={() => {
+                setPlaying(false);
+                setHasFrame(false);
+              }}
               style={{
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
                 objectPosition: position,
-                opacity: playing ? 1 : 0,
+                opacity: hasFrame ? 1 : 0,
               }}
             />
           )}
@@ -114,11 +129,19 @@ export function PagePresentation({
       {allowed && settings.backgroundVideo && (
         <button
           type="button"
-          onClick={() => setPaused(!paused)}
+          onClick={() => {
+            if (playing) {
+              setPaused(true);
+              video.current?.pause();
+            } else {
+              setPaused(false);
+              video.current?.play().catch(() => {});
+            }
+          }}
           className="absolute bottom-3 right-3 border border-white/50 bg-black/70 px-3 py-2 text-xs text-white"
-          aria-label={paused ? "Play background video" : "Pause background video"}
+          aria-label={playing ? "Pause background video" : "Play background video"}
         >
-          {paused ? "Play background" : "Pause background"}
+          {playing ? "Pause background" : "Play background"}
         </button>
       )}
     </div>

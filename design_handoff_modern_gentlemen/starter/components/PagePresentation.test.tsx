@@ -19,6 +19,22 @@ describe("page presentation", () => {
       )
     ).toBe("<h1>Original</h1>");
   });
+  it("restores the original markup when chrome overrides are reset", () => {
+    expect(
+      renderToStaticMarkup(
+        <PagePresentation
+          settings={{
+            header: "inherit",
+            mobileHeader: "inherit",
+            footer: "inherit",
+            mobileFooter: "inherit",
+          }}
+        >
+          <h1>Original</h1>
+        </PagePresentation>
+      )
+    ).toBe("<h1>Original</h1>");
+  });
   it("does not load a video before checking motion and device preferences", () => {
     const html = renderToStaticMarkup(
       <PagePresentation
