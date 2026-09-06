@@ -30,13 +30,15 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   assigns, reloads, restores inheritance and cleans up both temporary templates.
 - Formatting, ESLint, environment declarations, TypeScript and all **2,524 unit
   tests in 123 files** pass locally. All **98 E2E declarations in 18 files**
-  collect; their new signed-in journey and the build/integration/visual/a11y/perf
-  gates require hosted CI and are pending on this stacked branch.
+  collect. Review PR #87 is stacked on PR #86; hosted CI run `34031203474`
+  passed static/unit, seeded integration, build, signed-in E2E, visual,
+  accessibility and performance gates. Supabase Preview skipped because preview
+  branches are disabled, not because application coverage skipped.
 - Follow-up audit hardened that journey before publication: its category lookup
   is scoped to the categories table, cleanup skips absent fixtures, attempts both
   removals, and preserves the journey's original failure if cleanup also fails.
   The complete local formatting, lint, environment, TypeScript and 2,524-test
-  gates passed again after the change.
+  gates passed again after the change, followed by the full hosted gates above.
 - Expected the current backlog to identify an unfinished template renderer;
   actual code already had it. The smaller gap was that two supported entry types
   could not manage the same assignment at their normal editing surface.
