@@ -172,6 +172,10 @@ export function Drawer({
         data-mhover="Underline"
         className="absolute inset-y-0 left-0 flex flex-col w-[471px] max-w-[86vw] max-[820px]:w-screen max-[820px]:max-w-[100vw] overflow-y-auto overflow-x-hidden box-border pt-8 pr-11 pb-10 pl-[46px] border-r border-white/[0.12] max-[820px]:border-r-0 text-[#f4f4f4] outline-none"
         style={{
+          paddingTop: "calc(32px + var(--mg-safe-top))",
+          paddingBottom: "calc(40px + var(--mg-safe-bottom))",
+          paddingLeft: "max(46px, var(--mg-safe-left))",
+          paddingRight: "max(44px, var(--mg-safe-right))",
           background: "rgba(14,14,16,0.75)",
           backdropFilter: "blur(30px)",
           WebkitBackdropFilter: "blur(28px)",

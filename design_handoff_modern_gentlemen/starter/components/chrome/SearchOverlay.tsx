@@ -195,6 +195,11 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       className="fixed inset-0 z-[200] flex flex-col items-center px-6 text-[#f4f4f4]"
       style={{
         display: open ? undefined : "none",
+        paddingTop: "var(--mg-safe-top)",
+        paddingBottom: "var(--mg-safe-bottom)",
+        paddingLeft: "max(24px, var(--mg-safe-left))",
+        paddingRight: "max(24px, var(--mg-safe-right))",
+        overflowY: "auto",
         background: "rgba(8,8,9,0.82)",
         backdropFilter: "blur(22px)",
         WebkitBackdropFilter: "blur(22px)",

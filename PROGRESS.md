@@ -8,6 +8,31 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-06 — Safari safe-area follow-up (review branch)
+
+- Main `0a34af1` includes PR #89, whose hosted gates and Railway deployment
+  passed. The user subsequently confirmed the pale toolbar strip persists and
+  supplied screenshots showing it below menu, search and bag overlays too.
+  PR #89's viewport-fill checks did not establish a fix for physical Safari UI.
+- Inspection found no viewport-fit opt-in and no bottom safe-area reservation
+  in those panes. Public routes now export `viewportFit: cover` (zoom remains
+  enabled), and shared inset variables protect header, footer and overlay
+  controls. The main header offset includes the top inset; landscape container
+  gutters respect cutouts without changing selector priority. Search and bag
+  surfaces can scroll when the usable height becomes small.
+- Existing colors, blur, animations, template/visibility controls, dependency
+  pins and production content are preserved. Zero insets preserve old spacing.
+  The admin viewport remains unchanged. Formatting, lint, TypeScript, environment
+  declarations and all 2,525 unit tests in 123 files pass locally. Five new
+  browser tests cover viewport metadata, resizing and synthetic inset padding;
+  hosted seeded build/browser/visual/a11y/performance gates are pending.
+- WebKit's edge-to-edge guidance pairs viewport-fit with safe-area padding:
+  https://webkit.org/blog/7929/designing-websites-for-iphone-x/ . Safari 26 also
+  has an open viewport/toolbar report at https://bugs.webkit.org/show_bug.cgi?id=301108 .
+  This is a standards-based setup correction, not a verified workaround for all
+  Safari toolbar bugs. Real-device toolbar tint, keyboard transitions and
+  portrait/landscape appearance remain to be checked after authorized deployment.
+
 ### 2026-09-06 — Mobile footer bottom edge (review branch)
 
 - Started from main `88fb428`, merged PR #88; its pre-merge hosted gates and

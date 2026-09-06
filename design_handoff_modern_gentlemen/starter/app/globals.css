@@ -147,6 +147,10 @@ html {
    any overscroll area match the page instead of flashing white. */
 html {
   background: var(--mg-bg);
+  --mg-safe-top: env(safe-area-inset-top, 0px);
+  --mg-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mg-safe-left: env(safe-area-inset-left, 0px);
+  --mg-safe-right: env(safe-area-inset-right, 0px);
 }
 body {
   background: var(--mg-bg);
@@ -195,14 +199,25 @@ body > [data-site-main] {
 /* Centered site content column. Full-bleed bands opt out with .bleed. */
 .container-mg {
   width: 100%;
-  padding-inline: max(var(--layout-desktop-gutter), calc((100% - var(--layout-content-width)) / 2));
+  /* Keep the chosen gutters, with room for landscape display cutouts. */
+  padding-left: max(
+    var(--layout-desktop-gutter),
+    calc((100% - var(--layout-content-width)) / 2),
+    var(--mg-safe-left)
+  );
+  padding-right: max(
+    var(--layout-desktop-gutter),
+    calc((100% - var(--layout-content-width)) / 2),
+    var(--mg-safe-right)
+  );
 }
 /* Phones: tighten the flat 48px gutter so content isn't over-inset (~264px at
    360px). 22px is the prototype's `@media (max-width:680px)` section inset;
    desktop unchanged. */
 @media (max-width: 680px) {
   .container-mg {
-    padding-inline: var(--layout-mobile-gutter);
+    padding-left: max(var(--layout-mobile-gutter), var(--mg-safe-left));
+    padding-right: max(var(--layout-mobile-gutter), var(--mg-safe-right));
   }
 }
 

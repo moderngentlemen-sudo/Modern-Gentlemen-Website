@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
@@ -30,6 +31,10 @@ import { getPublishedGlobalTemplate } from "@/lib/services/publicContent";
  * no auth request at all.
  */
 export const revalidate = 3600;
+
+// Public chrome paints edge-to-edge; its controls reserve the device safe area.
+// Keep browser zoom available and leave the admin viewport unchanged.
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const [products, nav, design, headerTemplate, footerTemplate] = await Promise.all([
@@ -74,7 +79,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             />
           )}
         </div>
-        <main data-site-main style={{ paddingTop: design.header.height }}>
+        <main
+          data-site-main
+          style={{ paddingTop: `calc(${design.header.height}px + var(--mg-safe-top))` }}
+        >
           {children}
         </main>
         <div
