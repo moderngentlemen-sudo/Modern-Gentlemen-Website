@@ -53,6 +53,36 @@ function renderSearch(products = demoProducts) {
 }
 
 describe("SearchOverlay published index", () => {
+  it("prepares a hidden shell without fetching, locking scroll or taking focus", () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const focus = vi.spyOn(HTMLInputElement.prototype, "focus");
+    const bodyPosition = document.body.style.position;
+    const view = (open: boolean) => (
+      <CatalogProvider products={[]}>
+        <SearchOverlay open={open} onClose={vi.fn()} />
+      </CatalogProvider>
+    );
+    const { rerender } = render(view(false));
+    const field = screen.getByRole("textbox", { hidden: true });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(field).not.toBeVisible();
+    expect(focus).not.toHaveBeenCalled();
+    expect(document.body.style.position).toBe(bodyPosition);
+    expect(fetch).not.toHaveBeenCalled();
+
+    rerender(view(true));
+    expect(screen.getByRole("textbox")).toBe(field);
+    expect(field).toHaveFocus();
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(fetch).not.toHaveBeenCalled();
+
+    rerender(view(false));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.position).toBe(bodyPosition);
+    focus.mockRestore();
+  });
+
   it("finds article terms across intervening title words and metadata", async () => {
     renderSearch();
 
