@@ -1,3 +1,4 @@
+import { pageSettingsSchema, pageSettingsMedia } from "@/lib/domain/pageSettings";
 import { comingSoonSections, type ComingSoonId } from "@/lib/blocks/comingSoon";
 /**
  * Document service — reading and saving drafts.
@@ -103,6 +104,21 @@ export function validateDocumentPayload(type: DocumentType, payload: Json): Docu
     }
   }
 
+  if (type === "page") {
+    const settings = (payload as Record<string, unknown> | null)?.pageSettings;
+    if (settings !== undefined) {
+      const result = pageSettingsSchema.safeParse(settings);
+      if (!result.success)
+        issues.push(
+          ...result.error.issues.map((issue) => ({
+            key: "",
+            type: "page",
+            path: `pageSettings.${issue.path.join(".")}`,
+            message: issue.message,
+          }))
+        );
+    }
+  }
   if (type === "template") issues.push(...validateTemplateAreas(payload));
 
   return { ok: issues.length === 0, issues };
@@ -237,7 +253,15 @@ export async function saveDraft(
       type,
       id,
       blockTreesOf(type, payload),
-      type === "article" ? articleFeaturedMediaUsages(payload) : []
+      type === "article" ? articleFeaturedMediaUsages(payload) : [],
+      type === "page"
+        ? [
+            ...pageSettingsMedia((payload as Record<string, unknown>).pageSettings),
+            ...pageSettingsMedia(
+              (current.published_data as Record<string, unknown> | null)?.pageSettings
+            ).map((ref) => ({ ...ref, fieldPath: `published.${ref.fieldPath}` })),
+          ]
+        : []
     );
   } catch (error) {
     console.error(`Media usage reconciliation failed for ${type} ${id}:`, error);
@@ -334,7 +358,13 @@ export async function duplicateDocument(
   }
 
   try {
-    await reconcileEntityMedia(type, created.id, blockTreesOf(type, draftData));
+    await reconcileEntityMedia(
+      type,
+      created.id,
+      blockTreesOf(type, draftData),
+      [],
+      type === "page" ? pageSettingsMedia((draftData as Record<string, unknown>).pageSettings) : []
+    );
   } catch (error) {
     console.error(`Media usage reconciliation failed for duplicated ${type} ${created.id}:`, error);
   }
@@ -371,6 +401,38 @@ export async function renamePage(
   id: string,
   input: { slug?: string; title?: string }
 ): Promise<void> {
+  await requirePermission("page.write");
+  if (input.slug !== undefined) {
+    const db = await createClient();
+    const page = await repo.getDocument(db, "page", id);
+    if (!page) throw new Error("Page not found.");
+    if (input.slug !== page.slug) {
+      if (page.slug === "home" || input.slug === "home")
+        throw new Error("The homepage URL cannot be changed here.");
+      if (
+        [
+          "admin",
+          "api",
+          "auth",
+          "articles",
+          "article",
+          "product",
+          "shop",
+          "bag",
+          "checkout",
+          "membership",
+          "sign-in",
+          "forgot-password",
+          "reset-password",
+          "about",
+          "preview",
+        ].includes(input.slug)
+      )
+        throw new Error("That URL is reserved for a built-in site page.");
+      const category = await repo.getDocumentBySlug(db, "category", input.slug);
+      if (category) throw new Error("That URL belongs to a category page.");
+    }
+  }
   await renameDocument("page", id, input);
 }
 

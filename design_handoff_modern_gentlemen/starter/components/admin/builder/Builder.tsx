@@ -32,6 +32,7 @@ import { WidgetLibrary } from "./WidgetLibrary";
 import { InsertMenu } from "./InsertMenu";
 import { Navigator } from "./Navigator";
 import { blockCatalogFor } from "@/components/sections/registry";
+import { PageSettingsPanel } from "./PageSettingsPanel";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PublishBar } from "./PublishBar";
 import { SaveSelectionAsPattern } from "./SaveSelectionAsPattern";
@@ -64,6 +65,7 @@ type CollisionArguments = Parameters<CollisionDetection>[0];
  * it is free.
  */
 export interface BuilderServerActions {
+  savePageIdentity?: (input: { id: string; title: string; slug: string }) => Promise<ActionResult>;
   saveDraft: (input: {
     id: string;
     payload: Record<string, unknown>;
@@ -189,6 +191,7 @@ export function Builder({
       <PatternsProvider patterns={patterns}>
         <BuilderLayout
           callbacks={callbacks}
+          identityAction={actions.savePageIdentity}
           canPublish={canPublish}
           canPreview={canPreview}
           patterns={patterns}
@@ -203,6 +206,7 @@ export function Builder({
 }
 
 function BuilderLayout({
+  identityAction,
   callbacks,
   canPublish,
   canPreview,
@@ -212,6 +216,7 @@ function BuilderLayout({
   previewContexts,
   tokenAliases,
 }: {
+  identityAction?: BuilderServerActions["savePageIdentity"];
   callbacks: BuilderCallbacks;
   canPublish: boolean;
   canPreview: boolean;
@@ -226,11 +231,13 @@ function BuilderLayout({
 }) {
   useAutosave(callbacks.saveDraft);
   useBuilderShortcuts();
+  const [rightPanel, setRightPanel] = useState<"element" | "page">("element");
   const [leftPanel, setLeftPanel] = useState<"add" | "widgets" | "navigator">("add");
 
   // `documentContent` is offered in a template and nowhere else — see
   // `blockCatalogFor`. Read from the store rather than threaded through props,
   // because the document type is already there and a second copy could disagree.
+  const documentId = useBuilder((s) => s.doc.id);
   const documentType = useBuilder((s) => s.doc.type);
   // Memoised for referential stability: `blockCatalogFor` builds a new array
   // each call, and the rail's grouping memo takes the catalogue as a dependency.
@@ -558,8 +565,54 @@ function BuilderLayout({
           <aside
             className={clsx("flex w-[320px] shrink-0 flex-col overflow-hidden border-l", HAIRLINE)}
           >
+            {documentType === "page" && (
+              <div
+                className="flex border-b border-mg-bd/20"
+                role="group"
+                aria-label="Inspector view"
+              >
+                <button
+                  type="button"
+                  aria-pressed={rightPanel === "element"}
+                  onClick={() => setRightPanel("element")}
+                  className={clsx(
+                    "flex-1 border-b-2 px-3 py-3 text-xs",
+                    rightPanel === "element" ? "border-mg-accent" : "border-transparent"
+                  )}
+                >
+                  Element
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={rightPanel === "page"}
+                  onClick={() => setRightPanel("page")}
+                  className={clsx(
+                    "flex-1 border-b-2 px-3 py-3 text-xs",
+                    rightPanel === "page" ? "border-mg-accent" : "border-transparent"
+                  )}
+                >
+                  Page Settings
+                </button>
+              </div>
+            )}
             <div className="min-h-0 flex-1 overflow-hidden">
-              <PropertiesPanel styleClasses={styleClasses} tokenAliases={tokenAliases} />
+              {documentType === "page" && rightPanel === "page" ? (
+                <PageSettingsPanel
+                  identityAction={identityAction}
+                  templateOverride={
+                    templateOverride
+                      ? {
+                          noun: "page",
+                          id: documentId,
+                          state: templateOverride.state,
+                          action: templateOverride.action,
+                        }
+                      : undefined
+                  }
+                />
+              ) : (
+                <PropertiesPanel styleClasses={styleClasses} tokenAliases={tokenAliases} />
+              )}
             </div>
             {callbacks.createPatternFromSelection && (
               <SaveSelectionAsPattern action={callbacks.createPatternFromSelection} />

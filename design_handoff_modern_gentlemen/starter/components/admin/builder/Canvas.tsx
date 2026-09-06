@@ -1,5 +1,7 @@
 "use client";
 
+import { PagePresentation } from "@/components/PagePresentation";
+
 import {
   Fragment,
   createContext,
@@ -396,18 +398,20 @@ export function Canvas({
               className={clsx("transition-[width,transform]", DEVICE_WIDTH[device])}
               style={{ transform: `scale(${canvasZoom})`, transformOrigin: "top center" }}
             >
-              {tree.length === 0 ? (
-                <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
-              ) : (
-                <BlockList
-                  nodes={tree}
-                  parentKey={null}
-                  dragKind={dragKind}
-                  dragType={dragType}
-                  draggedNode={draggedNode}
-                  drop={drop}
-                />
-              )}
+              <PageCanvasPresentation>
+                {tree.length === 0 ? (
+                  <EmptyDropZone dragging={dragging} over={isOver(drop, null, 0)} />
+                ) : (
+                  <BlockList
+                    nodes={tree}
+                    parentKey={null}
+                    dragKind={dragKind}
+                    dragType={dragType}
+                    draggedNode={draggedNode}
+                    drop={drop}
+                  />
+                )}
+              </PageCanvasPresentation>
             </div>
           </div>
         </CanvasGeometryContext.Provider>
@@ -1049,5 +1053,14 @@ function SortableBlock({
         </IconButton>
       </div>
     </div>
+  );
+}
+
+function PageCanvasPresentation({ children }: { children: React.ReactNode }) {
+  const settings = useBuilder((s) => (s.doc.type === "page" ? s.doc.rest.pageSettings : undefined));
+  return (
+    <PagePresentation preview settings={settings}>
+      {children}
+    </PagePresentation>
   );
 }

@@ -12,6 +12,7 @@ import {
   createPreviewAction,
   publishAction,
   saveDraftAction,
+  savePageIdentityAction,
   setPageTemplateOverrideAction,
   snapshotAction,
 } from "./actions";
@@ -74,6 +75,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
       // on every load until this was corrected. Builder binds the id client-side.
       actions={{
         saveDraft: saveDraftAction,
+        savePageIdentity: savePageIdentityAction,
         publish: publishAction,
         snapshot: snapshotAction,
         createPreview: createPreviewAction,

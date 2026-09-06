@@ -1,3 +1,5 @@
+import { PagePresentation } from "@/components/PagePresentation";
+import { withPageMetadata } from "@/lib/render/pageMetadata";
 import type { Metadata } from "next";
 
 import { SectionRenderer } from "@/components/SectionRenderer";
@@ -35,18 +37,22 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
   const base = canonicalSiteUrl();
 
-  return {
-    title: BRAND,
-    description: "Style, grooming, watches, culture and film — for the considered man.",
-    alternates: { canonical: canonicalUrl(base, "/") },
-    openGraph: {
-      type: "website",
-      siteName: BRAND,
+  const page = await getPublishedPage("home");
+  return withPageMetadata(
+    {
       title: BRAND,
       description: "Style, grooming, watches, culture and film — for the considered man.",
-      url: canonicalUrl(base, "/"),
+      alternates: { canonical: canonicalUrl(base, "/") },
+      openGraph: {
+        type: "website",
+        siteName: BRAND,
+        title: BRAND,
+        description: "Style, grooming, watches, culture and film — for the considered man.",
+        url: canonicalUrl(base, "/"),
+      },
     },
-  };
+    page?.pageSettings
+  );
 }
 
 export default async function HomePage() {
@@ -79,7 +85,9 @@ export default async function HomePage() {
        * baselines — and is why the homepage still renders byte-identically on a
        * project that has never created a template.
        */}
-      <SectionRenderer sections={await composePublishedPage(page)} />
+      <PagePresentation settings={page.pageSettings}>
+        <SectionRenderer sections={await composePublishedPage(page)} />
+      </PagePresentation>
     </>
   );
 }

@@ -9,6 +9,36 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 ## 📍 Current Status & Session Handoff — READ FIRST
 
 
+### 2026-09-06 — Unified page settings (review branch)
+
+- Fetched main at `a118c5d` (merged grid/widget PR #84); clean source baseline.
+- Added a persistent Page Settings inspector alongside Element. Page identity
+  has an explicit save; draft presentation/SEO settings share autosave and the
+  block undo/redo timeline. Unknown payload keys remain intact. Existing pages
+  with no settings emit the original markup.
+- Controls include title/URL, template override, SEO/social metadata and previews,
+  noindex, background color/image/video, focal point, overlay, minimum screen
+  height, independent mobile video preference and desktop/mobile header/footer
+  visibility. Header overlay removes the page's header offset. Existing standalone
+  sections still own their chrome suppression. Opaque sections intentionally
+  cover a page background; their existing appearance is not rewritten.
+- Public home/custom routes and draft previews consume presentation settings;
+  canvas previews use the same wrapper without changing admin chrome. Video is
+  silent, pausable, and gated by reduced motion/mobile preferences. Noindex pages
+  are excluded from sitemap output. No production media or copy was invented.
+- Title/URL updates keep permission/session/RLS boundaries, reject built-in and
+  category URL collisions, preserve the homepage route, and invalidate old/new
+  routes and navigation. They do not create redirects. Media references are
+  reconciled for page backgrounds/social images, including still-published media
+  while its replacement is being drafted.
+- Final local formatting, lint, TypeScript and 2,507 unit tests in 123 files
+  passed. Hosted build/integration/browser/visual/accessibility/performance CI
+  pending.
+  Added isolated browser tests for page presentation, responsive chrome, metadata,
+  draft save/reload and reserved URL rejection. No migrations or credentials needed.
+- Expected an inspector tab; actual work also required draft-aware undo history,
+  public metadata/rendering and media lifecycle wiring to avoid decorative controls.
+
 ### 2026-09-06 — Grid canvas and dedicated widget studio (review branch)
 
 - Fetched main at `795e6de`; PR #83 is merged, full hosted CI passed and Railway
