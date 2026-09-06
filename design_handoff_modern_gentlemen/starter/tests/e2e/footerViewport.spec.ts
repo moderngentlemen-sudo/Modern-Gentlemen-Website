@@ -16,10 +16,21 @@ for (const width of [390, 1440]) {
       }
       for (const height of [900, 1000]) {
         await page.setViewportSize({ width, height });
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
         await expect
-          .poll(() => footer.evaluate((node) => Math.round(node.getBoundingClientRect().bottom)))
-          .toBe(height);
+          .poll(() =>
+            footer.evaluate((node) => {
+              // Resize-driven layout can grow after the first scroll. Follow
+              // the current bottom rather than retaining that stale position.
+              const root = document.documentElement;
+              window.scrollTo({ top: root.scrollHeight, behavior: "instant" });
+              const bottom = node.getBoundingClientRect().bottom;
+              return {
+                viewportBottom: Math.round(bottom),
+                spaceAfterFooter: Math.round(root.scrollHeight - (bottom + window.scrollY)),
+              };
+            })
+          )
+          .toEqual({ viewportBottom: height, spaceAfterFooter: 0 });
       }
     }
   });

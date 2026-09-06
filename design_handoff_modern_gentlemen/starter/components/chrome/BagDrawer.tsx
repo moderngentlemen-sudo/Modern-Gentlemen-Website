@@ -12,7 +12,16 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
 
   return (
     <OverlayScrim open={open} onClose={onClose} align="right" label="Bag" id="mg-bag-drawer">
-      <aside className="h-full w-full max-w-[440px] ml-auto bg-mg-surface text-mg-fg flex flex-col animate-[slideInRight_.26s_ease]">
+      <aside
+        className="h-full w-full max-w-[440px] ml-auto bg-mg-surface text-mg-fg flex flex-col animate-[slideInRight_.26s_ease]"
+        style={{
+          paddingTop: "var(--mg-safe-top)",
+          paddingBottom: "var(--mg-safe-bottom)",
+          paddingLeft: "var(--mg-safe-left)",
+          paddingRight: "var(--mg-safe-right)",
+          overflowY: "auto",
+        }}
+      >
         <div className="flex items-center justify-between p-6 border-b border-mg-bd/10">
           <div className="flex items-baseline gap-3">
             <span className="font-grotesk text-[15px]">Your Bag</span>

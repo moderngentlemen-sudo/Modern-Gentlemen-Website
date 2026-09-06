@@ -85,7 +85,10 @@ export function Footer({
   });
 
   return (
-    <footer className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band">
+    <footer
+      className="bg-[#0d0d0d] text-[#f4f4f4] border-t border-mg-band"
+      style={{ paddingBottom: "var(--mg-safe-bottom)" }}
+    >
       {/* ≤680 every footer row insets 22px, matching the sections. */}
       {/* Brand + nav */}
       <div

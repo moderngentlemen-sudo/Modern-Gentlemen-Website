@@ -222,9 +222,7 @@ export function Header({
         aria-hidden
         className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
-          height: mobileActive
-            ? `calc(${chromeHeight + 13}px + env(safe-area-inset-top, 0px))`
-            : chromeHeight + 13,
+          height: `calc(${chromeHeight + 13}px + var(--mg-safe-top))`,
           opacity: frosted ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
@@ -243,7 +241,9 @@ export function Header({
         style={{
           transform: slide,
           transition: `transform ${MOTION}`,
-          paddingTop: mobileActive ? "env(safe-area-inset-top, 0px)" : undefined,
+          paddingTop: "var(--mg-safe-top)",
+          paddingLeft: "var(--mg-safe-left)",
+          paddingRight: "var(--mg-safe-right)",
         }}
         // Frost/pin follows the pointer being over a nav LINK or the open
         // panel — not merely over the bar. Hovering the logo, the icons or the
