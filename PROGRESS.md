@@ -10,6 +10,12 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ### 2026-09-06 — Refined After Hours page in the existing builder (review branch)
 
+- Hosted CI `34013972923` passed every gate on `f2d1d41`. A final media
+  lifecycle audit then found that image-bearing starter creation needed immediate
+  usage reconciliation (old starters contained no images). Added it for CS21
+  pages and supplied template areas, using the existing session/RLS and recovery
+  pattern. Two service tests pass; the full local gate is now **2,460 tests in
+  117 files**. Hosted validation of this final lifecycle fix is pending.
 - First hosted build caught a CSS Modules pure-selector restriction. Moved the
   standalone selectors into global CSS and scoped them to `data-site-main`, also
   preventing admin-canvas padding changes. The complete local four-gate suite
