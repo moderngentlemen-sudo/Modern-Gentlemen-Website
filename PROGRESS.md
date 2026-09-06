@@ -8,6 +8,41 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-06 — Category and product template overrides (stacked review branch)
+
+- Reconciled the older `CODEX_HANDOFF.md` against current code and fetched live
+  GitHub state. PR #86 remains open at `01f9d68`; hosted CI run `34028098822`
+  passed static/unit, integration and browser/visual/accessibility/performance
+  gates. The Supabase Preview check was skipped because preview branches are
+  disabled, not because application coverage skipped.
+- Auditing current template controls found an authoring inconsistency rather than
+  a renderer gap: product and category entry assignments were publicly consumed
+  and available from the central template board, but their own builders lacked
+  the record-level Layout control already available to pages and articles.
+- The shared override service now maps page/category/article/product editors to
+  their matching page/archive/article/product template kind and verifies record
+  existence against the correct table. Category and product builders load the
+  permission-gated state, can choose a published matching template or restore
+  content-type inheritance, and revalidate their admin and public routes.
+- Existing assignments and unassigned compatibility renderers are unchanged; no
+  assignment, content, migration, style or production setting was created. Added
+  component/domain regression coverage plus a signed-in browser journey that
+  assigns, reloads, restores inheritance and cleans up both temporary templates.
+- Formatting, ESLint, environment declarations, TypeScript and all **2,524 unit
+  tests in 123 files** pass locally. All **98 E2E declarations in 18 files**
+  collect. Review PR #87 is stacked on PR #86; hosted CI run `34031203474`
+  passed static/unit, seeded integration, build, signed-in E2E, visual,
+  accessibility and performance gates. Supabase Preview skipped because preview
+  branches are disabled, not because application coverage skipped.
+- Follow-up audit hardened that journey before publication: its category lookup
+  is scoped to the categories table, cleanup skips absent fixtures, attempts both
+  removals, and preserves the journey's original failure if cleanup also fails.
+  The complete local formatting, lint, environment, TypeScript and 2,524-test
+  gates passed again after the change, followed by the full hosted gates above.
+- Expected the current backlog to identify an unfinished template renderer;
+  actual code already had it. The smaller gap was that two supported entry types
+  could not manage the same assignment at their normal editing surface.
+
 ### 2026-09-06 — Page Settings URL and social metadata audit (review branch)
 
 - Resumed from main `0c5cbf0` (merged PR #85), in a fresh checkout preserving

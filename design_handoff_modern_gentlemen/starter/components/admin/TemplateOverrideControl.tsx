@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ActionResult } from "@/app/(admin)/admin/_lib/action-result";
-import type { TemplateOverrideState } from "@/lib/services/templates";
+import type { EntryTemplateContentType, TemplateOverrideState } from "@/lib/services/templates";
 import { Button } from "@/components/admin/ui/Button";
 import { Dialog } from "@/components/admin/ui/Dialog";
 import { Select } from "@/components/admin/ui/Select";
@@ -15,7 +15,7 @@ export interface TemplateOverrideAction {
 }
 
 /**
- * Entry-level template inheritance, shared by page and article editors.
+ * Entry-level template inheritance, shared by document editors.
  *
  * The blank value is an explicit authoring choice — inherit the content-type
  * default — and the current inherited template is named in the option. This is
@@ -30,7 +30,7 @@ export function TemplateOverrideControl({
   action,
 }: {
   id: string;
-  noun: "page" | "article";
+  noun: EntryTemplateContentType;
   state: TemplateOverrideState;
   action: TemplateOverrideAction;
 }) {
@@ -44,6 +44,7 @@ export function TemplateOverrideControl({
   const inherited = state.inheritedTemplate?.name ?? "no site-wide template";
   const selectedTemplate = state.options.find((template) => template.id === selected);
   const selectedIsDraft = selectedTemplate !== undefined && selectedTemplate.status !== "published";
+  const title = noun === "category" ? "Category" : `${noun[0].toUpperCase()}${noun.slice(1)}`;
 
   function save() {
     setError(undefined);
@@ -67,7 +68,7 @@ export function TemplateOverrideControl({
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title={`${noun === "page" ? "Page" : "Article"} layout`}
+        title={`${title} layout`}
         description={`Choose a template for only this ${noun}, or inherit the site-wide ${noun} layout.`}
         footer={
           <>

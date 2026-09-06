@@ -66,4 +66,24 @@ describe("TemplateOverrideControl", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(screen.getByText(/Publish this template before assigning it/)).toBeVisible();
   });
+
+  it.each(["category", "product"] as const)(
+    "describes %s-specific inheritance in its editor",
+    async (noun) => {
+      render(
+        <TemplateOverrideControl id={`${noun}-1`} noun={noun} state={state} action={vi.fn()} />
+      );
+
+      await userEvent.click(screen.getByRole("button", { name: "Layout" }));
+
+      expect(
+        screen.getByRole("heading", { name: `${noun[0].toUpperCase()}${noun.slice(1)} layout` })
+      ).toBeVisible();
+      expect(
+        screen.getByText(
+          `Choose a template for only this ${noun}, or inherit the site-wide ${noun} layout.`
+        )
+      ).toBeVisible();
+    }
+  );
 });

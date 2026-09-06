@@ -222,12 +222,13 @@ controls. Version-7 payloads read as Balanced without a data migration.
 
 ## Entry template overrides (v2.0)
 
-Page and article editing surfaces expose the assignment hierarchy at the point
-where an editor works on the record. Each record may explicitly inherit its
-content-type template or choose one published template of the matching kind.
-The inheritance option names the current live default without copying its id
-into an entry assignment, so a later site-wide change still reaches inheriting
-records. Entry assignments continue to outrank content-type assignments.
+Page, category, article and product editing surfaces expose the assignment
+hierarchy at the point where an editor works on the record. Each record may
+explicitly inherit its content-type template or choose one published template
+of the matching kind (an archive template for a category). The inheritance
+option names the current live default without copying its id into an entry
+assignment, so a later site-wide change still reaches inheriting records. Entry
+assignments continue to outrank content-type assignments.
 
 Draft templates remain visible when already selected so stored state is never
 silently discarded, but cannot be newly saved as a live override. The service
