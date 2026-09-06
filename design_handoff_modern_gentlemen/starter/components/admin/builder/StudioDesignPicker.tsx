@@ -49,8 +49,9 @@ export function StudioDesignPicker({
       {value && preview && (
         <>
           <p className="text-[12px] text-mg-fg/70">
-            Illustrative preview. Preview images are examples only. Choosing a design does not
-            insert these images.
+            {kind === "comingSoon" && value === "21"
+              ? "New CS21 pages start with your existing After Hours photograph. You can replace it in the builder. Set a launch date to display the countdown."
+              : "Illustrative preview. Preview images are examples only. Choosing a design does not insert these images."}
           </p>
           <div
             className="pointer-events-none relative w-full overflow-hidden border border-mg-bd/20"
