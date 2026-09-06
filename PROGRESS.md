@@ -8,6 +8,27 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-06 — Page Settings URL and social metadata audit (review branch)
+
+- Resumed from main `0c5cbf0` (merged PR #85), in a fresh checkout preserving
+  older local work. Baseline formatting, lint, TypeScript and 2,508 unit tests
+  passed. The earlier pasted backlog is superseded by the September 3–6 entries:
+  tokens/states, field defaults, contextual previews and Shopify GraphQL exist.
+- Page media validation now parses HTTPS destinations and rejects malformed
+  authorities, embedded credentials, backslashes and control characters. Empty
+  values and supported root-relative/HTTPS media remain valid. Forgiving public
+  reads omit invalid fields; strict saves reject them through the existing schema.
+- SEO overrides retain inherited X/Twitter card type, imagery and attribution;
+  choosing a social image replaces the image and selects a large-image card.
+  No section markup, styles, routes, production content or migrations changed.
+- Regression tests reproduced eight failures before the fix; all 26 focused
+  domain, rendering and service tests pass after it. Final formatting, lint,
+  TypeScript, environment declarations and all 2,520 unit tests in 123 files
+  pass. Hosted build/integration/browser/visual/a11y/performance CI is pending
+  on `fix/page-settings-validation-metadata`; main remains unchanged.
+- Expected to resume the older builder backlog; the current code had already
+  completed it. Actual work is a bounded audit of the latest merged feature.
+
 
 ### 2026-09-06 — Unified page settings (review branch)
 

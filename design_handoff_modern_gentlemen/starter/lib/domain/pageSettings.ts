@@ -1,12 +1,24 @@
 import { z } from "zod";
 
+function isMediaUrl(value: string): boolean {
+  if (!value) return true;
+  // Browsers normalize backslashes and strip controls before resolving URLs.
+  // Reject them before deciding that a destination is a same-origin path.
+  if (/[\\\u0000-\u001f\u007f]/.test(value)) return false;
+  if (value.startsWith("/")) return !value.startsWith("//");
+  if (!/^https:\/\/[^/\s]/i.test(value) || /\s/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !!url.hostname && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 const mediaUrl = z
   .string()
   .max(2048)
-  .refine(
-    (value) => !value || /^\/(?!\/)/.test(value) || /^https:\/\/[^\s]+$/i.test(value),
-    "Use an HTTPS URL or a site-relative path."
-  );
+  .refine(isMediaUrl, "Use an HTTPS URL or a site-relative path.");
 const header = z.enum(["inherit", "hidden", "overlay"]);
 const footer = z.enum(["inherit", "hidden"]);
 export const pageSettingsSchema = z
