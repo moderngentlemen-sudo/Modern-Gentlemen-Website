@@ -1,3 +1,4 @@
+import { AFTER_HOURS_PHOTO } from "./afterHours";
 import type { BlockTree } from "./types";
 
 /** Stable labels shared by page creation, template creation and the live studio. */
@@ -22,6 +23,7 @@ export const COMING_SOON_DESIGNS = [
   ["18", "Index of Intent", "light"],
   ["19", "The Portrait", "dark"],
   ["20", "The Invitation", "dark"],
+  ["21", "After Hours — Refined Countdown", "dark"],
 ] as const;
 export type ComingSoonId = (typeof COMING_SOON_DESIGNS)[number][0];
 export const COMING_SOON_IDS = COMING_SOON_DESIGNS.map(([id]) => id) as [
@@ -37,7 +39,15 @@ export function comingSoonSections(variant: ComingSoonId): BlockTree {
     {
       _key: "comingsoon",
       _type: "comingSoonStudio",
-      settings: { variant, title: "Coming soon", brand: "Modern Gentlemen", showSignup: false },
+      settings: {
+        variant,
+        title: "Coming soon",
+        brand: "Modern Gentlemen",
+        showSignup: variant === "21",
+        ...(variant === "21"
+          ? { image: AFTER_HOURS_PHOTO, imageAlt: "A man walking along a wet city street at night" }
+          : {}),
+      },
     },
   ];
 }

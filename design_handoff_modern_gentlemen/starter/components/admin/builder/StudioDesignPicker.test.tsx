@@ -34,7 +34,7 @@ it("previews only the selected coming-soon design on demand", () => {
     return <StudioDesignPicker kind="comingSoon" value={value} onChange={setValue} allowBlank />;
   }
   const { container } = render(<Harness />);
-  expect(screen.getAllByRole("option")).toHaveLength(21);
+  expect(screen.getAllByRole("option")).toHaveLength(22);
   expect(container.querySelector("[data-coming-soon]")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Preview design" }));
   fireEvent.change(screen.getByLabelText("Coming soon design"), { target: { value: "20" } });

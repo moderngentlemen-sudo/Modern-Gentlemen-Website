@@ -1,5 +1,6 @@
 "use client";
 
+import { AFTER_HOURS_PHOTO } from "@/lib/blocks/afterHours";
 import { useState } from "react";
 import { Select } from "@/components/admin/ui/Select";
 import { Button } from "@/components/admin/ui/Button";
@@ -75,6 +76,15 @@ export function StudioDesignPicker({
 }
 
 export function comingSoonPreview(variant: string): ComingSoonProps {
+  if (variant === "21")
+    return {
+      variant,
+      image: AFTER_HOURS_PHOTO,
+      imageAlt: "After Hours street photograph",
+      title: "Coming soon",
+      showSignup: true,
+      afterHours: { layout: { standalone: false } },
+    };
   return {
     variant,
     brand: "Modern Gentlemen",

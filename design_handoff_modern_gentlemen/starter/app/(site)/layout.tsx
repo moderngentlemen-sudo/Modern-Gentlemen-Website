@@ -54,31 +54,39 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <CatalogProvider products={products}>
       <CartProvider>
-        {headerTemplate ? (
-          <SectionRenderer
-            sections={headerTemplate}
-            documentContent={
-              <Header
-                nav={nav.header}
-                drawerSecondary={nav.drawerSecondary}
-                settings={design.header}
-              />
-            }
-          />
-        ) : (
-          <Header nav={nav.header} drawerSecondary={nav.drawerSecondary} settings={design.header} />
-        )}
+        <div data-site-chrome="header" style={{ display: "contents" }}>
+          {headerTemplate ? (
+            <SectionRenderer
+              sections={headerTemplate}
+              documentContent={
+                <Header
+                  nav={nav.header}
+                  drawerSecondary={nav.drawerSecondary}
+                  settings={design.header}
+                />
+              }
+            />
+          ) : (
+            <Header
+              nav={nav.header}
+              drawerSecondary={nav.drawerSecondary}
+              settings={design.header}
+            />
+          )}
+        </div>
         <main style={{ paddingTop: design.header.height }}>{children}</main>
-        {footerTemplate ? (
-          <SectionRenderer
-            sections={footerTemplate}
-            documentContent={
-              <Footer nav={nav.footer} legal={nav.footerLegal} settings={design.footer} />
-            }
-          />
-        ) : (
-          <Footer nav={nav.footer} legal={nav.footerLegal} settings={design.footer} />
-        )}
+        <div data-site-chrome="footer" style={{ display: "contents" }}>
+          {footerTemplate ? (
+            <SectionRenderer
+              sections={footerTemplate}
+              documentContent={
+                <Footer nav={nav.footer} legal={nav.footerLegal} settings={design.footer} />
+              }
+            />
+          ) : (
+            <Footer nav={nav.footer} legal={nav.footerLegal} settings={design.footer} />
+          )}
+        </div>
       </CartProvider>
     </CatalogProvider>
   );
