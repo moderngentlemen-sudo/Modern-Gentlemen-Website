@@ -8,6 +8,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-06 — Search first-open preparation (review branch)
+
+- Started from merged PRs #86/#87, main `3ff3831`. Search opening has no
+  request dependency; results are requested only after a query is entered.
+- Keep the small static search shell mounted with `hidden` and `display:none`
+  while closed. The first tap reuses its DOM instead of creating the input and
+  controls. Closed content does not paint, participate in layout or tab order,
+  lock scrolling, take focus, or request search results. Autofocus now uses
+  `preventScroll` to avoid a focus-driven scroll during body locking.
+- Existing blur, animation durations, appearance, search transport, keyboard
+  trap and close/reset behavior are unchanged. No dependency or toolchain changes.
+- Formatting, lint, TypeScript, environment declarations and all 2,525 unit
+  tests pass. Added desktop/phone-width browser coverage for shell reuse,
+  initial focus, Escape and focus restoration. Hosted seeded build/browser,
+  visual, accessibility and performance gates remain pending for this branch.
+- Expected to eliminate avoidable mount/focus work, not the cost of first-time
+  blur compositing or keyboard initialization. No physical-device performance
+  trace or before/after latency measurement is available; speedup is unquantified.
+
 ### 2026-09-06 — Category and product template overrides (stacked review branch)
 
 - Reconciled the older `CODEX_HANDOFF.md` against current code and fetched live

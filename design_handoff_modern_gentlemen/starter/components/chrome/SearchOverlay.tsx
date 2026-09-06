@@ -80,7 +80,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     if (!open) return;
     setClosing(false);
     openedAt.current = Date.now();
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }, [open]);
 
   /** Run the exit animation, then unmount and clear the query (as the prototype
@@ -176,10 +176,12 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     close();
   };
 
-  if (!open) return null;
-
   return (
     <div
+      // Prepare the static shell before the first interaction. display:none
+      // keeps it out of layout, painting, tab order and the accessibility tree;
+      // opening does not need to create the field and all of its controls.
+      hidden={!open}
       id="mg-search-overlay"
       data-screen-label="Search"
       role="dialog"
@@ -192,6 +194,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       }}
       className="fixed inset-0 z-[200] flex flex-col items-center px-6 text-[#f4f4f4]"
       style={{
+        display: open ? undefined : "none",
         background: "rgba(8,8,9,0.82)",
         backdropFilter: "blur(22px)",
         WebkitBackdropFilter: "blur(22px)",
