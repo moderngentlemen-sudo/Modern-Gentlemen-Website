@@ -8,6 +8,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-06 — Mobile footer bottom edge (review branch)
+
+- Started from main `88fb428`, merged PR #88; its pre-merge hosted gates and
+  Railway deployment passed. User confirmed faster search opening, then reported
+  persistent theme-colored space beneath the footer and Safari toolbar tinting.
+- Public bodies now fill at least the dynamic viewport, with main content taking
+  spare height on short pages. The stock footer retains its existing markup,
+  spacing and color. Mobile root-canvas paint continues its dark background;
+  custom footer templates, mobile-hidden footers and standalone After Hours
+  pages retain the theme background. Desktop scrollbar gutters are unchanged.
+- Formatting, lint, TypeScript, environment declarations and all 2,525 unit tests
+  in 123 files pass. Added browser assertions for long/short layout geometry,
+  viewport resizing, theme changes and footer overrides. Hosted seeded build,
+  browser, visual, accessibility and performance gates pending on this branch;
+  no local seeded environment or installed browser is available.
+- The code confirms missing viewport fill and a light root canvas. The user's
+  physical Safari symptom is not reproduced here; toolbar tint and bottom-edge
+  appearance still require an iPhone check after an authorized deployment.
+  No production content, dependencies, migrations or credentials changed.
+
 ### 2026-09-06 — Search first-open preparation (review branch)
 
 - Started from merged PRs #86/#87, main `3ff3831`. Search opening has no

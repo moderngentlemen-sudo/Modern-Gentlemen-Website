@@ -77,7 +77,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <main data-site-main style={{ paddingTop: design.header.height }}>
           {children}
         </main>
-        <div data-site-chrome="footer" style={{ display: "contents" }}>
+        <div
+          data-site-chrome="footer"
+          data-default-footer={footerTemplate ? undefined : "true"}
+          style={{ display: "contents" }}
+        >
           {footerTemplate ? (
             <SectionRenderer
               sections={footerTemplate}

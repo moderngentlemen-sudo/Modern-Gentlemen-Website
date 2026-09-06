@@ -165,6 +165,33 @@ body {
   text-rendering: geometricPrecision;
 }
 
+/* Fill the changing mobile viewport on short public pages. Providers emit no
+   wrapper; chrome uses display:contents. Long pages retain their natural size. */
+body:has(> [data-site-main]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+body > [data-site-main] {
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+/* Safari can expose the root canvas below the document through its bottom
+   toolbar. Continue the stock footer there, without recoloring page content,
+   desktop scrollbar gutters, custom footer templates or footerless pages. */
+@media (max-width: 680px) {
+  html:has([data-site-chrome="footer"][data-default-footer="true"]):not(
+      :has(
+        [data-site-main] [data-after-hours-standalone="true"],
+        [data-page-presentation="public"][data-page-mobile-footer="hidden"]
+      )
+    ) {
+    background: #0d0d0d;
+  }
+}
+
 /* Centered site content column. Full-bleed bands opt out with .bleed. */
 .container-mg {
   width: 100%;
