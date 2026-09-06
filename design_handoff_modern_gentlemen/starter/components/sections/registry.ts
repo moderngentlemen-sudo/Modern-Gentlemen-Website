@@ -1,3 +1,5 @@
+import { WidgetStudio } from "./WidgetStudio";
+import { GridLayout } from "./GridLayout";
 import type { ComponentType } from "react";
 import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks/manifests";
 import type { BlockCategory } from "@/lib/blocks/types";
@@ -95,6 +97,8 @@ export const registry = {
   columns: Columns,
   column: Column,
   layoutContainer: LayoutContainer,
+  widgetStudio: WidgetStudio,
+  gridLayout: GridLayout,
   stack: Stack,
   nativeHeading: NativeHeading,
   nativeText: NativeText,

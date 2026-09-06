@@ -1,5 +1,7 @@
 "use client";
 
+import { GridPlacementEditor } from "./GridControls";
+import { locate } from "./tree";
 import { useCallback, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
@@ -253,6 +255,10 @@ function BlockProperties({
   const [visualState, setVisualState] = useState<VisualState>("hover");
 
   const manifest = manifestFor(node._type);
+  const inGrid = useBuilder((s) => {
+    const at = locate(s.tree, node._key);
+    return !!at?.parentKey && findBlock(s.tree, at.parentKey)?._type === "gridLayout";
+  });
   const key = node._key;
   const locked = node.locked === true;
 
@@ -353,6 +359,7 @@ function BlockProperties({
         </div>
       )}
 
+      {inGrid && <GridPlacementEditor node={node} />}
       <PanelSection title="Content" issueCount={issues.filter((i) => i.path !== "").length}>
         {Object.entries(manifest.fields).map(([name, field]) =>
           name === "variant" && ["mgDesignStudio", "comingSoonStudio"].includes(node._type) ? (

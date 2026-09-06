@@ -35,6 +35,8 @@ import { VisualElementFrame } from "@/components/VisualElementFrame";
 import { useBuilder } from "./StoreContext";
 import { usePattern } from "./PatternsContext";
 import { gapDropId, parseDragId, type DropLocation } from "./dnd";
+import { GridControls } from "./GridControls";
+import { gridPlacement, gridPosition, type GridPlacement } from "@/lib/blocks/grid";
 import { subtreeContains } from "./tree";
 
 /** Widths the device switcher previews at. */
@@ -627,6 +629,7 @@ function BlockList({
           )}
           <SortableBlock
             node={node}
+            parentKey={parentKey}
             dragKind={dragKind}
             dragType={dragType}
             draggedNode={draggedNode}
@@ -703,6 +706,7 @@ function EmptyDropZone({ dragging, over }: { dragging: boolean; over: boolean })
 
 function SortableBlock({
   node,
+  parentKey,
   dragKind,
   dragType,
   draggedNode,
@@ -710,12 +714,17 @@ function SortableBlock({
   depth,
 }: {
   node: BlockNode;
+  parentKey: string | null;
   dragKind: "library" | "block" | null;
   dragType: string | null;
   draggedNode: BlockNode | null;
   drop: DropLocation | null;
   depth: number;
 }) {
+  const inGrid = useBuilder(
+    (s) => parentKey !== null && findBlock(s.tree, parentKey)?._type === "gridLayout"
+  );
+  const [gridPreview, setGridPreview] = useState<GridPlacement | null>(null);
   const selectedKeys = useBuilder((s) => s.selectedKeys);
   const select = useBuilder((s) => s.select);
   const duplicate = useBuilder((s) => s.duplicate);
@@ -813,7 +822,11 @@ function SortableBlock({
     <div
       ref={setNodeRef}
       data-block-key={node._key}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        ...(inGrid ? gridPosition(gridPreview ?? gridPlacement(node.visual?.grid, device)) : {}),
+      }}
       className={clsx("group relative", isDragging && "opacity-60")}
       /*
         ⚠️ `stopPropagation` is what makes the INNERMOST block win.
@@ -886,7 +899,10 @@ function SortableBlock({
             ) : Component ? (
               <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
                 {slot ? (
-                  <Component {...normalizeBlock(node)}>
+                  <Component
+                    {...normalizeBlock(node)}
+                    {...(node._type === "gridLayout" ? { previewDevice: device } : {})}
+                  >
                     {children.length === 0 ? (
                       <EmptySlot
                         parentKey={node._key}
@@ -908,7 +924,10 @@ function SortableBlock({
                     )}
                   </Component>
                 ) : (
-                  <Component {...normalizeBlock(node)} />
+                  <Component
+                    {...normalizeBlock(node)}
+                    {...(node._type === "widgetStudio" ? { previewDevice: device } : {})}
+                  />
                 )}
               </BlockErrorBoundary>
             ) : (
@@ -930,7 +949,8 @@ function SortableBlock({
         )}
       />
 
-      {selected && selectedKeys.length === 1 && !locked && (
+      {selected && inGrid && !locked && <GridControls node={node} onPreview={setGridPreview} />}
+      {selected && selectedKeys.length === 1 && !locked && !inGrid && (
         <>
           <div
             aria-hidden="true"

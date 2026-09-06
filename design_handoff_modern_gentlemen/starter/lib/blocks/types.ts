@@ -69,6 +69,7 @@ export const BLOCK_CATEGORIES = [
   "bands",
   "people",
   "layout",
+  "widgets",
 ] as const;
 export type BlockCategory = (typeof BLOCK_CATEGORIES)[number];
 

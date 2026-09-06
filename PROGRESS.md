@@ -8,6 +8,43 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+
+### 2026-09-06 — Grid canvas and dedicated widget studio (review branch)
+
+- Fetched main at `795e6de`; PR #83 is merged, full hosted CI passed and Railway
+  deployed successfully. Created a separate unpublished **Coming Soon — After
+  Hours** page (`76106759-5381-48d9-910a-e1959207cbac`); the original Coming Soon
+  draft and published Home page were preserved. This supersedes the pending
+  status in the previous entry.
+- Added an opt-in **Grid canvas** layout with 12 tracks, configurable gaps and
+  content-aware minimum row heights. Any existing block can be a grid element.
+  Each element stores bounded column/row positions and spans separately for
+  desktop, tablet and mobile. Smaller devices default to full-width auto flow;
+  they do not inherit desktop coordinates accidentally. Existing documents and
+  blocks outside a grid render unchanged; there is no conversion or migration.
+- Grid elements have pointer/touch move and resize handles, arrow-key controls,
+  numeric placement fields and per-device reset. Pointer gestures preview only
+  in component state and commit once on release; Escape, cancellation and lost
+  capture discard the preview. Undo/redo, cloning, validation and autosave use
+  the existing document store. Explicit placements may intentionally overlap;
+  source/reading order remains editable in Navigator.
+- Added the **Widgets** builder rail with search and on-demand previews. It
+  inserts into a selected compatible container. The new Widget studio block
+  offers countdown, underline email signup, social logos/links, native accordion,
+  keyboard-accessible tabs, statement number, progress and quotation designs.
+  Existing native text/media/form/product primitives remain available alongside
+  them. All settings stay in normal manifest-backed blocks.
+- Countdown dates and social destinations start empty. Email capture uses the
+  existing anonymous newsletter endpoint and truthful error/success responses.
+  No credentials, provider changes, production copy or database changes needed.
+- Local formatting, ESLint, TypeScript and **2,492 tests in 120 files** passed.
+  Added isolated E2E coverage for public responsive placement/a11y and signed-in
+  pointer resizing, undo, mobile independence, saving and widget insertion.
+  Full hosted CI is pending; no merge or production deployment for this feature.
+- Expected a layout primitive plus a widget rail; actual scope also required a
+  placement wrapper on grid children so design/visibility wrappers cannot steal
+  a grid cell, and gesture-local state to avoid partial autosaves during drags.
+
 ### 2026-09-06 — Refined After Hours page in the existing builder (review branch)
 
 - Hosted CI `34013972923` passed every gate on `f2d1d41`. A final media

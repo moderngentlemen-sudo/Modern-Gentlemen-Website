@@ -1,3 +1,4 @@
+import { gridPlacementSchema, type GridPlacement, type GridDevice } from "@/lib/blocks/grid";
 /**
  * The builder's editing state.
  *
@@ -204,6 +205,7 @@ export interface BuilderActions {
   /** The drop-into-a-gap case: a position rather than another block. */
   moveTo: (activeKey: string, parentKey: string | null, index: number) => void;
 
+  setGridPlacement: (key: string, device: GridDevice, placement: GridPlacement | undefined) => void;
   setSetting: (key: string, path: (string | number)[], value: unknown) => void;
   unsetSetting: (key: string, path: (string | number)[]) => void;
   listAdd: (key: string, path: (string | number)[], item: unknown) => void;
@@ -686,6 +688,20 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           node.design = { ...node.design, ...patch };
         }),
 
+      setGridPlacement: (key, device, placement) =>
+        commit(null, (draft) => {
+          const node = findDraft(draft, key);
+          if (
+            !node ||
+            node.locked ||
+            (placement && !gridPlacementSchema.safeParse(placement).success)
+          )
+            return;
+          if (!node.visual) node.visual = {};
+          if (!node.visual.grid) node.visual.grid = {};
+          if (placement) node.visual.grid[device] = placement;
+          else delete node.visual.grid[device];
+        }),
       setVisualStyle: (key, breakpoint, patch) =>
         commit(`visual:${key}:${breakpoint}`, (draft) => {
           const node = findDraft(draft, key);
