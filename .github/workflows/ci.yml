@@ -301,6 +301,18 @@ jobs:
       # failed on three locator mistakes in one new spec and took the 16
       # baselines down with it, which is how a chrome change reached review with
       # its most important gate unexecuted.
+      # Preserve review images before the next Playwright suite clears test-results.
+      - name: Upload page settings review images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: page-settings-review
+          path: |
+            ${{ env.APP_DIR }}/test-results/**/page-settings-*.png
+            ${{ env.APP_DIR }}/test-results/**/builder-page-settings.png
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Visual regression
         if: always()
         env:
