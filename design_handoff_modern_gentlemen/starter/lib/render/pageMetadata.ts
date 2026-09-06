@@ -29,7 +29,12 @@ export function withPageMetadata(base: Metadata, raw: unknown): Metadata {
       ...(s.socialImage ? { images: [{ url: s.socialImage }] } : {}),
     },
     twitter: {
-      card: s.socialImage ? "summary_large_image" : "summary",
+      ...base.twitter,
+      card: s.socialImage
+        ? "summary_large_image"
+        : base.twitter && "card" in base.twitter
+          ? base.twitter.card
+          : "summary",
       title: socialTitle ?? undefined,
       description: socialDescription ?? undefined,
       ...(s.socialImage ? { images: [s.socialImage] } : {}),
