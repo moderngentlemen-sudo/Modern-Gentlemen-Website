@@ -13,6 +13,7 @@ import { countIssuesAtOrBelow, issuesFor } from "./issues";
 import { ListControl } from "./ListControl";
 import { MediaUrlControl } from "./MediaUrlControl";
 import { RichTextEditor } from "./RichTextEditor";
+import { FontPicker } from "./FontPicker";
 
 /**
  * The field → control mapping.
@@ -92,6 +93,15 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
     );
 
   switch (field.kind) {
+    case "font":
+      return (
+        <FontPicker
+          {...common}
+          value={asString(displayValue)}
+          onChange={(next) => (next ? ctx.write(path, next) : ctx.clear(path))}
+          sample={asString(ctx.read(["content"]) ?? ctx.read(["text"]))}
+        />
+      );
     case "color":
       return (
         <div>

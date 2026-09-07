@@ -18,6 +18,7 @@
  */
 
 import { z, type ZodTypeAny } from "zod";
+import { libraryFont } from "@/lib/domain/fontLibrary";
 
 export interface FieldBase {
   /** Human name shown by the properties panel. Never empty — conformance checks. */
@@ -32,7 +33,8 @@ export interface FieldBase {
  * `image` opens the media library, `richText` gets a formatting bar, `url`
  * validates a href — so they share one runtime shape.
  */
-export type StringKind = "text" | "textarea" | "richText" | "url" | "image" | "video" | "color";
+export type StringKind =
+  "text" | "textarea" | "richText" | "url" | "image" | "video" | "color" | "font";
 
 export interface StringField extends FieldBase {
   readonly kind: StringKind;
@@ -103,6 +105,7 @@ export const field = {
   textarea: stringField("textarea"),
   richText: stringField("richText"),
   color: stringField("color"),
+  font: stringField("font"),
   url: stringField("url"),
   image: stringField("image"),
   video: stringField("video"),
@@ -167,6 +170,8 @@ export function fieldToZod(f: Field, strict = false): ZodTypeAny {
 
 function baseSchema(f: Field, strict: boolean): ZodTypeAny {
   switch (f.kind) {
+    case "font":
+      return z.string().refine((value) => !!libraryFont(value), "Choose a font from the library.");
     case "color":
       return z.string().regex(/^#[0-9a-f]{6}$/i, "Use a six-digit hex colour, such as #123456.");
     case "text":
