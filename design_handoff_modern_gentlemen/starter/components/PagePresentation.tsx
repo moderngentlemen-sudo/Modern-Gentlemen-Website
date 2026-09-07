@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { gradientCss } from "@/lib/domain/gradient";
 import { optimizedImageUrl } from "@/components/ui/imageUrl";
 import { readPageSettings } from "@/lib/domain/pageSettings";
 
@@ -44,6 +45,7 @@ export function PagePresentation({
     }
   }, [allowed, paused, settings.backgroundVideo]);
   const visual =
+    settings.backgroundGradient ||
     settings.backgroundColor ||
     settings.backgroundImage ||
     settings.backgroundVideo ||
@@ -68,6 +70,7 @@ export function PagePresentation({
         isolation: "isolate",
         minHeight: settings.fullHeight ? "100svh" : undefined,
         backgroundColor: settings.backgroundColor || undefined,
+        backgroundImage: gradientCss(settings.backgroundGradient),
       }}
     >
       {visual && (

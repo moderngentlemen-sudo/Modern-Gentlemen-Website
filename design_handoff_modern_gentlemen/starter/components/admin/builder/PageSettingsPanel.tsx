@@ -1,5 +1,7 @@
 "use client";
 
+import { useEditorExperience } from "./EditorExperience";
+import { GradientEditor } from "./GradientEditor";
 import { useState } from "react";
 import { pageSettingsSchema, readPageSettings } from "@/lib/domain/pageSettings";
 import { pageTitle } from "@/lib/domain/seo";
@@ -22,6 +24,7 @@ export function PageSettingsPanel({
   identityAction?: BuilderServerActions["savePageIdentity"];
   templateOverride?: ComponentProps<typeof TemplateOverrideControl>;
 }) {
+  const experience = useEditorExperience();
   const doc = useBuilder((s) => s.doc);
   const update = useBuilder((s) => s.setPageSettings);
   const setDoc = useBuilder((s) => s.setDoc);
@@ -41,6 +44,13 @@ export function PageSettingsPanel({
     }));
   return (
     <div className="h-full overflow-y-auto" aria-label="Page settings">
+      {experience.modern && (
+        <GradientEditor
+          value={settings.backgroundGradient}
+          onChange={(backgroundGradient) => update({ backgroundGradient })}
+          onPreview={experience.previewPage}
+        />
+      )}
       <PanelSection title="Page identity">
         <TextInput label="Page title" value={title} onChange={setTitle} disabled={busy} />
         <TextInput

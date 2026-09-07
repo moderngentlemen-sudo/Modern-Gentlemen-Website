@@ -1,3 +1,4 @@
+import { mediaAppearanceFields } from "../mediaAppearance";
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
 import { textTypographyFields } from "../textTypography";
@@ -108,6 +109,8 @@ export const nativeImage = defineBlock({
   category: "layout",
   description: "A media-library image with alt text, caption, crop ratio and focal position.",
   fields: {
+    appearance: field.group({ label: "Media appearance", fields: mediaAppearanceFields }),
+    captionTypography: field.group({ label: "Caption text", fields: textTypographyFields }),
     src: field.image({ label: "Image", required: true }),
     alt: field.text({ label: "Alternative text", help: "Leave blank only when decorative." }),
     caption: field.text({ label: "Caption" }),
@@ -149,6 +152,7 @@ export const nativeButton = defineBlock({
   category: "layout",
   description: "A linked call to action with bounded visual and accessibility settings.",
   fields: {
+    typography: field.group({ label: "Button text", fields: textTypographyFields }),
     label: field.text({ label: "Label", required: true }),
     href: field.url({ label: "Destination", required: true }),
     variant: field.select({
@@ -185,6 +189,8 @@ export const nativeDivider = defineBlock({
   category: "layout",
   description: "A horizontal rule with style, weight and width controls.",
   fields: {
+    thickness: field.number({ label: "Thickness (px)", min: 1, max: 64 }),
+    color: field.color({ label: "Divider colour" }),
     lineStyle: field.select({
       label: "Line style",
       default: "solid",
@@ -239,6 +245,8 @@ export const nativeVideo = defineBlock({
   category: "layout",
   description: "Library or hosted video with poster, playback, crop and aspect controls.",
   fields: {
+    appearance: field.group({ label: "Media appearance", fields: mediaAppearanceFields }),
+    captionTypography: field.group({ label: "Caption text", fields: textTypographyFields }),
     src: field.video({ label: "Video", required: true }),
     poster: field.image({ label: "Poster image" }),
     caption: field.text({ label: "Caption" }),

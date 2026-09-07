@@ -2,6 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
+import { mediaAppearanceStyle, type MediaAppearance } from "@/lib/blocks/mediaAppearance";
+import { textTypographyStyle, type TextTypography } from "@/lib/blocks/textTypography";
+import { FontStylesheet } from "../ui/FontStylesheet";
 import { clsx } from "@/components/ui/clsx";
 
 const ASPECT = {
@@ -14,6 +17,8 @@ const ASPECT = {
 } as const;
 
 export function NativeVideo({
+  appearance,
+  captionTypography,
   src,
   poster,
   caption,
@@ -24,6 +29,8 @@ export function NativeVideo({
   loop = false,
   muted = true,
 }: {
+  appearance?: MediaAppearance;
+  captionTypography?: TextTypography;
   src: string;
   poster?: string;
   caption?: string;
@@ -47,7 +54,9 @@ export function NativeVideo({
 
   return (
     <figure>
+      <FontStylesheet font={captionTypography?.fontFamily} />
       <video
+        style={mediaAppearanceStyle(appearance)}
         ref={ref}
         src={src}
         poster={poster}
@@ -62,7 +71,14 @@ export function NativeVideo({
           aspect !== "auto" && (fit === "cover" ? "object-cover" : "object-contain")
         )}
       />
-      {caption && <figcaption className="mt-2 text-[12px] text-mg-fg/60">{caption}</figcaption>}
+      {caption && (
+        <figcaption
+          style={textTypographyStyle(captionTypography ?? {})}
+          className="mt-2 text-[12px] text-mg-fg/60"
+        >
+          {caption}
+        </figcaption>
+      )}
     </figure>
   );
 }

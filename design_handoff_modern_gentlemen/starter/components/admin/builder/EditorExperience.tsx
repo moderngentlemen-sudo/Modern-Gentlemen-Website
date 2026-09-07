@@ -1,23 +1,37 @@
 "use client";
 
+import type { Gradient } from "@/lib/domain/gradient";
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { produce } from "immer";
 import type { BlockNode } from "@/lib/blocks/types";
 import { findBlock } from "@/lib/blocks/traverse";
 import { useBuilder } from "./StoreContext";
 
-type Preview = { key: string; path: (string | number)[]; value: string; baseline: BlockNode };
+type Preview = { key: string; path: (string | number)[]; value: unknown; baseline: BlockNode };
 const Context = createContext<{
   modern: boolean;
   setModern: (value: boolean) => void;
-  preview: (path: (string | number)[], value: string | null) => void;
+  preview: (path: (string | number)[], value: unknown) => void;
+  previewPage: (value: unknown) => void;
+  renderPage: (value: unknown) => unknown;
   renderNode: (node: BlockNode) => BlockNode;
-}>({ modern: false, setModern: () => {}, preview: () => {}, renderNode: (node) => node });
+}>({
+  previewPage: () => {},
+  renderPage: (value) => value,
+  modern: false,
+  setModern: () => {},
+  preview: () => {},
+  renderNode: (node) => node,
+});
 
 /** Editor-only state. It never enters payload(), autosave, or document history. */
 export function EditorExperience({ children }: { children: ReactNode }) {
   const [modern, setMode] = useState(false);
   const [hover, setHover] = useState<Preview | null>(null);
+  const [pageHover, setPageHover] = useState<{ baseline: unknown; value: unknown } | null>(null);
+  const pageSettings = useBuilder((s) => s.doc.rest.pageSettings);
+  useEffect(() => setPageHover(null), [pageSettings]);
   const selected = useBuilder((s) => s.selectedKey);
   const tree = useBuilder((s) => s.tree);
   useEffect(() => setHover(null), [tree, selected]);
@@ -26,8 +40,15 @@ export function EditorExperience({ children }: { children: ReactNode }) {
     <Context.Provider
       value={{
         modern,
+        previewPage: (value) =>
+          setPageHover(value === null ? null : { baseline: pageSettings, value }),
+        renderPage: (value) =>
+          modern && pageHover && pageHover.baseline === value
+            ? { ...(value as object), backgroundGradient: pageHover.value }
+            : value,
         setModern: (value) => {
           setHover(null);
+          setPageHover(null);
           setMode(value);
         },
         preview: (path, value) => {
@@ -41,6 +62,11 @@ export function EditorExperience({ children }: { children: ReactNode }) {
           if (!modern || !hover || hover.key !== selected || source !== hover.baseline)
             return source;
           return produce(source, (draft) => {
+            if (hover.path[0] === "$gradient") {
+              draft.design ??= {};
+              draft.design.gradient = hover.value as Gradient;
+              return;
+            }
             draft.settings ??= {};
             let target = draft.settings as Record<string | number, unknown>;
             if (

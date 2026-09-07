@@ -1,3 +1,4 @@
+import { gradientSchema } from "../domain/gradient";
 /**
  * Publish validation — the authoring-time counterpart to `normalize.ts`.
  *
@@ -50,6 +51,16 @@ export function validateBlock(node: BlockNode): ValidationResult {
     });
   }
 
+  if (
+    node.design?.gradient !== undefined &&
+    !gradientSchema.safeParse(node.design.gradient).success
+  )
+    issues.push({
+      key,
+      type: node._type,
+      path: "design.gradient",
+      message: "Use 2–12 valid colour stops and an angle from 0 to 360.",
+    });
   for (const field of ["spaceBefore", "spaceAfter"] as const) {
     const value = node.design?.[field];
     if (value !== undefined && !(BLOCK_SPACING as readonly unknown[]).includes(value)) {
