@@ -22,9 +22,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   counted as coverage. No public renderer or Original builder changes.
 - Local formatting, ESLint, TypeScript, environment declarations and 2,555
   tests in 130 files passed. Hosted browser verification remains pending.
-- PR #98 static/unit, integration and build passed at last inspection; browser
-  verification is running. Its section backgrounds and form typography remain
-  included. Bespoke section text-part mappings remain unfinished.
+- PR #98 passed all hosted gates, merged as `2fb8a0f740b3b729c35c6091b5eb83524ad1921a`
+  and Railway confirmed production success. PR #99 initially failed its new
+  E2E resize assertion after moving a full-width element beyond the visible
+  canvas edge. The test now moves inward and explicitly checks pointer hit
+  testing before each drag; full hosted verification is required again.
+  Section backgrounds and form typography remain included. Bespoke section
+  text-part mappings remain unfinished.
 
 ### 2026-09-07 — Section background media and form typography
 

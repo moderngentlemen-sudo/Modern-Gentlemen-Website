@@ -111,6 +111,13 @@ test.describe("grid canvas and widget studio", () => {
     const drag = async (name: string, dx: number, dy: number) => {
       const handle = page.getByRole("button", { name, exact: true });
       const box = (await handle.boundingBox())!;
+      await expect(handle).toBeVisible();
+      expect(
+        await handle.evaluate((e) => {
+          const r = e.getBoundingClientRect();
+          return e.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        })
+      ).toBe(true);
       await page.keyboard.down("Alt");
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
@@ -119,11 +126,11 @@ test.describe("grid canvas and widget studio", () => {
       await page.keyboard.up("Alt");
     };
     const before = (await frame.getByRole("heading", { name: "Free heading" }).boundingBox())!;
-    await drag("Move freely", 24, 16);
+    await drag("Move freely", -24, 16);
     const visual = frame.locator("[data-mg-visual]");
     await expect(visual).toHaveCount(1);
     const moved = (await visual.boundingBox())!;
-    expect(moved.x).toBeGreaterThan(before.x + 15);
+    expect(moved.x).toBeLessThan(before.x - 15);
     await drag("Resize element e", -32, 0);
     const resized = (await visual.boundingBox())!;
     expect(resized.width).toBeLessThan(moved.width - 20);
