@@ -152,6 +152,7 @@ export function Drawer({
   return (
     <div
       data-screen-label="Menu"
+      data-mobile-canvas="dark"
       role="dialog"
       aria-modal="true"
       aria-label="Menu"

@@ -13,6 +13,7 @@ export function BagDrawer({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <OverlayScrim open={open} onClose={onClose} align="right" label="Bag" id="mg-bag-drawer">
       <aside
+        data-mobile-canvas={open ? "surface" : undefined}
         className="h-full w-full max-w-[440px] ml-auto bg-mg-surface text-mg-fg flex flex-col animate-[slideInRight_.26s_ease]"
         style={{
           paddingTop: "var(--mg-safe-top)",

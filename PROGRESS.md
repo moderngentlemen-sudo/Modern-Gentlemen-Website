@@ -8,6 +8,43 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Mobile body canvas separation (review branch)
+
+- Fetched main at `8755e47a0ebc8c620c4a8c54b91ea0f7597117db`, merged
+  PR #90. Fresh GitHub checks confirm its final head `68a6a07` passed static/unit,
+  integration and E2E/visual/accessibility; Railway reports success on the actual
+  merge SHA. The Supabase Preview skip is provisioning, not test coverage.
+  Older entries below recording pending checks are historical.
+- The user still saw the pale Safari toolbar on iOS 26.4. A separate private
+  diagnostic produced physical-device screenshots: A/B (light body, including
+  dark root) stayed pale; C (dark body) turned dark; D–G retained dark toolbar
+  paint with opaque/translucent/blurred overlays and fixed-body scroll locking.
+  This supports a body-background correction, not proof of a WebKit root cause
+  or a verified fix in the full app. Some screenshots differ in toolbar expansion.
+- At the existing <=680px breakpoint, stock chrome now separates body canvas
+  paint from main's unchanged theme background. The body continues the stock
+  footer, changes to the theme surface for the bag, and stays dark for menu/search.
+  Markers track open panes through their exit animations; the hidden prepared
+  search shell emits no active marker. CSS removes the override on close without
+  effects, scroll listeners, new wrappers or scroll-lock changes.
+- Custom header/footer templates retain their original body backdrop, because
+  transparent normal-flow template sections can live outside main. Footerless
+  and standalone pages retain the theme canvas while panes are closed. Desktop,
+  public content, theme tokens, section designs, toolchain and migrations are
+  unchanged. Custom chrome toolbar matching remains outside this scoped fix.
+- Local format, lint, TypeScript, environment declarations and all 2,525 tests
+  in 123 files pass. Browser regressions cover both themes, actual pane opening
+  and closing, hidden search, footer visibility, custom chrome exclusions and
+  desktop fallback; existing geometry/safe-area checks remain. No reachable
+  seeded local environment is configured, so build/integration/browser/visual/
+  accessibility/performance verification awaits hosted CI. No skipped local
+  browser run is represented as coverage. Main and production are unchanged.
+- Expected a general viewport/blur issue; the user's reduced comparisons instead
+  isolated body paint as the useful lead. After review and authorized deployment,
+  still verify on the user's iPhone: footer, menu, search with keyboard open and
+  dismissed, bag in both themes, and toolbar expansion/rotation. Do not call the
+  physical Safari issue fixed before that check.
+
 ### 2026-09-06 — Safari safe-area follow-up (review branch)
 
 - PR #90 initial hosted run `34061111151` passed static/unit, integration and

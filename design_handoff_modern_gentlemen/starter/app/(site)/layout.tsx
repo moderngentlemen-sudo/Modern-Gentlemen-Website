@@ -59,7 +59,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <CatalogProvider products={products}>
       <CartProvider>
-        <div data-site-chrome="header" style={{ display: "contents" }}>
+        <div
+          data-site-chrome="header"
+          data-default-header={headerTemplate ? undefined : "true"}
+          style={{ display: "contents" }}
+        >
           {headerTemplate ? (
             <SectionRenderer
               sections={headerTemplate}
