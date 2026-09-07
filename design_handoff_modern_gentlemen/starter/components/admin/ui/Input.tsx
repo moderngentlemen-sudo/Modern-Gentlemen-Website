@@ -52,7 +52,7 @@ export interface TextInputProps {
   value: string;
   onChange: (value: string) => void;
   name?: string;
-  type?: "text" | "url" | "email" | "password" | "datetime-local";
+  type?: "text" | "url" | "email" | "password" | "datetime-local" | "color";
   placeholder?: string;
   help?: string;
   error?: string;

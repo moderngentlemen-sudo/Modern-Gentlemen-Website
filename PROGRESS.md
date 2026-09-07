@@ -8,6 +8,40 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Builder Text and Heading typography (review branch)
+
+- Based on main `a47377babe1ef07e5a560b9b2d2e9dd82bd69052`, merged PR #91.
+  Its full hosted gates and Railway deployment passed; live HTML/CSS contained
+  the canvas fix, and the user subsequently confirmed the reported Safari
+  footer/panel issues appear completely resolved on their iPhone. No additional
+  Safari change is proposed. Earlier pending verification entries are historical.
+- Audited actual controls: Heading already had font-role and responsive size
+  presets; Text had style presets. Added optional font family (the existing 13
+  curated presets), exact font size (8–240px), and colour picker/hex entry to both
+  native elements through their manifests and the existing field/store pipeline.
+  These apply to the whole element, not selected inline words or unrelated text
+  fields in high-fidelity sections. Uploaded webfonts remain available through
+  existing theme roles; no provider, font upload or dependency work was added.
+- Overrides survive normalization and use the same renderer in canvas and public
+  output. Rich-text headings/quotes honour an explicit family while preserving
+  emphasis and semantics; inline code retains its monospace style. Absent settings
+  emit no inline style, so legacy designs and responsive presets remain intact.
+  Clearing family/size restores presets; clearing colour restores inheritance.
+  A fixed size overrides the responsive preset on every device, as the UI explains.
+- Added a bounded six-digit hex colour field kind with publish validation, picker,
+  hex entry and inheritance reset. Runtime styles also reject malformed values.
+  Custom colours apply in both themes; editors must choose appropriate contrast.
+- Formatting, lint, TypeScript, environment declarations and 2,532 unit/component
+  tests in 124 files pass. Added seven regressions for normalization/validation,
+  rendering, unchanged legacy markup and colour editing/reset, plus a seeded
+  browser journey for edit/save/reload/publish and computed typography. Hosted
+  build/integration/E2E/visual/accessibility/performance checks are pending. No
+  seeded local environment is configured; skipped browser tests are not coverage.
+- Expected to extend a broad typography inspector; the actual gap was native
+  text element fields. The implementation is additive and does not change stored
+  content, migrations, existing theme tokens or public section defaults. Main and
+  production remain unchanged pending separate review and merge authorization.
+
 ### 2026-09-07 — Mobile body canvas separation (review branch)
 
 - Fetched main at `8755e47a0ebc8c620c4a8c54b91ea0f7597117db`, merged

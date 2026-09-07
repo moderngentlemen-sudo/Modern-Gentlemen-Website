@@ -32,7 +32,7 @@ export interface FieldBase {
  * `image` opens the media library, `richText` gets a formatting bar, `url`
  * validates a href — so they share one runtime shape.
  */
-export type StringKind = "text" | "textarea" | "richText" | "url" | "image" | "video";
+export type StringKind = "text" | "textarea" | "richText" | "url" | "image" | "video" | "color";
 
 export interface StringField extends FieldBase {
   readonly kind: StringKind;
@@ -102,6 +102,7 @@ export const field = {
   text: stringField("text"),
   textarea: stringField("textarea"),
   richText: stringField("richText"),
+  color: stringField("color"),
   url: stringField("url"),
   image: stringField("image"),
   video: stringField("video"),
@@ -166,6 +167,8 @@ export function fieldToZod(f: Field, strict = false): ZodTypeAny {
 
 function baseSchema(f: Field, strict: boolean): ZodTypeAny {
   switch (f.kind) {
+    case "color":
+      return z.string().regex(/^#[0-9a-f]{6}$/i, "Use a six-digit hex colour, such as #123456.");
     case "text":
     case "textarea":
     case "richText":

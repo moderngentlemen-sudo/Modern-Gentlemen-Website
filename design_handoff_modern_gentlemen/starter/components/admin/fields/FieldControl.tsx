@@ -92,6 +92,34 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
     );
 
   switch (field.kind) {
+    case "color":
+      return (
+        <div>
+          <TextInput
+            {...common}
+            type="color"
+            value={
+              /^#[0-9a-f]{6}$/i.test(asString(displayValue)) ? asString(displayValue) : "#000000"
+            }
+            onChange={writeString}
+          />
+          <TextInput
+            label={`${field.label} hex`}
+            disabled={ctx.disabled}
+            value={asString(displayValue)}
+            placeholder="Inherited"
+            onChange={(next) => (next === "" ? ctx.clear(path) : ctx.write(path, next))}
+          />
+          <button
+            type="button"
+            disabled={ctx.disabled || value === undefined}
+            onClick={() => ctx.clear(path)}
+            className="mb-3 text-xs underline disabled:opacity-50"
+          >
+            {value === undefined ? "Inherited colour" : "Use inherited colour"}
+          </button>
+        </div>
+      );
     case "text":
     case "url":
       return withInheritance(

@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, type CSSProperties } from "react";
 
 import { clsx } from "./clsx";
 
@@ -118,15 +118,27 @@ function parseBlocks(value: string): Block[] {
   return blocks;
 }
 
-export function RichTextContent({ value, className }: { value: string; className?: string }) {
+export function RichTextContent({
+  value,
+  className,
+  style,
+}: {
+  value: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <div className={clsx("space-y-[0.9em] text-pretty", className)}>
+    <div className={clsx("space-y-[0.9em] text-pretty", className)} style={style}>
       {parseBlocks(value).map((block, index) => {
         const key = `${block.kind}-${index}`;
         if (block.kind === "heading") {
           const Tag = `h${block.level}` as "h2" | "h3" | "h4";
           return (
-            <Tag key={key} className="font-grotesk font-semibold leading-tight text-balance">
+            <Tag
+              key={key}
+              className="font-grotesk font-semibold leading-tight text-balance"
+              style={style?.fontFamily ? { fontFamily: style.fontFamily } : undefined}
+            >
               {inlineContent(block.content)}
             </Tag>
           );
@@ -135,6 +147,7 @@ export function RichTextContent({ value, className }: { value: string; className
           return (
             <blockquote
               key={key}
+              style={style?.fontFamily ? { fontFamily: style.fontFamily } : undefined}
               className="whitespace-pre-line border-l-2 border-mg-accent pl-4 font-serif text-[1.1em] italic"
             >
               {inlineContent(block.content)}

@@ -1,5 +1,6 @@
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
+import { textTypographyFields } from "../textTypography";
 
 const ALIGN_OPTIONS = [
   { value: "start", label: "Start" },
@@ -20,6 +21,7 @@ export const nativeHeading = defineBlock({
   description: "A semantic heading with independent type, scale, alignment and width controls.",
   fields: {
     text: field.textarea({ label: "Text", required: true }),
+    ...textTypographyFields,
     level: field.select({
       label: "Semantic level",
       default: "h2",
@@ -79,6 +81,7 @@ export const nativeText = defineBlock({
       required: true,
       help: "Format headings, emphasis, links, quotations and lists without leaving the builder.",
     }),
+    ...textTypographyFields,
     style: field.select({
       label: "Text style",
       default: "body",

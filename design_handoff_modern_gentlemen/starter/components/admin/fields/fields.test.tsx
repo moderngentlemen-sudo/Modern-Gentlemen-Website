@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { field, options, type Field } from "@/lib/blocks/fields";
@@ -58,6 +58,13 @@ function renderField(f: Field, value: unknown, issues: BlockIssue[] = []) {
 }
 
 describe("every runtime field kind renders a control", () => {
+  it("writes a colour and clears it back to inheritance", async () => {
+    const ctx = renderField(field.color({ label: "Text colour" }), "#123456");
+    fireEvent.change(screen.getByLabelText("Text colour"), { target: { value: "#abcdef" } });
+    expect(ctx.writes).toContainEqual(["target", "#abcdef"]);
+    await userEvent.click(screen.getByRole("button", { name: "Use inherited colour" }));
+    expect(ctx.writes).toContainEqual(["target", "<cleared>"]);
+  });
   const cases: [string, Field, unknown][] = [
     ["text", field.text({ label: "Headline" }), "Hello"],
     ["textarea", field.textarea({ label: "Standfirst" }), "Body"],
