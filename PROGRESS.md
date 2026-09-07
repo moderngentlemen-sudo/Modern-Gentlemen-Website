@@ -8,6 +8,24 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Free canvas alignment and attached handles
+
+- Canvas Preview now snaps free moves to sibling edges and centers and detects
+  equal horizontal spacing between nearby siblings. Guides appear during a
+  gesture; Alt bypass and the existing 8px grid remain available.
+- Move and eight resize handles follow the rendered visual bounds, including
+  live offsets and dimensions. Move handle is centered above the element.
+  Changes retain the per-device visual schema and single-commit undo behavior.
+- Added four snapping regressions and a signed-in browser journey covering
+  free move, side resize, handle alignment and two independent undo steps.
+  The browser journey requires hosted seeded verification; local skips are not
+  counted as coverage. No public renderer or Original builder changes.
+- Local formatting, ESLint, TypeScript, environment declarations and 2,555
+  tests in 130 files passed. Hosted browser verification remains pending.
+- PR #98 static/unit, integration and build passed at last inspection; browser
+  verification is running. Its section backgrounds and form typography remain
+  included. Bespoke section text-part mappings remain unfinished.
+
 ### 2026-09-07 — Section background media and form typography
 
 - Fetched main `7307fabf37f05550b6260951f2954216770c8e30` (PR #97). Its
