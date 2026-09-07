@@ -48,6 +48,8 @@ import { Select } from "@/components/admin/ui/Select";
 import { CONTROL, HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
 import { FieldShell, TextInput } from "@/components/admin/ui/Input";
 import { BindingEditor, BindingModeSwitch } from "@/components/admin/fields/BindingEditor";
+import { useEditorExperience } from "./EditorExperience";
+import { GradientEditor } from "./GradientEditor";
 import { FieldControl, type ControlContext } from "@/components/admin/fields/FieldControl";
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
 
@@ -259,6 +261,7 @@ function BlockProperties({
     const at = locate(s.tree, node._key);
     return !!at?.parentKey && findBlock(s.tree, at.parentKey)?._type === "gridLayout";
   });
+  const experience = useEditorExperience();
   const key = node._key;
   const locked = node.locked === true;
 
@@ -360,6 +363,14 @@ function BlockProperties({
       )}
 
       {inGrid && <GridPlacementEditor node={node} />}
+      {experience.modern && (
+        <GradientEditor
+          disabled={locked}
+          value={node.design?.gradient}
+          onChange={(gradient) => setDesign(key, { gradient })}
+          onPreview={(value) => experience.preview(["$gradient"], value)}
+        />
+      )}
       <PanelSection title="Content" issueCount={issues.filter((i) => i.path !== "").length}>
         {Object.entries(manifest.fields).map(([name, field]) =>
           name === "variant" && ["mgDesignStudio", "comingSoonStudio"].includes(node._type) ? (

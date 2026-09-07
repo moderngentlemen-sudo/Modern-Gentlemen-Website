@@ -115,6 +115,15 @@ test.describe("grid canvas and widget studio", () => {
     await expect(handle).toBeVisible();
     await page.getByRole("button", { name: "Canvas builder · Preview", exact: true }).click();
     await expect(page.getByRole("button", { name: "Resize grid e", exact: true })).toBeVisible();
+    await page.getByLabel("Gradient direction", { exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator('[data-block-key="heading"] [style*="linear-gradient"]')).toHaveCount(
+      1
+    );
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(page.locator('[data-block-key="heading"] [style*="linear-gradient"]')).toHaveCount(
+      0
+    );
     await page.getByRole("button", { name: "Original builder", exact: true }).click();
     await expect(page.getByRole("button", { name: "Resize grid e", exact: true })).toHaveCount(0);
     await expect(handle).toBeVisible();

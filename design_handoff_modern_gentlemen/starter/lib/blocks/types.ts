@@ -1,3 +1,4 @@
+import type { Gradient } from "../domain/gradient";
 /**
  * Block tree vocabulary — the shapes every other part of the builder speaks.
  *
@@ -28,6 +29,7 @@ export type BlockSpacing = (typeof BLOCK_SPACING)[number];
 
 /** Universal presentation controls that sit outside a block's content contract. */
 export interface BlockDesign {
+  gradient?: Gradient;
   /** Additional space outside the section; the section keeps its own internal composition. */
   spaceBefore?: BlockSpacing;
   spaceAfter?: BlockSpacing;

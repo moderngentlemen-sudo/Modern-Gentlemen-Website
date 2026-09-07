@@ -1,5 +1,7 @@
 "use client";
 
+import type { VisualStyle } from "@/lib/blocks/visual";
+
 import { PagePresentation } from "@/components/PagePresentation";
 
 import {
@@ -21,6 +23,7 @@ import { CartProvider } from "@/lib/cart/CartProvider";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
+import { FreeCanvasControls } from "./FreeCanvasControls";
 import { useEditorExperience } from "./EditorExperience";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
@@ -726,7 +729,8 @@ function SortableBlock({
   drop: DropLocation | null;
   depth: number;
 }) {
-  const { renderNode } = useEditorExperience();
+  const { renderNode, modern } = useEditorExperience();
+  const [freePreview, setFreePreview] = useState<VisualStyle | null>(null);
   const previewNode = renderNode(node);
   const inGrid = useBuilder(
     (s) => parentKey !== null && findBlock(s.tree, parentKey)?._type === "gridLayout"
@@ -892,8 +896,15 @@ function SortableBlock({
         )}
         data-preview-hidden={hidden || hiddenOnDevice || undefined}
       >
-        <BlockDesignFrame design={node.design}>
-          <VisualElementFrame blockKey={node._key} visual={node.visual}>
+        <BlockDesignFrame design={previewNode.design}>
+          <VisualElementFrame
+            blockKey={node._key}
+            visual={
+              freePreview
+                ? { ...node.visual, styles: { ...node.visual?.styles, [device]: freePreview } }
+                : node.visual
+            }
+          >
             {isRef ? (
               <PatternRefCard
                 name={pattern?.name}
@@ -957,7 +968,10 @@ function SortableBlock({
       />
 
       {selected && inGrid && !locked && <GridControls node={node} onPreview={setGridPreview} />}
-      {selected && selectedKeys.length === 1 && !locked && !inGrid && (
+      {modern && selected && selectedKeys.length === 1 && !locked && !inGrid && (
+        <FreeCanvasControls node={node} onPreview={setFreePreview} />
+      )}
+      {!modern && selected && selectedKeys.length === 1 && !locked && !inGrid && (
         <>
           <div
             aria-hidden="true"
@@ -1060,9 +1074,10 @@ function SortableBlock({
 }
 
 function PageCanvasPresentation({ children }: { children: React.ReactNode }) {
+  const { renderPage } = useEditorExperience();
   const settings = useBuilder((s) => (s.doc.type === "page" ? s.doc.rest.pageSettings : undefined));
   return (
-    <PagePresentation preview settings={settings}>
+    <PagePresentation preview settings={renderPage(settings)}>
       {children}
     </PagePresentation>
   );

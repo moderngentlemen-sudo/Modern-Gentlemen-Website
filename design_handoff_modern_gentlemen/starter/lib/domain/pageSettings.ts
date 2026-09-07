@@ -1,3 +1,4 @@
+import { gradientSchema } from "./gradient";
 import { z } from "zod";
 
 function isMediaUrl(value: string): boolean {
@@ -29,6 +30,7 @@ export const pageSettingsSchema = z
     socialDescription: z.string().max(1000).optional(),
     socialImage: mediaUrl.optional(),
     noIndex: z.boolean().optional(),
+    backgroundGradient: gradientSchema.optional(),
     backgroundColor: z
       .string()
       .regex(/^$|^#[0-9a-f]{6}$/i, "Use a six-digit hex color.")

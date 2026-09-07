@@ -1,3 +1,4 @@
+import { gradientCss } from "@/lib/domain/gradient";
 import { BLOCK_SPACING, type BlockDesign, type BlockSpacing } from "@/lib/blocks/types";
 
 const SPACING: Record<BlockSpacing, string> = {
@@ -27,9 +28,11 @@ export function BlockDesignFrame({
   design?: BlockDesign;
   children: React.ReactNode;
 }) {
+  const backgroundImage = gradientCss(design?.gradient);
   const paddingTop = spacing(design?.spaceBefore);
   const paddingBottom = spacing(design?.spaceAfter);
-  if (paddingTop === undefined && paddingBottom === undefined) return <>{children}</>;
+  if (!backgroundImage && paddingTop === undefined && paddingBottom === undefined)
+    return <>{children}</>;
 
-  return <div style={{ paddingTop, paddingBottom }}>{children}</div>;
+  return <div style={{ paddingTop, paddingBottom, backgroundImage }}>{children}</div>;
 }

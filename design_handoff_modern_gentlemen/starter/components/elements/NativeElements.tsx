@@ -1,3 +1,4 @@
+import { mediaAppearanceStyle, type MediaAppearance } from "@/lib/blocks/mediaAppearance";
 import type { CSSProperties, ElementType } from "react";
 import Link from "next/link";
 
@@ -167,6 +168,8 @@ const ASPECT = {
 } as const;
 
 export function NativeImage({
+  appearance,
+  captionTypography,
   src,
   alt = "",
   caption,
@@ -174,6 +177,8 @@ export function NativeImage({
   fit = "cover",
   position = "center",
 }: {
+  appearance?: MediaAppearance;
+  captionTypography?: TextTypography;
   src: string;
   alt?: string;
   caption?: string;
@@ -183,8 +188,10 @@ export function NativeImage({
 }) {
   return (
     <figure>
+      <FontStylesheet font={captionTypography?.fontFamily} />
       {/* eslint-disable-next-line @next/next/no-img-element -- builder media may use any approved external provider */}
       <img
+        style={mediaAppearanceStyle(appearance)}
         src={src}
         alt={alt}
         loading="lazy"
@@ -200,7 +207,14 @@ export function NativeImage({
               : "object-center"
         )}
       />
-      {caption && <figcaption className="mt-2 text-[12px] text-mg-fg/60">{caption}</figcaption>}
+      {caption && (
+        <figcaption
+          style={textTypographyStyle(captionTypography ?? {})}
+          className="mt-2 text-[12px] text-mg-fg/60"
+        >
+          {caption}
+        </figcaption>
+      )}
     </figure>
   );
 }
@@ -218,6 +232,7 @@ const BUTTON_SIZE = {
 } as const;
 
 export function NativeButton({
+  typography,
   label,
   href,
   variant = "solid",
@@ -225,6 +240,7 @@ export function NativeButton({
   align = "start",
   newTab = false,
 }: {
+  typography?: TextTypography;
   label: string;
   href: string;
   variant?: keyof typeof BUTTON_VARIANT;
@@ -234,7 +250,9 @@ export function NativeButton({
 }) {
   return (
     <div className={ALIGN[align]}>
+      <FontStylesheet font={typography?.fontFamily} />
       <Link
+        style={textTypographyStyle(typography ?? {})}
         href={href}
         target={newTab ? "_blank" : undefined}
         rel={newTab ? "noopener noreferrer" : undefined}
@@ -263,16 +281,30 @@ const DIVIDER_WEIGHT = {
 } as const;
 
 export function NativeDivider({
+  thickness,
+  color,
   lineStyle = "solid",
   weight = "hairline",
   width = "full",
 }: {
+  thickness?: number;
+  color?: string;
   lineStyle?: "solid" | "dashed" | "dotted";
   weight?: keyof typeof DIVIDER_WEIGHT;
   width?: keyof typeof DIVIDER_WIDTH;
 }) {
   return (
     <hr
+      style={{
+        borderTopWidth:
+          typeof thickness === "number" &&
+          Number.isFinite(thickness) &&
+          thickness >= 1 &&
+          thickness <= 64
+            ? thickness
+            : undefined,
+        borderColor: color && /^#[0-9a-f]{6}$/i.test(color) ? color : undefined,
+      }}
       className={clsx(
         "m-0 border-x-0 border-b-0 border-mg-bd/25",
         DIVIDER_WEIGHT[weight],

@@ -8,6 +8,33 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Canvas controls expansion
+
+- Based on fetched main `6616de5` after PR #96. User authorizes building and
+  deploying the alternative editor, while retaining Original. No removal or
+  conversion of existing pages is authorized.
+- Added optional validated page/section gradients (2–12 six-digit hex stops,
+  bounded positions/direction), live direction/color preview, draggable stop
+  color ordering and a keyboard reorder alternative. Preview state remains
+  outside history/autosave; commit enters the established pipeline. Original
+  renderer markup stays unchanged without settings; opaque sections still cover
+  their own backgrounds.
+- Added native image/video appearance (brightness, contrast, saturation,
+  grayscale, opacity, corner radius, focal coordinates), caption typography,
+  button typography and exact divider thickness/color. Defaults remain unchanged.
+- Added opt-in free move/resize handles outside grids using existing per-device
+  bounded visual dimensions/offsets and 8px snapping (Alt bypass). Relative
+  positioning retains flow; explicit absolute positioning retains its semantics.
+  Gestures preview locally, commit once, cancel on Escape/capture loss/unmount.
+- Local formatting, lint, TypeScript, environment declarations and 2,546 tests
+  in 128 files passed. Browser fixture extended for gradient application/undo.
+  Hosted build/integration/browser/visual/a11y/performance verification pending;
+  no local seeded environment. No skipped test is considered coverage.
+- Remaining gap to the full prototype contract: richer peer/equal-spacing guides,
+  text-part mapping for all bespoke high-fidelity sections/forms, additional
+  image transforms and section media backgrounds. Do not label the complete
+  builder finished based on this controls expansion. Both modes remain available.
+
 ### 2026-09-07 — Parallel canvas editor, first integration
 
 - User explicitly requires **both editor experiences remain available** until
