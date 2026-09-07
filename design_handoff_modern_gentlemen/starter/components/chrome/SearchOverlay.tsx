@@ -184,6 +184,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       hidden={!open}
       id="mg-search-overlay"
       data-screen-label="Search"
+      data-mobile-canvas={open ? "dark" : undefined}
       role="dialog"
       aria-modal="true"
       aria-label="Search"

@@ -182,17 +182,39 @@ body > [data-site-main] {
   min-width: 0;
 }
 
-/* Safari can expose the root canvas below the document through its bottom
-   toolbar. Continue the stock footer there, without recoloring page content,
-   desktop scrollbar gutters, custom footer templates or footerless pages. */
+/* Real iPhone comparisons showed that a dark root with a light body still
+   produces a pale toolbar. Separate canvas paint from visible main content.
+   Keep custom chrome on its original backdrop: its templates can include
+   transparent, normal-flow sections outside main. Desktop stays unchanged. */
 @media (max-width: 680px) {
+  html {
+    --mg-mobile-canvas: var(--mg-bg);
+  }
   html:has([data-site-chrome="footer"][data-default-footer="true"]):not(
       :has(
         [data-site-main] [data-after-hours-standalone="true"],
         [data-page-presentation="public"][data-page-mobile-footer="hidden"]
       )
     ) {
+    --mg-mobile-canvas: #0d0d0d;
     background: #0d0d0d;
+  }
+
+  body:has(> [data-site-main]):has([data-default-header="true"]):has([data-default-footer="true"]) {
+    background: var(--mg-active-mobile-canvas, var(--mg-mobile-canvas));
+  }
+  body:has([data-default-header="true"]):has([data-default-footer="true"]) > [data-site-main] {
+    background: var(--mg-bg);
+  }
+
+  /* Markers follow actual mounted/open panes, including their exit animation.
+     A prepared but hidden search shell must never tint the closed page. The
+     darker search/menu panes paint above the bag when both exist. */
+  html:has([data-mobile-canvas="surface"]) {
+    --mg-active-mobile-canvas: var(--mg-surface);
+  }
+  html:has([data-mobile-canvas="dark"]) {
+    --mg-active-mobile-canvas: #0d0d0d;
   }
 }
 
