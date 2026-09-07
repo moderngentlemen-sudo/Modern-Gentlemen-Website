@@ -97,6 +97,75 @@ test.describe("grid canvas and widget studio", () => {
       .analyze();
     expect(results.violations).toEqual([]);
   });
+  test("V2 isolates its viewport and round-trips edits back to Original without losing payload keys", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const client = createClient(url!, key!, { auth: { persistSession: false } });
+    const { error } = await client
+      .from("pages")
+      .update({
+        draft_data: {
+          customV2Sentinel: { retained: true },
+          sections: [
+            {
+              _key: "v2text",
+              _type: "nativeHeading",
+              settings: { text: "V2 heading" },
+              visual: { styles: { desktop: { widthPx: 320 } } },
+            },
+          ],
+        },
+      })
+      .eq("id", id);
+    if (error) throw error;
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/sign-in");
+    await page.getByLabel("Email", { exact: true }).fill(email!);
+    await page.getByLabel("Password", { exact: true }).fill(password!);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin/);
+    await page.goto(`/admin/pages/${id}/v2`);
+    const canvas = page.frameLocator('iframe[title="Builder V2 canvas"]');
+    const node = canvas.locator('[data-v2-block="v2text"]');
+    await expect(node).toBeVisible();
+    await node.click();
+    await expect(canvas.getByRole("button", { name: "V2 resize e", exact: true })).toBeVisible();
+    const before = (await node.locator("[data-mg-visual]").boundingBox())!;
+    const handle = canvas.getByRole("button", { name: "V2 resize e", exact: true });
+    const box = (await handle.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 32, box.y + box.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await expect
+      .poll(async () => (await node.locator("[data-mg-visual]").boundingBox())!.width)
+      .toBeGreaterThan(before.width + 20);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect
+      .poll(async () => (await node.locator("[data-mg-visual]").boundingBox())!.width)
+      .toBeCloseTo(before.width, 0);
+    await page.getByRole("button", { name: "mobile", exact: true }).click();
+    await expect
+      .poll(() => canvas.locator("html").evaluate((e) => e.ownerDocument.defaultView!.innerWidth))
+      .toBe(390);
+    await page.getByLabel("Text", { exact: true }).fill("Edited in V2");
+    await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15000 });
+    await page.getByRole("button", { name: "Return to Original", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/pages/${id}$`));
+    await expect(
+      page.getByRole("button", { name: "Original builder", exact: true })
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-block-key="v2text"]')).toContainText("Edited in V2");
+    const { data, error: readError } = await client
+      .from("pages")
+      .select("draft_data")
+      .eq("id", id)
+      .single();
+    if (readError) throw readError;
+    expect(data.draft_data).toMatchObject({ customV2Sentinel: { retained: true } });
+  });
   test("free handles follow moved and resized content, with one-step undo", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto("/sign-in");
