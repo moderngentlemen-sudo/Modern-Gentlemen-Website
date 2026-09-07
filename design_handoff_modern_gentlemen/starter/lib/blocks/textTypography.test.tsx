@@ -6,6 +6,28 @@ import { manifestFor } from "./manifests";
 import { textTypographyStyle } from "./textTypography";
 
 describe("builder text typography", () => {
+  it("preserves widget part typography through normalization and rejects unsafe formatting", () => {
+    const settings = {
+      typography: {
+        display: { fontFamily: "google:Lora", fontSize: 56 },
+        labels: { letterSpacing: 0.12, textColor: "#123456" },
+      },
+    };
+    expect(manifestFor("widgetStudio")!.schema.safeParse(settings).success).toBe(true);
+    expect(normalizeBlock({ _type: "widgetStudio", _key: "timer", settings })).toMatchObject(
+      settings
+    );
+    for (const invalid of [
+      { lineHeight: 4 },
+      { letterSpacing: Infinity },
+      { textTransform: "bad" },
+      { textDecoration: "url(evil)" },
+    ]) {
+      expect(
+        manifestFor("widgetStudio")!.schema.safeParse({ typography: { labels: invalid } }).success
+      ).toBe(false);
+    }
+  });
   for (const type of ["nativeText", "nativeHeading"]) {
     const content = type === "nativeText" ? { content: "Text" } : { text: "Heading" };
     it(`${type} persists overrides through the public normalization path`, () => {

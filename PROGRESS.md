@@ -8,6 +8,34 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Widget text-part controls (review branch)
+
+- Fetched main at `ed71600031a0308802d00214657d110cb512862f` and verified PR #94
+  merged. Older pending font-library entries below and CODEX_HANDOFF.md describe
+  historical states. Work is isolated on `feat/builder-widget-text-controls`.
+- Integrated the approved text-part concept into Widget Studio: heading,
+  countdown numbers/display text, countdown unit labels, supporting/panel text
+  and attribution, control labels, and email input have independent optional
+  typography groups. These reuse the existing 1,946-family catalogue and font
+  loading, manifest validation, normalization, autosave and undo/redo pipeline.
+- Shared typography now supports bounded line/letter spacing, alignment, case
+  and decoration, also wired to native Heading/Text. Empty settings emit no
+  overrides. Existing responsive sizes, widget semantics and public actions are
+  preserved. No production copy, credentials, dependencies or migrations changed.
+- Formatting, lint, TypeScript, environment declarations and 2,540 tests in 126
+  files pass. Added independent timer-part/tick, legacy markup, tab styling and
+  validation/normalization regressions. Extended the isolated browser fixture
+  with computed-style assertions; hosted checks pending. Local build, integration,
+  browser, visual, accessibility and performance gates are blocked by no seeded
+  Supabase environment. These are not represented as passed or skipped coverage.
+- Scope: this ports widget text settings, not the entire standalone playground.
+  Canvas font/color hover transactions, additional media controls, draggable
+  multistop gradients and universal text-part controls for remaining high-fidelity
+  sections/native media/forms are still engineering work. The preview's six-font
+  sample list was not copied over the actual catalogue. No merge or deployment.
+- Expected a single widget font field; independent roles required shared schema
+  extensions and renderer wiring so defaults and interactive behavior survive.
+
 ### 2026-09-07 — Searchable builder font library (stacked review branch)
 
 - `feat/builder-font-library` extends open PR #92 at

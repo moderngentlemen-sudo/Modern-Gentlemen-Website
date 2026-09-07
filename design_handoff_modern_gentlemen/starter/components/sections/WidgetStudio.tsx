@@ -5,8 +5,12 @@ import { studyHref } from "@/lib/blocks/sectionStudies";
 import { SIGNUP_MESSAGE, useNewsletterSignup } from "../ui/useNewsletterSignup";
 import { SocialIcon } from "./AfterHoursLanding";
 import styles from "./WidgetStudio.module.css";
+import { textTypographyStyle, type TextTypography } from "@/lib/blocks/textTypography";
+import { FontStylesheet } from "../ui/FontStylesheet";
+type TextPart = "heading" | "display" | "labels" | "body" | "controls" | "input";
 type Item = { title: string; text?: string; href?: string; network?: string };
 interface Props {
+  typography?: Partial<Record<TextPart, TextTypography>>;
   previewDevice?: "desktop" | "tablet" | "mobile";
   variant?: string;
   title?: string;
@@ -28,6 +32,7 @@ interface Props {
   items?: Item[];
 }
 export function WidgetStudio({
+  typography,
   previewDevice,
   variant = "countdown",
   title,
@@ -62,6 +67,7 @@ export function WidgetStudio({
     }, 1000);
     return () => clearInterval(timer);
   }, [variant, target]);
+  const textStyle = (part: TextPart) => textTypographyStyle(typography?.[part] ?? {});
   const parts = now === null ? null : countdownParts(target, now);
   const active = Math.min(tab, Math.max(0, items.length - 1));
   const count = Math.max(0, Math.min(100, progress));
@@ -85,19 +91,32 @@ export function WidgetStudio({
         } as CSSProperties
       }
     >
-      {title && <h2 className={styles.title}>{title}</h2>}
+      {Object.entries(typography ?? {}).map(([key, value]) => (
+        <FontStylesheet key={key} font={value.fontFamily} />
+      ))}
+      {title && (
+        <h2 style={textStyle("heading")} className={styles.title}>
+          {title}
+        </h2>
+      )}
       {variant === "countdown" &&
         parts &&
         (Date.parse(target) <= now! ? (
           expired ? (
-            <p className={styles.display}>{expired}</p>
+            <p style={textStyle("display")} className={styles.display}>
+              {expired}
+            </p>
           ) : null
         ) : (
           <div className={styles.timer} role="timer" aria-label="Time until launch">
             {parts.slice(0, seconds ? 4 : 3).map((n, index) => (
               <div key={index} className={styles.unit}>
-                <span className={styles.display}>{String(n).padStart(2, "0")}</span>
-                <small>{["Days", "Hours", "Minutes", "Seconds"][index]}</small>
+                <span style={textStyle("display")} className={styles.display}>
+                  {String(n).padStart(2, "0")}
+                </span>
+                <small style={textStyle("labels")}>
+                  {["Days", "Hours", "Minutes", "Seconds"][index]}
+                </small>
               </div>
             ))}
           </div>
@@ -115,6 +134,7 @@ export function WidgetStudio({
               Email address
             </label>
             <input
+              style={textStyle("input")}
               id={`${id}-email`}
               type="email"
               autoComplete="email"
@@ -141,7 +161,7 @@ export function WidgetStudio({
               </svg>
             </button>
           </form>
-          <p role="status" className={styles.body}>
+          <p role="status" style={textStyle("body")} className={styles.body}>
             {signup.state === "submitting"
               ? "Submitting…"
               : signup.state !== "idle"
@@ -155,7 +175,12 @@ export function WidgetStudio({
           {items
             .filter((item) => item.href && studyHref(item.href))
             .map((item, i) => (
-              <a key={i} href={studyHref(item.href!)} aria-label={item.title}>
+              <a
+                style={textStyle("controls")}
+                key={i}
+                href={studyHref(item.href!)}
+                aria-label={item.title}
+              >
                 {item.network && item.network !== "text" ? (
                   <span className="inline-block h-6 w-6">
                     <SocialIcon network={item.network} />
@@ -170,8 +195,10 @@ export function WidgetStudio({
       {variant === "accordion" &&
         items.map((item, i) => (
           <details key={i} className={styles.details}>
-            <summary>{item.title}</summary>
-            <p className={styles.body}>{item.text}</p>
+            <summary style={textStyle("controls")}>{item.title}</summary>
+            <p style={textStyle("body")} className={styles.body}>
+              {item.text}
+            </p>
           </details>
         ))}
       {variant === "tabs" && items.length > 0 && (
@@ -179,6 +206,7 @@ export function WidgetStudio({
           <div role="tablist" aria-label={title || "Content panels"} className={styles.tabs}>
             {items.map((item, i) => (
               <button
+                style={textStyle("controls")}
                 key={i}
                 id={`${id}-tab-${i}`}
                 role="tab"
@@ -210,6 +238,7 @@ export function WidgetStudio({
               aria-labelledby={`${id}-tab-${i}`}
               tabIndex={0}
               hidden={active !== i}
+              style={textStyle("body")}
               className={styles.body}
             >
               {item.text}
@@ -217,21 +246,37 @@ export function WidgetStudio({
           ))}
         </>
       )}
-      {variant === "stat" && <p className={styles.display}>{value}</p>}
+      {variant === "stat" && (
+        <p style={textStyle("display")} className={styles.display}>
+          {value}
+        </p>
+      )}
       {variant === "progress" && (
         <>
-          <p className={styles.display}>{count}%</p>
+          <p style={textStyle("display")} className={styles.display}>
+            {count}%
+          </p>
           <progress aria-label={title || "Progress"} value={count} max={100} />
         </>
       )}
       {variant === "quote" && (
         <blockquote>
-          <p className={styles.display}>{text}</p>
-          {attribution && <footer className={styles.body}>{attribution}</footer>}
+          <p style={textStyle("display")} className={styles.display}>
+            {text}
+          </p>
+          {attribution && (
+            <footer style={textStyle("body")} className={styles.body}>
+              {attribution}
+            </footer>
+          )}
         </blockquote>
       )}
       {divider && <div className={styles.divider} aria-hidden="true" />}
-      {text && variant !== "quote" && <p className={styles.body}>{text}</p>}
+      {text && variant !== "quote" && (
+        <p style={textStyle("body")} className={styles.body}>
+          {text}
+        </p>
+      )}
     </section>
   );
 }

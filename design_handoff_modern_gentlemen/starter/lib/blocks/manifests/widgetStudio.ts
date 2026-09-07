@@ -1,6 +1,7 @@
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
 import { WIDGET_DESIGNS } from "../widgets";
+import { textTypographyFields } from "../textTypography";
 export const widgetStudio = defineBlock({
   type: "widgetStudio",
   label: "Widget studio",
@@ -8,6 +9,19 @@ export const widgetStudio = defineBlock({
   description:
     "Countdown, signup, social links, accordion, tabs, figures, progress and quotations in one customizable studio.",
   fields: {
+    typography: field.group({
+      label: "Text settings",
+      fields: Object.fromEntries(
+        [
+          ["heading", "Heading"],
+          ["display", "Countdown numbers / display text"],
+          ["labels", "Countdown unit labels"],
+          ["body", "Supporting text / panel content / attribution"],
+          ["controls", "Tabs / accordion labels / social text"],
+          ["input", "Email field"],
+        ].map(([key, label]) => [key, field.group({ label, fields: textTypographyFields })])
+      ),
+    }),
     variant: field.select({
       label: "Widget",
       default: "countdown",
