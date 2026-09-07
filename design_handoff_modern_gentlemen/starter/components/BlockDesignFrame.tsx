@@ -1,3 +1,5 @@
+import { PagePresentation } from "./PagePresentation";
+import { readSectionBackground } from "@/lib/domain/sectionBackground";
 import { gradientCss } from "@/lib/domain/gradient";
 import { BLOCK_SPACING, type BlockDesign, type BlockSpacing } from "@/lib/blocks/types";
 
@@ -28,11 +30,16 @@ export function BlockDesignFrame({
   design?: BlockDesign;
   children: React.ReactNode;
 }) {
+  const media = readSectionBackground(design?.background);
+  const hasMedia = Boolean(media.backgroundColor || media.backgroundImage || media.backgroundVideo);
   const backgroundImage = gradientCss(design?.gradient);
   const paddingTop = spacing(design?.spaceBefore);
   const paddingBottom = spacing(design?.spaceAfter);
-  if (!backgroundImage && paddingTop === undefined && paddingBottom === undefined)
-    return <>{children}</>;
-
-  return <div style={{ paddingTop, paddingBottom, backgroundImage }}>{children}</div>;
+  const content =
+    !backgroundImage && paddingTop === undefined && paddingBottom === undefined ? (
+      <>{children}</>
+    ) : (
+      <div style={{ paddingTop, paddingBottom, backgroundImage }}>{children}</div>
+    );
+  return hasMedia ? <PagePresentation settings={media}>{content}</PagePresentation> : content;
 }

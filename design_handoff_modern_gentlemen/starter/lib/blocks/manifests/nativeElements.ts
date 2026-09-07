@@ -366,6 +366,18 @@ export const nativeForm = defineBlock({
   category: "layout",
   description: "A secure, reusable form with configurable fields and persisted submissions.",
   fields: {
+    typography: field.group({
+      label: "Form text",
+      fields: Object.fromEntries(
+        [
+          ["heading", "Heading"],
+          ["body", "Description and status"],
+          ["labels", "Field labels"],
+          ["inputs", "Entered text and choices"],
+          ["button", "Submit button"],
+        ].map(([key, label]) => [key, field.group({ label, fields: textTypographyFields })])
+      ),
+    }),
     formKey: field.text({
       label: "Form key",
       required: true,

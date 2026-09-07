@@ -1,3 +1,4 @@
+import { readSectionBackground } from "../domain/sectionBackground";
 /**
  * Media references inside a block tree.
  *
@@ -54,6 +55,14 @@ export function collectMediaReferences(tree: BlockTree | undefined): MediaRefere
     const props = blockProps(node);
     const collected: Omit<MediaReference, "key" | "type">[] = [];
     fromFieldSet(manifest.fields, props, [], collected);
+    const background = readSectionBackground(node.design?.background);
+    for (const [field, kind] of [
+      ["backgroundImage", "image"],
+      ["backgroundVideo", "video"],
+    ] as const) {
+      const url = background[field];
+      if (url) collected.push({ fieldPath: `design.background.${field}`, kind, url });
+    }
 
     for (const reference of collected) found.push({ key, type: node._type, ...reference });
   });
