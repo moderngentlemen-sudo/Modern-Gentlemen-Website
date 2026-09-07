@@ -5,6 +5,7 @@ import { clsx } from "@/components/ui/clsx";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { articleEmbedUrl } from "@/lib/domain/articles";
 import { textTypographyStyle, type TextTypography } from "@/lib/blocks/textTypography";
+import { FontStylesheet } from "@/components/ui/FontStylesheet";
 
 const HEADING_SIZE = {
   small: "text-[22px] leading-[1.2]",
@@ -50,6 +51,8 @@ export function NativeHeading({
   fontFamily,
   fontSize,
   textColor,
+  fontWeight,
+  fontStyle,
 }: {
   text: string;
   level?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -61,21 +64,24 @@ export function NativeHeading({
 } & TextTypography) {
   const Tag = level as ElementType;
   return (
-    <Tag
-      style={textTypographyStyle({ fontFamily, fontSize, textColor })}
-      className={clsx(
-        "text-balance",
-        HEADING_SIZE[size],
-        FONT[font],
-        WEIGHT[weight],
-        ALIGN[align],
-        MAX_WIDTH[maxWidth],
-        maxWidth !== "none" && align === "center" && "mx-auto",
-        maxWidth !== "none" && align === "end" && "ml-auto"
-      )}
-    >
-      {text}
-    </Tag>
+    <>
+      <FontStylesheet font={fontFamily} />
+      <Tag
+        style={textTypographyStyle({ fontFamily, fontSize, textColor, fontWeight, fontStyle })}
+        className={clsx(
+          "text-balance",
+          HEADING_SIZE[size],
+          FONT[font],
+          WEIGHT[weight],
+          ALIGN[align],
+          MAX_WIDTH[maxWidth],
+          maxWidth !== "none" && align === "center" && "mx-auto",
+          maxWidth !== "none" && align === "end" && "ml-auto"
+        )}
+      >
+        {text}
+      </Tag>
+    </>
   );
 }
 
@@ -94,6 +100,8 @@ export function NativeText({
   fontFamily,
   fontSize,
   textColor,
+  fontWeight,
+  fontStyle,
 }: {
   content: string;
   style?: keyof typeof TEXT_STYLE;
@@ -101,17 +109,20 @@ export function NativeText({
   maxWidth?: keyof typeof MAX_WIDTH;
 } & TextTypography) {
   return (
-    <RichTextContent
-      value={content}
-      style={textTypographyStyle({ fontFamily, fontSize, textColor })}
-      className={clsx(
-        TEXT_STYLE[style],
-        ALIGN[align],
-        MAX_WIDTH[maxWidth],
-        maxWidth !== "none" && align === "center" && "mx-auto",
-        maxWidth !== "none" && align === "end" && "ml-auto"
-      )}
-    />
+    <>
+      <FontStylesheet font={fontFamily} />
+      <RichTextContent
+        value={content}
+        style={textTypographyStyle({ fontFamily, fontSize, textColor, fontWeight, fontStyle })}
+        className={clsx(
+          TEXT_STYLE[style],
+          ALIGN[align],
+          MAX_WIDTH[maxWidth],
+          maxWidth !== "none" && align === "center" && "mx-auto",
+          maxWidth !== "none" && align === "end" && "ml-auto"
+        )}
+      />
+    </>
   );
 }
 
