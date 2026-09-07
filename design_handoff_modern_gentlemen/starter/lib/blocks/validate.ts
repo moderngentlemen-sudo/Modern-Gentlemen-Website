@@ -1,3 +1,4 @@
+import { sectionBackgroundSchema } from "../domain/sectionBackground";
 import { gradientSchema } from "../domain/gradient";
 /**
  * Publish validation — the authoring-time counterpart to `normalize.ts`.
@@ -41,6 +42,18 @@ export interface ValidationResult {
 export function validateBlock(node: BlockNode): ValidationResult {
   const key = typeof node._key === "string" ? node._key : "";
   const issues: BlockIssue[] = [];
+  if (node.design?.background !== undefined) {
+    const result = sectionBackgroundSchema.safeParse(node.design.background);
+    if (!result.success)
+      for (const issue of result.error.issues) {
+        issues.push({
+          key,
+          type: node._type,
+          path: `design.background.${issue.path.join(".")}`,
+          message: issue.message,
+        });
+      }
+  }
 
   if (!key) {
     issues.push({

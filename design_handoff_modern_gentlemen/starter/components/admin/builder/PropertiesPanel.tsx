@@ -49,6 +49,7 @@ import { CONTROL, HELP_TEXT, LABEL_SM } from "@/components/admin/ui/styles";
 import { FieldShell, TextInput } from "@/components/admin/ui/Input";
 import { BindingEditor, BindingModeSwitch } from "@/components/admin/fields/BindingEditor";
 import { useEditorExperience } from "./EditorExperience";
+import { SectionBackgroundEditor } from "./SectionBackgroundEditor";
 import { GradientEditor } from "./GradientEditor";
 import { FieldControl, type ControlContext } from "@/components/admin/fields/FieldControl";
 import { countIssuesAtOrBelow, issuesFor } from "@/components/admin/fields/issues";
@@ -363,6 +364,7 @@ function BlockProperties({
       )}
 
       {inGrid && <GridPlacementEditor node={node} />}
+      {experience.modern && <SectionBackgroundEditor node={node} />}
       {experience.modern && (
         <GradientEditor
           disabled={locked}

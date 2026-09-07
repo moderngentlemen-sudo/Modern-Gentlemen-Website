@@ -8,6 +8,34 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Section background media and form typography
+
+- Fetched main `7307fabf37f05550b6260951f2954216770c8e30` (PR #97). Its
+  static/unit, integration, build, E2E, visual, accessibility and performance
+  gates passed and Railway reported success for that merge SHA in the prior
+  session. Both Original and Canvas Preview remain available.
+- Canvas Preview now exposes optional background colour, image/video poster,
+  video, overlay, focal position and mobile playback per section. Reuses the
+  page presentation component's muted looping, pause/fallback and reduced-motion
+  behavior without permitting section-level page chrome or SEO changes.
+  Existing opaque content/gradients can still cover background media; no old
+  sections or content are silently rewritten.
+- Background references join the existing recursive media usage walk, including
+  nested blocks. Forgiving reads retain a valid image/video while another draft
+  value is temporarily invalid; strict publish validation rejects malformed URLs
+  and invalid settings. This preserves deletion protection during editing.
+- Forms now have independent typography groups for heading, body/status, labels,
+  inputs/choices and submit buttons, sharing the catalogue and formatting fields.
+  Submission, honeypot, labels, required fields and state semantics are preserved.
+- Formatting, ESLint, TypeScript, environment declarations and 2,551 tests in
+  129 files pass locally. Added nested usage, invalid-draft reference retention,
+  strict validation, legacy markup and form typography coverage; extended the
+  browser journey with section background apply/clear. Hosted gates pending;
+  no seeded local environment, and skipped tests are not coverage.
+- Remaining full-builder work includes peer/equal-spacing guides and text-part
+  mappings across bespoke high-fidelity sections. Original remains default until
+  the owner decides otherwise. No dependencies, migrations or public content edits.
+
 ### 2026-09-07 — Canvas controls expansion
 
 - Based on fetched main `6616de5` after PR #96. User authorizes building and

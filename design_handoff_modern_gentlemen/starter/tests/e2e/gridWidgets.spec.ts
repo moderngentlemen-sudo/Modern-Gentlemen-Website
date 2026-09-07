@@ -124,6 +124,15 @@ test.describe("grid canvas and widget studio", () => {
     await expect(page.locator('[data-block-key="heading"] [style*="linear-gradient"]')).toHaveCount(
       0
     );
+    await page.getByLabel("Section background colour", { exact: true }).fill("#eeeeee");
+    await expect(page.locator('[data-block-key="heading"] [data-page-presentation]')).toHaveCSS(
+      "background-color",
+      "rgb(238, 238, 238)"
+    );
+    await page.getByRole("button", { name: "Clear section background media", exact: true }).click();
+    await expect(page.locator('[data-block-key="heading"] [data-page-presentation]')).toHaveCount(
+      0
+    );
     await page.getByRole("button", { name: "Original builder", exact: true }).click();
     await expect(page.getByRole("button", { name: "Resize grid e", exact: true })).toHaveCount(0);
     await expect(handle).toBeVisible();
