@@ -13,6 +13,8 @@ import { countIssuesAtOrBelow, issuesFor } from "./issues";
 import { ListControl } from "./ListControl";
 import { MediaUrlControl } from "./MediaUrlControl";
 import { RichTextEditor } from "./RichTextEditor";
+import { useEditorExperience } from "../builder/EditorExperience";
+import { LiveColourPicker } from "./LiveColourPicker";
 import { FontPicker } from "./FontPicker";
 
 /**
@@ -49,6 +51,7 @@ function asString(value: unknown): string {
 }
 
 export function FieldControl({ field, path, ctx }: FieldControlProps) {
+  const experience = useEditorExperience();
   const value = ctx.read(path);
   const defaultValue = "default" in field ? field.default : undefined;
   const inherited = value === undefined && defaultValue !== undefined;
@@ -99,12 +102,24 @@ export function FieldControl({ field, path, ctx }: FieldControlProps) {
           {...common}
           value={asString(displayValue)}
           onChange={(next) => (next ? ctx.write(path, next) : ctx.clear(path))}
+          onPreview={
+            experience.modern && !ctx.disabled
+              ? (value) => experience.preview(path, value)
+              : undefined
+          }
           sample={asString(ctx.read(["content"]) ?? ctx.read(["text"]))}
         />
       );
     case "color":
       return (
         <div>
+          {experience.modern && (
+            <LiveColourPicker
+              disabled={ctx.disabled}
+              onPreview={(value) => experience.preview(path, value)}
+              onChange={writeString}
+            />
+          )}
           <TextInput
             {...common}
             type="color"

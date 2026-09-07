@@ -113,6 +113,11 @@ test.describe("grid canvas and widget studio", () => {
       .click();
     const handle = page.getByRole("button", { name: "Resize grid element", exact: true });
     await expect(handle).toBeVisible();
+    await page.getByRole("button", { name: "Canvas builder · Preview", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Resize grid e", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Original builder", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Resize grid e", exact: true })).toHaveCount(0);
+    await expect(handle).toBeVisible();
     const box = (await handle.boundingBox())!;
     const step = await page
       .locator("[data-grid-layout]")

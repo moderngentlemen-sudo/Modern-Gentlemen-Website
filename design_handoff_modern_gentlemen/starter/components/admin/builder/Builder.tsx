@@ -27,6 +27,7 @@ import { findBlock } from "@/lib/blocks/traverse";
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
 import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
+import { EditorExperience, EditorExperienceSwitch } from "./EditorExperience";
 import { Canvas } from "./Canvas";
 import { WidgetLibrary } from "./WidgetLibrary";
 import { InsertMenu } from "./InsertMenu";
@@ -188,19 +189,21 @@ export function Builder({
         that id up. See PatternsContext for why it is a context rather than a
         seventh prop threaded through a recursive component.
       */}
-      <PatternsProvider patterns={patterns}>
-        <BuilderLayout
-          callbacks={callbacks}
-          identityAction={actions.savePageIdentity}
-          canPublish={canPublish}
-          canPreview={canPreview}
-          patterns={patterns}
-          styleClasses={styleClasses}
-          templateOverride={templateOverride}
-          previewContexts={previewContexts}
-          tokenAliases={tokenAliases}
-        />
-      </PatternsProvider>
+      <EditorExperience>
+        <PatternsProvider patterns={patterns}>
+          <BuilderLayout
+            callbacks={callbacks}
+            identityAction={actions.savePageIdentity}
+            canPublish={canPublish}
+            canPreview={canPreview}
+            patterns={patterns}
+            styleClasses={styleClasses}
+            templateOverride={templateOverride}
+            previewContexts={previewContexts}
+            tokenAliases={tokenAliases}
+          />
+        </PatternsProvider>
+      </EditorExperience>
     </BuilderStoreProvider>
   );
 }
@@ -465,6 +468,7 @@ function BuilderLayout({
         previewContexts={previewContexts}
       />
 
+      <EditorExperienceSwitch />
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}

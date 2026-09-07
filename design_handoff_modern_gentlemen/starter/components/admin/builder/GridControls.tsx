@@ -2,7 +2,31 @@
 import { useRef, type PointerEvent, type KeyboardEvent } from "react";
 import { gridPlacement, shiftGrid, type GridPlacement } from "@/lib/blocks/grid";
 import type { BlockNode } from "@/lib/blocks/types";
+import { useEditorExperience } from "./EditorExperience";
 import { useBuilder } from "./StoreContext";
+
+export function resizePlacement(
+  start: GridPlacement,
+  x: number,
+  y: number,
+  resize: boolean | string
+): GridPlacement {
+  if (typeof resize === "boolean") return shiftGrid(start, x, y, resize);
+  const next = { ...start };
+  if (resize.includes("e")) next.span = Math.max(1, Math.min(13 - next.column, next.span + x));
+  if (resize.includes("s")) next.rows = Math.max(1, Math.min(40, next.rows + y));
+  if (resize.includes("w")) {
+    const delta = Math.max(1 - next.column, Math.min(next.span - 1, x));
+    next.column += delta;
+    next.span -= delta;
+  }
+  if (resize.includes("n")) {
+    const delta = Math.max(1 - next.row, next.rows - 40, Math.min(next.rows - 1, y));
+    next.row += delta;
+    next.rows -= delta;
+  }
+  return next;
+}
 
 function measurePlacement(element: HTMLElement, placement: GridPlacement) {
   const frame = element.closest<HTMLElement>("[data-block-key]");
@@ -40,6 +64,7 @@ export function GridControls({
   node: BlockNode;
   onPreview: (p: GridPlacement | null) => void;
 }) {
+  const { modern } = useEditorExperience();
   const device = useBuilder((s) => s.device);
   const commit = useBuilder((s) => s.setGridPlacement);
   const gesture = useRef<{
@@ -50,10 +75,10 @@ export function GridControls({
     stepY: number;
     start: GridPlacement;
     next: GridPlacement;
-    resize: boolean;
+    resize: boolean | string;
   } | null>(null);
   const placement = gridPlacement(node.visual?.grid, device);
-  function start(e: PointerEvent<HTMLButtonElement>, resize: boolean) {
+  function start(e: PointerEvent<HTMLButtonElement>, resize: boolean | string) {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
@@ -75,7 +100,7 @@ export function GridControls({
   function move(e: PointerEvent<HTMLButtonElement>) {
     const g = gesture.current;
     if (!g || g.id !== e.pointerId) return;
-    g.next = shiftGrid(
+    g.next = resizePlacement(
       g.start,
       Math.round((e.clientX - g.x) / g.stepX),
       Math.round((e.clientY - g.y) / g.stepY),
@@ -99,7 +124,7 @@ export function GridControls({
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
   }
-  function key(e: KeyboardEvent<HTMLButtonElement>, resize: boolean) {
+  function key(e: KeyboardEvent<HTMLButtonElement>, resize: boolean | string) {
     if (e.key === "Escape") {
       gesture.current = null;
       onPreview(null);
@@ -118,30 +143,62 @@ export function GridControls({
     commit(
       node._key,
       device,
-      shiftGrid(measurePlacement(e.currentTarget, placement)?.resolved ?? placement, x, y, resize)
+      resizePlacement(
+        measurePlacement(e.currentTarget, placement)?.resolved ?? placement,
+        x,
+        y,
+        resize
+      )
     );
   }
   return (
-    <div className="pointer-events-none absolute bottom-1 left-1 z-40 flex gap-1">
-      {([false, true] as const).map((resize) => (
-        <button
-          key={String(resize)}
-          type="button"
-          aria-label={resize ? "Resize grid element" : "Move grid element"}
-          title="Drag or use arrow keys. Escape cancels a drag."
-          className="pointer-events-auto min-h-8 min-w-8 border border-mg-accent bg-mg-bg px-2 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-mg-accent"
-          style={{ touchAction: "none", cursor: resize ? "nwse-resize" : "move" }}
-          onPointerDown={(e) => start(e, resize)}
-          onPointerMove={move}
-          onPointerUp={(e) => finish(e)}
-          onPointerCancel={(e) => finish(e, true)}
-          onLostPointerCapture={(e) => finish(e, true)}
-          onKeyDown={(e) => key(e, resize)}
-        >
-          {resize ? "Resize" : "Move"}
-        </button>
-      ))}
-    </div>
+    <>
+      {modern && (
+        <div className="pointer-events-none absolute inset-0 z-40">
+          {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((edge) => (
+            <button
+              key={edge}
+              type="button"
+              aria-label={`Resize grid ${edge}`}
+              className="pointer-events-auto absolute h-4 w-4 border border-mg-accent bg-mg-surface"
+              style={{
+                left: edge.includes("w") ? 0 : edge.includes("e") ? "100%" : "50%",
+                top: edge.includes("n") ? 0 : edge.includes("s") ? "100%" : "50%",
+                transform: "translate(-50%, -50%)",
+                touchAction: "none",
+                cursor: edge + "-resize",
+              }}
+              onPointerDown={(e) => start(e, edge)}
+              onPointerMove={move}
+              onPointerUp={(e) => finish(e)}
+              onPointerCancel={(e) => finish(e, true)}
+              onLostPointerCapture={(e) => finish(e, true)}
+              onKeyDown={(e) => key(e, edge)}
+            />
+          ))}
+        </div>
+      )}
+      <div className="pointer-events-none absolute bottom-1 left-1 z-40 flex gap-1">
+        {([false, true] as const).map((resize) => (
+          <button
+            key={String(resize)}
+            type="button"
+            aria-label={resize ? "Resize grid element" : "Move grid element"}
+            title="Drag or use arrow keys. Escape cancels a drag."
+            className="pointer-events-auto min-h-8 min-w-8 border border-mg-accent bg-mg-bg px-2 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-mg-accent"
+            style={{ touchAction: "none", cursor: resize ? "nwse-resize" : "move" }}
+            onPointerDown={(e) => start(e, resize)}
+            onPointerMove={move}
+            onPointerUp={(e) => finish(e)}
+            onPointerCancel={(e) => finish(e, true)}
+            onLostPointerCapture={(e) => finish(e, true)}
+            onKeyDown={(e) => key(e, resize)}
+          >
+            {resize ? "Resize" : "Move"}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 export function GridPlacementEditor({ node }: { node: BlockNode }) {

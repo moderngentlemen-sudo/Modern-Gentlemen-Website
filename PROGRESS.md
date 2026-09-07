@@ -8,6 +8,35 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Parallel canvas editor, first integration
+
+- User explicitly requires **both editor experiences remain available** until
+  they choose one. Do not remove the original or automatically convert pages.
+  Fetched main `8273fc0bf9f05ac811a500196118839a9c2d4829`; PR #95 is merged.
+  Working branch: `feat/parallel-canvas-builder`.
+- Added an editor-only Original / Canvas Preview switch. Original is the default.
+  Both modes share the existing document/store, permissions, autosave and renderers;
+  switching does not remount the store, convert content, or publish preferences.
+- Canvas Preview adds font hover/focus previews from the existing catalogue,
+  an actual hue/colour-plane picker with hover/click/cancel, and eight grid resize
+  handles including sides. Grid handles snap to existing responsive tracks and
+  commit once. Original mode retains its existing controls. These are grid-element
+  handles, not an assertion of free positioning for all high-fidelity sections.
+- Temporary field values are React context state outside payload/history. Selection,
+  document edits, leaving a picker, Escape and mode changes discard previews.
+  Clicking uses the existing field action. No user content or migrations changed.
+- Remaining approved work: complete the canvas experience (free positioning and
+  richer alignment guides, gradients with draggable stops at page/section scope,
+  additional media controls and remaining text-part mappings). This is the first
+  integration, not completion of the whole standalone prototype. Neither editor
+  is to be removed while that work or the owner's choice is pending.
+- Verification: local formatting, lint, TypeScript, environment declaration and
+  2,542 unit/component tests in 127 files pass. Added
+  editor switching/preview isolation and eight-direction grid bounds coverage;
+  extended the isolated E2E journey with mode-specific handles. No local seeded
+  Supabase environment is configured, so build/integration/browser/visual/a11y/perf
+  require hosted CI. Skips are not coverage. No merge or deployment.
+
 ### 2026-09-07 — Widget text-part controls (review branch)
 
 - Fetched main at `ed71600031a0308802d00214657d110cb512862f` and verified PR #94
