@@ -42,6 +42,7 @@ test.describe("grid canvas and widget studio", () => {
           },
         ],
       },
+      { _key: "free", _type: "nativeHeading", settings: { text: "Free heading" } },
     ];
     const { data, error } = await createClient(url!, key!, { auth: { persistSession: false } })
       .from("pages")
@@ -95,6 +96,52 @@ test.describe("grid canvas and widget studio", () => {
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();
     expect(results.violations).toEqual([]);
+  });
+  test("free handles follow moved and resized content, with one-step undo", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/sign-in");
+    await page.getByLabel("Email", { exact: true }).fill(email!);
+    await page.getByLabel("Password", { exact: true }).fill(password!);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin/);
+    await page.goto(`/admin/pages/${id}`);
+    const frame = page.locator('[data-block-key="free"]');
+    await frame.getByRole("heading", { name: "Free heading" }).click();
+    await page.getByRole("button", { name: "Canvas builder · Preview", exact: true }).click();
+    const drag = async (name: string, dx: number, dy: number) => {
+      const handle = page.getByRole("button", { name, exact: true });
+      const box = (await handle.boundingBox())!;
+      await expect(handle).toBeVisible();
+      expect(
+        await handle.evaluate((e) => {
+          const r = e.getBoundingClientRect();
+          return e.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        })
+      ).toBe(true);
+      await page.keyboard.down("Alt");
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, { steps: 6 });
+      await page.mouse.up();
+      await page.keyboard.up("Alt");
+    };
+    const before = (await frame.getByRole("heading", { name: "Free heading" }).boundingBox())!;
+    await drag("Move freely", -24, 16);
+    const visual = frame.locator("[data-mg-visual]");
+    await expect(visual).toHaveCount(1);
+    const moved = (await visual.boundingBox())!;
+    expect(moved.x).toBeLessThan(before.x - 15);
+    await drag("Resize element e", -32, 0);
+    const resized = (await visual.boundingBox())!;
+    expect(resized.width).toBeLessThan(moved.width - 20);
+    const edge = (await page
+      .getByRole("button", { name: "Resize element e", exact: true })
+      .boundingBox())!;
+    expect(Math.abs(edge.x + edge.width / 2 - resized.x - resized.width)).toBeLessThan(2);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect.poll(async () => (await visual.boundingBox())!.width).toBeCloseTo(moved.width, 0);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(visual).toHaveCount(0);
   });
   test("resizes with a pointer, undoes once, saves independent mobile placement and inserts widgets inside the grid", async ({
     page,

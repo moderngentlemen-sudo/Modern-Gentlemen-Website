@@ -8,6 +8,36 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Free canvas alignment and attached handles
+
+- Canvas Preview now snaps free moves to sibling edges and centers and detects
+  equal horizontal spacing between nearby siblings. Guides appear during a
+  gesture; Alt bypass and the existing 8px grid remain available.
+- Move and eight resize handles follow the rendered visual bounds, including
+  live offsets and dimensions. Move handle is centered above the element.
+  Changes retain the per-device visual schema and single-commit undo behavior.
+- Added four snapping regressions and a signed-in browser journey covering
+  free move, side resize, handle alignment and two independent undo steps.
+  The browser journey requires hosted seeded verification; local skips are not
+  counted as coverage. No public renderer or Original builder changes.
+- Local formatting, ESLint, TypeScript, environment declarations and 2,555
+  tests in 130 files passed. Hosted browser verification remains pending.
+- PR #98 passed all hosted gates, merged as `2fb8a0f740b3b729c35c6091b5eb83524ad1921a`
+  and Railway confirmed production success. PR #99 initially failed its new
+  E2E resize assertion after moving a full-width element beyond the visible
+  canvas edge. The test now moves inward and explicitly checks pointer hit
+  testing before each drag; full hosted verification is required again.
+  Section backgrounds and form typography remain included. Bespoke section
+  text-part mappings remain unfinished.
+- The second hosted run passed movement, resize and attached-handle checks but
+  exposed coalesced undo across rapid successive gestures. Reproduced locally
+  with a failing store regression. Free gestures now request discrete history
+  commits; ordinary property editing retains its existing coalescing. Added
+  independent undo/redo coverage; the unchanged browser assertions must pass.
+  Formatting, lint, TypeScript, environment declarations and 2,556 tests in
+  130 files passed after the fix.
+
+
 ### 2026-09-07 — Section background media and form typography
 
 - Fetched main `7307fabf37f05550b6260951f2954216770c8e30` (PR #97). Its

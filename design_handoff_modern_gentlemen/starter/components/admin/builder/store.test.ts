@@ -676,6 +676,19 @@ describe("settings", () => {
     expect(store.getState().tree[0].visual).toBeUndefined();
   });
 
+  it("undoes completed free gestures independently even when performed quickly", () => {
+    store.getState().setVisualStyle(key, "desktop", { left: 24 }, { discrete: true });
+    store.getState().setVisualStyle(key, "desktop", { widthPx: 400 }, { discrete: true });
+    store.getState().undo();
+    expect(store.getState().tree[0].visual?.styles?.desktop).toEqual({ left: 24 });
+    store.getState().undo();
+    expect(store.getState().tree[0].visual).toBeUndefined();
+    store.getState().redo();
+    expect(store.getState().tree[0].visual?.styles?.desktop).toEqual({ left: 24 });
+    store.getState().redo();
+    expect(store.getState().tree[0].visual?.styles?.desktop).toEqual({ left: 24, widthPx: 400 });
+  });
+
   it("applies and clears a reusable visual class as undoable block data", () => {
     store.getState().setVisualStyleClass(key, "feature-card");
     expect(store.getState().tree[0].visual?.styleClass).toBe("feature-card");
