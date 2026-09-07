@@ -4,6 +4,7 @@ import Link from "next/link";
 import { clsx } from "@/components/ui/clsx";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { articleEmbedUrl } from "@/lib/domain/articles";
+import { textTypographyStyle, type TextTypography } from "@/lib/blocks/textTypography";
 
 const HEADING_SIZE = {
   small: "text-[22px] leading-[1.2]",
@@ -46,6 +47,9 @@ export function NativeHeading({
   weight = "medium",
   align = "start",
   maxWidth = "none",
+  fontFamily,
+  fontSize,
+  textColor,
 }: {
   text: string;
   level?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -54,10 +58,11 @@ export function NativeHeading({
   weight?: keyof typeof WEIGHT;
   align?: keyof typeof ALIGN;
   maxWidth?: keyof typeof MAX_WIDTH;
-}) {
+} & TextTypography) {
   const Tag = level as ElementType;
   return (
     <Tag
+      style={textTypographyStyle({ fontFamily, fontSize, textColor })}
       className={clsx(
         "text-balance",
         HEADING_SIZE[size],
@@ -86,15 +91,19 @@ export function NativeText({
   style = "body",
   align = "start",
   maxWidth = "reading",
+  fontFamily,
+  fontSize,
+  textColor,
 }: {
   content: string;
   style?: keyof typeof TEXT_STYLE;
   align?: keyof typeof ALIGN;
   maxWidth?: keyof typeof MAX_WIDTH;
-}) {
+} & TextTypography) {
   return (
     <RichTextContent
       value={content}
+      style={textTypographyStyle({ fontFamily, fontSize, textColor })}
       className={clsx(
         TEXT_STYLE[style],
         ALIGN[align],
