@@ -8,6 +8,35 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Isolated Builder V2 foundation
+
+- User requests a fresh editor that recreates existing capabilities. Original
+  and Canvas Preview remain intact and Original remains default. This is not a
+  website rewrite, automatic document conversion or permission to discard work.
+- Fetched main `d29aebf68206e823fb52f748c8abf7db3083483a`; PR #99's final
+  static/unit, integration, build, E2E, visual, accessibility and performance
+  gates passed and Railway confirmed production success in the prior session.
+- Added a separate `/admin/pages/[id]/v2` route, editor shell, library/layers rail,
+  iframe CSS viewport and gesture geometry. V2 imports no Original Canvas or
+  FreeCanvasControls. It mounts its own store instance over the shared schema.
+- Reuses permission-checked loading and existing server actions, published theme
+  and product data, manifest controls, autosave, validation and publishing.
+  Opening either editor performs no conversion; switching waits for saved state.
+- Native move/8-handle resize previews and edge/center snapping commit once per
+  gesture. CSS media queries run at the iframe's selected device width. Grid
+  placement is currently inspector-driven; synced patterns have safe reference
+  cards. No claims of full V2 parity: see `BUILDER_V2_PARITY.md` for remaining
+  routes, direct grid/group gestures, nested drops, text mappings and device QA.
+- Local formatting, lint, TypeScript, environment declarations and 2,562 tests
+  in 132 files passed. New tests cover geometry, slot insertion and opening
+  without dirtying/conversion. A seeded browser journey checks V2 resize/undo,
+  true mobile viewport, save/back-to-Original and unknown-payload preservation.
+  Hosted build/browser gates are pending; no unavailable local test is coverage.
+- Cost/learning: a fresh shell does not imply rebuilding persistence or content.
+  The first slice establishes a separately testable editor boundary; transferring
+  every interaction and route is additional parity work, not an assumed benefit
+  of sharing manifests. No dependencies, migrations or production content edited.
+
 ### 2026-09-07 — Free canvas alignment and attached handles
 
 - Canvas Preview now snaps free moves to sibling edges and centers and detects

@@ -26,8 +26,14 @@ const Context = createContext<{
 });
 
 /** Editor-only state. It never enters payload(), autosave, or document history. */
-export function EditorExperience({ children }: { children: ReactNode }) {
-  const [modern, setMode] = useState(false);
+export function EditorExperience({
+  children,
+  initialModern = false,
+}: {
+  children: ReactNode;
+  initialModern?: boolean;
+}) {
+  const [modern, setMode] = useState(initialModern);
   const [hover, setHover] = useState<Preview | null>(null);
   const [pageHover, setPageHover] = useState<{ baseline: unknown; value: unknown } | null>(null);
   const pageSettings = useBuilder((s) => s.doc.rest.pageSettings);
@@ -94,6 +100,8 @@ export const useEditorExperience = () => useContext(Context);
 
 export function EditorExperienceSwitch() {
   const { modern, setModern } = useEditorExperience();
+  const doc = useBuilder((s) => s.doc);
+  const dirty = useBuilder((s) => s.dirty);
   return (
     <div
       className="flex flex-wrap items-center gap-3 border-b border-mg-bd/20 bg-mg-surface px-4 py-2"
@@ -119,6 +127,19 @@ export function EditorExperienceSwitch() {
       <span className="text-xs text-mg-fg/70">
         Same document · Switch editors without converting your page
       </span>
+      {doc.type === "page" && (
+        <button
+          type="button"
+          disabled={dirty}
+          title={dirty ? "Save changes before opening V2" : "Open the separate V2 editor"}
+          className="border border-mg-bd/30 px-3 py-2 text-sm disabled:opacity-50"
+          onClick={() => {
+            if (!dirty) window.location.assign(`/admin/pages/${doc.id}/v2`);
+          }}
+        >
+          Open Builder V2
+        </button>
+      )}
     </div>
   );
 }
