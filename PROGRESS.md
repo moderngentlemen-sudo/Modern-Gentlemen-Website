@@ -8,6 +8,41 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-07 — Searchable builder font library (stacked review branch)
+
+- `feat/builder-font-library` extends open PR #92 at
+  `7f50920cc01dd49baff9aecb80d601e6e15d524a`. Its static/unit, integration and
+  E2E/visual/accessibility jobs now all pass; Supabase Preview was intentionally
+  skipped and is not coverage. Main and production remain at merged PR #91.
+- Text and Heading now offer 1,946 Google Fonts families from a checked-in
+  official metadata snapshot, alongside the existing 13 curated presets and five
+  theme font roles. The picker includes name search, category filters, device-local
+  favourites and a selected-font preview using the element's text. Filters retain
+  the saved selection. Clearing restores existing style inheritance.
+- Optional weight and normal/italic controls are validated and persist through
+  the existing builder pipeline. Available provider faces are listed; the browser
+  chooses a nearby weight or synthesizes italics when a face is unavailable.
+  Existing custom webfonts can be selected via configured theme roles; no new
+  font binary uploader or hosting provider was introduced.
+- Google font stylesheets load only for selected previews/rendered elements;
+  React 19 hoists and deduplicates identical resources. Browsing the catalogue
+  does not download every font. Existing presets/defaults retain their rendering.
+  Catalogue identifiers are allowlisted and fallback stacks remain available if
+  the external provider cannot load. Existing theme loading is unchanged.
+- Added a manual metadata refresh script that preserves old entries for saved
+  design compatibility. Builds do not call the metadata endpoint. The initial
+  snapshot contains only provider-marked open-source families; live CSS2 smoke
+  requests for normal-only and normal/italic families returned valid stylesheets.
+- Formatting, lint, TypeScript, environment declarations and 2,537 unit/component
+  tests in 126 files pass. New regressions cover catalogue validation, safe URLs,
+  stylesheet deduplication, persistence normalization, filters and favourites.
+  Extended the seeded browser journey to save/reload/publish a catalogue font
+  and verify weight, italic and a single stylesheet. Hosted build/integration/
+  browser/visual/accessibility/performance gates for this branch remain pending;
+  no reachable seeded local Supabase environment is configured. No skipped test
+  is claimed as coverage. No dependencies, lockfile, migrations or public content
+  changed. Both review branches await merge/deployment authorization.
+
 ### 2026-09-07 — Builder Text and Heading typography (review branch)
 
 - Based on main `a47377babe1ef07e5a560b9b2d2e9dd82bd69052`, merged PR #91.
