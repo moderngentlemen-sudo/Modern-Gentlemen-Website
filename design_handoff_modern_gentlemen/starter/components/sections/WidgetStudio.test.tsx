@@ -10,6 +10,47 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("widget studio", () => {
+  it("styles countdown numbers and labels independently and retains styles while ticking", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-06T12:00:00Z"));
+    render(
+      <WidgetStudio
+        target="2026-09-07T12:00:00Z"
+        typography={{
+          display: { fontSize: 56, textColor: "#123456", fontFamily: "systemSerif" },
+          labels: {
+            fontSize: 14,
+            textColor: "#654321",
+            letterSpacing: 0.12,
+            textTransform: "uppercase",
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Days")).toHaveStyle({
+      fontSize: "14px",
+      color: "#654321",
+      letterSpacing: "0.12em",
+    });
+    expect(screen.getByText("01")).toHaveStyle({ fontSize: "56px", color: "#123456" });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByText("23")).toHaveStyle({ fontSize: "56px", color: "#123456" });
+  });
+  it("keeps absent typography identical and applies panel text without changing tab behavior", () => {
+    const props = { variant: "stat", value: "42" };
+    expect(renderToStaticMarkup(<WidgetStudio {...props} />)).toBe(
+      renderToStaticMarkup(<WidgetStudio {...props} typography={{}} />)
+    );
+    render(
+      <WidgetStudio
+        variant="tabs"
+        items={[{ title: "One", text: "Content" }]}
+        typography={{ controls: { fontSize: 22 }, body: { fontSize: 18 } }}
+      />
+    );
+    expect(screen.getByRole("tab")).toHaveStyle({ fontSize: "22px" });
+    expect(screen.getByRole("tabpanel")).toHaveStyle({ fontSize: "18px" });
+  });
   it("ticks a timezone-qualified timer, hides seconds and replaces expiry without going negative", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-06T12:00:00Z"));

@@ -53,6 +53,11 @@ export function NativeHeading({
   textColor,
   fontWeight,
   fontStyle,
+  textAlign,
+  lineHeight,
+  letterSpacing,
+  textTransform,
+  textDecoration,
 }: {
   text: string;
   level?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -67,7 +72,18 @@ export function NativeHeading({
     <>
       <FontStylesheet font={fontFamily} />
       <Tag
-        style={textTypographyStyle({ fontFamily, fontSize, textColor, fontWeight, fontStyle })}
+        style={textTypographyStyle({
+          fontFamily,
+          fontSize,
+          textColor,
+          fontWeight,
+          fontStyle,
+          textAlign,
+          lineHeight,
+          letterSpacing,
+          textTransform,
+          textDecoration,
+        })}
         className={clsx(
           "text-balance",
           HEADING_SIZE[size],
@@ -102,6 +118,11 @@ export function NativeText({
   textColor,
   fontWeight,
   fontStyle,
+  textAlign,
+  lineHeight,
+  letterSpacing,
+  textTransform,
+  textDecoration,
 }: {
   content: string;
   style?: keyof typeof TEXT_STYLE;
@@ -113,7 +134,18 @@ export function NativeText({
       <FontStylesheet font={fontFamily} />
       <RichTextContent
         value={content}
-        style={textTypographyStyle({ fontFamily, fontSize, textColor, fontWeight, fontStyle })}
+        style={textTypographyStyle({
+          fontFamily,
+          fontSize,
+          textColor,
+          fontWeight,
+          fontStyle,
+          textAlign,
+          lineHeight,
+          letterSpacing,
+          textTransform,
+          textDecoration,
+        })}
         className={clsx(
           TEXT_STYLE[style],
           ALIGN[align],

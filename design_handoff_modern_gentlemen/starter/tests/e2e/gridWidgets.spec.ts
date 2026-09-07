@@ -29,6 +29,10 @@ test.describe("grid canvas and widget studio", () => {
             settings: {
               variant: "tabs",
               title: "Details",
+              typography: {
+                controls: { fontSize: 20, letterSpacing: 0.05 },
+                body: { fontSize: 18, lineHeight: 1.6 },
+              },
               items: [
                 { title: "One", text: "First panel" },
                 { title: "Two", text: "Second panel" },
@@ -76,6 +80,11 @@ test.describe("grid canvas and widget studio", () => {
     await page.keyboard.press("ArrowRight");
     await expect(grid.getByRole("tab", { name: "Two", exact: true })).toBeFocused();
     await expect(grid.getByRole("tabpanel")).toHaveText("Second panel");
+    await expect(grid.getByRole("tab", { name: "Two", exact: true })).toHaveCSS(
+      "font-size",
+      "20px"
+    );
+    await expect(grid.getByRole("tabpanel")).toHaveCSS("font-size", "18px");
     await page.setViewportSize({ width: 390, height: 900 });
     const ma = await heading.boundingBox(),
       mb = await tabs.boundingBox();
