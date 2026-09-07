@@ -215,7 +215,12 @@ export interface BuilderActions {
 
   setVisibility: (key: string, patch: Partial<BlockVisibility>) => void;
   setDesign: (key: string, patch: Partial<BlockDesign>) => void;
-  setVisualStyle: (key: string, breakpoint: VisualBreakpoint, patch: Partial<VisualStyle>) => void;
+  setVisualStyle: (
+    key: string,
+    breakpoint: VisualBreakpoint,
+    patch: Partial<VisualStyle>,
+    options?: { discrete?: boolean }
+  ) => void;
   setSelectedVisibility: (patch: Partial<BlockVisibility>) => void;
   setSelectedDesign: (patch: Partial<BlockDesign>) => void;
   setSelectedVisualStyle: (breakpoint: VisualBreakpoint, patch: Partial<VisualStyle>) => void;
@@ -708,8 +713,8 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           if (placement) node.visual.grid[device] = placement;
           else delete node.visual.grid[device];
         }),
-      setVisualStyle: (key, breakpoint, patch) =>
-        commit(`visual:${key}:${breakpoint}`, (draft) => {
+      setVisualStyle: (key, breakpoint, patch, options) =>
+        commit(options?.discrete ? null : `visual:${key}:${breakpoint}`, (draft) => {
           const node = findDraft(draft, key);
           if (!node || node.locked) return;
           if (!node.visual) node.visual = {};

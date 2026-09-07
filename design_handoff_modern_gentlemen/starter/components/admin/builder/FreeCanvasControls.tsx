@@ -161,7 +161,7 @@ export function FreeCanvasControls({
     gesture.current = null;
     setGuides(null);
     onPreview(null);
-    if (!cancel && g.next !== g.start) commit(node._key, device, g.next);
+    if (!cancel && g.next !== g.start) commit(node._key, device, g.next, { discrete: true });
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
   }

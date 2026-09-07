@@ -29,6 +29,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   testing before each drag; full hosted verification is required again.
   Section backgrounds and form typography remain included. Bespoke section
   text-part mappings remain unfinished.
+- The second hosted run passed movement, resize and attached-handle checks but
+  exposed coalesced undo across rapid successive gestures. Reproduced locally
+  with a failing store regression. Free gestures now request discrete history
+  commits; ordinary property editing retains its existing coalescing. Added
+  independent undo/redo coverage; the unchanged browser assertions must pass.
+  Formatting, lint, TypeScript, environment declarations and 2,556 tests in
+  130 files passed after the fix.
+
 
 ### 2026-09-07 — Section background media and form typography
 
