@@ -21,6 +21,7 @@ import { CartProvider } from "@/lib/cart/CartProvider";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
+import { useEditorExperience } from "./EditorExperience";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
 import { findBlock } from "@/lib/blocks/traverse";
@@ -725,6 +726,8 @@ function SortableBlock({
   drop: DropLocation | null;
   depth: number;
 }) {
+  const { renderNode } = useEditorExperience();
+  const previewNode = renderNode(node);
   const inGrid = useBuilder(
     (s) => parentKey !== null && findBlock(s.tree, parentKey)?._type === "gridLayout"
   );
@@ -904,7 +907,7 @@ function SortableBlock({
               <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
                 {slot ? (
                   <Component
-                    {...normalizeBlock(node)}
+                    {...normalizeBlock(previewNode)}
                     {...(node._type === "gridLayout" ? { previewDevice: device } : {})}
                   >
                     {children.length === 0 ? (
@@ -929,7 +932,7 @@ function SortableBlock({
                   </Component>
                 ) : (
                   <Component
-                    {...normalizeBlock(node)}
+                    {...normalizeBlock(previewNode)}
                     {...(node._type === "widgetStudio" ? { previewDevice: device } : {})}
                   />
                 )}

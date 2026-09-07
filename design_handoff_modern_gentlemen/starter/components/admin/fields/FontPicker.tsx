@@ -15,6 +15,7 @@ export function FontPicker({
   error,
   help,
   sample,
+  onPreview,
 }: {
   label: string;
   value: string;
@@ -23,6 +24,7 @@ export function FontPicker({
   error?: string;
   help?: string;
   sample?: string;
+  onPreview?: (value: string | null) => void;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -103,6 +105,38 @@ export function FontPicker({
         help={help}
         placeholder="Use existing style / font role"
       />
+      {onPreview && (
+        <div
+          className="max-h-48 overflow-auto border border-mg-bd/20"
+          aria-label="Live font choices"
+          onPointerLeave={() => onPreview(null)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) onPreview(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onPreview(null);
+          }}
+        >
+          {matches.slice(0, 40).map((font) => (
+            <button
+              key={font.value}
+              type="button"
+              disabled={disabled}
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-mg-fg/5"
+              onPointerEnter={(e) => {
+                if (e.pointerType !== "touch") onPreview(font.value);
+              }}
+              onFocus={() => onPreview(font.value)}
+              onClick={() => {
+                onPreview(null);
+                onChange(font.value);
+              }}
+            >
+              {font.label}
+            </button>
+          ))}
+        </div>
+      )}
       <p className="text-xs text-mg-fg/70">
         {matches.length} matching fonts · {FONT_LIBRARY.length} available
       </p>
