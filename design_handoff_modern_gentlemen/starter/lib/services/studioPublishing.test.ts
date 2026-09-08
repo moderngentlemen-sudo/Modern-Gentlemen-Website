@@ -32,6 +32,14 @@ function input() {
   };
 }
 describe("Studio persistence boundary", () => {
+  it("identifies document validation failures without blaming valid title and URL fields", async () => {
+    const data = input();
+    Object.assign(data.document.source, {
+      nodes: [{ id: 1, kind: "text", name: "Headline", x: 0, y: 0, w: 0, h: 40 }],
+    });
+    await expect(saveStudioPage(data)).rejects.toThrow(/Current draft.*element 1.*width/);
+    expect(createPage).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(requirePermission).mockResolvedValue({ id: "editor" } as never);

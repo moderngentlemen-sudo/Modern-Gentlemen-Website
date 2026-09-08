@@ -49,6 +49,26 @@ export function studioFixture() {
   };
 }
 describe("Studio publishing conversion", () => {
+  it("accepts timestamp element IDs produced by Add and Duplicate without changing them", () => {
+    const input = studioFixture();
+    const id = 1788900000000;
+    input.source.nodes[0].id = id;
+    for (const page of Object.values(input.views)) page.nodes[0].id = id;
+    const parsed = studioSourceSchema.safeParse(input);
+    expect(parsed.success).toBe(true);
+    expect(convertStudio(input).issues).toEqual([]);
+    expect(convertStudio(input).sections[0].children?.[0]._key).toContain(String(id));
+  });
+  it("keeps geometry bounded independently of element IDs", () => {
+    const input = studioFixture();
+    input.source.nodes[0].x = 100001;
+    expect(studioSourceSchema.safeParse(input).success).toBe(false);
+    for (const id of [NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, -1, 1.5]) {
+      const invalid = studioFixture();
+      invalid.source.nodes[0].id = id;
+      expect(studioSourceSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
   it("preserves responsive geometry and subpixel divider settings in real registered blocks", () => {
     const result = convertStudio(studioFixture());
     expect(result.issues).toEqual([]);
