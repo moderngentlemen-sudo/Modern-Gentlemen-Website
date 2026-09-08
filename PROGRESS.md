@@ -8,6 +8,33 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Publish Studio launch widgets (PR #103 follow-up)
+
+- The uploaded webarchive confirms the page saved successfully. Its nine checks
+  are Countdown, Email signup and Social links, repeated at desktop/tablet/mobile.
+- Added schema-declared public rendering for all three widget kinds within the
+  existing Studio element/canvas path. Countdown preserves day/week/calendar-month
+  modes, expiry, unit labels, independent number/label fonts, divided/card styles
+  and proportional sizing. Social labels/icons/outlines use validated destinations.
+- Signup now posts through the existing newsletter hook/API; no success is shown
+  before the response, and invalid/rate-limited/unavailable responses stay visible.
+  No new mailing provider, confirmation flow, database grants or schema changes.
+  Read-only live verification confirms subscriber RLS is enabled, anonymous email
+  insertion is granted, and anonymous subscriber reading is denied.
+- Missing social destinations remain specific blockers: editors must enter their
+  own URLs. Other unsupported Studio features retain their checks. Previously
+  saved layouts must be saved again before preview to include the new rendering;
+  a structural comparison prevents an old saved tree omitting supported widgets.
+- Tests cover all nine widget/layout combinations, typography, calendar arithmetic,
+  unsafe/empty URLs, expiry, real-request signup state handling and stale layouts.
+  Extended hosted E2E through publication, all three viewport sizes and a real
+  signup into the isolated CI database. CI uploads three widget review screenshots.
+- Formatting, lint, TypeScript and all 2,613 tests in 138 files pass locally.
+  Production build passes. Hosted browser/visual/accessibility/performance review
+  remains pending. No production page was edited or published.
+- Cost: three public widget implementations plus a saved-layout freshness check;
+  the archive narrowed this from the full outstanding Studio rendering catalog.
+
 ### 2026-09-08 — Studio URL capitalization save failure (PR #103 follow-up)
 
 - The user's screenshot identifies a concrete pre-save blocker: Page title Test,

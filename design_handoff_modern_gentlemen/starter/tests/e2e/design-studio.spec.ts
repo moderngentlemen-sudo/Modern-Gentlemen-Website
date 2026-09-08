@@ -5,6 +5,7 @@ const password = process.env.E2E_ADMIN_PASSWORD;
 test.describe("Design Studio publishing", () => {
   test.skip(!email || !password, "Requires the seeded E2E editor; a skip is not verification.");
   test("saves, reopens, previews and publishes a native Studio page", async ({ page }) => {
+    test.setTimeout(60000);
     await page.goto("/sign-in");
     await page.getByLabel("Email", { exact: true }).fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
@@ -43,6 +44,72 @@ test.describe("Design Studio publishing", () => {
                 weight: 400,
                 align: "left",
               },
+              {
+                id: 2,
+                kind: "countdown",
+                name: "Launch countdown",
+                text: "LAUNCH",
+                x: 24,
+                y: 150,
+                w: 640,
+                h: 110,
+                size: 42,
+                font: "IBM Plex Mono",
+                color: "#141414",
+                borderColor: "#14141455",
+                widget: {
+                  target: "2030-01-01T00:00:00Z",
+                  variant: "Divided",
+                  showSeconds: true,
+                  numberStyle: { font: "Instrument Serif", size: 42 },
+                  labelStyle: { font: "IBM Plex Mono", size: 11 },
+                },
+              },
+              {
+                id: 3,
+                kind: "signup",
+                name: "Email signup",
+                text: "Join the list",
+                x: 24,
+                y: 280,
+                w: 640,
+                h: 80,
+                size: 16,
+                font: "IBM Plex Mono",
+                color: "#141414",
+                borderColor: "#14141455",
+                widget: {
+                  variant: "Underline",
+                  placeholder: "Your email address",
+                  buttonMode: "Arrow",
+                  successText: "Thank you for your interest.",
+                },
+              },
+              {
+                id: 4,
+                kind: "social",
+                name: "Social links",
+                text: "FOLLOW MODERN GENTLEMEN",
+                x: 24,
+                y: 375,
+                w: 640,
+                h: 80,
+                size: 16,
+                font: "IBM Plex Mono",
+                color: "#141414",
+                widget: {
+                  variant: "Icons",
+                  links: [
+                    {
+                      label: "Instagram",
+                      platform: "Instagram",
+                      url: "https://instagram.com/modern.gentlemen",
+                    },
+                    { label: "LinkedIn", platform: "LinkedIn", url: "https://linkedin.com" },
+                    { label: "YouTube", platform: "YouTube", url: "https://youtube.com" },
+                  ],
+                },
+              },
             ],
           },
         },
@@ -74,6 +141,39 @@ test.describe("Design Studio publishing", () => {
     await page.goto(`/${slug}`);
     await expect(
       page.getByText("Studio publishing journey", { exact: true }).filter({ visible: true })
+    ).toBeVisible();
+    for (const [device, width] of [
+      ["desktop", 1280],
+      ["tablet", 800],
+      ["mobile", 390],
+    ] as const) {
+      await page.setViewportSize({ width, height: 1000 });
+      await expect(
+        page.locator('[data-studio-widget="countdown"]').filter({ visible: true })
+      ).toContainText("LAUNCH");
+      await expect(page.getByRole("timer").filter({ visible: true })).toContainText("days");
+      await expect(
+        page.getByRole("form", { name: "Email signup" }).filter({ visible: true })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Instagram (opens in a new tab)" }).filter({ visible: true })
+      ).toHaveAttribute("href", "https://instagram.com/modern.gentlemen");
+      await page.evaluate(() => document.fonts.ready);
+      await page
+        .locator('section[id^="studio-intro-"]')
+        .filter({ visible: true })
+        .screenshot({ path: `test-results/studio-widgets-${device}.png` });
+    }
+    const signup = page.getByRole("form", { name: "Email signup" }).filter({ visible: true });
+    await signup.getByLabel("Email address").fill(`${slug}@example.test`);
+    const signupResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/newsletter") && response.request().method() === "POST"
+    );
+    await signup.getByRole("button", { name: "Join the list" }).click();
+    expect((await signupResponse).status()).toBe(201);
+    await expect(
+      page.getByRole("status").filter({ hasText: "Thank you for your interest.", visible: true })
     ).toBeVisible();
   });
 });

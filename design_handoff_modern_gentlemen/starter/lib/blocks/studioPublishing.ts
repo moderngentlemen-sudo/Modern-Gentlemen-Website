@@ -2,6 +2,7 @@ import { z } from "zod";
 import { FONT_LIBRARY } from "@/lib/domain/fontLibrary";
 import type { BlockNode } from "./types";
 import { validateTree } from "./validate";
+import { isStudioWidgetKind, normalizeStudioWidget } from "./studioWidgets";
 
 export const STUDIO_SOURCE_KEY = "_designStudio";
 const finite = z.number().finite().min(-100000).max(100000);
@@ -116,7 +117,10 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
           (node.visibility as Record<string, unknown> | undefined)?.[view] === false
         )
           continue;
-        if (!["text", "button", "divider", "media"].includes(node.kind)) {
+        if (
+          !["text", "button", "divider", "media"].includes(node.kind) &&
+          !isStudioWidgetKind(node.kind)
+        ) {
           fail(
             nodePath,
             `${String(node.name || node.kind)} needs a live renderer integration before publishing.`
@@ -190,6 +194,11 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
           if (!href)
             fail(nodePath, "This button needs a valid page, section or HTTPS destination.");
           else settings.href = href;
+        }
+        if (isStudioWidgetKind(node.kind)) {
+          const widget = normalizeStudioWidget(node.kind, node.widget);
+          for (const issue of widget.issues) fail(nodePath, issue);
+          if (widget.value) settings[node.kind] = widget.value;
         }
         children.push({
           _key: `studio-${view}-${index}-${node.id}`,
