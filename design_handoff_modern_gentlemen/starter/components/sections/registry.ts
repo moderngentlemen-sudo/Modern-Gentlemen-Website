@@ -1,3 +1,4 @@
+import { StudioCanvas, StudioElement } from "./StudioCanvas";
 import { WidgetStudio } from "./WidgetStudio";
 import { GridLayout } from "./GridLayout";
 import type { ComponentType } from "react";
@@ -66,6 +67,8 @@ import { NativeForm } from "../elements/NativeForm";
  * the ~125 modules so nothing is lost.
  */
 export const registry = {
+  studioCanvas: StudioCanvas,
+  studioElement: StudioElement,
   ...sectionStudyRegistry,
   mgDesignStudio: MGDesignStudio,
   heroStudio: HeroStudio,

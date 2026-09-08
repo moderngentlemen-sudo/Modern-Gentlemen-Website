@@ -1,3 +1,5 @@
+import { STUDIO_SOURCE_KEY } from "@/lib/blocks/studioPublishing";
+import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
@@ -32,6 +34,8 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
   const user = await requirePermission("page.write");
   const page = await getDocument("page", id);
   if (!page) notFound();
+  if ((page.draft_data as Record<string, unknown> | null)?.[STUDIO_SOURCE_KEY])
+    redirect(`/admin/design-studio?id=${id}`);
 
   // Patterns are offered in the library rail, and reading them needs
   // `pattern.read` — which a page editor is not guaranteed to hold. Checked

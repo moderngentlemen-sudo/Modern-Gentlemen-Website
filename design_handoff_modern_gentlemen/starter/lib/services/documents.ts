@@ -1,3 +1,5 @@
+import { convertStudio, STUDIO_SOURCE_KEY } from "@/lib/blocks/studioPublishing";
+import { isDeepStrictEqual } from "node:util";
 import { pageSettingsSchema, pageSettingsMedia } from "@/lib/domain/pageSettings";
 import { comingSoonSections, type ComingSoonId } from "@/lib/blocks/comingSoon";
 /**
@@ -104,6 +106,29 @@ export function validateDocumentPayload(type: DocumentType, payload: Json): Docu
     }
   }
 
+  if (
+    type === "page" &&
+    payload &&
+    typeof payload === "object" &&
+    !Array.isArray(payload) &&
+    payload[STUDIO_SOURCE_KEY]
+  ) {
+    const converted = convertStudio(payload[STUDIO_SOURCE_KEY]);
+    issues.push(...converted.issues.map((issue) => ({ ...issue, key: "", type: "page" })));
+    if (
+      !converted.issues.length &&
+      // JSONB does not preserve object-key insertion order. Array order and
+      // values still matter: moving a block or changing text must be refused.
+      !isDeepStrictEqual(payload.sections, converted.sections)
+    )
+      issues.push({
+        key: "",
+        type: "page",
+        path: "sections",
+        message:
+          "Save this document from Design Studio before publishing; its generated composition has changed.",
+      });
+  }
   if (type === "page") {
     const settings = (payload as Record<string, unknown> | null)?.pageSettings;
     if (settings !== undefined) {
