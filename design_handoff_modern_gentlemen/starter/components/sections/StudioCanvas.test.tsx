@@ -23,6 +23,24 @@ describe("Studio public renderer", () => {
     expect(html).not.toContain("<script");
     expect(html).not.toContain("iframe");
   });
+  it("limits automatic themes to light neutral sections and protects colored controls", () => {
+    const adaptive = renderToStaticMarkup(
+      <StudioCanvas color="#fff">
+        <StudioElement kind="button" fill="#c8102e" color="#fff" text="Join" />
+      </StudioCanvas>
+    );
+    expect(adaptive).toContain('data-studio-theme="adaptive"');
+    expect(adaptive).toContain('data-studio-fixed-palette="true"');
+    for (const props of [
+      { color: "#0d0d0d" },
+      { color: "#e8e2d6" },
+      { color: "#fff", gradient: "linear-gradient(90deg,#fff,#000)" },
+    ]) {
+      expect(renderToStaticMarkup(<StudioCanvas {...props} />)).toContain(
+        'data-studio-theme="fixed"'
+      );
+    }
+  });
   it("keeps fractional divider thickness and a real section link", () => {
     const html = renderToStaticMarkup(
       <>

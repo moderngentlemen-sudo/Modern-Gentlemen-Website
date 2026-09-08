@@ -12,7 +12,7 @@ import {
   type WidgetTypography,
   type StudioWidgetKind,
 } from "@/lib/blocks/studioWidgets";
-import { studioColor } from "@/lib/blocks/studioPublishing";
+import { studioThemeColor as studioColor } from "@/lib/blocks/studioTheme";
 import { FontStylesheet } from "../ui/FontStylesheet";
 import { SIGNUP_MESSAGE, useNewsletterSignup } from "../ui/useNewsletterSignup";
 import styles from "./StudioWidgets.module.css";
@@ -143,7 +143,7 @@ function Countdown({ p, settings }: { p: Props; settings: CountdownWidget }) {
                   (Math.max(2, digits.length) * 0.65)
               )
             );
-            const border = `${unit(1)} solid ${studioColor(p.borderColor) || "#14141455"}`;
+            const border = `${unit(1)} solid ${studioColor(p.borderColor) || studioColor("#14141455")}`;
             return (
               <div
                 key={name}

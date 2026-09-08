@@ -27,8 +27,35 @@ test.describe("Design Studio publishing", () => {
             page: "#ffffff",
             sections: [
               { uid: "intro", height: 480, color: "#ffffff", stops: ["#ffffff", "#ffffff"] },
+              { uid: "dark-band", height: 120, color: "#0d0d0d", stops: ["#0d0d0d", "#0d0d0d"] },
             ],
             nodes: [
+              {
+                id: 5,
+                kind: "text",
+                name: "Fixed dark band",
+                text: "Always dark",
+                x: 24,
+                y: 510,
+                w: 200,
+                h: 50,
+                size: 24,
+                color: "#f4f4f4",
+              },
+              {
+                id: 6,
+                kind: "button",
+                name: "Accent button",
+                text: "Discover",
+                x: 530,
+                y: 5,
+                w: 130,
+                h: 35,
+                size: 16,
+                color: "#fff",
+                fill: "#c8102e",
+                href: "https://example.com",
+              },
               {
                 id: 1,
                 kind: "text",
@@ -159,10 +186,41 @@ test.describe("Design Studio publishing", () => {
         page.getByRole("link", { name: "Instagram (opens in a new tab)" }).filter({ visible: true })
       ).toHaveAttribute("href", "https://instagram.com/modern.gentlemen");
       await page.evaluate(() => document.fonts.ready);
-      await page
-        .locator('section[id^="studio-intro-"]')
-        .filter({ visible: true })
-        .screenshot({ path: `test-results/studio-widgets-${device}.png` });
+      const section = page.locator('section[id^="studio-intro-"]').filter({ visible: true });
+      for (const theme of ["light", "dark"] as const) {
+        if (device === "desktop" && theme === "dark") {
+          await page.getByRole("button", { name: "Switch to dark theme", exact: true }).click();
+        } else {
+          await page
+            .locator("html")
+            .evaluate((root, value) => root.setAttribute("data-mgtheme", value), theme);
+        }
+        await expect(page.locator("html")).toHaveAttribute("data-mgtheme", theme);
+        const ink = theme === "dark" ? "rgb(244, 244, 244)" : "rgb(20, 20, 20)";
+        await expect(section).toHaveCSS(
+          "background-color",
+          theme === "dark" ? "rgb(19, 19, 21)" : "rgb(255, 255, 255)"
+        );
+        await expect(section.getByText("Studio publishing journey", { exact: true })).toHaveCSS(
+          "color",
+          ink
+        );
+        await expect(section.getByRole("timer").locator("span").first()).toHaveCSS("color", ink);
+        await expect(section.getByLabel("Email address")).toHaveCSS("color", ink);
+        await expect(
+          section.getByRole("link", { name: "Instagram (opens in a new tab)" })
+        ).toHaveCSS("color", ink);
+        const accent = section.getByRole("link", { name: "Discover", exact: true });
+        await expect(accent).toHaveCSS("background-color", "rgb(200, 16, 46)");
+        await expect(accent).toHaveCSS("color", "rgb(255, 255, 255)");
+        const fixed = page.locator('section[id^="studio-dark-band-"]').filter({ visible: true });
+        await expect(fixed).toHaveCSS("background-color", "rgb(13, 13, 13)");
+        await expect(fixed.getByText("Always dark", { exact: true })).toHaveCSS(
+          "color",
+          "rgb(244, 244, 244)"
+        );
+        await section.screenshot({ path: `test-results/studio-widgets-${device}-${theme}.png` });
+      }
     }
     const signup = page.getByRole("form", { name: "Email signup" }).filter({ visible: true });
     await signup.getByLabel("Email address").fill(`${slug}@example.test`);

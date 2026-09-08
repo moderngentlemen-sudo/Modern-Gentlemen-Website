@@ -8,6 +8,27 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Studio published-page dark mode
+
+- Report: pages created in the new Studio builder ignore dark mode. Public
+  canvases and widgets were emitting literal colors independently of mg-theme.
+- Added a renderer-only neutral palette scoped to opaque white/paper sections.
+  Dark mode uses the site's published surface/background/foreground/muted tokens;
+  light mode retains the authored colors. Translucent borders retain their alpha.
+  Countdown typography, signup fields, social links, buttons and dividers share it.
+- Custom colors, gradients, images and deliberately dark sections remain fixed.
+  Opaque accent controls reset their palette so white labels on red stay white.
+  Existing saved/published documents work without regeneration or a migration.
+- Unit coverage checks palette normalization, alpha, fixed colors and section
+  scoping. E2E now exercises the real theme toggle, all three viewport sizes in
+  both themes, widget computed colors, an accent button and a fixed dark band;
+  six review screenshots are uploaded by the existing CI artifact step.
+- Formatting, lint, TypeScript and all 2,617 tests in 139 files pass locally.
+  Hosted browser/visual/accessibility/performance checks pending this branch.
+  No production content changes or deployment.
+- Cost: scoped renderer palette plus regression coverage; no source-format,
+  publishing-converter, editor-asset or database changes needed.
+
 ### 2026-09-08 — Publish Studio launch widgets (PR #103 follow-up)
 
 - The uploaded webarchive confirms the page saved successfully. Its nine checks

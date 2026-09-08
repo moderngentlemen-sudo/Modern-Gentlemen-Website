@@ -35,3 +35,25 @@
 .text {
   width: 100%;
 }
+
+/* Reset at each section and on colored controls so a fixed composition cannot
+   inherit the adaptive palette from a surrounding canvas. */
+.section,
+.element[data-studio-fixed-palette] {
+  --studio-ffffff: #ffffff;
+  --studio-f4f4f4: #f4f4f4;
+  --studio-141414: #141414;
+  --studio-000000: #000000;
+  --studio-0d0d0d: #0d0d0d;
+  --studio-5a5a5a: #5a5a5a;
+  --studio-707070: #707070;
+}
+:global(html[data-mgtheme="dark"]) .section[data-studio-theme="adaptive"] {
+  --studio-ffffff: var(--mg-surface);
+  --studio-f4f4f4: var(--mg-bg);
+  --studio-141414: var(--mg-fg);
+  --studio-000000: var(--mg-fg);
+  --studio-0d0d0d: var(--mg-fg);
+  --studio-5a5a5a: var(--mg-muted);
+  --studio-707070: var(--mg-faint);
+}
