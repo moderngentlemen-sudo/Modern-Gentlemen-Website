@@ -20,6 +20,9 @@ describe("Studio host bridge", () => {
       publish: vi.fn(),
     };
     render(<DesignStudioShell initial={null} actions={actions} canPublish canPreview />);
+    expect(screen.getByText("Create site preview")).toHaveAccessibleDescription(
+      /Enter a page title and URL, then click Save to site/
+    );
     const frame = screen.getByTitle("Modern Gentlemen Design Studio") as HTMLIFrameElement;
     const post = vi.spyOn(frame.contentWindow!, "postMessage").mockImplementation(() => {});
     const message = (
@@ -61,7 +64,50 @@ describe("Studio host bridge", () => {
     );
     await waitFor(() => expect(screen.getByText("Create site preview")).toBeEnabled());
     expect(screen.getByText("Publish page")).toBeDisabled();
+    expect(screen.getByText("Publish page")).toHaveAccessibleDescription(
+      /Create a site preview first/
+    );
     message({ type: "mg-studio-changed" });
     expect(screen.getByText("Create site preview")).toBeDisabled();
+    expect(screen.getByText("Create site preview")).toHaveAccessibleDescription(
+      /save your latest changes/
+    );
+  });
+
+  it("shows unsupported-content blockers without requiring a disabled button or collapsed disclosure", () => {
+    const actions = { save: vi.fn(), load: vi.fn(), preview: vi.fn(), publish: vi.fn() };
+    const page = {
+      page: "Invitation",
+      layoutDevice: "desktop" as const,
+      sections: [{ uid: "one", height: 600 }],
+      nodes: [],
+    };
+    render(
+      <DesignStudioShell
+        initial={{
+          id: "saved",
+          title: "Invitation",
+          slug: "invitation",
+          updatedAt: "now",
+          document: {
+            version: 1,
+            source: page,
+            views: { desktop: page, tablet: page, mobile: page },
+          },
+          issues: [{ path: "sections.0", message: "Mega menu publishing is not supported yet." }],
+        }}
+        actions={actions}
+        canPublish
+        canPreview
+      />
+    );
+    expect(screen.getByText(/sections.0: Mega menu publishing/)).toBeVisible();
+    expect(screen.getByText("Create site preview")).toBeDisabled();
+    expect(screen.getByText("Publish page")).toBeDisabled();
+    expect(screen.getByText("Publish page")).toHaveAccessibleDescription(
+      /publishing checks listed below/
+    );
+    expect(actions.preview).not.toHaveBeenCalled();
+    expect(actions.publish).not.toHaveBeenCalled();
   });
 });

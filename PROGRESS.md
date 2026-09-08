@@ -8,6 +8,24 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Explain disabled Studio preview and publishing controls
+
+- Report: Create site preview and Publish page cannot be clicked. Source confirms
+  both require a saved, unchanged page with no conversion issues; publishing
+  also requires a preview and explicit review. The user-facing cause was hidden
+  in collapsed publishing checks or missing altogether before the first save.
+- Added visible next-step guidance and accessible descriptions to both controls.
+  Publishing checks are expanded by default and explain that Save to site
+  rechecks changes. Browser-local saving is explicitly distinguished from saving
+  to the site. Eligibility, server validation, and publishing permissions remain
+  intact; this does not add support for unsupported Studio content.
+- Regression coverage checks guidance before saving, after edits, before preview,
+  and for saved unsupported content. Formatting, lint, TypeScript and all 2,597
+  tests in 136 files pass locally. Hosted browser checks pending the PR.
+- The user's exact page state has not been inspected; this fixes the missing
+  explanation, not a claim that their page is now publishable. No deployment.
+- Cost: a scoped host UI correction; no renderer, database or asset changes.
+
 ### 2026-09-08 — Studio E2E publishing correction (PR #102)
 
 - Hosted run 34203337297 passed static/unit, integration, build, visual,
