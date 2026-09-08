@@ -54,7 +54,7 @@ test.describe("Design Studio publishing", () => {
                 size: 16,
                 color: "#fff",
                 fill: "#c8102e",
-                href: "https://example.com",
+                action: { type: "url", url: "https://example.com" },
               },
               {
                 id: 1,
