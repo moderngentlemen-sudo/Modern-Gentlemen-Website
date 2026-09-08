@@ -8,6 +8,29 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Adaptive custom Studio colors and gradients
+
+- User requests extending dark mode beyond the built-in template palette.
+- Light custom surfaces now receive a hue-preserving dark companion; custom ink
+  blends toward white until its opaque relative luminance reaches 0.45. Authored
+  alpha remains intact, so intentionally translucent text is not guaranteed AA.
+  Known template colors still resolve through the published site theme tokens.
+- Validated linear gradients adapt every stop while retaining angle, positions
+  and alpha. Gradients with only dark stops and deliberately dark solid sections
+  stay fixed. Dark colored controls retain their original fill/label pairing;
+  light custom fills adapt with the surrounding section. Images are unchanged.
+- A scoped CSS variable selects the authored or dark companion immediately from
+  the existing theme toggle. No new client state, source migration, editor asset
+  change, database write or page republishing is needed after deployment.
+- Added pure contrast/alpha/gradient validation coverage and extended publishing
+  E2E with custom surfaces, purple ink and a blue/pink gradient in both themes at
+  all three viewports. Screenshots cover the new compositions.
+- Local formatting, lint, TypeScript and all 2,620 tests in 139 files pass.
+  Hosted browser review pending this branch.
+- Cost: generalized the renderer's existing palette instead of adding individual
+  hex colors indefinitely. The automatic treatment infers light/dark intent from
+  background luminance; this does not add manually authored alternate palettes.
+
 ### 2026-09-08 — Correct Studio template palette coverage
 
 - User reports only the header changes after PR #104 deployed. Read-only HTML

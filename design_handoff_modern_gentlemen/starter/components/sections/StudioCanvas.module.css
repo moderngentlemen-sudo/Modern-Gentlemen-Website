@@ -40,6 +40,7 @@
    inherit the adaptive palette from a surrounding canvas. */
 .section,
 .element[data-studio-fixed-palette] {
+  --studio-dark-weight: 0%;
   --studio-ffffff: #ffffff;
   --studio-f4f4f4: #f4f4f4;
   --studio-141414: #141414;
@@ -54,6 +55,7 @@
   --studio-accent-ink: #c8102e;
 }
 :global(html[data-mgtheme="dark"]) .section[data-studio-theme="adaptive"] {
+  --studio-dark-weight: 100%;
   --studio-ffffff: var(--mg-surface);
   --studio-f4f4f4: var(--mg-bg);
   --studio-141414: var(--mg-fg);
