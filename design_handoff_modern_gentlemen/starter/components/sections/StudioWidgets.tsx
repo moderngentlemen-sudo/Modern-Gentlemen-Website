@@ -12,7 +12,7 @@ import {
   type WidgetTypography,
   type StudioWidgetKind,
 } from "@/lib/blocks/studioWidgets";
-import { studioThemeColor as studioColor } from "@/lib/blocks/studioTheme";
+import { studioThemeColor as studioColor, studioThemeInk } from "@/lib/blocks/studioTheme";
 import { FontStylesheet } from "../ui/FontStylesheet";
 import { SIGNUP_MESSAGE, useNewsletterSignup } from "../ui/useNewsletterSignup";
 import styles from "./StudioWidgets.module.css";
@@ -109,7 +109,7 @@ function Countdown({ p, settings }: { p: Props; settings: CountdownWidget }) {
   ): CSSProperties => ({
     fontFamily: libraryFontStack(style.font || fallbackFont),
     fontWeight: style.weight ?? 400,
-    color: studioColor(style.color || fallbackColor),
+    color: studioThemeInk(style.color || fallbackColor),
     letterSpacing: unit(style.tracking ?? 0),
     lineHeight: style.leading ?? 1.1,
     textAlign: style.align || "center",

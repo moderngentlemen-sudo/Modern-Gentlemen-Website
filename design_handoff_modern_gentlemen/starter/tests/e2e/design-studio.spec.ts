@@ -24,12 +24,37 @@ test.describe("Design Studio publishing", () => {
           source: {
             title: "Studio journey",
             layoutDevice: "desktop",
-            page: "#ffffff",
+            page: "#f8f7f3",
             sections: [
-              { uid: "intro", height: 480, color: "#ffffff", stops: ["#ffffff", "#ffffff"] },
+              { uid: "intro", height: 480, color: "#f8f7f3", stops: ["#f8f7f3", "#dfd9ce"] },
               { uid: "dark-band", height: 120, color: "#0d0d0d", stops: ["#0d0d0d", "#0d0d0d"] },
+              { uid: "beige", height: 120, color: "#dfd9ce", stops: ["#dfd9ce", "#dfd9ce"] },
             ],
             nodes: [
+              {
+                id: 7,
+                kind: "text",
+                name: "Template muted text",
+                text: "Style. Culture. Perspective.",
+                x: 24,
+                y: 620,
+                w: 640,
+                h: 35,
+                size: 24,
+                color: "#645f56",
+              },
+              {
+                id: 8,
+                kind: "text",
+                name: "Template accent text",
+                text: "MODERN GENTLEMEN",
+                x: 24,
+                y: 665,
+                w: 640,
+                h: 30,
+                size: 16,
+                color: "#c8102e",
+              },
               {
                 id: 5,
                 kind: "text",
@@ -199,7 +224,7 @@ test.describe("Design Studio publishing", () => {
         const ink = theme === "dark" ? "rgb(244, 244, 244)" : "rgb(20, 20, 20)";
         await expect(section).toHaveCSS(
           "background-color",
-          theme === "dark" ? "rgb(19, 19, 21)" : "rgb(255, 255, 255)"
+          theme === "dark" ? "rgb(13, 13, 13)" : "rgb(248, 247, 243)"
         );
         await expect(section.getByText("Studio publishing journey", { exact: true })).toHaveCSS(
           "color",
@@ -219,6 +244,22 @@ test.describe("Design Studio publishing", () => {
           "color",
           "rgb(244, 244, 244)"
         );
+        const beige = page.locator('section[id^="studio-beige-"]').filter({ visible: true });
+        await expect(beige).toHaveCSS(
+          "background-color",
+          theme === "dark" ? "rgb(19, 19, 21)" : "rgb(223, 217, 206)"
+        );
+        await expect(beige.getByText("Style. Culture. Perspective.", { exact: true })).toHaveCSS(
+          "color",
+          theme === "dark" ? "rgba(244, 244, 244, 0.5)" : "rgb(100, 95, 86)"
+        );
+        await expect(beige.getByText("MODERN GENTLEMEN", { exact: true })).toHaveCSS(
+          "color",
+          theme === "dark" ? "rgb(247, 20, 46)" : "rgb(200, 16, 46)"
+        );
+        await beige.screenshot({
+          path: `test-results/studio-widgets-beige-${device}-${theme}.png`,
+        });
         await section.screenshot({ path: `test-results/studio-widgets-${device}-${theme}.png` });
       }
     }

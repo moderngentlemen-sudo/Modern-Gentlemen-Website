@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { studioAdaptiveSurface, studioFixedFill, studioThemeColor } from "./studioTheme";
+import {
+  studioAdaptiveSurface,
+  studioFixedFill,
+  studioThemeColor,
+  studioThemeInk,
+} from "./studioTheme";
 
 describe("Studio theme palette", () => {
+  it("recognizes the cream, beige and warm ink used by the native templates", () => {
+    for (const color of ["#f8f7f3", "#dfd9ce"]) {
+      expect(studioAdaptiveSurface(color)).toBe(true);
+      expect(studioFixedFill(color)).toBe(false);
+    }
+    for (const color of ["#f8f7f3", "#dfd9ce", "#645f56", "#8b857b"])
+      expect(studioThemeColor(color)).toBe(`var(--studio-${color.slice(1)}, ${color})`);
+    expect(studioThemeInk("#c8102e")).toBe("var(--studio-accent-ink, #c8102e)");
+    expect(studioThemeColor("#c8102e")).toBe("#c8102e");
+    expect(studioFixedFill("#c8102e")).toBe(true);
+  });
   it("adapts standard neutrals including shorthand and translucent borders", () => {
     expect(studioThemeColor("#FFF")).toBe("var(--studio-ffffff, #ffffff)");
     expect(studioThemeColor("#14141455")).toBe(
