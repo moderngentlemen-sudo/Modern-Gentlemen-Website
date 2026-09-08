@@ -8,6 +8,28 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Studio URL capitalization save failure (PR #103 follow-up)
+
+- The user's screenshot identifies a concrete pre-save blocker: Page title Test,
+  URL Test, and the server's generic input-validation error. The URL schema
+  requires lowercase; this alone rejects the save before conversion checks are
+  returned, leaving both preview and publishing disabled with no checks list.
+- The Studio URL input now lowercases typed/pasted text, opts out of mobile
+  keyboard capitalization/autocorrection, and trims outer whitespace before
+  saving. Invalid separators or characters are explained beside the field and
+  prevent submission. Returned title/URL values update the form after saving.
+- Reproduced two failing-before-fix component assertions: capitalized URL input
+  was left uppercase, and invalid separators had no field-level error. Both now
+  pass. The existing hosted save/reopen/preview/publish journey now starts with
+  an uppercase URL and asserts the canonical lowercase value.
+- This resolves the screenshot's URL-format blocker. The page may still contain
+  unsupported content; conversion and publication guards remain unchanged.
+- Verification: formatting, lint, TypeScript and all 2,598 tests in 136 files
+  pass locally. Hosted browser verification pending the updated PR.
+  No routing, database, dependency or production-content changes. Not deployed.
+- Cost: identified from the screenshot after the earlier generic disabled-state
+  diagnosis; scoped to form validation and its regression coverage.
+
 ### 2026-09-08 — Explain disabled Studio preview and publishing controls
 
 - Report: Create site preview and Publish page cannot be clicked. Source confirms

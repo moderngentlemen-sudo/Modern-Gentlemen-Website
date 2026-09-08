@@ -51,7 +51,9 @@ test.describe("Design Studio publishing", () => {
     });
     await expect(frame.locator(".mg-board")).toContainText("Studio publishing journey");
     await page.getByLabel("Page title", { exact: true }).fill("Studio journey");
-    await page.getByLabel("URL /", { exact: true }).fill(slug);
+    // Match a capitalized mobile-keyboard entry; the saved URL stays canonical.
+    await page.getByLabel("URL /", { exact: true }).fill(slug.toUpperCase());
+    await expect(page.getByLabel("URL /", { exact: true })).toHaveValue(slug);
     await page.getByRole("button", { name: "Save to site", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Create site preview", exact: true })

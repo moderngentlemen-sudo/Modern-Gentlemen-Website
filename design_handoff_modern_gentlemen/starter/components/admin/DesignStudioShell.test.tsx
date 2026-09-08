@@ -34,7 +34,10 @@ describe("Studio host bridge", () => {
         window.dispatchEvent(new MessageEvent("message", { data, origin, source }));
       });
     fireEvent.change(screen.getByLabelText("Page title"), { target: { value: "Invitation" } });
-    fireEvent.change(screen.getByLabelText("URL /"), { target: { value: "invitation" } });
+    // Mobile keyboards can capitalize the first character even for a URL slug.
+    fireEvent.change(screen.getByLabelText("URL /"), { target: { value: "Invitation" } });
+    expect(screen.getByLabelText("URL /")).toHaveValue("invitation");
+    expect(screen.getByLabelText("URL /")).toHaveAttribute("autocapitalize", "none");
     message({ type: "mg-studio-ready" }, "https://unrelated.example");
     expect(screen.getByText("Save to site")).toBeDisabled();
     message({ type: "mg-studio-ready" });
@@ -72,6 +75,31 @@ describe("Studio host bridge", () => {
     expect(screen.getByText("Create site preview")).toHaveAccessibleDescription(
       /save your latest changes/
     );
+  });
+
+  it("explains invalid URLs beside the input and allows saving after correction", () => {
+    const actions = { save: vi.fn(), load: vi.fn(), preview: vi.fn(), publish: vi.fn() };
+    render(<DesignStudioShell initial={null} actions={actions} canPublish canPreview />);
+    const frame = screen.getByTitle("Modern Gentlemen Design Studio") as HTMLIFrameElement;
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: "mg-studio-ready" },
+          origin: location.origin,
+          source: frame.contentWindow,
+        })
+      );
+    });
+    fireEvent.change(screen.getByLabelText("Page title"), { target: { value: "Test" } });
+    fireEvent.change(screen.getByLabelText("URL /"), { target: { value: "test--page" } });
+    expect(screen.getByLabelText("URL /")).toBeInvalid();
+    expect(screen.getByLabelText("URL /")).toHaveAccessibleDescription(/single hyphens/);
+    expect(screen.getByText("Save to site")).toBeDisabled();
+    expect(actions.save).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("URL /"), { target: { value: "Test-Page" } });
+    expect(screen.getByLabelText("URL /")).toHaveValue("test-page");
+    expect(screen.getByLabelText("URL /")).toBeValid();
+    expect(screen.getByText("Save to site")).toBeEnabled();
   });
 
   it("shows unsupported-content blockers without requiring a disabled button or collapsed disclosure", () => {

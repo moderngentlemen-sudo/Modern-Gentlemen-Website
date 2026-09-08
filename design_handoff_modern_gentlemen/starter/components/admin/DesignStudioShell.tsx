@@ -33,6 +33,11 @@ export function DesignStudioShell({
     [status, setStatus] = useState("");
   const [previewPath, setPreviewPath] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  const normalizedSlug = slug.trim().toLowerCase();
+  const slugError =
+    normalizedSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)
+      ? "Use lowercase letters, numbers, and single hyphens, such as test-page."
+      : "";
   const initialized = useRef(false);
   const request = useRef<{
     id: string;
@@ -100,7 +105,7 @@ export function DesignStudioShell({
     });
   }
   async function save() {
-    if (busy) return;
+    if (busy || !ready || !title.trim() || !normalizedSlug || slugError) return;
     setBusy(true);
     setStatus("Saving Studio draft…");
     setReviewed(false);
@@ -110,11 +115,13 @@ export function DesignStudioShell({
       const result = await actions.save({
         ...(saved ? { id: saved.id, expectedUpdatedAt: saved.updatedAt } : {}),
         title,
-        slug,
+        slug: normalizedSlug,
         document,
       });
       if (!result.ok) throw new Error(result.error);
       setSaved(result.data);
+      setTitle(result.data.title);
+      setSlug(result.data.slug);
       setDirty(false);
       window.history.replaceState(null, "", `/admin/design-studio?id=${result.data.id}`);
       setStatus(
@@ -202,17 +209,31 @@ export function DesignStudioShell({
             maxLength={200}
           />
         </label>
-        <label>
-          URL /{" "}
-          <input
-            className="border bg-mg-bg px-2"
-            value={slug}
-            disabled={!!saved || busy}
-            onChange={(e) => setSlug(e.target.value)}
-            maxLength={120}
-          />
-        </label>
-        <button disabled={!ready || busy || !title.trim() || !slug.trim()} onClick={save}>
+        <div className="min-w-0">
+          <label>
+            URL /{" "}
+            <input
+              className="max-w-full border bg-mg-bg px-2"
+              value={slug}
+              disabled={!!saved || busy}
+              onChange={(e) => setSlug(e.target.value.toLowerCase())}
+              onBlur={() => setSlug(normalizedSlug)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-invalid={!!slugError}
+              aria-describedby="studio-url-help"
+              maxLength={120}
+            />
+          </label>
+          <p id="studio-url-help" className="max-w-sm text-xs" aria-live="polite">
+            {slugError || "Lowercase letters, numbers and hyphens. Example: test-page."}
+          </p>
+        </div>
+        <button
+          disabled={!ready || busy || !title.trim() || !normalizedSlug || !!slugError}
+          onClick={save}
+        >
           Save to site
         </button>
         {saved && (
