@@ -25943,7 +25943,7 @@ react/cjs/react-jsx-runtime.production.js:
           settingInput(group,"Confirmation message","text",settings.successText,input=>set("successText",input.value));
           const label=document.createElement("label");label.className="mg-field";label.textContent="Submit button";
           const mode=document.createElement("select");["Arrow","Label"].forEach(value=>{const o=document.createElement("option");o.textContent=o.value=value;mode.appendChild(o);});mode.value=settings.buttonMode||"Arrow";mode.onchange=()=>set("buttonMode",mode.value);label.appendChild(mode);group.appendChild(label);
-          const note=document.createElement("p");note.className="mg-meta";note.textContent="Use Preview to test validation and confirmation. No mailing list is connected.";group.appendChild(note);
+          const note=document.createElement("p");note.className="mg-meta";note.textContent="Local Preview tests validation only. Site previews and published pages capture addresses through the site newsletter form.";group.appendChild(note);
         }else{
           (settings.links||[]).forEach((link,index)=>{
             const row=document.createElement("div");row.className="mg-social-setting";

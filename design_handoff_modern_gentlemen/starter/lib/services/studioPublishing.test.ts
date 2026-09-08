@@ -4,7 +4,8 @@ import { createClient } from "@/lib/db/server";
 import { getDocument, getDocumentBySlug } from "./documents";
 import { createPage } from "@/lib/db/repositories/pages";
 import { saveStudioDraft } from "@/lib/db/repositories/studioDrafts";
-import { saveStudioPage } from "./studioPublishing";
+import { saveStudioPage, loadStudioPage } from "./studioPublishing";
+import { convertStudio } from "@/lib/blocks/studioPublishing";
 
 vi.mock("./auth", () => ({ requirePermission: vi.fn() }));
 vi.mock("@/lib/db/server", () => ({ createClient: vi.fn() }));
@@ -77,5 +78,25 @@ describe("Studio persistence boundary", () => {
       {},
       expect.objectContaining({ id, expectedUpdatedAt: "previous", updatedBy: "editor" })
     );
+  });
+  it("requires resaving an older generated layout before it can be previewed", async () => {
+    const id = "e2d42f70-e3fb-4d15-b521-d40a2a4a9e16",
+      document = input().document;
+    vi.mocked(getDocument).mockResolvedValue({
+      id,
+      title: "Invitation",
+      slug: "invitation",
+      updated_at: "now",
+      draft_data: { _designStudio: document, sections: [] },
+    } as never);
+    expect((await loadStudioPage(id)).issues[0].message).toMatch(/Save to site again/);
+    vi.mocked(getDocument).mockResolvedValue({
+      id,
+      title: "Invitation",
+      slug: "invitation",
+      updated_at: "now",
+      draft_data: { _designStudio: document, sections: convertStudio(document).sections },
+    } as never);
+    expect((await loadStudioPage(id)).issues).toEqual([]);
   });
 });

@@ -2,6 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { libraryFontStack, libraryFontStylesheet } from "@/lib/domain/fontLibrary";
 import { studioColor, studioGradient } from "@/lib/blocks/studioPublishing";
 import { MediaImage } from "../ui/MediaImage";
+import { isStudioWidgetKind } from "@/lib/blocks/studioWidgets";
+import { StudioWidget } from "./StudioWidgets";
 import styles from "./StudioCanvas.module.css";
 
 type Props = Record<string, unknown>;
@@ -52,7 +54,13 @@ export function StudioElement(p: Props) {
       p.align === "center" ? "center" : p.align === "right" ? "flex-end" : "flex-start",
   };
   let element: ReactNode;
-  if (p.kind === "button") {
+  if (typeof p.kind === "string" && isStudioWidgetKind(p.kind)) {
+    element = (
+      <div className={styles.element} style={style}>
+        <StudioWidget {...p} kind={p.kind} />
+      </div>
+    );
+  } else if (p.kind === "button") {
     Object.assign(style, {
       padding: unit(10),
       background: studioColor(p.fill),

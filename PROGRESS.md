@@ -8,6 +8,73 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Publish Studio launch widgets (PR #103 follow-up)
+
+- The uploaded webarchive confirms the page saved successfully. Its nine checks
+  are Countdown, Email signup and Social links, repeated at desktop/tablet/mobile.
+- Added schema-declared public rendering for all three widget kinds within the
+  existing Studio element/canvas path. Countdown preserves day/week/calendar-month
+  modes, expiry, unit labels, independent number/label fonts, divided/card styles
+  and proportional sizing. Social labels/icons/outlines use validated destinations.
+- Signup now posts through the existing newsletter hook/API; no success is shown
+  before the response, and invalid/rate-limited/unavailable responses stay visible.
+  No new mailing provider, confirmation flow, database grants or schema changes.
+  Read-only live verification confirms subscriber RLS is enabled, anonymous email
+  insertion is granted, and anonymous subscriber reading is denied.
+- Missing social destinations remain specific blockers: editors must enter their
+  own URLs. Other unsupported Studio features retain their checks. Previously
+  saved layouts must be saved again before preview to include the new rendering;
+  a structural comparison prevents an old saved tree omitting supported widgets.
+- Tests cover all nine widget/layout combinations, typography, calendar arithmetic,
+  unsafe/empty URLs, expiry, real-request signup state handling and stale layouts.
+  Extended hosted E2E through publication, all three viewport sizes and a real
+  signup into the isolated CI database. CI uploads three widget review screenshots.
+- Formatting, lint, TypeScript and all 2,613 tests in 138 files pass locally.
+  Production build passes. Hosted browser/visual/accessibility/performance review
+  remains pending. No production page was edited or published.
+- Cost: three public widget implementations plus a saved-layout freshness check;
+  the archive narrowed this from the full outstanding Studio rendering catalog.
+
+### 2026-09-08 — Studio URL capitalization save failure (PR #103 follow-up)
+
+- The user's screenshot identifies a concrete pre-save blocker: Page title Test,
+  URL Test, and the server's generic input-validation error. The URL schema
+  requires lowercase; this alone rejects the save before conversion checks are
+  returned, leaving both preview and publishing disabled with no checks list.
+- The Studio URL input now lowercases typed/pasted text, opts out of mobile
+  keyboard capitalization/autocorrection, and trims outer whitespace before
+  saving. Invalid separators or characters are explained beside the field and
+  prevent submission. Returned title/URL values update the form after saving.
+- Reproduced two failing-before-fix component assertions: capitalized URL input
+  was left uppercase, and invalid separators had no field-level error. Both now
+  pass. The existing hosted save/reopen/preview/publish journey now starts with
+  an uppercase URL and asserts the canonical lowercase value.
+- This resolves the screenshot's URL-format blocker. The page may still contain
+  unsupported content; conversion and publication guards remain unchanged.
+- Verification: formatting, lint, TypeScript and all 2,598 tests in 136 files
+  pass locally. Hosted browser verification pending the updated PR.
+  No routing, database, dependency or production-content changes. Not deployed.
+- Cost: identified from the screenshot after the earlier generic disabled-state
+  diagnosis; scoped to form validation and its regression coverage.
+
+### 2026-09-08 — Explain disabled Studio preview and publishing controls
+
+- Report: Create site preview and Publish page cannot be clicked. Source confirms
+  both require a saved, unchanged page with no conversion issues; publishing
+  also requires a preview and explicit review. The user-facing cause was hidden
+  in collapsed publishing checks or missing altogether before the first save.
+- Added visible next-step guidance and accessible descriptions to both controls.
+  Publishing checks are expanded by default and explain that Save to site
+  rechecks changes. Browser-local saving is explicitly distinguished from saving
+  to the site. Eligibility, server validation, and publishing permissions remain
+  intact; this does not add support for unsupported Studio content.
+- Regression coverage checks guidance before saving, after edits, before preview,
+  and for saved unsupported content. Formatting, lint, TypeScript and all 2,597
+  tests in 136 files pass locally. Hosted browser checks pending the PR.
+- The user's exact page state has not been inspected; this fixes the missing
+  explanation, not a claim that their page is now publishable. No deployment.
+- Cost: a scoped host UI correction; no renderer, database or asset changes.
+
 ### 2026-09-08 — Studio E2E publishing correction (PR #102)
 
 - Hosted run 34203337297 passed static/unit, integration, build, visual,

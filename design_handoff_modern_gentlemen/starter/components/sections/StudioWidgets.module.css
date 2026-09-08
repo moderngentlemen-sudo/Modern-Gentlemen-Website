@@ -1,0 +1,134 @@
+.content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(12 * var(--studio-px));
+  min-width: 0;
+  white-space: normal;
+}
+.caption {
+  font-size: calc(12 * var(--studio-px));
+  letter-spacing: calc(1.2 * var(--studio-px));
+  line-height: 1.3;
+}
+.countdown {
+  display: grid;
+  gap: calc(12 * var(--studio-px));
+  width: 100%;
+}
+.clockUnit {
+  min-width: 0;
+  text-align: center;
+  padding: calc(8 * var(--studio-px)) calc(4 * var(--studio-px));
+}
+.clockNumber {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+.clockLabel {
+  display: block;
+}
+.ended {
+  font-size: calc(24 * var(--studio-px));
+  line-height: 1.3;
+}
+.signupRow {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+  gap: calc(12 * var(--studio-px));
+  border-bottom: var(--studio-px) solid currentColor;
+}
+.signupRow input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  background: transparent;
+  border: 0;
+  padding: calc(12 * var(--studio-px)) 0;
+  font: inherit;
+  color: inherit;
+  border-radius: 0;
+}
+.signupRow input::placeholder {
+  color: inherit;
+  opacity: 0.65;
+}
+.signupRow button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: calc(12 * var(--studio-px)) 0;
+  color: inherit;
+  font: inherit;
+  max-width: 45%;
+  line-height: 1.3;
+  white-space: normal;
+}
+.signupRow button:hover {
+  opacity: 0.65;
+}
+.signupRow button:disabled {
+  opacity: 0.65;
+}
+.signupMessage {
+  margin: 0;
+  font-size: calc(18 * var(--studio-px));
+  line-height: 1.4;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(12 * var(--studio-px)) calc(20 * var(--studio-px));
+  align-items: center;
+}
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(7 * var(--studio-px));
+  max-width: 100%;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  padding: calc(4 * var(--studio-px)) 0;
+  border: 0;
+  border-radius: 0;
+  text-decoration: none;
+  line-height: 1.3;
+}
+.socialLink:hover {
+  text-decoration: underline;
+}
+.content a:focus-visible,
+.content button:focus-visible,
+.content input:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.icon {
+  flex-shrink: 0;
+  width: calc(18 * var(--studio-px));
+  height: calc(18 * var(--studio-px));
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (pointer: coarse) {
+  .socialLink,
+  .signupRow button {
+    min-height: 44px;
+  }
+}

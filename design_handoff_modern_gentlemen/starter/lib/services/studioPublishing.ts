@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isDeepStrictEqual } from "node:util";
 import {
   convertStudio,
   studioSourceSchema,
@@ -117,12 +118,22 @@ export async function loadStudioPage(id: string) {
     (page?.draft_data as Record<string, unknown> | null)?.[STUDIO_SOURCE_KEY]
   );
   if (!page || !document.success) throw new Error("This page was not saved from Design Studio.");
+  const converted = convertStudio(document.data);
+  if (
+    !converted.issues.length &&
+    !isDeepStrictEqual((page.draft_data as Record<string, unknown>).sections, converted.sections)
+  )
+    converted.issues.push({
+      path: "page",
+      message:
+        "Click Save to site again to update this saved layout with the current Studio publishing support.",
+    });
   return {
     id: page.id,
     title: page.title,
     slug: page.slug,
     updatedAt: page.updated_at,
     document: document.data,
-    issues: convertStudio(document.data).issues,
+    issues: converted.issues,
   };
 }

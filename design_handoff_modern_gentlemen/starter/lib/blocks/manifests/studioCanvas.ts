@@ -1,5 +1,6 @@
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
+import { STUDIO_WIDGET_KINDS, studioWidgetFields } from "../studioWidgets";
 
 const number = (label: string, min = 0, max = 4000) => field.number({ label, min, max });
 export const studioCanvas = defineBlock({
@@ -27,8 +28,14 @@ export const studioElement = defineBlock({
     kind: field.select({
       label: "Kind",
       default: "text",
-      options: ["text", "button", "divider", "image"].map((value) => ({ value, label: value })),
+      options: ["text", "button", "divider", "image", ...STUDIO_WIDGET_KINDS].map((value) => ({
+        value,
+        label: value,
+      })),
     }),
+    countdown: field.group({ label: "Countdown", fields: studioWidgetFields.countdown }),
+    signup: field.group({ label: "Signup", fields: studioWidgetFields.signup }),
+    social: field.group({ label: "Social links", fields: studioWidgetFields.social }),
     x: number("X", -4000),
     y: number("Y", -4000),
     w: number("Width", 1),

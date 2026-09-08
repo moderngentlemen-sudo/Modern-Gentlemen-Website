@@ -33,6 +33,11 @@ export function DesignStudioShell({
     [status, setStatus] = useState("");
   const [previewPath, setPreviewPath] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  const normalizedSlug = slug.trim().toLowerCase();
+  const slugError =
+    normalizedSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)
+      ? "Use lowercase letters, numbers, and single hyphens, such as test-page."
+      : "";
   const initialized = useRef(false);
   const request = useRef<{
     id: string;
@@ -100,7 +105,7 @@ export function DesignStudioShell({
     });
   }
   async function save() {
-    if (busy) return;
+    if (busy || !ready || !title.trim() || !normalizedSlug || slugError) return;
     setBusy(true);
     setStatus("Saving Studio draft…");
     setReviewed(false);
@@ -110,11 +115,13 @@ export function DesignStudioShell({
       const result = await actions.save({
         ...(saved ? { id: saved.id, expectedUpdatedAt: saved.updatedAt } : {}),
         title,
-        slug,
+        slug: normalizedSlug,
         document,
       });
       if (!result.ok) throw new Error(result.error);
       setSaved(result.data);
+      setTitle(result.data.title);
+      setSlug(result.data.slug);
       setDirty(false);
       window.history.replaceState(null, "", `/admin/design-studio?id=${result.data.id}`);
       setStatus(
@@ -170,6 +177,22 @@ export function DesignStudioShell({
     }
   }
   const eligible = !!saved && !dirty && !saved.issues.length && !busy;
+  const previewReason = busy
+    ? "Please wait for the current action to finish."
+    : !saved
+      ? "Enter a page title and URL, then click Save to site to enable the site preview. The Studio's browser save does not save to the site."
+      : dirty
+        ? "Click Save to site to save your latest changes and recheck this page before creating a preview."
+        : saved.issues.length
+          ? "Site preview and publishing are unavailable because this saved page has the publishing checks listed below."
+          : "";
+  const publishReason =
+    previewReason ||
+    (!previewPath
+      ? "Create a site preview first, then open it and review the saved page."
+      : !reviewed
+        ? "Open the site preview, then select ‘I reviewed this saved page’ to enable Publish page."
+        : "");
   return (
     <section className="fixed inset-0 z-50 flex flex-col bg-mg-bg" aria-label="Design Studio">
       <header className="flex flex-wrap items-center gap-3 border-b border-mg-bd px-4 py-2 text-sm">
@@ -186,17 +209,31 @@ export function DesignStudioShell({
             maxLength={200}
           />
         </label>
-        <label>
-          URL /{" "}
-          <input
-            className="border bg-mg-bg px-2"
-            value={slug}
-            disabled={!!saved || busy}
-            onChange={(e) => setSlug(e.target.value)}
-            maxLength={120}
-          />
-        </label>
-        <button disabled={!ready || busy || !title.trim() || !slug.trim()} onClick={save}>
+        <div className="min-w-0">
+          <label>
+            URL /{" "}
+            <input
+              className="max-w-full border bg-mg-bg px-2"
+              value={slug}
+              disabled={!!saved || busy}
+              onChange={(e) => setSlug(e.target.value.toLowerCase())}
+              onBlur={() => setSlug(normalizedSlug)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-invalid={!!slugError}
+              aria-describedby="studio-url-help"
+              maxLength={120}
+            />
+          </label>
+          <p id="studio-url-help" className="max-w-sm text-xs" aria-live="polite">
+            {slugError || "Lowercase letters, numbers and hyphens. Example: test-page."}
+          </p>
+        </div>
+        <button
+          disabled={!ready || busy || !title.trim() || !normalizedSlug || !!slugError}
+          onClick={save}
+        >
           Save to site
         </button>
         {saved && (
@@ -216,7 +253,7 @@ export function DesignStudioShell({
           </button>
         )}
         {canPreview && (
-          <button disabled={!eligible} onClick={preview}>
+          <button disabled={!eligible} onClick={preview} aria-describedby="studio-preview-help">
             Create site preview
           </button>
         )}
@@ -236,7 +273,13 @@ export function DesignStudioShell({
           </label>
         )}
         {canPublish && (
-          <button disabled={!eligible || !reviewed} onClick={publish}>
+          <button
+            disabled={!eligible || !reviewed}
+            onClick={publish}
+            aria-describedby={
+              previewReason && canPreview ? "studio-preview-help" : "studio-publish-help"
+            }
+          >
             Publish page
           </button>
         )}
@@ -252,9 +295,15 @@ export function DesignStudioShell({
             ? "Saved Studio page loaded."
             : "Save a new Studio page to make it available across devices.")}
         {dirty && saved && <span> · Unsaved Studio changes</span>}
+        {canPreview && <p id="studio-preview-help">{previewReason}</p>}
+        {canPublish && (
+          <p id="studio-publish-help">
+            {!canPreview || publishReason !== previewReason ? publishReason : ""}
+          </p>
+        )}
         {!!saved?.issues.length && (
-          <details>
-            <summary>{saved.issues.length} publishing checks</summary>
+          <div>
+            <p>{saved.issues.length} publishing checks in the saved page</p>
             <ul>
               {saved.issues.map((issue, index) => (
                 <li key={index}>
@@ -262,7 +311,11 @@ export function DesignStudioShell({
                 </li>
               ))}
             </ul>
-          </details>
+            <p>
+              Resolve these items, then click Save to site to check again. Features awaiting
+              publishing support can remain in your draft.
+            </p>
+          </div>
         )}
       </div>
       <iframe
