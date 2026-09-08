@@ -202,6 +202,12 @@ test.describe("Design Studio publishing", () => {
       );
     });
     await expect(frame.locator(".mg-board")).toContainText("Studio publishing journey");
+    // Use the actual editor Add path: it assigns Date.now(), not a small fixture ID.
+    await frame.getByRole("button", { name: "Add", exact: true }).click();
+    await frame.getByRole("button", { name: "+ Text", exact: true }).click();
+    await expect(
+      frame.locator(".mg-board [data-id]").filter({ hasText: "Your text" })
+    ).toHaveAttribute("data-id", /^\d{13,}$/);
     await page.getByLabel("Page title", { exact: true }).fill("Studio journey");
     // Match a capitalized mobile-keyboard entry; the saved URL stays canonical.
     await page.getByLabel("URL /", { exact: true }).fill(slug.toUpperCase());
@@ -214,6 +220,7 @@ test.describe("Design Studio publishing", () => {
     expect((await page.request.get(`/${slug}`)).status()).toBe(404);
     await page.reload();
     await expect(frame.locator(".mg-board")).toContainText("Studio publishing journey");
+    await expect(frame.locator(".mg-board")).toContainText("Your text");
     await page.getByRole("button", { name: "Create site preview", exact: true }).click();
     const preview = page.getByRole("link", { name: "Open site preview", exact: true });
     await expect(preview).toBeVisible();

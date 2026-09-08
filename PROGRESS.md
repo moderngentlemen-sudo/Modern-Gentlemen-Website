@@ -8,6 +8,29 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Studio save rejection after adding or duplicating elements
+
+- Screenshot shows valid title/slug mghome2, no saved page id in the URL, and the
+  generic input-schema error. Save to site has not succeeded; browser autosave
+  is independent. Preview/Publish are present but disabled pending a server save.
+- Found and reproduced a concrete mismatch: Add and Duplicate assign Date.now()
+  element IDs, but the source schema reused the coordinate bound of 100,000 for
+  IDs. Subsequent inserted section nodes inherit that large maximum too.
+- Element IDs now accept nonnegative safe integers independently of bounded
+  geometry. Existing IDs are preserved across all snapshots and generated keys;
+  no draft rewriting, database migration or permission change is necessary.
+- Save validation now reports the layout, element/section and field instead of
+  blaming title/slug/document indiscriminately. Output is capped at four issues.
+- Failing-before-fix tests cover timestamp IDs, ID/geometry bounds and the generic
+  error. All targeted tests pass. E2E now clicks Add and + Text before the full
+  save/reopen/preview/publish journey, asserting the actual timestamp DOM ID.
+- The screenshot also includes a mega-menu section and default editorial links.
+  Those retain separate publishing guards; this fix permits draft persistence
+  and exposes checks, and does not claim full native-section publishing support.
+- Local formatting, lint, TypeScript and all 2,623 tests in 139 files pass.
+  Hosted E2E pending. No production content changed or deployed. Cost: source-schema correction and actionable errors;
+  earlier fixture-only E2E used small IDs and missed the real editor Add path.
+
 ### 2026-09-08 — Adaptive custom Studio colors and gradients
 
 - User requests extending dark mode beyond the built-in template palette.

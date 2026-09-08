@@ -46,10 +46,45 @@ const reserved = new Set([
 export async function saveStudioPage(input: unknown) {
   const user = await requirePermission("page.write");
   const result = inputSchema.safeParse(input);
-  if (!result.success)
+  if (!result.success) {
+    const fields: Record<string, string> = {
+      source: "Current draft",
+      desktop: "Desktop layout",
+      tablet: "Tablet layout",
+      mobile: "Mobile layout",
+      title: "Page title",
+      slug: "URL",
+      id: "element ID",
+      x: "horizontal position",
+      y: "vertical position",
+      w: "width",
+      h: "height",
+      height: "height",
+      layoutDevice: "screen size",
+      page: "background color",
+    };
+    const details = result.error.issues.slice(0, 4).map((issue) => {
+      const path = issue.path.filter((part) => part !== "document" && part !== "views");
+      const label =
+        path
+          .map((part, index) => {
+            if (part === "nodes" || part === "sections") return "";
+            if (typeof part === "number")
+              return `${path[index - 1] === "nodes" ? "element" : "section"} ${part + 1}`;
+            return fields[part] || part;
+          })
+          .filter(Boolean)
+          .join(" · ") || "Studio document";
+      return `${label}: ${issue.message}`;
+    });
+    const more =
+      result.error.issues.length > 4
+        ? ` (${result.error.issues.length - 4} more validation errors.)`
+        : "";
     throw new Error(
-      "Enter a title, a lowercase hyphen-separated URL, and a valid Studio document (up to 8 MB)."
+      `Save to site failed. ${details.join("; ")}${more} Your browser draft is still available.`
     );
+  }
   const data = result.data,
     db = await createClient();
   const current = data.id ? await getDocument("page", data.id) : null;

@@ -11,7 +11,8 @@ const sectionSchema = z
   .passthrough();
 const nodeSchema = z
   .object({
-    id: finite,
+    // Add/Duplicate use Date.now(); identifiers are not canvas coordinates.
+    id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
     kind: z.string().max(80),
     x: finite,
     y: finite,
