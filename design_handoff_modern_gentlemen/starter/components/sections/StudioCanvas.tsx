@@ -1,10 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
 import { libraryFontStack, libraryFontStylesheet } from "@/lib/domain/fontLibrary";
-import { studioColor, studioGradient } from "@/lib/blocks/studioPublishing";
+import { studioGradient } from "@/lib/blocks/studioPublishing";
 import { MediaImage } from "../ui/MediaImage";
 import { isStudioWidgetKind } from "@/lib/blocks/studioWidgets";
 import { StudioWidget } from "./StudioWidgets";
 import styles from "./StudioCanvas.module.css";
+
+import { studioThemeColor, studioAdaptiveSurface, studioFixedFill } from "@/lib/blocks/studioTheme";
 
 type Props = Record<string, unknown>;
 function num(value: unknown, fallback: number) {
@@ -19,10 +21,13 @@ export function StudioCanvas({ children, ...p }: Props & { children?: ReactNode 
     <div className={styles.canvas}>
       <section
         id={string(p.sectionId)}
+        data-studio-theme={
+          !studioGradient(p.gradient) && studioAdaptiveSurface(p.color) ? "adaptive" : "fixed"
+        }
         className={styles.section}
         style={{
           height: `${(num(p.height, 480) / width) * 100}cqw`,
-          background: studioGradient(p.gradient) || studioColor(p.color),
+          background: studioGradient(p.gradient) || studioThemeColor(p.color),
         }}
       >
         {children}
@@ -42,7 +47,7 @@ export function StudioElement(p: Props) {
     height: unit(p.h, 40),
     fontFamily: libraryFontStack(font),
     fontSize: unit(p.size, 22),
-    color: studioColor(p.color),
+    color: studioThemeColor(p.color),
     fontWeight: num(p.weight, 400),
     fontStyle: p.italic ? "italic" : "normal",
     textDecoration: p.underline ? "underline" : "none",
@@ -56,19 +61,28 @@ export function StudioElement(p: Props) {
   let element: ReactNode;
   if (typeof p.kind === "string" && isStudioWidgetKind(p.kind)) {
     element = (
-      <div className={styles.element} style={style}>
+      <div
+        className={styles.element}
+        data-studio-fixed-palette={studioFixedFill(p.fill) || undefined}
+        style={style}
+      >
         <StudioWidget {...p} kind={p.kind} />
       </div>
     );
   } else if (p.kind === "button") {
     Object.assign(style, {
       padding: unit(10),
-      background: studioColor(p.fill),
-      border: `${unit(p.borderWidth)} solid ${studioColor(p.borderColor) || "transparent"}`,
+      background: studioThemeColor(p.fill),
+      border: `${unit(p.borderWidth)} solid ${studioThemeColor(p.borderColor) || "transparent"}`,
       borderRadius: unit(p.radius),
     });
     element = (
-      <a className={`${styles.element} ${styles.button}`} style={style} href={string(p.href)}>
+      <a
+        className={`${styles.element} ${styles.button}`}
+        data-studio-fixed-palette={studioFixedFill(p.fill) || undefined}
+        style={style}
+        href={string(p.href)}
+      >
         {string(p.text)}
       </a>
     );
@@ -85,7 +99,7 @@ export function StudioElement(p: Props) {
             display: "block",
             width: p.vertical ? unit(p.thickness, 2) : "100%",
             height: p.vertical ? "100%" : unit(p.thickness, 2),
-            background: studioColor(p.color),
+            background: studioThemeColor(p.color),
           }}
         />
       </div>
@@ -111,7 +125,11 @@ export function StudioElement(p: Props) {
     );
   } else
     element = (
-      <div className={styles.element} style={style}>
+      <div
+        className={styles.element}
+        data-studio-fixed-palette={studioFixedFill(p.fill) || undefined}
+        style={style}
+      >
         <div className={styles.text}>{string(p.text)}</div>
       </div>
     );
