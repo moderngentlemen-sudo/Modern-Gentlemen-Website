@@ -6,7 +6,12 @@ import { isStudioWidgetKind } from "@/lib/blocks/studioWidgets";
 import { StudioWidget } from "./StudioWidgets";
 import styles from "./StudioCanvas.module.css";
 
-import { studioThemeColor, studioAdaptiveSurface, studioFixedFill } from "@/lib/blocks/studioTheme";
+import {
+  studioThemeColor,
+  studioThemeInk,
+  studioAdaptiveSurface,
+  studioFixedFill,
+} from "@/lib/blocks/studioTheme";
 
 type Props = Record<string, unknown>;
 function num(value: unknown, fallback: number) {
@@ -47,7 +52,7 @@ export function StudioElement(p: Props) {
     height: unit(p.h, 40),
     fontFamily: libraryFontStack(font),
     fontSize: unit(p.size, 22),
-    color: studioThemeColor(p.color),
+    color: studioThemeInk(p.color),
     fontWeight: num(p.weight, 400),
     fontStyle: p.italic ? "italic" : "normal",
     textDecoration: p.underline ? "underline" : "none",

@@ -47,6 +47,11 @@
   --studio-0d0d0d: #0d0d0d;
   --studio-5a5a5a: #5a5a5a;
   --studio-707070: #707070;
+  --studio-f8f7f3: #f8f7f3;
+  --studio-dfd9ce: #dfd9ce;
+  --studio-645f56: #645f56;
+  --studio-8b857b: #8b857b;
+  --studio-accent-ink: #c8102e;
 }
 :global(html[data-mgtheme="dark"]) .section[data-studio-theme="adaptive"] {
   --studio-ffffff: var(--mg-surface);
@@ -56,4 +61,9 @@
   --studio-0d0d0d: var(--mg-fg);
   --studio-5a5a5a: var(--mg-muted);
   --studio-707070: var(--mg-faint);
+  --studio-f8f7f3: var(--mg-bg);
+  --studio-dfd9ce: var(--mg-surface);
+  --studio-645f56: var(--mg-muted);
+  --studio-8b857b: var(--mg-faint);
+  --studio-accent-ink: var(--mg-accent-ink);
 }

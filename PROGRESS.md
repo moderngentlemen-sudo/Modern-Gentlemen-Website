@@ -8,6 +8,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Correct Studio template palette coverage
+
+- User reports only the header changes after PR #104 deployed. Read-only HTML
+  inspection of live /test confirms the new renderer is present, but all fifteen
+  responsive sections are marked fixed. The native template cream (#f8f7f3) and
+  beige (#dfd9ce) were missing from the neutral palette. The earlier white-only
+  browser fixture passed but did not represent the user's template.
+- Added both native light surfaces and their warm muted inks (#645f56/#8b857b).
+  Accent text follows the site's dark accent-ink token; red fills and white labels
+  on colored buttons retain their authored treatment. Fixed dark/green sections
+  and images remain intact. No document regeneration or content write is needed.
+- E2E now uses the actual cream, beige and muted/red template colors at all three
+  viewport sizes in both themes, alongside countdown/signup/social checks and
+  fixed-control/dark-band assertions. It captures both light sections for review.
+- Local format, lint, TypeScript and all 2,618 tests in 139 files pass. Hosted
+  browser checks pending this corrective branch. No production deployment here.
+- Cost: this follow-up was required because the first fix used the site's generic
+  neutral colors without checking the Studio template defaults or the live page.
+
 ### 2026-09-08 — Studio published-page dark mode
 
 - Report: pages created in the new Studio builder ignore dark mode. Public
