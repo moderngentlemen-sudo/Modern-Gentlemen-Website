@@ -143,7 +143,7 @@ function Countdown({ p, settings }: { p: Props; settings: CountdownWidget }) {
                   (Math.max(2, digits.length) * 0.65)
               )
             );
-            const border = `${unit(1)} solid ${studioColor(p.borderColor) || studioColor("#14141455")}`;
+            const border = `${unit(1)} solid ${studioThemeInk(p.borderColor) || studioThemeInk("#14141455")}`;
             return (
               <div
                 key={name}
@@ -206,7 +206,7 @@ function Signup({ p, settings }: { p: Props; settings: SignupWidget }) {
     messageId = useId();
   const { email, setEmail, state, submit } = useNewsletterSignup("newsletter");
   const error = state === "invalid" || state === "throttled" || state === "error";
-  const line = studioColor(p.borderColor) || studioColor(p.color) || "currentColor";
+  const line = studioThemeInk(p.borderColor) || studioThemeInk(p.color) || "currentColor";
   return (
     <>
       {state !== "done" && (
@@ -300,7 +300,7 @@ function Social({ p, settings }: { p: Props; settings: SocialWidget }) {
             style={
               settings.variant === "Outlined"
                 ? {
-                    border: `${unit(1)} solid ${studioColor(p.borderColor) || studioColor(p.color) || "currentColor"}`,
+                    border: `${unit(1)} solid ${studioThemeInk(p.borderColor) || studioThemeInk(p.color) || "currentColor"}`,
                     background: studioColor(p.fill),
                     padding: `${unit(10)} ${unit(12)}`,
                     borderRadius: unit(number(p.radius, 0)),

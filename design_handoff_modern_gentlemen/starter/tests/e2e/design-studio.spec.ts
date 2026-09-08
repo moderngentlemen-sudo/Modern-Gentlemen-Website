@@ -29,8 +29,41 @@ test.describe("Design Studio publishing", () => {
               { uid: "intro", height: 480, color: "#f8f7f3", stops: ["#f8f7f3", "#dfd9ce"] },
               { uid: "dark-band", height: 120, color: "#0d0d0d", stops: ["#0d0d0d", "#0d0d0d"] },
               { uid: "beige", height: 120, color: "#dfd9ce", stops: ["#dfd9ce", "#dfd9ce"] },
+              { uid: "custom", height: 120, color: "#e3f1ff", stops: ["#e3f1ff", "#e3f1ff"] },
+              {
+                uid: "gradient",
+                height: 160,
+                color: "#e3f1ff",
+                gradient: true,
+                angle: 35,
+                stops: ["#e3f1ff", "#f2d9ee"],
+              },
             ],
             nodes: [
+              {
+                id: 9,
+                kind: "text",
+                name: "Custom ink",
+                text: "Custom palette",
+                x: 24,
+                y: 750,
+                w: 640,
+                h: 55,
+                size: 26,
+                color: "#432486",
+              },
+              {
+                id: 10,
+                kind: "text",
+                name: "Gradient ink",
+                text: "Custom gradient",
+                x: 24,
+                y: 870,
+                w: 640,
+                h: 55,
+                size: 26,
+                color: "#004477",
+              },
               {
                 id: 7,
                 kind: "text",
@@ -212,6 +245,9 @@ test.describe("Design Studio publishing", () => {
       ).toHaveAttribute("href", "https://instagram.com/modern.gentlemen");
       await page.evaluate(() => document.fonts.ready);
       const section = page.locator('section[id^="studio-intro-"]').filter({ visible: true });
+      let lightCustom = "",
+        lightGradient = "",
+        lightCustomInk = "";
       for (const theme of ["light", "dark"] as const) {
         if (device === "desktop" && theme === "dark") {
           await page.getByRole("button", { name: "Switch to dark theme", exact: true }).click();
@@ -257,6 +293,31 @@ test.describe("Design Studio publishing", () => {
           "color",
           theme === "dark" ? "rgb(247, 20, 46)" : "rgb(200, 16, 46)"
         );
+        const custom = page.locator('section[id^="studio-custom-"]').filter({ visible: true });
+        const gradient = page.locator('section[id^="studio-gradient-"]').filter({ visible: true });
+        const customColor = await custom.evaluate((node) => getComputedStyle(node).backgroundColor);
+        const gradientColor = await gradient.evaluate(
+          (node) => getComputedStyle(node).backgroundImage
+        );
+        const customInk = await custom
+          .getByText("Custom palette", { exact: true })
+          .evaluate((node) => getComputedStyle(node).color);
+        if (theme === "light") {
+          lightCustom = customColor;
+          lightGradient = gradientColor;
+          lightCustomInk = customInk;
+        } else {
+          expect(customColor).not.toBe(lightCustom);
+          expect(gradientColor).not.toBe(lightGradient);
+          expect(customInk).not.toBe(lightCustomInk);
+          expect(gradientColor).toContain("linear-gradient(35deg");
+        }
+        await custom.screenshot({
+          path: `test-results/studio-widgets-custom-${device}-${theme}.png`,
+        });
+        await gradient.screenshot({
+          path: `test-results/studio-widgets-gradient-${device}-${theme}.png`,
+        });
         await beige.screenshot({
           path: `test-results/studio-widgets-beige-${device}-${theme}.png`,
         });

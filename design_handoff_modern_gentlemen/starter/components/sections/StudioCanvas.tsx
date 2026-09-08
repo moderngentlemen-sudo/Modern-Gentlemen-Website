@@ -8,6 +8,8 @@ import styles from "./StudioCanvas.module.css";
 
 import {
   studioThemeColor,
+  studioThemeGradient,
+  studioAdaptiveGradient,
   studioThemeInk,
   studioAdaptiveSurface,
   studioFixedFill,
@@ -27,12 +29,18 @@ export function StudioCanvas({ children, ...p }: Props & { children?: ReactNode 
       <section
         id={string(p.sectionId)}
         data-studio-theme={
-          !studioGradient(p.gradient) && studioAdaptiveSurface(p.color) ? "adaptive" : "fixed"
+          (
+            studioGradient(p.gradient)
+              ? studioAdaptiveGradient(p.gradient)
+              : studioAdaptiveSurface(p.color)
+          )
+            ? "adaptive"
+            : "fixed"
         }
         className={styles.section}
         style={{
           height: `${(num(p.height, 480) / width) * 100}cqw`,
-          background: studioGradient(p.gradient) || studioThemeColor(p.color),
+          background: studioThemeGradient(p.gradient) || studioThemeColor(p.color),
         }}
       >
         {children}
@@ -78,7 +86,7 @@ export function StudioElement(p: Props) {
     Object.assign(style, {
       padding: unit(10),
       background: studioThemeColor(p.fill),
-      border: `${unit(p.borderWidth)} solid ${studioThemeColor(p.borderColor) || "transparent"}`,
+      border: `${unit(p.borderWidth)} solid ${studioThemeInk(p.borderColor) || "transparent"}`,
       borderRadius: unit(p.radius),
     });
     element = (
@@ -104,7 +112,7 @@ export function StudioElement(p: Props) {
             display: "block",
             width: p.vertical ? unit(p.thickness, 2) : "100%",
             height: p.vertical ? "100%" : unit(p.thickness, 2),
-            background: studioThemeColor(p.color),
+            background: studioThemeInk(p.color),
           }}
         />
       </div>
