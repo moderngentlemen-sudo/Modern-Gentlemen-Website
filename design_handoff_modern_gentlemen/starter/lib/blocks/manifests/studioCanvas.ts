@@ -1,0 +1,73 @@
+import { defineBlock } from "../defineBlock";
+import { field } from "../fields";
+
+const number = (label: string, min = 0, max = 4000) => field.number({ label, min, max });
+export const studioCanvas = defineBlock({
+  type: "studioCanvas",
+  label: "Studio canvas",
+  category: "layout",
+  hidden: true,
+  description: "A Design Studio section with its original canvas geometry.",
+  fields: {
+    sectionId: field.text({ label: "Section anchor" }),
+    width: number("Canvas width", 1),
+    height: number("Canvas height", 1),
+    color: field.text({ label: "Background" }),
+    gradient: field.text({ label: "Gradient" }),
+  },
+  slot: { label: "Elements" },
+});
+export const studioElement = defineBlock({
+  type: "studioElement",
+  label: "Studio element",
+  category: "layout",
+  hidden: true,
+  description: "A Design Studio element. Edit its source in Design Studio.",
+  fields: {
+    kind: field.select({
+      label: "Kind",
+      default: "text",
+      options: ["text", "button", "divider", "image"].map((value) => ({ value, label: value })),
+    }),
+    x: number("X", -4000),
+    y: number("Y", -4000),
+    w: number("Width", 1),
+    h: number("Height", 1),
+    canvasWidth: number("Canvas width", 1),
+    text: field.textarea({ label: "Text" }),
+    href: field.url({ label: "Destination" }),
+    src: field.image({ label: "Image" }),
+    alt: field.text({ label: "Alt text" }),
+    fontFamily: field.font({ label: "Font" }),
+    size: number("Font size", 8, 240),
+    color: field.text({ label: "Color" }),
+    fill: field.text({ label: "Fill" }),
+    weight: number("Weight", 100, 900),
+    leading: number("Line height", 0.5, 4),
+    tracking: number("Letter spacing", -20, 100),
+    radius: number("Radius", 0, 1000),
+    italic: field.boolean({ label: "Italic" }),
+    underline: field.boolean({ label: "Underline" }),
+    uppercase: field.boolean({ label: "Uppercase" }),
+    align: field.select({
+      label: "Alignment",
+      default: "left",
+      options: ["left", "center", "right"].map((value) => ({ value, label: value })),
+    }),
+    thickness: number("Divider thickness", 0.01, 100),
+    vertical: field.boolean({ label: "Vertical" }),
+    borderWidth: number("Border width", 0, 100),
+    borderColor: field.text({ label: "Border color" }),
+    opacity: number("Opacity", 0, 100),
+    brightness: number("Brightness", 0, 300),
+    contrast: number("Contrast", 0, 300),
+    cropZoom: number("Crop zoom", 1, 500),
+    focalX: number("Focal X", 0, 100),
+    focalY: number("Focal Y", 0, 100),
+    fit: field.select({
+      label: "Image fit",
+      default: "cover",
+      options: ["cover", "contain"].map((value) => ({ value, label: value })),
+    }),
+  },
+});

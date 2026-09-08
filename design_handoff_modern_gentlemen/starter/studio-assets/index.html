@@ -27250,6 +27250,40 @@ react/cjs/react-jsx-runtime.production.js:
       let outlineFrame=null;
       root.querySelector(".mg-stage").addEventListener("scroll",()=>{if(outlineFrame!==null)return;outlineFrame=requestAnimationFrame(()=>{outlineFrame=null;updateOutlineViewport();});},{passive:true});
       updateOutlineViewport();
+      // Authenticated host bridge: never accepts messages from a sibling frame or another origin.
+      function serverPageDoc(){
+        const doc=pageDoc();doc.sections.forEach((s,i)=>s.height=sectionHeight(i));
+        const assetURL=id=>{const a=mediaById(id);return a?.original||a?.src||'';};
+        function resolve(value){if(Array.isArray(value))return value.map(resolve);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,resolve(v)]));return typeof value==='string'&&value.startsWith('asset:')?assetURL(value.slice(6)):value;}
+        doc.nodes.forEach(n=>{if(n.mediaId){n.src=assetURL(n.mediaId);delete n.mediaId;}});
+        doc.sections.forEach(s=>{if(s.backgroundMedia?.mediaId){s.backgroundMedia.src=assetURL(s.backgroundMedia.mediaId);delete s.backgroundMedia.mediaId;}});
+        return resolve(doc);
+      }
+      function captureServerDocument(){
+        if(richEditing)finishRich(true);
+        const original=state,oldDevice=device,source=serverPageDoc(),snapshots={};
+        try{
+          state=clone(original);
+          for(const view of views){setLayoutDevice(view);reflow();snapshots[view]=serverPageDoc();}
+          return {version:1,source,views:snapshots};
+        }finally{state=original;device=oldDevice;}
+      }
+      window.addEventListener('message',event=>{
+        if(event.source!==window.parent||event.origin!==location.origin)return;
+        const message=event.data;
+        if(message?.type==='mg-studio-hello')window.parent.postMessage({type:'mg-studio-ready'},location.origin);
+        if(message?.type==='mg-studio-capture'){
+          try{window.parent.postMessage({type:'mg-studio-snapshot',requestId:message.requestId,document:captureServerDocument()},location.origin);}
+          catch{window.parent.postMessage({type:'mg-studio-snapshot',requestId:message.requestId,error:'Could not capture this Studio page. Your browser draft remains available.'},location.origin);}
+        }
+        if(message?.type==='mg-studio-load'&&validDraft({version:1,id:'server',name:'Server page',state:message.source})){
+          state=clone(message.source);device=state.layoutDevice||'desktop';section=0;selected=null;selectedIds.clear();scope='page';preview=false;history=[];future=[];workspace();render();serverRecovery();
+          window.parent.postMessage({type:'mg-studio-loaded'},location.origin);
+        }
+      });
+      const serverRecovery=queueRecovery;
+      queueRecovery=function(){serverRecovery();window.parent.postMessage({type:'mg-studio-changed'},location.origin);};
+      window.parent.postMessage({type:'mg-studio-ready'},location.origin);
       const clockTimer=setInterval(()=>{if(!root.isConnected){clearInterval(clockTimer);return;}if(document.visibilityState!=="hidden")updateCountdowns();},1000);
     })();
   </script>

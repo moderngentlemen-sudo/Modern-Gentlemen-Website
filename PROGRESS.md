@@ -8,6 +8,46 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Design Studio persistence and guarded publishing (review branch)
+
+- Branch `feat/design-studio-publishing`, based on main `b207f71` after PR #101.
+  Studio can save an active page to the existing pages table, reopen from the
+  page list, save as a new page, generate a site preview and explicitly publish
+  supported compositions through the existing permission-checked actions.
+- Source and independently captured desktop/tablet/mobile layouts are retained.
+  Workspace pages are excluded and rejected server-side so unrelated drafts do
+  not enter published payloads. Asset references are resolved in the active
+  source; permanent image URLs render through MediaImage and media traversal.
+- New hidden manifests and public React renderers preserve core native text,
+  links, image crops, colors, gradients, geometry and fractional divider values.
+  Children remain structural block children. Existing Original and Canvas
+  documents/renderers remain untouched; opening a Studio document routes back
+  to Studio. No existing page can be converted or overwritten by this bridge.
+- Saves compare updated_at atomically against the editor's last known value.
+  Preview/publish reject a stale saved timestamp and conversion blockers. The
+  existing publish RPC still owns publication, revisions and audit history;
+  its validation-to-RPC concurrency window is not redesigned in this change.
+  Draft save does not publish or change public cache/content. History currently
+  covers publication and existing history actions, not a new autosave revision
+  stream for every Studio save. Title/URL are fixed after first save in this UI.
+- This is NOT full Studio publishing parity. Mega menus, widgets/forms, rich
+  text, video, legacy sections and section background media/separators remain
+  explicit publishing blockers; browser-only/data-URL images need permanent
+  media before publishing. Keep the PR in draft until those renderer mappings
+  and hosted browser/visual/accessibility/performance verification are complete.
+- Verification: formatting, lint and TypeScript passed; 2,595 unit/component
+  tests passed in 136 files, including the bundled-bridge test. Production
+  build completed with the existing public read-only Supabase connection.
+  Added a signed-in E2E journey for save/reopen/preview/publish; not run locally
+  because E2E credentials and the pinned browser executable are unavailable.
+  No skipped suite is counted as coverage. No migration or dependency changes.
+- Cost: the expected publishing button required an explicit document adapter,
+  source round-trip bridge, draft isolation, conflict handling, source-to-tree
+  validation, native public renderers and a review flow. Full visual/interactive
+  parity remains separate engineering work; no claim that the full catalog
+  can publish and no production deployment in this handoff.
+
+
 ### 2026-09-08 — Full design studio on the main admin site
 
 - Added the complete private-preview studio as `/admin/design-studio`, gated by

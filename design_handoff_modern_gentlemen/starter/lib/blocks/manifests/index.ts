@@ -1,3 +1,4 @@
+import { studioCanvas, studioElement } from "./studioCanvas";
 import { widgetStudio } from "./widgetStudio";
 import { gridLayout } from "./gridLayout";
 /**
@@ -63,6 +64,8 @@ import { timeline } from "./timeline";
 import { twoUpCategory } from "./twoUpCategory";
 
 export const blockManifests = {
+  studioCanvas,
+  studioElement,
   ...sectionStudyManifests,
   comingSoonStudio,
   mgDesignStudio,
