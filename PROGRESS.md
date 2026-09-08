@@ -8,6 +8,23 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Studio E2E publishing correction (PR #102)
+
+- Hosted run 34203337297 passed static/unit, integration, build, visual,
+  accessibility and performance checks. The Studio E2E journey reached the
+  Publish button after save/reopen/preview, then failed waiting for success.
+- Reproduced a real validation defect: comparing generated and persisted block
+  trees with JSON.stringify treats JSONB object-key reordering as a content
+  edit. Switched the server-only check to structural equality, preserving
+  strict value and array-order checks. No E2E assertion was weakened.
+- Added a failing-before-fix regression for a storage-style round trip that
+  reorders nested object keys; actual block-order changes remain rejected.
+  Formatting, lint, TypeScript and all 2,596 unit/component tests pass locally.
+  Hosted E2E rerun remains required for this correction.
+- Cost: expected a flaky browser assertion; found the publish validator was
+  dependent on storage key order. Fixed the server comparison, not the wait.
+
+
 ### 2026-09-08 — Design Studio persistence and guarded publishing (review branch)
 
 - Branch `feat/design-studio-publishing`, based on main `b207f71` after PR #101.

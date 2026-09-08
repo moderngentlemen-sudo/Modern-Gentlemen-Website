@@ -88,6 +88,25 @@ describe("Studio publishing conversion", () => {
     result.sections[0].children![0].settings!.text = "Changed outside Studio";
     expect(validateDocumentPayload("page", payload).ok).toBe(false);
   });
+  it("accepts unchanged content after JSONB reorders object keys, while preserving array order", () => {
+    const source = studioFixture();
+    const converted = convertStudio(source);
+    function reordered(value: unknown): unknown {
+      if (Array.isArray(value)) return value.map(reordered);
+      if (value && typeof value === "object")
+        return Object.fromEntries(
+          Object.entries(value)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, entry]) => [key, reordered(entry)])
+        );
+      return value;
+    }
+    const stored = reordered({ sections: converted.sections, _designStudio: source }) as Json;
+    expect(validateDocumentPayload("page", stored).issues).toEqual([]);
+    const tree = (stored as { sections: typeof converted.sections }).sections;
+    tree[0].children!.reverse();
+    expect(validateDocumentPayload("page", stored).ok).toBe(false);
+  });
   it("does not mutate the source or accept unsafe colors/gradients", () => {
     const input = studioFixture(),
       before = JSON.stringify(input);
