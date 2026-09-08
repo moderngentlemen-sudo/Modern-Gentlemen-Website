@@ -8,6 +8,30 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-08 — Full design studio on the main admin site
+
+- Added the complete private-preview studio as `/admin/design-studio`, gated by
+  `page.write` both on the page and the asset endpoint. Original and Canvas
+  Preview remain unchanged; the separate V2 foundation PR is not included.
+- Includes the full native/legacy studio catalog, color and font hover previews,
+  media/video controls, interactive mega menu, section separators, floating
+  controls, local drafts and export. Assets are bundled outside public and only
+  served through the permission gate; file names are allowlisted.
+- This is a separate local-draft authoring environment, not document conversion
+  or server persistence/public publishing. Demo form/commerce labels remain.
+  Draft storage is scoped to the signed-in user on this origin; the test Site's
+  localStorage does not transfer automatically (use draft export/import).
+- Governing rule: every font chooser must offer temporary live preview on hover
+  and keyboard focus, restore on exit, and commit one undoable selection.
+- Verification: local formatting, lint, TypeScript and 2,559 tests in 131
+  files passed. Build compiled; database-dependent prerender and hosted
+  CI/build checks remain pending. Asset service tests cover permission denial,
+  path traversal rejection, and per-user local draft keys.
+- Cost: anticipated isolated admin hosting rather than schema conversion;
+  implemented one permission-checked bundled asset endpoint and full-window
+  editor, with no dependencies, migrations, or public-content writes.
+
+
 ### 2026-09-07 — Free canvas alignment and attached handles
 
 - Canvas Preview now snaps free moves to sibling edges and centers and detects

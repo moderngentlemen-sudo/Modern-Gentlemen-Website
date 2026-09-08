@@ -8,3 +8,5 @@ test-results
 package-lock.json
 lib/db/database.types.ts
 public
+
+studio-assets

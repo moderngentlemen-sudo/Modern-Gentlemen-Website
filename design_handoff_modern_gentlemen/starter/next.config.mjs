@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingIncludes: { "/api/admin/design-studio": ["./studio-assets/**/*"] },
   // Leave multipart overhead above the media service's 20 MiB file limit.
   experimental: { serverActions: { bodySizeLimit: "25mb" } },
   images: {
