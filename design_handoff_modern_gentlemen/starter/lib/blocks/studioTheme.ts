@@ -1,4 +1,4 @@
-import { studioColor, studioGradient } from "./studioPublishing";
+import { studioColor, studioGradient } from "./studioValues";
 
 // Known template neutrals retain the published theme tokens. Custom colors use
 // a hue-preserving dark companion, scoped to adaptive sections.

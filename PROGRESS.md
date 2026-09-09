@@ -8,6 +8,39 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-09 — Publish native Studio video and editorial mega menus
+
+- The saved draft now reaches publishing checks: 21 reports repeat one video,
+  five missing button destinations and one mega menu across three layouts.
+- Native videos now publish with the editor's autoplay, repeat, mute, controls,
+  subtle corner play/pause, preload, poster, crop and appearance settings. Reduced
+  motion prevents autoplay; hidden responsive copies and background tabs pause.
+- Editorial mega menus now publish their category tabs, keyboard navigation,
+  horizontal story scrolling, images, optional story links, independent typography,
+  colors and configurable transitions. Existing theme adaptation applies. The two
+  bundled editorial images have public copies; private admin media routes remain
+  invalid unless they are one of those exact bundled assets.
+- Empty optional story URLs render informational cards without a false Read story
+  link. Required button destinations remain blocked. The publishing check list groups
+  duplicate layout reports, identifies buttons by name and opens their settings through
+  the authenticated host bridge, including in compact inspector mode. Page paths,
+  web, email and phone links now use compatible editor/publishing validation.
+- Source documents, geometry, hosted-media permissions and preview/publish review
+  guards remain intact. Existing saved pages must be saved again to regenerate their
+  converted public content; no production draft destinations have been invented.
+- Local format/lint/typecheck and 2,664 unit tests passed. The production build
+  completed with exit 0 (the local proxy still reports Supabase data-fetch warnings).
+  Automatic approval review initially rejected the GitHub upload, including after
+  verifying the existing repository and PROGRESS.md blob. The user subsequently
+  explicitly approved uploading these changes and opening a pull request for E2E.
+  Hosted browser verification is pending; current results will be in the PR.
+  No production content or deployment has been changed.
+- The new E2E uploads a generated WebM through
+  the real Media controls, configures playback, adds the actual mega-menu template,
+  saves with a missing link, reopens, fixes it through Edit in Studio, previews,
+  publishes and exercises video/tabs/scrolling across desktop/tablet/mobile and both
+  themes. Current hosted results will be recorded in the pull request.
+
 ### 2026-09-09 — Host embedded Studio media before saving
 
 - User now receives the explicit 8 MB Studio document error. The capture bridge

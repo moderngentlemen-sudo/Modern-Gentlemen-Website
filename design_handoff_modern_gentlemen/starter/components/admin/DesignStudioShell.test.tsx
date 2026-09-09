@@ -157,6 +157,63 @@ describe("Studio host bridge", () => {
     expect(post.mock.calls.filter(([data]) => data.type === "mg-studio-load")).toHaveLength(0);
   });
 
+  it("groups the three layout checks and opens the affected button without modifying its destination", () => {
+    const actions = {
+      upload: vi.fn(),
+      save: vi.fn(),
+      load: vi.fn(),
+      preview: vi.fn(),
+      publish: vi.fn(),
+    };
+    const page = {
+      page: "#fff",
+      layoutDevice: "desktop" as const,
+      sections: [{ uid: "one", height: 600 }],
+      nodes: [],
+    };
+    render(
+      <DesignStudioShell
+        initial={{
+          id: "saved",
+          title: "Invitation",
+          slug: "invitation",
+          updatedAt: "now",
+          document: {
+            version: 1,
+            source: page,
+            views: { desktop: page, tablet: page, mobile: page },
+          },
+          issues: ["desktop", "tablet", "mobile"].map((view) => ({
+            path: `${view}.sections.0.nodes.23`,
+            message: "Browse stories needs a destination.",
+          })),
+        }}
+        actions={actions}
+        canPublish
+        canPreview
+      />
+    );
+    const frame = screen.getByTitle("Modern Gentlemen Design Studio") as HTMLIFrameElement;
+    const post = vi.spyOn(frame.contentWindow!, "postMessage").mockImplementation(() => {});
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: "mg-studio-loaded" },
+          origin: location.origin,
+          source: frame.contentWindow,
+        })
+      );
+    });
+    expect(screen.getByText("1 publishing checks in the saved page")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Edit in Studio: Browse stories/ }));
+    expect(post).toHaveBeenCalledWith(
+      { type: "mg-studio-focus", view: "desktop", sectionIndex: 0, nodeId: 23 },
+      location.origin
+    );
+    expect(actions.save).not.toHaveBeenCalled();
+    expect(screen.getByText("Create site preview")).toBeDisabled();
+  });
+
   it("shows unsupported-content blockers without requiring a disabled button or collapsed disclosure", () => {
     const actions = {
       upload: vi.fn(),

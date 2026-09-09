@@ -114,6 +114,222 @@ test.describe("Design Studio publishing", () => {
         .toBeGreaterThan(0);
     }
   });
+  test("publishes uploaded video and the native mega menu after fixing a named button check", async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
+    await page.goto("/sign-in");
+    await page.getByLabel("Email", { exact: true }).fill(email!);
+    await page.getByLabel("Password", { exact: true }).fill(password!);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin/);
+    await page.goto("/admin/design-studio");
+    const frame = page.frameLocator('iframe[title="Modern Gentlemen Design Studio"]');
+    await expect(frame.locator(".mg-board")).toBeVisible();
+    const encoded = await page.evaluate(async () => {
+      document.querySelector("iframe")!.contentWindow!.postMessage(
+        {
+          type: "mg-studio-load",
+          source: {
+            title: "Editorial video journey",
+            page: "#f8f7f3",
+            layoutDevice: "desktop",
+            sections: [
+              { uid: "film", height: 520, color: "#f8f7f3", stops: ["#f8f7f3", "#f8f7f3"] },
+            ],
+            nodes: [
+              {
+                id: 1,
+                kind: "text",
+                text: "Editorial video journey",
+                x: 32,
+                y: 430,
+                w: 500,
+                h: 50,
+                size: 30,
+                color: "#141414",
+              },
+              {
+                id: 23,
+                kind: "button",
+                name: "Browse stories",
+                text: "Browse stories",
+                x: 32,
+                y: 350,
+                w: 200,
+                h: 40,
+                size: 18,
+                color: "#fff",
+                fill: "#141414",
+                action: { type: "none" },
+              },
+            ],
+          },
+        },
+        location.origin
+      );
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 180;
+      const ctx = canvas.getContext("2d")!;
+      const stream = canvas.captureStream(10);
+      const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      const stopped = new Promise<void>((resolve) => {
+        recorder.onstop = () => resolve();
+      });
+      recorder.start();
+      for (let i = 0; i < 20; i++) {
+        ctx.fillStyle = i % 2 ? "#c8102e" : "#141414";
+        ctx.fillRect(0, 0, 320, 180);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      recorder.stop();
+      await stopped;
+      stream.getTracks().forEach((t) => t.stop());
+      const reader = new FileReader();
+      return await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.readAsDataURL(new Blob(chunks, { type: "video/webm" }));
+      });
+    });
+    await expect(frame.locator(".mg-board")).toContainText("Editorial video journey");
+    await frame.getByRole("button", { name: "Media", exact: true }).click();
+    await frame.getByRole("button", { name: "Browse & upload", exact: true }).click();
+    await frame.getByLabel("Upload images or videos").setInputFiles({
+      name: "editorial-film.webm",
+      mimeType: "video/webm",
+      buffer: Buffer.from(encoded, "base64"),
+    });
+    await frame
+      .locator(".mg-media-grid > div")
+      .filter({ hasText: "editorial-film.webm" })
+      .getByRole("button", { name: "Add to canvas", exact: true })
+      .click();
+    await frame.getByRole("button", { name: "Expand all settings", exact: true }).click();
+    await frame.getByLabel("Autoplay", { exact: true }).selectOption("yes");
+    await frame.getByLabel("Repeat", { exact: true }).selectOption("yes");
+    await frame.getByLabel("Show playback controls", { exact: true }).selectOption("no");
+    await frame.getByRole("button", { name: "Sections", exact: true }).click();
+    await frame.getByRole("button", { name: "Add · Mega menu", exact: true }).click();
+    await expect(frame.getByRole("tab", { name: "Style", exact: true })).toBeVisible();
+    const slug = `e2e-studio-editorial-${Date.now().toString(36)}`;
+    await page.getByLabel("Page title", { exact: true }).fill("Editorial video journey");
+    await page.getByLabel("URL /", { exact: true }).fill(slug);
+    await page.getByRole("button", { name: "Save to site", exact: true }).click();
+    await expect(page.getByText("1 publishing checks in the saved page")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(
+      page.getByRole("button", { name: "Create site preview", exact: true })
+    ).toBeDisabled();
+    await page.reload();
+    await page.getByRole("button", { name: /Edit in Studio:.*Browse stories/ }).click();
+    await expect(frame.getByLabel("On click", { exact: true })).toBeFocused();
+    await frame.getByLabel("On click", { exact: true }).selectOption("url");
+    await frame.getByLabel("Button destination URL").fill("/");
+    await frame.getByLabel("Button destination URL").press("Tab");
+    await page.getByRole("button", { name: "Save to site", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Create site preview", exact: true })
+    ).toBeEnabled({ timeout: 30000 });
+    await page.reload();
+    await expect(frame.locator(".mg-board")).toContainText("Editorial video journey");
+    await page.getByRole("button", { name: "Create site preview", exact: true }).click();
+    const preview = page.getByRole("link", { name: "Open site preview", exact: true });
+    await expect(preview).toBeVisible();
+    const previewPage = await page.context().newPage();
+    await previewPage.goto((await preview.getAttribute("href"))!);
+    await expect(previewPage.getByRole("tab", { name: "Style", exact: true })).toBeVisible();
+    await expect(previewPage.locator("video").filter({ visible: true })).toHaveAttribute(
+      "src",
+      /\/storage\/v1\/object\/public\/media\//
+    );
+    await previewPage.close();
+    await page.getByRole("checkbox", { name: "I reviewed this saved page" }).check();
+    await page.getByRole("button", { name: "Publish page", exact: true }).click();
+    await expect(page.getByText(/Published version \d+\./)).toBeVisible();
+    await page.goto(`/${slug}`);
+    for (const [device, width] of [
+      ["desktop", 1280],
+      ["tablet", 800],
+      ["mobile", 390],
+    ] as const) {
+      await page.setViewportSize({ width, height: 1000 });
+      const video = page.locator("video").filter({ visible: true });
+      await video.scrollIntoViewIfNeeded();
+      await expect
+        .poll(() => video.evaluate((n) => (n as HTMLVideoElement).readyState))
+        .toBeGreaterThan(0);
+      expect(await video.evaluate((n) => (n as HTMLVideoElement).paused)).toBe(true);
+      await page.getByRole("button", { name: "Play video", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Pause video", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Pause video", exact: true }).click();
+      expect(await video.evaluate((n) => (n as HTMLVideoElement).loop)).toBe(true);
+      expect(await video.evaluate((n) => (n as HTMLVideoElement).muted)).toBe(true);
+      expect(
+        await page
+          .locator("video")
+          .evaluateAll((nodes) => nodes.filter((n) => !(n as HTMLVideoElement).paused).length)
+      ).toBe(0);
+      const styleTab = page.getByRole("tab", { name: "Style", exact: true });
+      await styleTab.scrollIntoViewIfNeeded();
+      await styleTab.click();
+      const panel = page.getByRole("tabpanel");
+      await expect(
+        panel.getByRole("heading", { name: "Modern dress, lasting values" })
+      ).toBeVisible();
+      await expect
+        .poll(() =>
+          panel
+            .getByRole("img")
+            .first()
+            .evaluate((n) => (n as HTMLImageElement).naturalWidth)
+        )
+        .toBeGreaterThan(0);
+      await page.getByRole("button", { name: "Next stories", exact: true }).click();
+      await expect.poll(() => panel.evaluate((n) => n.scrollLeft)).toBeGreaterThan(0);
+      await styleTab.focus();
+      await styleTab.press("ArrowDown");
+      await expect(page.getByRole("tab", { name: "Culture", exact: true })).toBeFocused();
+      await expect(panel).toHaveAccessibleName("Culture");
+      await expect(
+        panel.getByRole("heading", { name: "The art of paying attention" })
+      ).toBeVisible();
+      expect(await panel.evaluate((n) => n.scrollLeft)).toBe(0);
+      const menu = page
+        .locator("section")
+        .filter({ has: page.getByRole("tab", { name: "Culture", exact: true }) })
+        .filter({ visible: true });
+      for (const theme of ["light", "dark"]) {
+        await page
+          .locator("html")
+          .evaluate((root, value) => root.setAttribute("data-mgtheme", value), theme);
+        await expect(menu).toHaveCSS("background-color", "rgb(16, 16, 16)");
+        await page.evaluate(() => document.fonts.ready);
+        await menu.screenshot({ path: `test-results/studio-widgets-mega-${device}-${theme}.png` });
+      }
+      await expect(page.getByRole("link", { name: "Browse stories", exact: true })).toHaveAttribute(
+        "href",
+        "/"
+      );
+    }
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    const activeVideo = page.locator("video").filter({ visible: true });
+    await activeVideo.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => activeVideo.evaluate((n) => (n as HTMLVideoElement).paused))
+      .toBe(false);
+    await expect
+      .poll(() =>
+        page
+          .locator("video")
+          .evaluateAll((nodes) => nodes.filter((n) => !(n as HTMLVideoElement).paused).length)
+      )
+      .toBe(1);
+  });
   test("saves, reopens, previews and publishes a native Studio page", async ({ page }) => {
     test.setTimeout(60000);
     await page.goto("/sign-in");
