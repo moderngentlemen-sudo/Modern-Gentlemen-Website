@@ -8,6 +8,44 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-09 — Match native Studio sizing to the original builder
+
+- User reports that published Studio pages look enlarged and asks to match the
+  original builder. The original keeps authored CSS pixel sizes and uses the
+  shared content-width/gutter theme; Studio had multiplied every dimension by
+  public width / 760, including typography, controls, dividers and section height.
+- Studio now uses the site's content width plus desktop gutters for its desktop
+  workspace (1416px with the default theme), the original builder's 834px tablet
+  preview, and the existing 390px mobile preview. Fit/100% remain editor-only zoom.
+- Horizontal positions and widths adapt to that workspace. Per-section saved
+  canvasWidths make upgrades repeat-safe for old browser/server drafts, templates,
+  compositions and responsive layouts. Fonts, heights, vertical positions, IDs,
+  links and content stay intact. Existing published snapshots still use their
+  historical coordinate widths; converting them remains compatible.
+- The public renderer keeps vertical geometry, typography, widget controls and
+  fractional dividers in CSS pixels. Horizontal layout stays fluid inside the
+  same themed width limit, with backgrounds continuing across the full page.
+  Existing published Studio pages receive this sizing behavior after deployment;
+  reopening a draft adapts its editor geometry, and saving stores the new widths.
+- Regression checks cover historical conversion, validated width metadata, repeat
+  upgrades, theme width changes, mobile preservation and CSS pixel sizes. The
+  publishing E2E compares measured editor typography/section heights with site
+  preview at 1280/1920/800/390px and with the published page. Mega-menu scrolling
+  checks account for wide screens where every story fits without scrolling.
+- Local format/lint/typecheck and all 2666 unit tests pass. Hosted CI #374 passed
+  build, integration, editor/preview/published size comparisons, 16 visual checks
+  (4 existing skips), 29 accessibility checks and 14 performance checks. Its
+  video/mega-menu test timed out loading 1920px optimized images for the now-210px
+  cards; the trace shows pending requests, not a size-comparison failure. The
+  cards now declare their actual 210/280px image slots, and the test scrolls the
+  image into view, allows the cold optimizer to finish, and checks resolution
+  relative to its displayed width. An unrelated grid undo test passed on retry.
+  A new hosted run is pending. The cloud browser cannot reach local loopback;
+  screenshots/trace were retrieved from CI instead. No production changes.
+- Cost: a bounded horizontal coordinate upgrade plus fixed CSS dimensions; no
+  rewrite of existing section components, database migration, dependency change,
+  production content write, or deployment. Review/merge status lives in the PR.
+
 ### 2026-09-09 — Publish native Studio video and editorial mega menus
 
 - The saved draft now reaches publishing checks: 21 reports repeat one video,

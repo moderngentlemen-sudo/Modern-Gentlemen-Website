@@ -106,6 +106,8 @@ function isSvgPath(src: string): boolean {
 export const IMAGE_SIZES = {
   /** Edge-to-edge band: the hero cover, the full-bleed feature. */
   fullBleed: "100vw",
+  /** Studio mega-menu cards keep their authored pixel width at each breakpoint. */
+  studioStory: "(max-width: 680px) 280px, 210px",
   /** Half the 1320px column at desktop, full width below the 2-up breakpoint. */
   half: "(min-width: 821px) 660px, 100vw",
   /** A 4-up product/editorial grid: 2 columns below `lg`, 4 above. */

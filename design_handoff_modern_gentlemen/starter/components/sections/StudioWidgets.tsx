@@ -16,14 +16,14 @@ import { studioThemeColor as studioColor, studioThemeInk } from "@/lib/blocks/st
 import { FontStylesheet } from "../ui/FontStylesheet";
 import { SIGNUP_MESSAGE, useNewsletterSignup } from "../ui/useNewsletterSignup";
 import styles from "./StudioWidgets.module.css";
+import { studioPixels } from "@/lib/blocks/studioSizing";
 
 type Props = Record<string, unknown>;
 const number = (value: unknown, fallback: number) =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 const text = (value: unknown) => (typeof value === "string" ? value : "");
-function measures(p: Props) {
-  const width = number(p.canvasWidth, 760);
-  return (value: number) => `${(value / width) * 100}cqw`;
+function measures(_p: Props) {
+  return studioPixels;
 }
 function WidgetIcon({ platform }: { platform: string }) {
   let shape: ReactNode;

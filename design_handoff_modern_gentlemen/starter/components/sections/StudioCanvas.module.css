@@ -1,6 +1,11 @@
 .canvas {
   width: 100%;
+  max-width: calc(var(--layout-content-width, 1320px) + 2 * var(--layout-desktop-gutter, 48px));
+  margin-inline: auto;
   container-type: inline-size;
+}
+.surface {
+  width: 100%;
 }
 .section {
   position: relative;
@@ -38,6 +43,7 @@
 
 /* Reset at each section and on colored controls so a fixed composition cannot
    inherit the adaptive palette from a surrounding canvas. */
+.surface,
 .section,
 .element[data-studio-fixed-palette] {
   --studio-dark-weight: 0%;
@@ -54,6 +60,7 @@
   --studio-8b857b: #8b857b;
   --studio-accent-ink: #c8102e;
 }
+:global(html[data-mgtheme="dark"]) .surface[data-studio-theme="adaptive"],
 :global(html[data-mgtheme="dark"]) .section[data-studio-theme="adaptive"] {
   --studio-dark-weight: 100%;
   --studio-ffffff: var(--mg-surface);

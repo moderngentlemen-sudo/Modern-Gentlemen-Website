@@ -6,11 +6,23 @@ import { FONT_LIBRARY } from "@/lib/domain/fontLibrary";
 import type { BlockNode } from "./types";
 import { validateTree } from "./validate";
 import { isStudioWidgetKind, normalizeStudioWidget } from "./studioWidgets";
+import { STUDIO_LEGACY_WIDTHS } from "./studioSizing";
 
 export const STUDIO_SOURCE_KEY = "_designStudio";
 const finite = z.number().finite().min(-100000).max(100000);
 const sectionSchema = z
-  .object({ uid: z.string().min(1).max(120), height: finite.positive() })
+  .object({
+    uid: z.string().min(1).max(120),
+    height: finite.positive(),
+    canvasWidths: z
+      .object({
+        desktop: z.number().finite().min(1).max(4000),
+        tablet: z.number().finite().min(1).max(4000),
+        mobile: z.number().finite().min(1).max(4000),
+      })
+      .strict()
+      .optional(),
+  })
   .passthrough();
 const nodeSchema = z
   .object({
@@ -76,12 +88,12 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
     sections: BlockNode[] = [];
   const fail = (path: string, message: string) => issues.push({ path, message });
   for (const view of ["desktop", "tablet", "mobile"] as const) {
-    const doc = parsed.data.views[view],
-      width = { desktop: 760, tablet: 680, mobile: 390 }[view];
+    const doc = parsed.data.views[view];
     if (doc.layoutDevice !== view) fail(view, "Refresh the responsive layouts before saving.");
     const ids = new Set<string>();
     let top = 0;
     for (const [index, section] of doc.sections.entries()) {
+      const width = section.canvasWidths?.[view] ?? STUDIO_LEGACY_WIDTHS[view];
       const path = `${view}.sections.${index}`,
         anchor = `studio-${section.uid}-${view}`;
       if (ids.has(section.uid) || !/^[a-z0-9-]+$/i.test(section.uid))

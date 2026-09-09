@@ -8,6 +8,7 @@ import { MediaImage } from "../ui/MediaImage";
 import { isStudioWidgetKind } from "@/lib/blocks/studioWidgets";
 import { StudioWidget } from "./StudioWidgets";
 import styles from "./StudioCanvas.module.css";
+import { studioPixels } from "@/lib/blocks/studioSizing";
 
 import {
   studioThemeColor,
@@ -27,46 +28,50 @@ function string(value: unknown) {
 }
 export function StudioCanvas({ children, ...p }: Props & { children?: ReactNode }) {
   const width = num(p.width, 760);
+  const theme = (
+    studioGradient(p.gradient) ? studioAdaptiveGradient(p.gradient) : studioAdaptiveSurface(p.color)
+  )
+    ? "adaptive"
+    : "fixed";
   return (
-    <div className={styles.canvas}>
-      <section
-        id={string(p.sectionId)}
-        data-studio-theme={
-          (
-            studioGradient(p.gradient)
-              ? studioAdaptiveGradient(p.gradient)
-              : studioAdaptiveSurface(p.color)
-          )
-            ? "adaptive"
-            : "fixed"
-        }
-        className={styles.section}
-        style={{
-          height: `${(num(p.height, 480) / width) * 100}cqw`,
-          background: studioThemeGradient(p.gradient) || studioThemeColor(p.color),
-        }}
-      >
-        {!!p.megaMenu && (
-          <StudioMegaMenu
-            config={p.megaMenu as StudioMegaMenuConfig}
-            width={width}
-            mobile={!!p.mobile}
-          />
-        )}
-        {children}
-      </section>
+    <div
+      className={styles.surface}
+      data-studio-surface={string(p.sectionId)}
+      data-studio-theme={theme}
+      style={{ background: studioThemeGradient(p.gradient) || studioThemeColor(p.color) }}
+    >
+      <div className={styles.canvas}>
+        <section
+          id={string(p.sectionId)}
+          data-studio-theme={theme}
+          className={styles.section}
+          style={{
+            height: studioPixels(num(p.height, 480)),
+          }}
+        >
+          {!!p.megaMenu && (
+            <StudioMegaMenu
+              config={p.megaMenu as StudioMegaMenuConfig}
+              width={width}
+              mobile={!!p.mobile}
+            />
+          )}
+          {children}
+        </section>
+      </div>
     </div>
   );
 }
 export function StudioElement(p: Props) {
   const width = num(p.canvasWidth, 760),
-    unit = (v: unknown, fallback = 0) => `${(num(v, fallback) / width) * 100}cqw`;
+    horizontal = (v: unknown, fallback = 0) => `${(num(v, fallback) / width) * 100}cqw`,
+    unit = (v: unknown, fallback = 0) => studioPixels(num(v, fallback));
   const font = string(p.fontFamily),
     stylesheet = libraryFontStylesheet(font);
   const style: CSSProperties = {
-    left: unit(p.x),
+    left: horizontal(p.x),
     top: unit(p.y),
-    width: unit(p.w, 100),
+    width: horizontal(p.w, 100),
     height: unit(p.h, 40),
     fontFamily: libraryFontStack(font),
     fontSize: unit(p.size, 22),
