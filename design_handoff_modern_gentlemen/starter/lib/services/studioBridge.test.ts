@@ -51,11 +51,18 @@ describe("bundled Studio bridge", () => {
       ...context,
       window: { parent: { document: { documentElement: {} } } },
       getComputedStyle: () => ({
-        getPropertyValue: (name: string) => (name === "--layout-content-width" ? "1440px" : "32px"),
+        getPropertyValue: (name: string): string =>
+          name === "--layout-content-width" ? "1440px" : "32px",
       }),
     };
     runInNewContext(script + "\nupgradePageSizing(doc);", custom);
     expect(doc.nodes[0].w).toBe(752);
+    custom.getComputedStyle = () => ({
+      getPropertyValue: (name: string): string =>
+        name === "--layout-content-width" ? "960px" : "24px",
+    });
+    runInNewContext(script + "\nupgradePageSizing(doc);", custom);
+    expect(doc.nodes[0].w).toBe(504);
     expect(doc.nodes[0].size).toBe(24);
     expect(doc.nodes[0].layouts.mobile).toEqual(mobile);
   });

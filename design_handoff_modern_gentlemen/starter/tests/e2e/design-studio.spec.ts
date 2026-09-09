@@ -280,14 +280,18 @@ test.describe("Design Studio publishing", () => {
       await expect(
         panel.getByRole("heading", { name: "Modern dress, lasting values" })
       ).toBeVisible();
+      const storyImage = panel.getByRole("img").first();
+      await storyImage.scrollIntoViewIfNeeded();
       await expect
-        .poll(() =>
-          panel
-            .getByRole("img")
-            .first()
-            .evaluate((n) => (n as HTMLImageElement).naturalWidth)
-        )
+        .poll(() => storyImage.evaluate((n) => (n as HTMLImageElement).naturalWidth), {
+          timeout: 15000,
+        })
         .toBeGreaterThan(0);
+      expect(
+        await storyImage.evaluate(
+          (n) => (n as HTMLImageElement).naturalWidth / n.getBoundingClientRect().width
+        )
+      ).toBeLessThanOrEqual(2.5);
       const nextStories = page.getByRole("button", { name: "Next stories", exact: true });
       const hasOverflow = await panel.evaluate((n) => n.scrollWidth > n.clientWidth + 1);
       if (hasOverflow) {

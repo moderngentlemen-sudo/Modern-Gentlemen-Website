@@ -27037,7 +27037,7 @@ react/cjs/react-jsx-runtime.production.js:
         if(view==='tablet')return 834;
         let styles;try{styles=getComputedStyle(window.parent.document.documentElement);}catch{}
         const number=(name,fallback)=>{const value=parseFloat(styles?.getPropertyValue(name));return Number.isFinite(value)&&value>=0?value:fallback;};
-        return Math.max(1024,Math.min(4000,number('--layout-content-width',1320)+2*number('--layout-desktop-gutter',48)));
+        return Math.max(1,Math.min(4000,number('--layout-content-width',1320)+2*number('--layout-desktop-gutter',48)));
       }
       function upgradeGroupSizing(group,view='desktop'){
         const widths={desktop:viewWidth('desktop'),tablet:viewWidth('tablet'),mobile:viewWidth('mobile')};

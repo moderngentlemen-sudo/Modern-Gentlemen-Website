@@ -180,7 +180,7 @@ export function StudioMegaMenu({
                         <MediaImage
                           src={story.image}
                           alt={story.alt ?? story.title}
-                          slot="fullBleed"
+                          slot="studioStory"
                         />
                       </div>
                     )}

@@ -32,9 +32,16 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   publishing E2E compares measured editor typography/section heights with site
   preview at 1280/1920/800/390px and with the published page. Mega-menu scrolling
   checks account for wide screens where every story fits without scrolling.
-- Local format/lint/typecheck and all 2666 unit tests pass. Hosted browser checks
-  are pending. The cloud browser cannot reach the local preview (client-blocked
-  loopback); no browser installation or access workaround was attempted.
+- Local format/lint/typecheck and all 2666 unit tests pass. Hosted CI #374 passed
+  build, integration, editor/preview/published size comparisons, 16 visual checks
+  (4 existing skips), 29 accessibility checks and 14 performance checks. Its
+  video/mega-menu test timed out loading 1920px optimized images for the now-210px
+  cards; the trace shows pending requests, not a size-comparison failure. The
+  cards now declare their actual 210/280px image slots, and the test scrolls the
+  image into view, allows the cold optimizer to finish, and checks resolution
+  relative to its displayed width. An unrelated grid undo test passed on retry.
+  A new hosted run is pending. The cloud browser cannot reach local loopback;
+  screenshots/trace were retrieved from CI instead. No production changes.
 - Cost: a bounded horizontal coordinate upgrade plus fixed CSS dimensions; no
   rewrite of existing section components, database migration, dependency change,
   production content write, or deployment. Review/merge status lives in the PR.
