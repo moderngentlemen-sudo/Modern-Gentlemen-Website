@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { groupStudioIssues } from "@/lib/blocks/studioIssues";
 import { useEffect, useRef, useState } from "react";
 import type { StudioSource, StudioIssue } from "@/lib/blocks/studioPublishing";
 import { hostStudioMedia, type UploadStudioMedia } from "./studioMedia";
@@ -188,6 +189,7 @@ export function DesignStudioShell({
       setBusy(false);
     }
   }
+  const publishingChecks = groupStudioIssues(saved?.issues || []);
   const eligible = !!saved && !dirty && !saved.issues.length && !busy;
   const previewReason = busy
     ? "Please wait for the current action to finish."
@@ -317,11 +319,34 @@ export function DesignStudioShell({
         )}
         {!!saved?.issues.length && (
           <div>
-            <p>{saved.issues.length} publishing checks in the saved page</p>
+            <p>{publishingChecks.length} publishing checks in the saved page</p>
             <ul>
-              {saved.issues.map((issue, index) => (
+              {publishingChecks.map((issue, index) => (
                 <li key={index}>
-                  {issue.path}: {issue.message}
+                  {issue.views.length ? `${issue.views.join(", ")}: ` : `${issue.path}: `}
+                  {issue.message}{" "}
+                  {issue.views.length > 0 && (
+                    <button
+                      type="button"
+                      className="underline"
+                      disabled={!ready || busy}
+                      aria-label={`Edit in Studio: ${issue.message}`}
+                      onClick={() => {
+                        frame.current?.contentWindow?.postMessage(
+                          {
+                            type: "mg-studio-focus",
+                            view: issue.views[0],
+                            nodeId: issue.nodeId,
+                            sectionIndex: issue.sectionIndex,
+                          },
+                          location.origin
+                        );
+                        frame.current?.focus();
+                      }}
+                    >
+                      Edit in Studio
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

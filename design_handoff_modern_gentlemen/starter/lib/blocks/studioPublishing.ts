@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { studioColor, studioGradient, studioDestination } from "./studioValues";
+import { normalizeStudioMegaMenu, normalizeStudioVideo } from "./studioFeatures";
+export { studioColor, studioGradient } from "./studioValues";
 import { FONT_LIBRARY } from "@/lib/domain/fontLibrary";
 import type { BlockNode } from "./types";
 import { validateTree } from "./validate";
@@ -61,32 +64,6 @@ export interface StudioIssue {
   message: string;
 }
 
-export function studioColor(value: unknown): string | undefined {
-  return typeof value === "string" &&
-    (/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(value) || value === "transparent")
-    ? value
-    : undefined;
-}
-export function studioGradient(value: unknown): string | undefined {
-  return typeof value === "string" &&
-    /^linear-gradient\(-?\d+(?:\.\d+)?deg,#[\da-f]{3,8}(?: \d+(?:\.\d+)?%)?(?:,#[\da-f]{3,8}(?: \d+(?:\.\d+)?%)?){1,11}\)$/i.test(
-      value
-    )
-    ? value
-    : undefined;
-}
-function safeUrl(value: unknown, media = false) {
-  return typeof value === "string" &&
-    (/^https:\/\//.test(value) ||
-      // Local Supabase Storage uses HTTP in development; public media stays HTTPS.
-      (media && /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\//.test(value)) ||
-      /^\/(?!\/|api\/|admin\/)/.test(value) ||
-      /^#[a-z0-9-]+$/i.test(value)) &&
-    !/[\s\\<>]/.test(value)
-    ? value
-    : undefined;
-}
-
 /** Convert only supported, faithful shapes. Never silently drop a section or substitute demo behavior. */
 export function convertStudio(input: unknown): { sections: BlockNode[]; issues: StudioIssue[] } {
   const parsed = studioSourceSchema.safeParse(input);
@@ -110,12 +87,10 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
       if (ids.has(section.uid) || !/^[a-z0-9-]+$/i.test(section.uid))
         fail(path, "Section identifiers must be unique and use letters, numbers and hyphens.");
       ids.add(section.uid);
-      for (const feature of ["megaMenu", "backgroundMedia"])
-        if (section[feature])
-          fail(
-            path,
-            `${feature === "megaMenu" ? "Mega menu" : "Section background media"} publishing needs its live renderer integration.`
-          );
+      const mega = section.megaMenu ? normalizeStudioMegaMenu(section.megaMenu) : undefined;
+      for (const issue of mega?.issues || []) fail(path, issue);
+      if (section.backgroundMedia)
+        fail(path, "Section background media publishing needs its live renderer integration.");
       if ((section.separator as { enabled?: boolean } | undefined)?.enabled)
         fail(path, "Section separator publishing needs its live renderer integration.");
       const background = studioColor(section.color ?? doc.page);
@@ -146,13 +121,12 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
         }
         if (node.richHtml)
           fail(nodePath, "Formatted text needs its rich-text conversion before publishing.");
-        if (node.mediaType === "video")
-          fail(nodePath, "Video playback settings need their live renderer integration.");
         const font = FONT_LIBRARY.find((f) => f.label === node.font || f.value === node.font);
         if (node.font && !font)
           fail(nodePath, "This font is not available in the live font library.");
         const settings: Record<string, unknown> = {
-          kind: node.kind === "media" ? "image" : node.kind,
+          kind:
+            node.kind === "media" ? (node.mediaType === "video" ? "video" : "image") : node.kind,
           x: node.x,
           y: node.y - top,
           w: node.w,
@@ -191,13 +165,23 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
             else settings[key] = color;
           }
         if (node.kind === "media") {
-          const src = safeUrl(node.src, true);
+          const src = studioDestination(node.src, true);
           if (!src || src.startsWith("#"))
             fail(
               nodePath,
-              "Choose a permanent image URL before publishing; local uploads and temporary media cannot go live."
+              `Choose a permanent ${node.mediaType === "video" ? "video" : "image"} URL before publishing; local uploads and temporary media cannot go live.`
             );
           else settings.src = src;
+          if (node.mediaType === "video") {
+            const video = normalizeStudioVideo(node.video, node.loop);
+            if (video.success) settings.video = video.data;
+            else fail(nodePath, "Check this video's playback settings.");
+            if (node.poster) {
+              const poster = studioDestination(node.poster, true);
+              if (!poster) fail(nodePath, "Choose a permanent video poster image URL.");
+              else settings.poster = poster;
+            }
+          }
         }
         if (node.kind === "button") {
           const action = node.action as
@@ -206,11 +190,18 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
             action?.type === "section" && doc.sections.some((s) => s.uid === action.sectionId)
               ? `#studio-${action.sectionId}-${view}`
               : action?.type === "url"
-                ? safeUrl(action.url)
+                ? studioDestination(action.url)
                 : undefined;
           if (!href)
-            fail(nodePath, "This button needs a valid page, section or HTTPS destination.");
-          else settings.href = href;
+            fail(
+              nodePath,
+              `“${String(node.name || node.text || "Button").slice(0, 120)}” needs a destination. Open Button action and choose a section or enter a page URL, web, email or phone link.`
+            );
+          else {
+            settings.href = href;
+            if (action?.type === "url" && !/^(?:mailto:|tel:|#)/i.test(href))
+              settings.newTab = true;
+          }
         }
         if (isStudioWidgetKind(node.kind)) {
           const widget = normalizeStudioWidget(node.kind, node.widget);
@@ -233,6 +224,7 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
           height: section.height,
           color: background,
           ...(gradient ? { gradient } : {}),
+          ...(mega?.value ? { megaMenu: mega.value, mobile: view === "mobile" } : {}),
         },
         children,
       });

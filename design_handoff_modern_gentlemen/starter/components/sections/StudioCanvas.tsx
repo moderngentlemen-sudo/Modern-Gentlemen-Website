@@ -1,6 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { libraryFontStack, libraryFontStylesheet } from "@/lib/domain/fontLibrary";
-import { studioGradient } from "@/lib/blocks/studioPublishing";
+import { studioGradient } from "@/lib/blocks/studioValues";
+import type { StudioMegaMenuConfig, StudioVideoOptions } from "@/lib/blocks/studioFeatures";
+import { StudioMegaMenu } from "./StudioMegaMenu";
+import { StudioVideo } from "./StudioVideo";
 import { MediaImage } from "../ui/MediaImage";
 import { isStudioWidgetKind } from "@/lib/blocks/studioWidgets";
 import { StudioWidget } from "./StudioWidgets";
@@ -43,6 +46,13 @@ export function StudioCanvas({ children, ...p }: Props & { children?: ReactNode 
           background: studioThemeGradient(p.gradient) || studioThemeColor(p.color),
         }}
       >
+        {!!p.megaMenu && (
+          <StudioMegaMenu
+            config={p.megaMenu as StudioMegaMenuConfig}
+            width={width}
+            mobile={!!p.mobile}
+          />
+        )}
         {children}
       </section>
     </div>
@@ -95,6 +105,8 @@ export function StudioElement(p: Props) {
         data-studio-fixed-palette={studioFixedFill(p.fill) || undefined}
         style={style}
         href={string(p.href)}
+        target={p.newTab ? "_blank" : undefined}
+        rel={p.newTab ? "noopener noreferrer" : undefined}
       >
         {string(p.text)}
       </a>
@@ -117,7 +129,7 @@ export function StudioElement(p: Props) {
         />
       </div>
     );
-  } else if (p.kind === "image") {
+  } else if (p.kind === "image" || p.kind === "video") {
     const imageStyle = {
       borderRadius: unit(p.radius),
       opacity: num(p.opacity, 100) / 100,
@@ -128,12 +140,25 @@ export function StudioElement(p: Props) {
       "--studio-focal": `${num(p.focalX, 50)}% ${num(p.focalY, 50)}%`,
     } as CSSProperties;
     element = (
-      <div className={styles.element} style={{ ...style, overflow: "hidden" }}>
-        <div className={styles.image} style={imageStyle}>
-          {string(p.src) && (
-            <MediaImage src={string(p.src)!} alt={string(p.alt) || ""} slot="fullBleed" />
-          )}
-        </div>
+      <div
+        className={styles.element}
+        style={{ ...style, overflow: "hidden", borderRadius: unit(p.radius) }}
+      >
+        {p.kind === "video" ? (
+          <StudioVideo
+            src={string(p.src) || ""}
+            poster={string(p.poster)}
+            label={string(p.alt) || "Video"}
+            options={p.video as StudioVideoOptions | undefined}
+            mediaStyle={imageStyle}
+          />
+        ) : (
+          <div className={styles.image} style={imageStyle}>
+            {string(p.src) && (
+              <MediaImage src={string(p.src)!} alt={string(p.alt) || ""} slot="fullBleed" />
+            )}
+          </div>
+        )}
       </div>
     );
   } else

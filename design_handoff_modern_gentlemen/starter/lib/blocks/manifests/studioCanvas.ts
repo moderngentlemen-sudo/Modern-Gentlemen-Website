@@ -1,3 +1,4 @@
+import { studioMegaMenuFields, studioVideoFields } from "../studioFeatures";
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
 import { STUDIO_WIDGET_KINDS, studioWidgetFields } from "../studioWidgets";
@@ -15,6 +16,8 @@ export const studioCanvas = defineBlock({
     height: number("Canvas height", 1),
     color: field.text({ label: "Background" }),
     gradient: field.text({ label: "Gradient" }),
+    megaMenu: field.group({ label: "Mega menu", fields: studioMegaMenuFields }),
+    mobile: field.boolean({ label: "Mobile menu layout" }),
   },
   slot: { label: "Elements" },
 });
@@ -28,10 +31,12 @@ export const studioElement = defineBlock({
     kind: field.select({
       label: "Kind",
       default: "text",
-      options: ["text", "button", "divider", "image", ...STUDIO_WIDGET_KINDS].map((value) => ({
-        value,
-        label: value,
-      })),
+      options: ["text", "button", "divider", "image", "video", ...STUDIO_WIDGET_KINDS].map(
+        (value) => ({
+          value,
+          label: value,
+        })
+      ),
     }),
     countdown: field.group({ label: "Countdown", fields: studioWidgetFields.countdown }),
     signup: field.group({ label: "Signup", fields: studioWidgetFields.signup }),
@@ -45,6 +50,9 @@ export const studioElement = defineBlock({
     href: field.url({ label: "Destination" }),
     src: field.image({ label: "Image" }),
     alt: field.text({ label: "Alt text" }),
+    poster: field.image({ label: "Video poster" }),
+    video: field.group({ label: "Video playback", fields: studioVideoFields }),
+    newTab: field.boolean({ label: "Open in a new tab" }),
     fontFamily: field.font({ label: "Font" }),
     size: number("Font size", 8, 240),
     color: field.text({ label: "Color" }),
