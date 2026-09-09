@@ -3,6 +3,62 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 
 describe("bundled Studio bridge", () => {
+  it("adapts old horizontal layouts once, retaining typography, vertical geometry and mobile layouts", () => {
+    const html = readFileSync("studio-assets/index.html", "utf8");
+    const start = html.indexOf("      // Studio page sizing:");
+    expect(start).toBeGreaterThan(0);
+    const script = html.slice(start, html.indexOf("      // End Studio page sizing.", start));
+    const doc = {
+      layoutDevice: "desktop",
+      sections: [
+        { uid: "first", height: 480 },
+        { uid: "second", height: 600 },
+      ],
+      nodes: [
+        {
+          id: 1,
+          x: 76,
+          y: 520,
+          w: 380,
+          h: 80,
+          size: 24,
+          tracking: -0.5,
+          layouts: {
+            desktop: { x: 76, offset: 40, w: 380, h: 80, size: 24 },
+            tablet: { x: 68, offset: 50, w: 340, h: 80, size: 22 },
+            mobile: { x: 24, offset: 30, w: 342, h: 100, size: 18 },
+          },
+        },
+      ],
+    };
+    const mobile = structuredClone(doc.nodes[0].layouts.mobile);
+    const context = { doc };
+    runInNewContext(script + "\nupgradePageSizing(doc);", context);
+    expect(doc.nodes[0]).toMatchObject({
+      x: 141.6,
+      y: 520,
+      w: 708,
+      h: 80,
+      size: 24,
+      tracking: -0.5,
+    });
+    expect(doc.nodes[0].layouts.tablet).toMatchObject({ x: 83.4, w: 417, offset: 50, size: 22 });
+    expect(doc.nodes[0].layouts.mobile).toEqual(mobile);
+    const upgraded = JSON.stringify(doc);
+    runInNewContext(script + "\nupgradePageSizing(doc);", context);
+    expect(JSON.stringify(doc)).toBe(upgraded);
+    const custom = {
+      ...context,
+      window: { parent: { document: { documentElement: {} } } },
+      getComputedStyle: () => ({
+        getPropertyValue: (name: string) => (name === "--layout-content-width" ? "1440px" : "32px"),
+      }),
+    };
+    runInNewContext(script + "\nupgradePageSizing(doc);", custom);
+    expect(doc.nodes[0].w).toBe(752);
+    expect(doc.nodes[0].size).toBe(24);
+    expect(doc.nodes[0].layouts.mobile).toEqual(mobile);
+  });
   it("captures all devices without changing the editor or exporting unrelated workspace drafts", () => {
     const html = readFileSync("studio-assets/index.html", "utf8");
     const start = html.indexOf("      // Authenticated host bridge:");

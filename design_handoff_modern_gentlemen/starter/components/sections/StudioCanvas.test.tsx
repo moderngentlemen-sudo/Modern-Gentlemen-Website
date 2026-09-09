@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { StudioCanvas, StudioElement } from "./StudioCanvas";
 
 describe("Studio public renderer", () => {
-  it("renders readable, escaped content and proportional geometry without an editor iframe", () => {
+  it("keeps horizontal layout fluid while rendering authored sizes in CSS pixels", () => {
     const html = renderToStaticMarkup(
       <StudioCanvas width={760} height={480} sectionId="studio-intro" color="#ffffff">
         <StudioElement
@@ -13,12 +13,17 @@ describe("Studio public renderer", () => {
           y={38}
           w={380}
           h={76}
+          size={24}
           canvasWidth={760}
         />
       </StudioCanvas>
     );
     expect(html).toContain("left:10cqw");
     expect(html).toContain("width:50cqw");
+    expect(html).toContain("height:480px");
+    expect(html).toContain("top:38px");
+    expect(html).toContain("height:76px");
+    expect(html).toContain("font-size:24px");
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("<script");
     expect(html).not.toContain("iframe");
@@ -55,7 +60,7 @@ describe("Studio public renderer", () => {
         <StudioElement kind="button" href="#studio-intro" text="Read more" />
       </>
     );
-    expect(html).toContain("height:0.25cqw");
+    expect(html).toContain("height:0.25px");
     expect(html).toContain('href="#studio-intro"');
     expect(html).toContain('role="separator"');
   });

@@ -6,10 +6,10 @@ import { libraryFontStack, libraryFontStylesheet } from "@/lib/domain/fontLibrar
 import { studioThemeInk } from "@/lib/blocks/studioTheme";
 import { MediaImage } from "../ui/MediaImage";
 import styles from "./StudioMegaMenu.module.css";
+import { studioPixels } from "@/lib/blocks/studioSizing";
 
 export function StudioMegaMenu({
   config,
-  width,
   mobile = false,
 }: {
   config: StudioMegaMenuConfig;
@@ -24,7 +24,7 @@ export function StudioMegaMenu({
   const id = useId();
   const category = config.categories[active];
   const { storyAnimation = "rise", animationDuration = 220 } = config;
-  const unit = (value: number) => `${(value / width) * 100}cqw`;
+  const unit = studioPixels;
   const typography = (
     style: MegaTypography | undefined,
     font: string,

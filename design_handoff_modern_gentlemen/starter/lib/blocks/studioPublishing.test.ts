@@ -49,6 +49,26 @@ export function studioFixture() {
   };
 }
 describe("Studio publishing conversion", () => {
+  it("uses each section's saved coordinate width and still converts historical drafts", () => {
+    const input = studioFixture();
+    expect(convertStudio(input).sections[0].settings?.width).toBe(760);
+    const canvasWidths = { desktop: 1416, tablet: 834, mobile: 390 };
+    for (const page of [input.source, ...Object.values(input.views)]) {
+      Object.assign(page.sections[0], { canvasWidths });
+    }
+    const before = JSON.stringify(input);
+    const converted = convertStudio(input);
+    expect(converted.issues).toEqual([]);
+    for (const [index, width] of Object.values(canvasWidths).entries()) {
+      expect(converted.sections[index].settings?.width).toBe(width);
+      expect(converted.sections[index].children?.[0].settings?.canvasWidth).toBe(width);
+      expect(converted.sections[index].children?.[0].settings?.size).toBe(40);
+      expect(converted.sections[index].settings?.height).toBe(480);
+    }
+    expect(JSON.stringify(input)).toBe(before);
+    Object.assign(input.source.sections[0], { canvasWidths: { ...canvasWidths, desktop: 0 } });
+    expect(studioSourceSchema.safeParse(input).success).toBe(false);
+  });
   it.each([
     ["http://127.0.0.1:54321/storage/v1/object/public/media/test.png", true],
     ["http://localhost:54321/storage/v1/object/public/media/test.png", true],

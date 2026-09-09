@@ -288,8 +288,14 @@ test.describe("Design Studio publishing", () => {
             .evaluate((n) => (n as HTMLImageElement).naturalWidth)
         )
         .toBeGreaterThan(0);
-      await page.getByRole("button", { name: "Next stories", exact: true }).click();
-      await expect.poll(() => panel.evaluate((n) => n.scrollLeft)).toBeGreaterThan(0);
+      const nextStories = page.getByRole("button", { name: "Next stories", exact: true });
+      const hasOverflow = await panel.evaluate((n) => n.scrollWidth > n.clientWidth + 1);
+      if (hasOverflow) {
+        await nextStories.click();
+        await expect.poll(() => panel.evaluate((n) => n.scrollLeft)).toBeGreaterThan(0);
+      } else {
+        await expect(nextStories).toBeDisabled();
+      }
       await styleTab.focus();
       await styleTab.press("ArrowDown");
       await expect(page.getByRole("tab", { name: "Culture", exact: true })).toBeFocused();
@@ -299,7 +305,7 @@ test.describe("Design Studio publishing", () => {
       ).toBeVisible();
       expect(await panel.evaluate((n) => n.scrollLeft)).toBe(0);
       const menu = page
-        .locator("section")
+        .locator("[data-studio-surface]")
         .filter({ has: page.getByRole("tab", { name: "Culture", exact: true }) })
         .filter({ visible: true });
       for (const theme of ["light", "dark"]) {
@@ -547,12 +553,60 @@ test.describe("Design Studio publishing", () => {
     await page.reload();
     await expect(frame.locator(".mg-board")).toContainText("Studio publishing journey");
     await expect(frame.locator(".mg-board")).toContainText("Your text");
+    const editorMetrics: Record<string, { fontSize: string; sectionHeight: string }> = {};
+    for (const device of ["desktop", "tablet", "mobile"]) {
+      await frame.locator(`[data-device="${device}"]`).click();
+      editorMetrics[device] = {
+        fontSize: await frame
+          .locator('.mg-board [data-id="1"]')
+          .evaluate((node) => getComputedStyle(node).fontSize),
+        sectionHeight: await frame
+          .locator('.mg-section[data-section-id="intro"]')
+          .evaluate((node) => getComputedStyle(node).height),
+      };
+      if (device === "desktop") {
+        const canvasWidth = await frame
+          .locator(".mg-board")
+          .evaluate((node) => parseFloat(getComputedStyle(node).width));
+        const siteWidth = await page.locator("html").evaluate((node) => {
+          const css = getComputedStyle(node);
+          return (
+            parseFloat(css.getPropertyValue("--layout-content-width")) +
+            2 * parseFloat(css.getPropertyValue("--layout-desktop-gutter"))
+          );
+        });
+        expect(canvasWidth).toBe(siteWidth);
+        expect(editorMetrics.desktop.fontSize).toBe("40px");
+      }
+    }
+    await frame.locator('[data-device="desktop"]').click();
+    await page.getByRole("button", { name: "Save to site", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Create site preview", exact: true })
+    ).toBeEnabled();
     await page.getByRole("button", { name: "Create site preview", exact: true }).click();
     const preview = page.getByRole("link", { name: "Open site preview", exact: true });
     await expect(preview).toBeVisible();
     const response = await page.request.get((await preview.getAttribute("href"))!);
     expect(response.ok()).toBe(true);
     expect(await response.text()).toContain("Studio publishing journey");
+    const previewPage = await page.context().newPage();
+    await previewPage.goto((await preview.getAttribute("href"))!);
+    for (const [device, width] of [
+      ["desktop", 1280],
+      ["desktop", 1920],
+      ["tablet", 800],
+      ["mobile", 390],
+    ] as const) {
+      await previewPage.setViewportSize({ width, height: 1000 });
+      const section = previewPage.locator('section[id^="studio-intro-"]').filter({ visible: true });
+      await expect(section).toHaveCSS("height", editorMetrics[device].sectionHeight);
+      await expect(section.getByText("Studio publishing journey", { exact: true })).toHaveCSS(
+        "font-size",
+        editorMetrics[device].fontSize
+      );
+    }
+    await previewPage.close();
     await page.getByRole("checkbox", { name: "I reviewed this saved page" }).check();
     await page.getByRole("button", { name: "Publish page", exact: true }).click();
     await expect(page.getByText(/Published version \d+\./)).toBeVisible();
@@ -577,7 +631,14 @@ test.describe("Design Studio publishing", () => {
         page.getByRole("link", { name: "Instagram (opens in a new tab)" }).filter({ visible: true })
       ).toHaveAttribute("href", "https://instagram.com/modern.gentlemen");
       await page.evaluate(() => document.fonts.ready);
-      const section = page.locator('section[id^="studio-intro-"]').filter({ visible: true });
+      const section = page
+        .locator('[data-studio-surface^="studio-intro-"]')
+        .filter({ visible: true });
+      await expect(section).toHaveCSS("height", editorMetrics[device].sectionHeight);
+      await expect(section.getByText("Studio publishing journey", { exact: true })).toHaveCSS(
+        "font-size",
+        editorMetrics[device].fontSize
+      );
       let lightCustom = "",
         lightGradient = "",
         lightCustomInk = "";
@@ -607,13 +668,17 @@ test.describe("Design Studio publishing", () => {
         const accent = section.getByRole("link", { name: "Discover", exact: true });
         await expect(accent).toHaveCSS("background-color", "rgb(200, 16, 46)");
         await expect(accent).toHaveCSS("color", "rgb(255, 255, 255)");
-        const fixed = page.locator('section[id^="studio-dark-band-"]').filter({ visible: true });
+        const fixed = page
+          .locator('[data-studio-surface^="studio-dark-band-"]')
+          .filter({ visible: true });
         await expect(fixed).toHaveCSS("background-color", "rgb(13, 13, 13)");
         await expect(fixed.getByText("Always dark", { exact: true })).toHaveCSS(
           "color",
           "rgb(244, 244, 244)"
         );
-        const beige = page.locator('section[id^="studio-beige-"]').filter({ visible: true });
+        const beige = page
+          .locator('[data-studio-surface^="studio-beige-"]')
+          .filter({ visible: true });
         await expect(beige).toHaveCSS(
           "background-color",
           theme === "dark" ? "rgb(19, 19, 21)" : "rgb(223, 217, 206)"
@@ -626,8 +691,12 @@ test.describe("Design Studio publishing", () => {
           "color",
           theme === "dark" ? "rgb(247, 20, 46)" : "rgb(200, 16, 46)"
         );
-        const custom = page.locator('section[id^="studio-custom-"]').filter({ visible: true });
-        const gradient = page.locator('section[id^="studio-gradient-"]').filter({ visible: true });
+        const custom = page
+          .locator('[data-studio-surface^="studio-custom-"]')
+          .filter({ visible: true });
+        const gradient = page
+          .locator('[data-studio-surface^="studio-gradient-"]')
+          .filter({ visible: true });
         const customColor = await custom.evaluate((node) => getComputedStyle(node).backgroundColor);
         const gradientColor = await gradient.evaluate(
           (node) => getComputedStyle(node).backgroundImage
