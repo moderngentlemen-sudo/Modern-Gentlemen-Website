@@ -110,13 +110,18 @@ export async function saveStudioPage(input: unknown) {
   const converted = convertStudio(data.document);
   // Only the active page travels into a page row. Workspace drafts are explicitly forbidden by the schema.
   const seo = data.document.source.seo as Record<string, unknown> | undefined;
+  const previousPayload = (current?.draft_data || {}) as Record<string, unknown>;
   const payload = {
+    ...previousPayload,
     sections: converted.sections,
     seo: {
       title: typeof seo?.title === "string" ? seo.title.slice(0, 200) : data.title,
       description: typeof seo?.description === "string" ? seo.description.slice(0, 500) : "",
     },
-    pageSettings: { noIndex: seo?.index === false },
+    pageSettings: {
+      ...((previousPayload.pageSettings as Record<string, unknown>) || {}),
+      noIndex: seo?.index === false,
+    },
     [STUDIO_SOURCE_KEY]: data.document,
   } as unknown as Json;
   let id: string, updatedAt: string;

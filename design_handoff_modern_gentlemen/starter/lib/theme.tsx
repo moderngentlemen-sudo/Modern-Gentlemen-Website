@@ -31,3 +31,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useTheme = () => useContext(ThemeContext);
+
+/** A preview has its own theme; it must not change the editor’s saved preference. */
+export function PreviewThemeProvider({
+  theme,
+  onToggle,
+  children,
+}: {
+  theme: Theme;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    document.documentElement.setAttribute("data-mgtheme", theme);
+  }, [theme]);
+  return (
+    <ThemeContext.Provider value={{ theme, toggle: onToggle }}>{children}</ThemeContext.Provider>
+  );
+}

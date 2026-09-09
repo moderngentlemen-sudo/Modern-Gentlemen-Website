@@ -98,3 +98,25 @@ export async function saveThemeDraft(db: Db, id: string, draftData: unknown): Pr
       .eq("id", id)
   );
 }
+
+/** Atomic draft update for editors that keep an open preview. */
+export async function saveThemeDraftIfCurrent(
+  db: Db,
+  id: string,
+  expectedUpdatedAt: string,
+  draftData: unknown
+): Promise<string> {
+  const row = unwrap(
+    "saveThemeDraftIfCurrent",
+    await db
+      .from("theme_settings")
+      .update({ draft_data: draftData as never, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("updated_at", expectedUpdatedAt)
+      .select("updated_at")
+      .maybeSingle()
+  );
+  if (!row)
+    throw new Error("The theme changed in another editor. Reopen Appearance Studio before saving.");
+  return row.updated_at;
+}

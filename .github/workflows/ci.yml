@@ -296,6 +296,17 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:e2e
 
+      - name: Preserve Appearance Studio review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appearance-studio-review
+          path: |
+            ${{ env.APP_DIR }}/test-results/**/appearance-*.png
+            ${{ env.APP_DIR }}/test-results/appearanceCustomizer-*/
+          if-no-files-found: ignore
+          retention-days: 7
+
       # Later Playwright suites clear test-results and replace the HTML report.
       - name: Preserve Studio publishing failure details
         if: failure()
