@@ -215,12 +215,19 @@ test.describe("Design Studio publishing", () => {
     await expect(frame.locator(".mg-node .mg-media-overlay")).toHaveCSS("opacity", "0.4");
     await frame.getByRole("button", { name: "Sections", exact: true }).click();
     await frame.getByRole("button", { name: "Add · Mega menu", exact: true }).click();
-    await expect(frame.getByRole("tab", { name: "Style", exact: true })).toBeVisible();
-    await frame.getByRole("button", { name: "Expand all settings", exact: true }).click();
+    const canvas = frame.getByLabel("Editable page canvas", { exact: true });
+    await expect(canvas.getByRole("tab", { name: "Style", exact: true })).toBeVisible();
+    // The expanded settings preference persists when switching from video to a section.
+    await expect(
+      frame.getByRole("button", { name: "Compact settings", exact: true })
+    ).toBeVisible();
     await frame.getByLabel("Story images", { exact: true }).selectOption("color");
     await frame.getByLabel("Category hover", { exact: true }).selectOption("highlight-sweep");
     await frame.getByLabel("Story image overlay style", { exact: true }).selectOption("radial");
-    await expect(frame.locator(".mg-mega-interactive")).toHaveAttribute("data-image-color", "true");
+    await expect(canvas.locator(".mg-mega-interactive")).toHaveAttribute(
+      "data-image-color",
+      "true"
+    );
     const slug = `e2e-studio-editorial-${Date.now().toString(36)}`;
     await page.getByLabel("Page title", { exact: true }).fill("Editorial video journey");
     await page.getByLabel("URL /", { exact: true }).fill(slug);

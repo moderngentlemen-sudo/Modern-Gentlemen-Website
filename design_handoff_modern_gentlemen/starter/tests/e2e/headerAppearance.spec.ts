@@ -59,6 +59,7 @@ test.beforeAll(async () => {
 test("solid fills, readable transparent headers, entry effects and reduced motion", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   await page.evaluate(() => {
     document.querySelector('[data-site-chrome="header"]')?.remove();
