@@ -2,11 +2,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { StudioSource, StudioIssue } from "@/lib/blocks/studioPublishing";
+import { hostStudioMedia, type UploadStudioMedia } from "./studioMedia";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 type Saved = { id: string; title: string; slug: string; updatedAt: string; issues: StudioIssue[] };
 type Loaded = Saved & { document: StudioSource };
 type Actions = {
+  upload: UploadStudioMedia;
   save(input: unknown): Promise<Result<Saved>>;
   load(id: string): Promise<Result<Loaded>>;
   preview(input: unknown): Promise<Result<{ path: string; expiresAt: string }>>;
@@ -24,6 +26,7 @@ export function DesignStudioShell({
   canPreview: boolean;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const hostedMedia = useRef(new Map<string, string>());
   const [saved, setSaved] = useState<Saved | null>(initial);
   const [title, setTitle] = useState(initial?.title || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -111,7 +114,16 @@ export function DesignStudioShell({
     setReviewed(false);
     setPreviewPath("");
     try {
-      const document = await snapshot();
+      const document = await hostStudioMedia(
+        await snapshot(),
+        actions.upload,
+        hostedMedia.current,
+        (current, total) =>
+          setStatus(
+            `Uploading media ${current} of ${total}… Your browser draft is still available.`
+          )
+      );
+      setStatus("Saving Studio draft…");
       const result = await actions.save({
         ...(saved ? { id: saved.id, expectedUpdatedAt: saved.updatedAt } : {}),
         title,
@@ -180,7 +192,9 @@ export function DesignStudioShell({
   const previewReason = busy
     ? "Please wait for the current action to finish."
     : !saved
-      ? "Enter a page title and URL, then click Save to site to enable the site preview. The Studio's browser save does not save to the site."
+      ? title.trim() && normalizedSlug && !slugError
+        ? "This draft has not been saved to the site yet. Save to site must succeed before a site preview is available."
+        : "Enter a page title and URL, then click Save to site to enable the site preview. The Studio's browser save does not save to the site."
       : dirty
         ? "Click Save to site to save your latest changes and recheck this page before creating a preview."
         : saved.issues.length

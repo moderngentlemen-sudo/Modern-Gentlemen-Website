@@ -296,6 +296,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:e2e
 
+      # Later Playwright suites clear test-results and replace the HTML report.
+      - name: Preserve Studio publishing failure details
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-publishing-failure
+          path: ${{ env.APP_DIR }}/test-results/design-studio-*/
+          if-no-files-found: ignore
+          retention-days: 7
+
       # Runs even when the E2E step failed. The two answer different questions,
       # and a broken spec must not be able to hide a pixel regression: run #53
       # failed on three locator mistakes in one new spec and took the 16

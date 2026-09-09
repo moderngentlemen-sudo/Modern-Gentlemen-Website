@@ -49,6 +49,22 @@ export function studioFixture() {
   };
 }
 describe("Studio publishing conversion", () => {
+  it.each([
+    ["http://127.0.0.1:54321/storage/v1/object/public/media/test.png", true],
+    ["http://localhost:54321/storage/v1/object/public/media/test.png", true],
+    ["https://example.test/storage/v1/object/public/media/test.png", true],
+    ["http://localhost.example.test/test.png", false],
+    ["http://example.test/test.png", false],
+    ["data:image/png;base64,YQ==", false],
+  ])("validates hosted image URL %s", (src, accepted) => {
+    const input = studioFixture();
+    for (const page of [input.source, ...Object.values(input.views)]) {
+      Object.assign(page.nodes[0], { kind: "media", mediaType: "image", src });
+    }
+    expect(
+      convertStudio(input).issues.some((issue) => issue.message.includes("permanent image URL"))
+    ).toBe(!accepted);
+  });
   it("accepts timestamp element IDs produced by Add and Duplicate without changing them", () => {
     const input = studioFixture();
     const id = 1788900000000;

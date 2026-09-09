@@ -1,6 +1,7 @@
 import { requirePermission } from "@/lib/services/auth";
 import { loadStudioPage } from "@/lib/services/studioPublishing";
 import { DesignStudioShell } from "@/components/admin/DesignStudioShell";
+import { uploadAssetAction } from "../media/actions";
 import {
   saveStudioAction,
   loadStudioAction,
@@ -20,6 +21,7 @@ export default async function DesignStudioPage({
     <DesignStudioShell
       initial={initial}
       actions={{
+        upload: uploadAssetAction,
         save: saveStudioAction,
         load: loadStudioAction,
         preview: previewStudioAction,

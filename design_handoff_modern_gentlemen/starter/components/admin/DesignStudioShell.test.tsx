@@ -5,6 +5,9 @@ import { DesignStudioShell } from "./DesignStudioShell";
 describe("Studio host bridge", () => {
   it("ignores unrelated messages and saves only the matching frame's requested snapshot", async () => {
     const actions = {
+      upload: vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { url: "https://example.test/media.png" } }),
       save: vi.fn().mockResolvedValue({
         ok: true,
         data: {
@@ -54,17 +57,18 @@ describe("Studio host bridge", () => {
     message({
       type: "mg-studio-snapshot",
       requestId: sent.requestId,
-      document: { source: "captured" },
+      document: { source: "captured", src: "data:image/png;base64,YQ==" },
     });
     await waitFor(() =>
       expect(actions.save).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Invitation",
           slug: "invitation",
-          document: { source: "captured" },
+          document: { source: "captured", src: "https://example.test/media.png" },
         })
       )
     );
+    expect(actions.upload).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByText("Create site preview")).toBeEnabled());
     expect(screen.getByText("Publish page")).toBeDisabled();
     expect(screen.getByText("Publish page")).toHaveAccessibleDescription(
@@ -78,7 +82,13 @@ describe("Studio host bridge", () => {
   });
 
   it("explains invalid URLs beside the input and allows saving after correction", () => {
-    const actions = { save: vi.fn(), load: vi.fn(), preview: vi.fn(), publish: vi.fn() };
+    const actions = {
+      upload: vi.fn(),
+      save: vi.fn(),
+      load: vi.fn(),
+      preview: vi.fn(),
+      publish: vi.fn(),
+    };
     render(<DesignStudioShell initial={null} actions={actions} canPublish canPreview />);
     const frame = screen.getByTitle("Modern Gentlemen Design Studio") as HTMLIFrameElement;
     act(() => {
@@ -102,8 +112,59 @@ describe("Studio host bridge", () => {
     expect(screen.getByText("Save to site")).toBeEnabled();
   });
 
+  it("keeps preview disabled and saving retryable when a media upload fails", async () => {
+    const actions = {
+      upload: vi.fn().mockResolvedValue({
+        ok: false,
+        error: "Your session has expired. Sign in again to continue.",
+      }),
+      save: vi.fn(),
+      load: vi.fn(),
+      preview: vi.fn(),
+      publish: vi.fn(),
+    };
+    render(<DesignStudioShell initial={null} actions={actions} canPublish canPreview />);
+    const frame = screen.getByTitle("Modern Gentlemen Design Studio") as HTMLIFrameElement;
+    const post = vi.spyOn(frame.contentWindow!, "postMessage").mockImplementation(() => {});
+    const message = (data: unknown) =>
+      act(() => {
+        window.dispatchEvent(
+          new MessageEvent("message", {
+            data,
+            origin: location.origin,
+            source: frame.contentWindow,
+          })
+        );
+      });
+    message({ type: "mg-studio-ready" });
+    fireEvent.change(screen.getByLabelText("Page title"), { target: { value: "Upload" } });
+    fireEvent.change(screen.getByLabelText("URL /"), { target: { value: "upload" } });
+    fireEvent.click(screen.getByText("Save to site"));
+    message({
+      type: "mg-studio-snapshot",
+      requestId: post.mock.calls.at(-1)![0].requestId,
+      document: { src: "data:image/png;base64,YQ==" },
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/Media 1 of 1: Your session has expired/)).toBeVisible()
+    );
+    expect(actions.save).not.toHaveBeenCalled();
+    expect(screen.getByText("Create site preview")).toBeDisabled();
+    expect(screen.getByText("Create site preview")).toHaveAccessibleDescription(
+      /Save to site must succeed/
+    );
+    expect(screen.getByText("Save to site")).toBeEnabled();
+    expect(post.mock.calls.filter(([data]) => data.type === "mg-studio-load")).toHaveLength(0);
+  });
+
   it("shows unsupported-content blockers without requiring a disabled button or collapsed disclosure", () => {
-    const actions = { save: vi.fn(), load: vi.fn(), preview: vi.fn(), publish: vi.fn() };
+    const actions = {
+      upload: vi.fn(),
+      save: vi.fn(),
+      load: vi.fn(),
+      preview: vi.fn(),
+      publish: vi.fn(),
+    };
     const page = {
       page: "Invitation",
       layoutDevice: "desktop" as const,

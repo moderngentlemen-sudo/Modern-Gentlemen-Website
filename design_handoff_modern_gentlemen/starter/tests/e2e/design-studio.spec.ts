@@ -4,6 +4,116 @@ const email = process.env.E2E_ADMIN_EMAIL;
 const password = process.env.E2E_ADMIN_PASSWORD;
 test.describe("Design Studio publishing", () => {
   test.skip(!email || !password, "Requires the seeded E2E editor; a skip is not verification.");
+  test("hosts an uploaded image before saving an otherwise oversized Studio document", async ({
+    page,
+  }) => {
+    test.setTimeout(90000);
+    await page.goto("/sign-in");
+    await page.getByLabel("Email", { exact: true }).fill(email!);
+    await page.getByLabel("Password", { exact: true }).fill(password!);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin/);
+    await page.goto("/admin/design-studio");
+    const frame = page.frameLocator('iframe[title="Modern Gentlemen Design Studio"]');
+    await expect(frame.locator(".mg-board")).toBeVisible();
+    const encoded = await page.evaluate(() => {
+      document.querySelector("iframe")!.contentWindow!.postMessage(
+        {
+          type: "mg-studio-load",
+          source: {
+            title: "Media upload",
+            page: "#f8f7f3",
+            layoutDevice: "desktop",
+            sections: [
+              { uid: "media", height: 600, color: "#f8f7f3", stops: ["#f8f7f3", "#f8f7f3"] },
+            ],
+            nodes: [
+              {
+                id: 1,
+                kind: "text",
+                text: "Hosted media test",
+                x: 32,
+                y: 380,
+                w: 300,
+                h: 60,
+                size: 24,
+                color: "#141414",
+              },
+            ],
+          },
+        },
+        location.origin
+      );
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 768;
+      const ctx = canvas.getContext("2d")!;
+      const pixels = ctx.createImageData(768, 768);
+      let seed = 12345;
+      for (let i = 0; i < pixels.data.length; i++) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        pixels.data[i] = i % 4 === 3 ? 255 : seed >>> 24;
+      }
+      ctx.putImageData(pixels, 0, 0);
+      return canvas.toDataURL("image/png").split(",")[1];
+    });
+    // The original plus three layout snapshots exceeded the unchanged 8 MB limit.
+    expect(encoded.length * 4).toBeGreaterThan(8_000_000);
+    await expect(frame.locator(".mg-board")).toContainText("Hosted media test");
+    await frame.getByRole("button", { name: "Media", exact: true }).click();
+    await frame.getByRole("button", { name: "Browse & upload", exact: true }).click();
+    await frame.getByLabel("Upload images or videos").setInputFiles({
+      name: "studio-upload.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(encoded, "base64"),
+    });
+    const card = frame.locator(".mg-media-grid > div").filter({ hasText: "studio-upload.png" });
+    await card.getByRole("button", { name: "Add to canvas", exact: true }).click();
+    await expect(frame.locator('.mg-board img[alt="studio-upload"]')).toBeVisible();
+    const slug = `e2e-studio-media-${Date.now().toString(36)}`;
+    await page.getByLabel("Page title", { exact: true }).fill("Media upload");
+    await page.getByLabel("URL /", { exact: true }).fill(slug);
+    await page.getByRole("button", { name: "Save to site", exact: true }).click();
+    try {
+      await expect(
+        page.getByRole("button", { name: "Create site preview", exact: true })
+      ).toBeEnabled({ timeout: 30000 });
+    } catch (error) {
+      const status = await page
+        .locator('section[aria-label="Design Studio"] > div[aria-live="polite"]')
+        .innerText();
+      throw new Error(`${String(error)}\nStudio save status: ${status}`);
+    }
+    await expect(page).toHaveURL(/\/admin\/design-studio\?id=/);
+    await page.reload();
+    const savedImage = frame.locator('.mg-board img[alt="studio-upload"]');
+    await expect(savedImage).toHaveAttribute(
+      "src",
+      /^https?:\/\/.*\/storage\/v1\/object\/public\/media\//
+    );
+    const src = (await savedImage.getAttribute("src"))!;
+    await expect
+      .poll(() => savedImage.evaluate((node) => (node as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+    expect((await page.request.get(src)).ok()).toBe(true);
+    await page.getByRole("button", { name: "Create site preview", exact: true }).click();
+    const preview = page.getByRole("link", { name: "Open site preview", exact: true });
+    await expect(preview).toBeVisible();
+    const response = await page.request.get((await preview.getAttribute("href"))!);
+    expect(response.ok()).toBe(true);
+    expect(await response.text()).toContain(src);
+    await page.getByRole("checkbox", { name: "I reviewed this saved page" }).check();
+    await page.getByRole("button", { name: "Publish page", exact: true }).click();
+    await expect(page.getByText(/Published version \d+\./)).toBeVisible();
+    await page.goto(`/${slug}`);
+    for (const width of [1280, 800, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const image = page.getByRole("img", { name: "studio-upload", exact: true });
+      await expect(image).toBeVisible();
+      await expect
+        .poll(() => image.evaluate((node) => (node as HTMLImageElement).naturalWidth))
+        .toBeGreaterThan(0);
+    }
+  });
   test("saves, reopens, previews and publishes a native Studio page", async ({ page }) => {
     test.setTimeout(60000);
     await page.goto("/sign-in");

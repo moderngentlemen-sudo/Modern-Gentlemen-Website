@@ -8,6 +8,43 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-09-09 — Host embedded Studio media before saving
+
+- User now receives the explicit 8 MB Studio document error. The capture bridge
+  expands local file data URLs into the source and all three responsive layouts,
+  so an ordinary uploaded image can exceed the page limit through duplication.
+- Save to site now uploads each distinct embedded image/video/audio once through
+  the existing media action, then sends hosted URLs in the document. Uploads stay
+  under the existing media.write permission, own-session RLS, checksum deduplication
+  and 20 MiB file limit. The 8 MB document limit is unchanged.
+- The host shows upload progress, retains completed uploads for retries, and leaves
+  the iframe draft intact when an upload or page save fails. Valid title/URL inputs
+  now show that the site save must succeed instead of asking for those inputs again.
+- Media usage reconciliation also includes URLs in the complete saved Studio source,
+  protecting assets in sections that still lack publishing support. HTTPS media and
+  loopback HTTP development storage URLs are accepted; temporary media still blocks
+  publishing. Existing mega-menu, video and unsupported-section checks remain.
+- Regression coverage reproduces the oversized four-copy document, checks deduplicated
+  uploads, nested media, UTF-8 SVG, upload failure/retry, malformed/oversized files,
+  disabled preview after failure, and source-only media usage tracking.
+- A new hosted E2E uses the real Media / Browse & upload / Add to canvas controls with
+  an image whose four embedded copies exceed 8 MB, then saves, reopens, previews,
+  publishes and checks the image at all three viewport sizes. Hosted E2E pending.
+- Local formatting, lint, TypeScript and all 2,639 tests in 140 files pass.
+  The local production build completed (exit 0) with Supabase fetch warnings from
+  the environment proxy. Hosted CI #369 passed the seeded build, integration, visual,
+  accessibility and performance checks; the new E2E fixture was rejected because
+  its section omitted stops. The corrected fixture now asserts it actually loaded
+  before any upload, and failures include the Studio status message. A dedicated
+  CI artifact preserves failure details before later suites clear them.
+- Review also found the standalone iframe CSP blocked the project storage origin.
+  The authenticated HTML response now permits that origin for img-src/media-src
+  only. Tests cover production and loopback storage, and E2E now requires the
+  hosted image to finish loading inside the reopened editor too. Rerun pending.
+  No production content changed or deployed. Cost: a client media preparation step
+  using the existing upload service, rather than a larger page payload or new storage
+  system. The actual failing user document remains in their browser and was not read.
+
 ### 2026-09-08 — Studio save rejection after adding or duplicating elements
 
 - Screenshot shows valid title/slug mghome2, no saved page id in the URL, and the
