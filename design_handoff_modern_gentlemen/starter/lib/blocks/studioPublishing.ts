@@ -42,6 +42,20 @@ export const studioSourceSchema = z
     "Studio document is too large. Use hosted media URLs."
   );
 export type StudioSource = z.infer<typeof studioSourceSchema>;
+
+/** Source-only media (including unsupported sections) must remain protected in the catalogue. */
+export function studioMediaReferences(document: StudioSource) {
+  const references = new Map<string, { url: string; fieldPath: string }>();
+  function visit(value: unknown, path: string) {
+    if (typeof value === "string" && /^https?:\/\//.test(value)) {
+      if (!references.has(value)) references.set(value, { url: value, fieldPath: path });
+    } else if (value && typeof value === "object") {
+      for (const [key, item] of Object.entries(value)) visit(item, `${path}.${key}`);
+    }
+  }
+  visit(document, STUDIO_SOURCE_KEY);
+  return [...references.values()];
+}
 export interface StudioIssue {
   path: string;
   message: string;
@@ -61,9 +75,11 @@ export function studioGradient(value: unknown): string | undefined {
     ? value
     : undefined;
 }
-function safeUrl(value: unknown) {
+function safeUrl(value: unknown, media = false) {
   return typeof value === "string" &&
     (/^https:\/\//.test(value) ||
+      // Local Supabase Storage uses HTTP in development; public media stays HTTPS.
+      (media && /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\//.test(value)) ||
       /^\/(?!\/|api\/|admin\/)/.test(value) ||
       /^#[a-z0-9-]+$/i.test(value)) &&
     !/[\s\\<>]/.test(value)
@@ -175,7 +191,7 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
             else settings[key] = color;
           }
         if (node.kind === "media") {
-          const src = safeUrl(node.src);
+          const src = safeUrl(node.src, true);
           if (!src || src.startsWith("#"))
             fail(
               nodePath,

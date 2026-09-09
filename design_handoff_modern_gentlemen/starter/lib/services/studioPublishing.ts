@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import {
   convertStudio,
   studioSourceSchema,
+  studioMediaReferences,
   STUDIO_SOURCE_KEY,
 } from "@/lib/blocks/studioPublishing";
 import { createClient } from "@/lib/db/server";
@@ -138,7 +139,13 @@ export async function saveStudioPage(input: unknown) {
     updatedAt = created.updated_at;
   }
   try {
-    await reconcileEntityMedia("page", id, blockTreesOf("page", payload));
+    await reconcileEntityMedia(
+      "page",
+      id,
+      blockTreesOf("page", payload),
+      [],
+      studioMediaReferences(data.document)
+    );
   } catch (error) {
     console.error(`Studio media reconciliation failed for ${id}:`, error);
   }

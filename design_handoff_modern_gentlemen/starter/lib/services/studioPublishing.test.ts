@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requirePermission } from "./auth";
 import { createClient } from "@/lib/db/server";
-import { getDocument, getDocumentBySlug } from "./documents";
+import { getDocument, getDocumentBySlug, blockTreesOf } from "./documents";
 import { createPage } from "@/lib/db/repositories/pages";
 import { saveStudioDraft } from "@/lib/db/repositories/studioDrafts";
 import { saveStudioPage, loadStudioPage } from "./studioPublishing";
 import { convertStudio } from "@/lib/blocks/studioPublishing";
+import { reconcileEntityMedia } from "./media";
 
 vi.mock("./auth", () => ({ requirePermission: vi.fn() }));
 vi.mock("@/lib/db/server", () => ({ createClient: vi.fn() }));
@@ -42,6 +43,7 @@ describe("Studio persistence boundary", () => {
   });
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(blockTreesOf).mockReturnValue([]);
     vi.mocked(requirePermission).mockResolvedValue({ id: "editor" } as never);
     vi.mocked(createClient).mockResolvedValue({} as never);
     vi.mocked(getDocumentBySlug).mockResolvedValue(null);
@@ -61,6 +63,19 @@ describe("Studio persistence boundary", () => {
     expect(created).not.toHaveProperty("publishedData");
     expect(created.draftData).toHaveProperty("_designStudio.source");
     expect(requirePermission).toHaveBeenCalledWith("page.write");
+  });
+  it("tracks hosted media that exists only in an unsupported draft section", async () => {
+    const data = input();
+    const url = "https://example.test/storage/v1/object/public/media/background.png";
+    Object.assign(data.document.source.sections[0], { backgroundMedia: { src: url } });
+    await saveStudioPage(data);
+    expect(reconcileEntityMedia).toHaveBeenCalledWith(
+      "page",
+      "created",
+      [],
+      [],
+      [{ url, fieldPath: "_designStudio.source.sections.0.backgroundMedia.src" }]
+    );
   });
   it.each(["home", "shop", "admin", "about"])("protects the existing %s route", async (slug) => {
     await expect(saveStudioPage({ ...input(), slug })).rejects.toThrow("reserved");
