@@ -89,11 +89,28 @@ test.describe("Appearance Studio", () => {
         await expect(
           page.frameLocator('iframe[title="Live appearance preview"]').locator("header").first()
         ).toBeVisible({ timeout: 20000 });
+        await page
+          .frameLocator('iframe[title="Live appearance preview"]')
+          .locator("video[poster]")
+          .first()
+          .evaluate(async (node) => {
+            const image = new Image();
+            image.src = (node as HTMLVideoElement).poster;
+            await image.decode();
+          });
         await page.screenshot({
           path: testInfo.outputPath("appearance-home-desktop.png"),
           fullPage: true,
         });
         await page.getByLabel("Viewport", { exact: true }).selectOption("390");
+        await expect
+          .poll(() =>
+            page
+              .frameLocator('iframe[title="Live appearance preview"]')
+              .locator("body")
+              .evaluate(() => window.innerWidth)
+          )
+          .toBe(390);
         await page.screenshot({
           path: testInfo.outputPath("appearance-home-mobile.png"),
           fullPage: true,
@@ -124,7 +141,9 @@ test.describe("Appearance Studio", () => {
       await page.getByRole("button", { name: "Page appearance Background & chrome" }).click();
       await page.getByLabel("Page background", { exact: true }).fill("#e8eadd");
       await page.getByRole("button", { name: "Save page draft", exact: true }).click();
-      await expect(page.getByRole("status")).toContainText("Page draft saved");
+      await expect(
+        page.getByRole("region", { name: "Appearance Studio", exact: true }).getByRole("status")
+      ).toContainText("Page draft saved");
       await page.reload();
       await page.getByRole("button", { name: "Page appearance Background & chrome" }).click();
       await expect(page.getByLabel("Page background", { exact: true })).toHaveValue("#e8eadd");
@@ -132,7 +151,9 @@ test.describe("Appearance Studio", () => {
       await page.getByLabel("Overlay style").selectOption("linear");
       await page.getByLabel("Overlay color", { exact: true }).fill("#c8102e");
       await page.getByRole("button", { name: "Save page draft", exact: true }).click();
-      await expect(page.getByRole("status")).toContainText("Page draft saved");
+      await expect(
+        page.getByRole("region", { name: "Appearance Studio", exact: true }).getByRole("status")
+      ).toContainText("Page draft saved");
       await page.getByLabel("Viewport", { exact: true }).selectOption("390");
       await expect.poll(() => preview.locator("body").evaluate(() => window.innerWidth)).toBe(390);
       await page.getByLabel("Viewport", { exact: true }).selectOption("1280");
