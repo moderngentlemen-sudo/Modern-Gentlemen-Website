@@ -1,5 +1,6 @@
 "use client";
 
+import { MediaOverlay } from "./ui/MediaOverlay";
 import { useEffect, useRef, useState } from "react";
 import { gradientCss } from "@/lib/domain/gradient";
 import { optimizedImageUrl } from "@/components/ui/imageUrl";
@@ -76,6 +77,7 @@ export function PagePresentation({
       {visual && (
         <div
           aria-hidden="true"
+          data-header-backdrop
           style={{
             position: "absolute",
             inset: 0,
@@ -116,7 +118,7 @@ export function PagePresentation({
               }}
             />
           )}
-          {!!settings.overlayOpacity && (
+          {!settings.mediaOverlay && !!settings.overlayOpacity && (
             <div
               style={{
                 position: "absolute",
@@ -126,6 +128,7 @@ export function PagePresentation({
               }}
             />
           )}
+          <MediaOverlay value={settings.mediaOverlay} />
         </div>
       )}
       {children}

@@ -1,3 +1,4 @@
+import { MediaVideo } from "../ui/MediaVideo";
 import { MediaImage } from "@/components/ui/MediaImage";
 import { articleEmbedUrl, type ArticleFeaturedMedia as Media } from "@/lib/domain/articles";
 
@@ -47,7 +48,7 @@ export function ArticleFeaturedMedia({ media }: { media: Media }) {
   if (media.kind === "video" && media.video?.url) {
     return (
       <section className="container-mg py-10" aria-label="Featured video">
-        <video
+        <MediaVideo
           src={media.video.url}
           poster={media.cover?.url}
           controls

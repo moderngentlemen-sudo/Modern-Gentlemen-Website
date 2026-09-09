@@ -15,6 +15,8 @@
   padding-right: calc(var(--mega-unit) * 24);
 }
 .categories button {
+  position: relative;
+  transform-origin: left center;
   background: none;
   border: 0;
   padding: calc(var(--mega-unit) * 2) 0 calc(var(--mega-unit) * 6);
@@ -24,8 +26,7 @@
     transform var(--mega-duration),
     opacity var(--mega-duration);
 }
-.categories button[aria-selected="true"],
-.categories button:hover {
+.categories button[aria-selected="true"] {
   color: var(--mega-accent) !important;
 }
 .menu[data-hover="slide"] .categories button:hover {
@@ -77,9 +78,9 @@
   width: 100%;
   height: calc(var(--mega-unit) * 138);
   position: relative;
-  filter: grayscale(1);
 }
 .image img {
+  filter: grayscale(1);
   object-fit: cover;
 }
 .story h3 {
@@ -158,5 +159,121 @@
   .menu .categories button {
     transition: none;
     transform: none !important;
+  }
+}
+
+.categories button:hover,
+.categories button:focus-visible {
+  color: var(--mega-hover) !important;
+}
+.menu[data-image-color] .image img {
+  filter: none;
+}
+.eyebrow {
+  color: var(--mega-story-accent);
+}
+.story h3 {
+  transition: color var(--mega-duration);
+}
+.story:hover h3,
+.story:focus-within h3 {
+  color: var(--mega-story-accent) !important;
+}
+
+.menu .categories button {
+  transition:
+    color var(--mega-duration),
+    transform var(--mega-duration),
+    opacity var(--mega-duration),
+    letter-spacing var(--mega-duration),
+    filter var(--mega-duration),
+    text-shadow var(--mega-duration),
+    background-size var(--mega-duration),
+    box-shadow var(--mega-duration),
+    padding var(--mega-duration);
+}
+.menu[data-hover="lift"] .categories button:is(:hover, :focus-visible) {
+  transform: translateY(-4px);
+}
+.menu[data-hover="grow"] .categories button:is(:hover, :focus-visible) {
+  transform: scale(1.04);
+}
+.menu[data-hover="shrink"] .categories button:is(:hover, :focus-visible) {
+  transform: scale(0.96);
+}
+.menu[data-hover="tilt-left"] .categories button:is(:hover, :focus-visible) {
+  transform: rotate(-2deg);
+}
+.menu[data-hover="tilt-right"] .categories button:is(:hover, :focus-visible) {
+  transform: rotate(2deg);
+}
+.menu[data-hover="skew"] .categories button:is(:hover, :focus-visible) {
+  transform: skewX(-7deg);
+}
+.menu[data-hover="tracking"] .categories button:is(:hover, :focus-visible) {
+  letter-spacing: 2px;
+}
+.menu[data-hover="blur-reveal"] .categories button:is(:hover, :focus-visible) {
+  filter: blur(0);
+  transform: translateX(3px);
+}
+.menu[data-hover="glow"] .categories button:is(:hover, :focus-visible) {
+  text-shadow: 0 0 18px currentColor;
+}
+.menu[data-hover="shadow"] .categories button:is(:hover, :focus-visible) {
+  text-shadow: 3px 3px 0 color-mix(in srgb, currentColor 25%, transparent);
+}
+.menu[data-hover="underline-sweep"] .categories button:is(:hover, :focus-visible) {
+  background-size: 100% 1px;
+}
+.menu[data-hover="highlight-sweep"] .categories button:is(:hover, :focus-visible) {
+  background-size: 100% 100%;
+}
+.menu[data-hover="border-draw"] .categories button:is(:hover, :focus-visible) {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.menu[data-hover="bracket"] .categories button:is(:hover, :focus-visible) {
+  padding-left: 14px;
+  box-shadow: inset 2px 0 currentColor;
+}
+.menu[data-hover="arrow"] .categories button:is(:hover, :focus-visible) {
+  padding-left: 24px;
+}
+.menu[data-hover="blur-reveal"] .categories button:not(:hover):not(:focus-visible) {
+  filter: blur(0.45px);
+}
+.menu[data-hover="underline-sweep"] .categories button {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 0 1px;
+}
+.menu[data-hover="highlight-sweep"] .categories button {
+  background-image: linear-gradient(
+    color-mix(in srgb, currentColor 12%, transparent),
+    color-mix(in srgb, currentColor 12%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0 100%;
+}
+.menu[data-hover="arrow"] .categories button::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  opacity: 0;
+  transition: opacity var(--mega-duration);
+  font: 18px sans-serif;
+  top: 35%;
+}
+.menu[data-hover="arrow"] .categories button:is(:hover, :focus-visible)::before {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu .categories button,
+  .menu .categories button::before {
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
   }
 }

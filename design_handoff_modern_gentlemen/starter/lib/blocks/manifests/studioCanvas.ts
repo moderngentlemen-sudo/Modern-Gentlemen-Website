@@ -1,3 +1,4 @@
+import { mediaOverlayFields } from "../mediaOverlayFields";
 import { studioMegaMenuFields, studioVideoFields } from "../studioFeatures";
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
@@ -16,6 +17,17 @@ export const studioCanvas = defineBlock({
     height: number("Canvas height", 1),
     color: field.text({ label: "Background" }),
     gradient: field.text({ label: "Gradient" }),
+    overlay: field.group({ label: "Media overlay", fields: mediaOverlayFields }),
+    backgroundSrc: field.image({ label: "Background media" }),
+    backgroundType: field.select({
+      label: "Background type",
+      options: [
+        { value: "image", label: "Image" },
+        { value: "video", label: "Video" },
+      ],
+    }),
+    focalX: number("Background focal X", 0, 100),
+    focalY: number("Background focal Y", 0, 100),
     megaMenu: field.group({ label: "Mega menu", fields: studioMegaMenuFields }),
     mobile: field.boolean({ label: "Mobile menu layout" }),
   },
@@ -51,6 +63,7 @@ export const studioElement = defineBlock({
     src: field.image({ label: "Image" }),
     alt: field.text({ label: "Alt text" }),
     poster: field.image({ label: "Video poster" }),
+    overlay: field.group({ label: "Media overlay", fields: mediaOverlayFields }),
     video: field.group({ label: "Video playback", fields: studioVideoFields }),
     newTab: field.boolean({ label: "Open in a new tab" }),
     fontFamily: field.font({ label: "Font" }),

@@ -185,3 +185,70 @@ describe("Studio video and editorial menu publishing", () => {
     expect(studioDestination(url)).toBeUndefined();
   });
 });
+
+describe("Studio media appearance publishing", () => {
+  const overlay = {
+    mode: "linear",
+    color: "#c8102e",
+    endColor: "#00000000",
+    opacity: 35,
+    angle: 180,
+    start: 10,
+    end: 90,
+    x: 50,
+    y: 50,
+  };
+  it("round-trips section backgrounds, image overlays, color photos and category effects in every layout", () => {
+    const input = studioFixture();
+    for (const doc of Object.values(input.views)) {
+      Object.assign(doc.sections[0], {
+        backgroundMedia: { src: "/images/hero-cover.jpg", type: "image", focalX: 25, focalY: 75 },
+        overlay,
+        megaMenu: {
+          ...menu,
+          hoverAnimation: "highlight-sweep",
+          hoverColor: "#ccaa77",
+          imageColor: true,
+          imageOverlay: overlay,
+        },
+      });
+      Object.assign(doc.nodes[0], {
+        kind: "media",
+        mediaType: "video",
+        src: "https://example.test/film.mp4",
+        overlay,
+      });
+    }
+    const original = JSON.stringify(input),
+      result = convertStudio(input);
+    expect(result.issues).toEqual([]);
+    expect(JSON.stringify(input)).toBe(original);
+    for (const section of result.sections) {
+      expect(section.settings).toMatchObject({
+        backgroundSrc: "/images/hero-cover.jpg",
+        backgroundType: "image",
+        focalX: 25,
+        overlay,
+        megaMenu: {
+          hoverAnimation: "highlight-sweep",
+          hoverColor: "#ccaa77",
+          imageColor: true,
+          imageOverlay: overlay,
+        },
+      });
+      expect(section.children?.[0].settings).toMatchObject({ kind: "video", overlay });
+    }
+  });
+  it("blocks malformed overlays and local background URLs before publishing", () => {
+    const input = studioFixture();
+    Object.assign(input.views.desktop.sections[0], {
+      backgroundMedia: { type: "image", src: "blob:local" },
+      overlay: { ...overlay, start: 95, end: 20 },
+    });
+    const result = convertStudio(input);
+    expect(result.issues.some((i) => i.message.includes("permanent section background"))).toBe(
+      true
+    );
+    expect(result.issues.some((i) => i.message.includes("overlay"))).toBe(true);
+  });
+});

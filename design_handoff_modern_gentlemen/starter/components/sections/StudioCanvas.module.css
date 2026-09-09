@@ -1,10 +1,12 @@
 .canvas {
+  pointer-events: none;
   width: 100%;
   max-width: calc(var(--layout-content-width, 1320px) + 2 * var(--layout-desktop-gutter, 48px));
   margin-inline: auto;
   container-type: inline-size;
 }
 .surface {
+  position: relative;
   width: 100%;
 }
 .section {
@@ -75,4 +77,13 @@
   --studio-645f56: var(--mg-muted);
   --studio-8b857b: var(--mg-faint);
   --studio-accent-ink: var(--mg-accent-ink);
+}
+
+.backgroundMedia img {
+  object-fit: cover;
+  object-position: var(--background-focal, 50% 50%);
+}
+
+.section > * {
+  pointer-events: auto;
 }

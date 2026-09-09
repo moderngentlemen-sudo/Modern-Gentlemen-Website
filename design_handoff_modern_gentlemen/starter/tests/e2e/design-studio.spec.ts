@@ -211,9 +211,16 @@ test.describe("Design Studio publishing", () => {
     await frame.getByLabel("Autoplay", { exact: true }).selectOption("yes");
     await frame.getByLabel("Repeat", { exact: true }).selectOption("yes");
     await frame.getByLabel("Show playback controls", { exact: true }).selectOption("no");
+    await frame.getByLabel("Media overlay style", { exact: true }).selectOption("linear");
+    await expect(frame.locator(".mg-node .mg-media-overlay")).toHaveCSS("opacity", "0.4");
     await frame.getByRole("button", { name: "Sections", exact: true }).click();
     await frame.getByRole("button", { name: "Add · Mega menu", exact: true }).click();
     await expect(frame.getByRole("tab", { name: "Style", exact: true })).toBeVisible();
+    await frame.getByRole("button", { name: "Expand all settings", exact: true }).click();
+    await frame.getByLabel("Story images", { exact: true }).selectOption("color");
+    await frame.getByLabel("Category hover", { exact: true }).selectOption("highlight-sweep");
+    await frame.getByLabel("Story image overlay style", { exact: true }).selectOption("radial");
+    await expect(frame.locator(".mg-mega-interactive")).toHaveAttribute("data-image-color", "true");
     const slug = `e2e-studio-editorial-${Date.now().toString(36)}`;
     await page.getByLabel("Page title", { exact: true }).fill("Editorial video journey");
     await page.getByLabel("URL /", { exact: true }).fill(slug);
@@ -281,6 +288,25 @@ test.describe("Design Studio publishing", () => {
         panel.getByRole("heading", { name: "Modern dress, lasting values" })
       ).toBeVisible();
       const storyImage = panel.getByRole("img").first();
+      await expect(storyImage).toHaveCSS("filter", "none");
+      await expect(panel.locator("[data-media-overlay]").first()).toHaveCSS("opacity", "0.4");
+      const storyTitle = panel.getByRole("heading").first();
+      await storyTitle.hover();
+      const accent = await panel.evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--mg-accent-ink").trim()
+      );
+      await expect
+        .poll(() => storyTitle.evaluate((el) => getComputedStyle(el).color))
+        .toBe(
+          await panel.evaluate((el, color) => {
+            const probe = document.createElement("span");
+            probe.style.color = color;
+            el.append(probe);
+            const result = getComputedStyle(probe).color;
+            probe.remove();
+            return result;
+          }, accent)
+        );
       await storyImage.scrollIntoViewIfNeeded();
       await expect
         .poll(() => storyImage.evaluate((n) => (n as HTMLImageElement).naturalWidth), {

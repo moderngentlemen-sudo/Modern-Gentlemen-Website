@@ -1,3 +1,5 @@
+import { mediaOverlayFields } from "./mediaOverlayFields";
+import { mediaOverlaySchema, type MediaOverlay } from "@/lib/domain/mediaOverlay";
 import { FONT_LIBRARY } from "@/lib/domain/fontLibrary";
 import { field, fieldSetToZod, options, type FieldSet } from "./fields";
 import { studioColor, studioDestination } from "./studioValues";
@@ -42,7 +44,32 @@ export interface MegaTypography {
   italic?: boolean;
   color?: string;
 }
+export const MEGA_HOVER_ANIMATIONS = [
+  "slide",
+  "fade",
+  "underline",
+  "lift",
+  "grow",
+  "shrink",
+  "tilt-left",
+  "tilt-right",
+  "skew",
+  "tracking",
+  "blur-reveal",
+  "glow",
+  "shadow",
+  "underline-sweep",
+  "highlight-sweep",
+  "border-draw",
+  "bracket",
+  "arrow",
+  "none",
+] as const;
 export interface StudioMegaMenuConfig {
+  hoverColor?: string;
+  imageColor?: boolean;
+  matchPageAccent?: boolean;
+  imageOverlay?: MediaOverlay;
   font?: string;
   color?: string;
   accent?: string;
@@ -51,7 +78,7 @@ export interface StudioMegaMenuConfig {
     stories: { title: string; description?: string; image?: string; alt?: string; url?: string }[];
   }[];
   typeStyles?: { category?: MegaTypography; heading?: MegaTypography; subtitle?: MegaTypography };
-  hoverAnimation?: "slide" | "fade" | "underline" | "none";
+  hoverAnimation?: (typeof MEGA_HOVER_ANIMATIONS)[number];
   storyAnimation?: "rise" | "fade" | "slide" | "none";
   animationDuration?: number;
 }
@@ -66,6 +93,10 @@ const typography: FieldSet = {
   color: field.text({ label: "Color" }),
 };
 export const studioMegaMenuFields: FieldSet = {
+  hoverColor: field.text({ label: "Category hover color" }),
+  imageColor: field.boolean({ label: "Full-color story images" }),
+  matchPageAccent: field.boolean({ label: "Use page accent for story labels and hover" }),
+  imageOverlay: field.group({ label: "Story image overlay", fields: mediaOverlayFields }),
   font: field.font({ label: "Font" }),
   color: field.text({ label: "Text color" }),
   accent: field.text({ label: "Active category color" }),
@@ -100,7 +131,7 @@ export const studioMegaMenuFields: FieldSet = {
   }),
   hoverAnimation: field.select({
     label: "Category hover",
-    options: options("slide", "fade", "underline", "none"),
+    options: options(...MEGA_HOVER_ANIMATIONS),
   }),
   storyAnimation: field.select({
     label: "Story transition",
@@ -131,10 +162,13 @@ export function normalizeStudioMegaMenu(raw: unknown): {
   for (const color of [
     value.color,
     value.accent,
+    value.hoverColor,
     ...Object.values(value.typeStyles || {}).map((s) => s.color),
   ])
     if (color !== undefined && !studioColor(color))
       issues.push("Choose a supported mega-menu text or accent color.");
+  if (value.imageOverlay && !mediaOverlaySchema.safeParse(value.imageOverlay).success)
+    issues.push("Check the story image overlay settings.");
   for (const category of value.categories)
     for (const story of category.stories) {
       if (story.url) {

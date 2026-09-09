@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import type { MegaTypography, StudioMegaMenuConfig } from "@/lib/blocks/studioFeatures";
 import { libraryFontStack, libraryFontStylesheet } from "@/lib/domain/fontLibrary";
 import { studioThemeInk } from "@/lib/blocks/studioTheme";
+import { MediaOverlay } from "../ui/MediaOverlay";
 import { MediaImage } from "../ui/MediaImage";
 import styles from "./StudioMegaMenu.module.css";
 import { studioPixels } from "@/lib/blocks/studioSizing";
@@ -107,12 +108,18 @@ export function StudioMegaMenu({
       <div
         className={styles.menu}
         data-mobile={mobile || undefined}
+        data-image-color={config.imageColor || undefined}
         data-hover={config.hoverAnimation || "slide"}
         aria-label="Editorial categories"
         style={
           {
             "--mega-unit": unit(1),
             "--mega-accent": studioThemeInk(config.accent || "#c8102e"),
+            "--mega-hover": studioThemeInk(config.hoverColor || config.accent || "#c8102e"),
+            "--mega-story-accent":
+              config.matchPageAccent === false
+                ? studioThemeInk(config.accent || "#c8102e")
+                : "var(--mg-accent-ink, #c8102e)",
             "--mega-duration": `${animationDuration}ms`,
             color: studioThemeInk(config.color || "#f8f7f3"),
           } as CSSProperties
@@ -182,6 +189,7 @@ export function StudioMegaMenu({
                           alt={story.alt ?? story.title}
                           slot="studioStory"
                         />
+                        <MediaOverlay value={config.imageOverlay} />
                       </div>
                     )}
                     <p className={styles.eyebrow}>{category.label}</p>

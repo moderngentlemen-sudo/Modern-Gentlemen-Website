@@ -1,0 +1,38 @@
+.header[data-contrast="dark"] {
+  color: #141414;
+}
+.header[data-contrast="dark"] nav a,
+.header[data-contrast="dark"] button,
+.header[data-contrast="dark"] a {
+  color: #141414;
+}
+.header[data-contrast="dark"] img[src="/mg-logo.svg"] {
+  filter: invert(1);
+}
+.header[data-contrast="dark"] button[aria-label="Open menu"] > span:first-child {
+  background-color: #141414;
+}
+.header[data-contrast] nav a,
+.header[data-contrast] button,
+.header[data-contrast] a,
+.header[data-contrast] img {
+  transition:
+    color 220ms,
+    filter 220ms,
+    background-color 220ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .header[data-contrast] * {
+    transition-duration: 0s !important;
+  }
+}
+
+.header[data-contrast="dark"] [class*="border-white"] {
+  border-color: rgba(20, 20, 20, 0.25);
+}
+.header[data-contrast="dark"] [class*="bg-white"] {
+  background-color: rgba(20, 20, 20, 0.08);
+}
+.header[data-contrast="dark"] a[class*="hover:bg-mg-accent"]:hover {
+  color: white;
+}

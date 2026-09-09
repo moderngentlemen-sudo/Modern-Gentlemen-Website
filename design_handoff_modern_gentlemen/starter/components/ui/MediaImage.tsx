@@ -1,3 +1,5 @@
+"use client";
+import { InheritedMediaOverlay } from "./MediaOverlayContext";
 import Image from "next/image";
 
 import { IMAGE_SIZES, isOptimizableImageSrc, type ImageSizeKey } from "@/lib/domain/images";
@@ -55,14 +57,17 @@ interface Props {
  */
 export function MediaImage({ src, alt, slot, className, priority }: Props) {
   return (
-    <Image
-      src={src}
-      alt={alt}
-      fill
-      sizes={IMAGE_SIZES[slot]}
-      priority={priority}
-      unoptimized={!isOptimizableImageSrc(src)}
-      className={className}
-    />
+    <>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes={IMAGE_SIZES[slot]}
+        priority={priority}
+        unoptimized={!isOptimizableImageSrc(src)}
+        className={className}
+      />
+      <InheritedMediaOverlay />
+    </>
   );
 }

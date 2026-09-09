@@ -1,4 +1,5 @@
 "use client";
+import { MediaOverlayEditor } from "./MediaOverlayEditor";
 import { readSectionBackground, type SectionBackground } from "@/lib/domain/sectionBackground";
 import { MediaUrlControl } from "../fields/MediaUrlControl";
 import { TextInput } from "../ui/Input";
@@ -19,6 +20,11 @@ export function SectionBackgroundEditor({ node }: { node: BlockNode }) {
         value={background.backgroundColor ?? ""}
         onChange={(backgroundColor) => update({ backgroundColor })}
         placeholder="#0d0d0d"
+      />
+      <MediaOverlayEditor
+        label="Section photo / video overlay"
+        value={node.design?.mediaOverlay}
+        onChange={(mediaOverlay) => setDesign(node._key, { mediaOverlay })}
       />
       <MediaUrlControl
         kind="image"
@@ -55,6 +61,10 @@ export function SectionBackgroundEditor({ node }: { node: BlockNode }) {
           />
         </label>
       ))}
+      <MediaOverlayEditor
+        value={background.mediaOverlay}
+        onChange={(mediaOverlay) => update({ mediaOverlay })}
+      />
       <Toggle
         label="Play section video on mobile"
         checked={background.videoOnMobile ?? false}
