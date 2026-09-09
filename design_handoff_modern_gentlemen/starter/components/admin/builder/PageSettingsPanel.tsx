@@ -1,4 +1,5 @@
 "use client";
+import { MediaOverlayEditor } from "./MediaOverlayEditor";
 
 import { useEditorExperience } from "./EditorExperience";
 import { GradientEditor } from "./GradientEditor";
@@ -193,6 +194,10 @@ export function PageSettingsPanel({
             />
           </label>
         ))}
+        <MediaOverlayEditor
+          value={settings.mediaOverlay}
+          onChange={(mediaOverlay) => update({ mediaOverlay })}
+        />
         <Toggle
           label="Play background video on mobile"
           checked={settings.videoOnMobile ?? false}

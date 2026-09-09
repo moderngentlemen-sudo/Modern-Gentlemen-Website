@@ -1,3 +1,4 @@
+import { mediaOverlaySchema } from "../domain/mediaOverlay";
 import { sectionBackgroundSchema } from "../domain/sectionBackground";
 import { gradientSchema } from "../domain/gradient";
 /**
@@ -42,6 +43,16 @@ export interface ValidationResult {
 export function validateBlock(node: BlockNode): ValidationResult {
   const key = typeof node._key === "string" ? node._key : "";
   const issues: BlockIssue[] = [];
+  if (
+    node.design?.mediaOverlay !== undefined &&
+    !mediaOverlaySchema.safeParse(node.design.mediaOverlay).success
+  )
+    issues.push({
+      key,
+      type: node._type,
+      path: "design.mediaOverlay",
+      message: "Choose valid overlay colors, opacity and gradient stops.",
+    });
   if (node.design?.background !== undefined) {
     const result = sectionBackgroundSchema.safeParse(node.design.background);
     if (!result.success)

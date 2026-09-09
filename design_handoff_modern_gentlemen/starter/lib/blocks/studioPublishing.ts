@@ -1,3 +1,4 @@
+import { mediaOverlaySchema, DEFAULT_MEDIA_OVERLAY } from "@/lib/domain/mediaOverlay";
 import { z } from "zod";
 import { studioColor, studioGradient, studioDestination } from "./studioValues";
 import { normalizeStudioMegaMenu, normalizeStudioVideo } from "./studioFeatures";
@@ -101,8 +102,23 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
       ids.add(section.uid);
       const mega = section.megaMenu ? normalizeStudioMegaMenu(section.megaMenu) : undefined;
       for (const issue of mega?.issues || []) fail(path, issue);
-      if (section.backgroundMedia)
-        fail(path, "Section background media publishing needs its live renderer integration.");
+      const bg = section.backgroundMedia as
+        | { src?: unknown; type?: unknown; focalX?: number; focalY?: number; overlay?: unknown }
+        | undefined;
+      const backgroundSrc = bg ? studioDestination(bg.src, true) : undefined;
+      if (bg && !backgroundSrc)
+        fail(path, "Choose a permanent section background image or video URL.");
+      if (bg && !["image", "video"].includes(String(bg.type)))
+        fail(path, "Choose an image or video background.");
+      const rawOverlay =
+        section.overlay ??
+        (typeof bg?.overlay === "string"
+          ? { ...DEFAULT_MEDIA_OVERLAY, mode: "solid", color: bg.overlay, opacity: 100 }
+          : undefined);
+      const overlay =
+        rawOverlay === undefined ? undefined : mediaOverlaySchema.safeParse(rawOverlay);
+      if (overlay && !overlay.success)
+        fail(path, "Check the section overlay colors, opacity and gradient stops.");
       if ((section.separator as { enabled?: boolean } | undefined)?.enabled)
         fail(path, "Section separator publishing needs its live renderer integration.");
       const background = studioColor(section.color ?? doc.page);
@@ -176,6 +192,11 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
             if (!color) fail(nodePath, `Choose a supported ${key} color.`);
             else settings[key] = color;
           }
+        if (node.overlay !== undefined) {
+          const overlay = mediaOverlaySchema.safeParse(node.overlay);
+          if (overlay.success) settings.overlay = overlay.data;
+          else fail(nodePath, "Check the media overlay colors, opacity and gradient stops.");
+        }
         if (node.kind === "media") {
           const src = studioDestination(node.src, true);
           if (!src || src.startsWith("#"))
@@ -235,6 +256,15 @@ export function convertStudio(input: unknown): { sections: BlockNode[]; issues: 
           width,
           height: section.height,
           color: background,
+          ...(backgroundSrc
+            ? {
+                backgroundSrc,
+                backgroundType: bg!.type,
+                focalX: bg!.focalX ?? 50,
+                focalY: bg!.focalY ?? 50,
+              }
+            : {}),
+          ...(overlay?.success ? { overlay: overlay.data } : {}),
           ...(gradient ? { gradient } : {}),
           ...(mega?.value ? { megaMenu: mega.value, mobile: view === "mobile" } : {}),
         },

@@ -1,4 +1,5 @@
 "use client";
+import { MediaVideo } from "../ui/MediaVideo";
 
 import { useEffect, useRef } from "react";
 import { ArticleKicker, Byline } from "./primitives";
@@ -38,7 +39,7 @@ export function HeroVideo({ kicker, title, byline, videoUrl, poster, appearance 
     >
       <div data-hero-media className="relative h-[80vh] min-h-[540px] overflow-hidden bg-black">
         {videoUrl ? (
-          <video
+          <MediaVideo
             ref={videoRef}
             src={videoUrl}
             poster={poster ? optimizedImageUrl(poster, 1920) : undefined}

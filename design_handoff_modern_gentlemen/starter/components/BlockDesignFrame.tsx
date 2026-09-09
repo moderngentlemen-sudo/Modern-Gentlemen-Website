@@ -1,3 +1,5 @@
+import { MediaOverlayProvider } from "./ui/MediaOverlayContext";
+import { mediaOverlaySchema } from "@/lib/domain/mediaOverlay";
 import { PagePresentation } from "./PagePresentation";
 import { readSectionBackground } from "@/lib/domain/sectionBackground";
 import { gradientCss } from "@/lib/domain/gradient";
@@ -35,11 +37,17 @@ export function BlockDesignFrame({
   const backgroundImage = gradientCss(design?.gradient);
   const paddingTop = spacing(design?.spaceBefore);
   const paddingBottom = spacing(design?.spaceAfter);
+  const overlay = mediaOverlaySchema.safeParse(design?.mediaOverlay);
+  const treated = overlay.success ? (
+    <MediaOverlayProvider value={overlay.data}>{children}</MediaOverlayProvider>
+  ) : (
+    children
+  );
   const content =
     !backgroundImage && paddingTop === undefined && paddingBottom === undefined ? (
-      <>{children}</>
+      <>{treated}</>
     ) : (
-      <div style={{ paddingTop, paddingBottom, backgroundImage }}>{children}</div>
+      <div style={{ paddingTop, paddingBottom, backgroundImage }}>{treated}</div>
     );
   return hasMedia ? <PagePresentation settings={media}>{content}</PagePresentation> : content;
 }

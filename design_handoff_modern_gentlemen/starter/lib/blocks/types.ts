@@ -1,3 +1,4 @@
+import type { MediaOverlay } from "../domain/mediaOverlay";
 import type { SectionBackground } from "../domain/sectionBackground";
 import type { Gradient } from "../domain/gradient";
 /**
@@ -30,6 +31,7 @@ export type BlockSpacing = (typeof BLOCK_SPACING)[number];
 
 /** Universal presentation controls that sit outside a block's content contract. */
 export interface BlockDesign {
+  mediaOverlay?: MediaOverlay;
   background?: SectionBackground;
   gradient?: Gradient;
   /** Additional space outside the section; the section keeps its own internal composition. */

@@ -1,4 +1,5 @@
 "use client";
+import { MediaVideo } from "../ui/MediaVideo";
 
 import { useEffect, useRef } from "react";
 
@@ -55,7 +56,7 @@ export function NativeVideo({
   return (
     <figure>
       <FontStylesheet font={captionTypography?.fontFamily} />
-      <video
+      <MediaVideo
         style={mediaAppearanceStyle(appearance)}
         ref={ref}
         src={src}

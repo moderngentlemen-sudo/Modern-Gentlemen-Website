@@ -8,6 +8,7 @@ export const sectionBackgroundSchema = pageSettingsSchema
     backgroundImage: true,
     backgroundVideo: true,
     overlayOpacity: true,
+    mediaOverlay: true,
     focalX: true,
     focalY: true,
     videoOnMobile: true,

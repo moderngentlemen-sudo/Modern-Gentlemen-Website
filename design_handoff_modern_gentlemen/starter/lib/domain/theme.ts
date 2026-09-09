@@ -349,7 +349,7 @@ export const HEADER_SCROLL_BEHAVIORS = ["hide-on-scroll", "always-visible"] as c
 export type HeaderScrollBehavior = (typeof HEADER_SCROLL_BEHAVIORS)[number];
 export const HEADER_COMPOSITIONS = ["balanced", "centered-logo", "navigation-left"] as const;
 export type HeaderComposition = (typeof HEADER_COMPOSITIONS)[number];
-export const HEADER_BACKGROUNDS = ["dynamic", "solid", "transparent"] as const;
+export const HEADER_BACKGROUNDS = ["dynamic", "solid", "transparent", "filled"] as const;
 export type HeaderBackground = (typeof HEADER_BACKGROUNDS)[number];
 export const HEADER_CART_VISIBILITY = ["store-only", "always", "hidden"] as const;
 export type HeaderCartVisibility = (typeof HEADER_CART_VISIBILITY)[number];
@@ -411,7 +411,29 @@ export const DEFAULT_THEME_MOBILE_HEADER: ThemeMobileHeader = {
   maxActions: 4,
 };
 
+export const HEADER_ENTRY_ANIMATIONS = [
+  "none",
+  "fade",
+  "slide-down",
+  "rise",
+  "slide-left",
+  "slide-right",
+  "zoom-in",
+  "zoom-out",
+  "blur",
+  "reveal-down",
+  "reveal-center",
+  "tilt",
+  "settle",
+] as const;
 export interface ThemeHeader {
+  fillColor: string;
+  fillOpacity: number;
+  frostBlur: number;
+  frostSaturation: number;
+  autoContrast: boolean;
+  entryAnimation: (typeof HEADER_ENTRY_ANIMATIONS)[number];
+  entryDuration: number;
   composition: HeaderComposition;
   scrollBehavior: HeaderScrollBehavior;
   background: HeaderBackground;
@@ -441,6 +463,13 @@ export interface ThemeHeader {
 }
 
 export const DEFAULT_THEME_HEADER: ThemeHeader = {
+  fillColor: "#0d0d0d",
+  fillOpacity: 100,
+  frostBlur: 20,
+  frostSaturation: 100,
+  autoContrast: false,
+  entryAnimation: "none",
+  entryDuration: 450,
   composition: "balanced",
   scrollBehavior: "hide-on-scroll",
   background: "dynamic",
@@ -866,7 +895,20 @@ export const themeMobileHeaderSchema = z.object({
   maxActions: z.number().int().min(0).max(MOBILE_HEADER_ACTIONS.length),
 });
 
+export const headerAppearanceSchema = z.object({
+  fillColor: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .default("#0d0d0d"),
+  fillOpacity: z.number().finite().min(0).max(100).default(100),
+  frostBlur: z.number().finite().min(0).max(60).default(20),
+  frostSaturation: z.number().finite().min(0).max(200).default(100),
+  autoContrast: z.boolean().default(false),
+  entryAnimation: z.enum(HEADER_ENTRY_ANIMATIONS).default("none"),
+  entryDuration: z.number().int().min(80).max(2000).default(450),
+});
 export const themeHeaderSchema = z.object({
+  ...headerAppearanceSchema.shape,
   composition: z.enum(HEADER_COMPOSITIONS),
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
   background: z.enum(HEADER_BACKGROUNDS),
@@ -1273,6 +1315,10 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
   }
   if (typeof incoming.xHref === "string" && safeSocialHref(incoming.xHref.trim())) {
     out.xHref = incoming.xHref.trim();
+  }
+  for (const [key, schema] of Object.entries(headerAppearanceSchema.shape)) {
+    const result = schema.safeParse(incoming[key]);
+    if (result.success) Object.assign(out, { [key]: result.data });
   }
   out.mobile = parseThemeMobileHeader(incoming.mobile);
   return out;

@@ -1,4 +1,5 @@
 "use client";
+import { MediaVideo } from "../ui/MediaVideo";
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
@@ -72,7 +73,7 @@ export function HeroCoverStar({
         {/* Cover media — full-bleed behind everything. */}
         <div className="absolute inset-0">
           {isVideo ? (
-            <video
+            <MediaVideo
               ref={videoRef}
               src={media!.videoUrl}
               poster={media!.image ? optimizedImageUrl(media!.image, 1920) : undefined}

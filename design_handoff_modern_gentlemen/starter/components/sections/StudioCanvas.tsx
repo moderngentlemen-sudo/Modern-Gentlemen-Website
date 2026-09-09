@@ -1,3 +1,4 @@
+import { MediaOverlay } from "../ui/MediaOverlay";
 import type { CSSProperties, ReactNode } from "react";
 import { libraryFontStack, libraryFontStylesheet } from "@/lib/domain/fontLibrary";
 import { studioGradient } from "@/lib/blocks/studioValues";
@@ -40,6 +41,43 @@ export function StudioCanvas({ children, ...p }: Props & { children?: ReactNode 
       data-studio-theme={theme}
       style={{ background: studioThemeGradient(p.gradient) || studioThemeColor(p.color) }}
     >
+      {string(p.backgroundSrc) && (
+        <div
+          className={styles.backgroundMedia}
+          style={
+            {
+              position: "absolute",
+              inset: 0,
+              overflow: "hidden",
+              "--background-focal": `${num(p.focalX, 50)}% ${num(p.focalY, 50)}%`,
+            } as CSSProperties
+          }
+        >
+          {p.backgroundType === "video" ? (
+            <StudioVideo
+              src={string(p.backgroundSrc)!}
+              label="Section background video"
+              options={{
+                autoplay: true,
+                repeat: true,
+                muted: true,
+                controls: false,
+                showToggle: true,
+              }}
+              mediaStyle={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: `${num(p.focalX, 50)}% ${num(p.focalY, 50)}%`,
+              }}
+            />
+          ) : (
+            <MediaImage src={string(p.backgroundSrc)!} alt="" slot="fullBleed" />
+          )}
+          <MediaOverlay value={p.overlay} />
+        </div>
+      )}
+      {!p.backgroundSrc && <MediaOverlay value={p.overlay} />}
       <div className={styles.canvas}>
         <section
           id={string(p.sectionId)}
@@ -164,6 +202,7 @@ export function StudioElement(p: Props) {
             )}
           </div>
         )}
+        <MediaOverlay value={p.overlay} />
       </div>
     );
   } else

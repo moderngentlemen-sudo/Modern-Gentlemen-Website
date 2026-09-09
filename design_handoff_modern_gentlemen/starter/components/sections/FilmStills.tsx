@@ -1,4 +1,5 @@
 "use client";
+import { MediaVideo } from "../ui/MediaVideo";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -71,7 +72,7 @@ export function FilmStills({
             onClick={(e) => e.stopPropagation()}
           >
             {active.videoUrl ? (
-              <video src={active.videoUrl} controls autoPlay className="h-full w-full" />
+              <MediaVideo src={active.videoUrl} controls autoPlay className="h-full w-full" />
             ) : (
               <div className="h-full w-full grid place-items-center text-white/60 font-mono text-sm">
                 Preview only
@@ -129,7 +130,7 @@ function FilmTile({
     >
       <div className="relative h-[240px] overflow-hidden bg-[#0d0d0d]">
         {item.videoUrl ? (
-          <video
+          <MediaVideo
             ref={vidRef}
             src={item.videoUrl}
             poster={item.still ? optimizedImageUrl(item.still, 640) : undefined}

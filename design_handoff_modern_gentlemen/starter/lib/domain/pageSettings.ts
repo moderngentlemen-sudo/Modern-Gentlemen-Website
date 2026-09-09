@@ -1,3 +1,4 @@
+import { mediaOverlaySchema } from "./mediaOverlay";
 import { gradientSchema } from "./gradient";
 import { z } from "zod";
 
@@ -37,6 +38,7 @@ export const pageSettingsSchema = z
       .optional(),
     backgroundImage: mediaUrl.optional(),
     backgroundVideo: mediaUrl.optional(),
+    mediaOverlay: mediaOverlaySchema.optional(),
     overlayOpacity: z.number().min(0).max(1).optional(),
     focalX: z.number().min(0).max(100).optional(),
     focalY: z.number().min(0).max(100).optional(),

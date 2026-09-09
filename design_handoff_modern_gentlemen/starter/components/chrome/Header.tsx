@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { headerSurface } from "@/lib/domain/headerAppearance";
+import { useHeaderAppearance } from "./useHeaderAppearance";
+import appearance from "./HeaderAppearance.module.css";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useTheme } from "@/lib/theme";
@@ -146,6 +149,9 @@ export function Header({
     effective.background === "solid" ||
     (effective.background === "dynamic" && (scrolled || !!menuKey || navHover));
 
+  const surface = headerSurface(effective, frosted);
+  const darkInk = useHeaderAppearance(navZoneRef, effective, frosted);
+
   // An entry opens the mega-menu if it has children. `menuKey` is that entry's
   // id — the allowlist it replaced was a constant that had to be kept in step
   // with the menu data by hand.
@@ -220,10 +226,11 @@ export function Header({
           with the bar so no band is left hanging at the top edge. */}
       <div
         aria-hidden
+        data-header-scrim
         className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
           height: `calc(${chromeHeight + 13}px + var(--mg-safe-top))`,
-          opacity: frosted ? 0 : 1,
+          opacity: frosted || effective.background === "filled" || effective.autoContrast ? 0 : 1,
           transform: slide,
           transition: `opacity ${MOTION}, transform ${MOTION}`,
           background:
@@ -289,19 +296,24 @@ export function Header({
         <header
           // ≤680 the bar insets 20px, two below the sections' 22px.
           data-header-composition={effective.composition}
+          data-contrast={effective.autoContrast ? (darkInk ? "dark" : "light") : undefined}
           data-mobile-customized={mobileActive || undefined}
-          className={`container-mg max-[680px]:!px-5 box-border items-center pt-[2px] border-b ${
+          className={`${appearance.header} container-mg max-[680px]:!px-5 box-border items-center pt-[2px] border-b ${
             effective.composition === "centered-logo"
               ? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
               : "flex"
           }`}
           style={{
             height: headerHeight,
-            background: frosted ? "rgba(13,13,13,0.55)" : "transparent",
-            backdropFilter: frosted ? "blur(20px)" : "none",
-            WebkitBackdropFilter: frosted ? "blur(20px)" : "none",
+            background: surface.background,
+            backdropFilter: surface.backdropFilter,
+            WebkitBackdropFilter: surface.backdropFilter,
             borderBottomColor:
-              frosted || effective.divider ? "rgba(255,255,255,0.12)" : "transparent",
+              frosted || effective.divider
+                ? darkInk
+                  ? "rgba(20,20,20,0.12)"
+                  : "rgba(255,255,255,0.12)"
+                : "transparent",
             // The global prefers-reduced-motion rule zeroes the durations.
             transition: `height ${MOTION}, background ${MOTION}, backdrop-filter ${MOTION}, border-color ${MOTION}`,
           }}

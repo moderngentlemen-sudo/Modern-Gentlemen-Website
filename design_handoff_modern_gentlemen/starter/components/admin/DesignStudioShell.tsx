@@ -215,6 +215,9 @@ export function DesignStudioShell({
         <Link href="/admin/pages" className="underline">
           Back to pages
         </Link>
+        <Link href="/admin/theme" target="_blank" rel="noopener noreferrer" className="underline">
+          Header &amp; theme
+        </Link>
         <label>
           Page title{" "}
           <input

@@ -14,6 +14,7 @@ import {
   FONT_PRESET_OPTIONS,
   FOOTER_LAYOUTS,
   HEADER_BACKGROUNDS,
+  HEADER_ENTRY_ANIMATIONS,
   HEADER_CART_VISIBILITY,
   HEADER_COMPOSITIONS,
   HEADER_ICON_HOVERS,
@@ -1039,9 +1040,67 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                     ? "Transparent → frosted"
                     : value === "solid"
                       ? "Always frosted"
-                      : "Always transparent",
+                      : value === "filled"
+                        ? "Solid color"
+                        : "Always transparent",
               }))}
               onChange={(value) => setHeader("background", value as HeaderBackground)}
+            />
+            <ColorInput
+              label="Header fill color"
+              value={draft.header.fillColor}
+              disabled={!canWrite || pending}
+              onChange={(v) => setHeader("fillColor", v)}
+            />
+            <NumberInput
+              label="Header fill opacity · %"
+              min={0}
+              max={100}
+              value={draft.header.fillOpacity}
+              disabled={!canWrite || pending}
+              onChange={(v) => v !== undefined && setHeader("fillOpacity", v)}
+            />
+            <NumberInput
+              label="Background frosting · px"
+              help="Set to 0 for a crisp solid fill. Applies to solid and frosted backgrounds."
+              min={0}
+              max={60}
+              value={draft.header.frostBlur}
+              disabled={!canWrite || pending}
+              onChange={(v) => v !== undefined && setHeader("frostBlur", v)}
+            />
+            <NumberInput
+              label="Frost saturation · %"
+              min={0}
+              max={200}
+              value={draft.header.frostSaturation}
+              disabled={!canWrite || pending}
+              onChange={(v) => v !== undefined && setHeader("frostSaturation", v)}
+            />
+            <Toggle
+              label="Automatic header contrast"
+              help="Switch lettering and icons between light and dark as the background changes. Also applies on mobile."
+              checked={draft.header.autoContrast}
+              disabled={!canWrite || pending}
+              onChange={(v) => setHeader("autoContrast", v)}
+            />
+            <Select
+              label="Header entry animation"
+              value={draft.header.entryAnimation}
+              options={HEADER_ENTRY_ANIMATIONS.map((value) => ({
+                value,
+                label: optionLabel(value),
+              }))}
+              disabled={!canWrite || pending}
+              onChange={(v) => setHeader("entryAnimation", v as ThemeHeader["entryAnimation"])}
+            />
+            <NumberInput
+              label="Header entry duration · ms"
+              min={80}
+              max={2000}
+              value={draft.header.entryDuration}
+              disabled={!canWrite || pending}
+              onChange={(v) => v !== undefined && setHeader("entryDuration", v)}
             />
             <Select
               label="Bag icon"
@@ -1265,7 +1324,9 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                         ? "Transparent → frosted"
                         : value === "solid"
                           ? "Always frosted"
-                          : "Always transparent",
+                          : value === "filled"
+                            ? "Solid color"
+                            : "Always transparent",
                   }))}
                   onChange={(value) => setMobileHeader("background", value as HeaderBackground)}
                 />
