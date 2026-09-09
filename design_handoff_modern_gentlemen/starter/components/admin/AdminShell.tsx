@@ -30,6 +30,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/pages", label: "Pages", needs: "page.read" },
+  { href: "/admin/customizer", label: "Appearance Studio", needs: "page.read" },
   { href: "/admin/design-studio", label: "Design Studio", needs: "page.write" },
   { href: "/admin/articles", label: "Articles", needs: "article.read" },
   { href: "/admin/taxonomy", label: "Taxonomy", needs: "article.read" },

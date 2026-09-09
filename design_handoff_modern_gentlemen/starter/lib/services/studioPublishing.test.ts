@@ -102,6 +102,24 @@ describe("Studio persistence boundary", () => {
       expect.objectContaining({ id, expectedUpdatedAt: "previous", updatedBy: "editor" })
     );
   });
+  it("preserves centralized page appearance when the Studio saves again", async () => {
+    const id = "e2d42f70-e3fb-4d15-b521-d40a2a4a9e16";
+    vi.mocked(getDocument).mockResolvedValue({
+      id,
+      title: "Invitation",
+      slug: "invitation",
+      draft_data: {
+        _designStudio: input().document,
+        pageSettings: { backgroundColor: "#112233", header: "overlay" },
+        futureField: { retained: true },
+      },
+    } as never);
+    await saveStudioPage({ ...input(), id, expectedUpdatedAt: "previous" });
+    expect(vi.mocked(saveStudioDraft).mock.calls[0][1].payload).toMatchObject({
+      pageSettings: { backgroundColor: "#112233", header: "overlay" },
+      futureField: { retained: true },
+    });
+  });
   it("requires resaving an older generated layout before it can be previewed", async () => {
     const id = "e2d42f70-e3fb-4d15-b521-d40a2a4a9e16",
       document = input().document;

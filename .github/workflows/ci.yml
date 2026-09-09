@@ -289,12 +289,30 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run build
 
+      - name: Appearance Studio browser tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e -- tests/e2e/appearanceCustomizer.spec.ts
+
+      - name: Preserve Appearance Studio review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appearance-studio-review
+          path: |
+            ${{ env.APP_DIR }}/test-results/**/appearance-*.png
+            ${{ env.APP_DIR }}/test-results/appearanceCustomizer-*/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: E2E tests
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run test:e2e
+        run: npm run test:e2e -- --grep-invert "Appearance Studio"
 
       # Later Playwright suites clear test-results and replace the HTML report.
       - name: Preserve Studio publishing failure details
