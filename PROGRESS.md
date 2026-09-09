@@ -30,10 +30,17 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 - A new hosted E2E uses the real Media / Browse & upload / Add to canvas controls with
   an image whose four embedded copies exceed 8 MB, then saves, reopens, previews,
   publishes and checks the image at all three viewport sizes. Hosted E2E pending.
-- Local formatting, lint, TypeScript and all 2,637 tests in 140 files pass.
-  Production compilation passed locally; prerender verification is blocked by the
-  environment proxy refusing the Supabase connection (403). Hosted CI will build
-  against its isolated seeded database.
+- Local formatting, lint, TypeScript and all 2,639 tests in 140 files pass.
+  The local production build completed (exit 0) with Supabase fetch warnings from
+  the environment proxy. Hosted CI #369 passed the seeded build, integration, visual,
+  accessibility and performance checks; the new E2E fixture was rejected because
+  its section omitted stops. The corrected fixture now asserts it actually loaded
+  before any upload, and failures include the Studio status message. A dedicated
+  CI artifact preserves failure details before later suites clear them.
+- Review also found the standalone iframe CSP blocked the project storage origin.
+  The authenticated HTML response now permits that origin for img-src/media-src
+  only. Tests cover production and loopback storage, and E2E now requires the
+  hosted image to finish loading inside the reopened editor too. Rerun pending.
   No production content changed or deployed. Cost: a client media preparation step
   using the existing upload service, rather than a larger page payload or new storage
   system. The actual failing user document remains in their browser and was not read.

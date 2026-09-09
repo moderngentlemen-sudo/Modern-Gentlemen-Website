@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { requirePermission } from "./auth";
+import { supabaseUrl } from "@/lib/db/env";
 
 const assets = {
   "index.html": "text/html; charset=utf-8",
@@ -15,7 +16,19 @@ export async function readDesignStudio(asset: string) {
   const bytes = await readFile(path.join(process.cwd(), "studio-assets", name));
   const body =
     name === "index.html"
-      ? bytes.toString("utf8").replaceAll("mg-builder-", `mg-builder-${user.id}-`)
+      ? bytes
+          .toString("utf8")
+          .replaceAll("mg-builder-", `mg-builder-${user.id}-`)
+          .replace(
+            /(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/i,
+            (_match, start, policy: string, end) =>
+              start +
+              policy.replace(
+                /\b(img-src|media-src) ([^;]+)/g,
+                (directive) => `${directive} ${new URL(supabaseUrl()).origin}`
+              ) +
+              end
+          )
       : new Uint8Array(bytes);
   return { body, contentType: assets[name] };
 }

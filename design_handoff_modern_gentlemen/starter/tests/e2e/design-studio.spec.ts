@@ -24,8 +24,22 @@ test.describe("Design Studio publishing", () => {
             title: "Media upload",
             page: "#f8f7f3",
             layoutDevice: "desktop",
-            sections: [{ uid: "media", height: 600, color: "#f8f7f3" }],
-            nodes: [],
+            sections: [
+              { uid: "media", height: 600, color: "#f8f7f3", stops: ["#f8f7f3", "#f8f7f3"] },
+            ],
+            nodes: [
+              {
+                id: 1,
+                kind: "text",
+                text: "Hosted media test",
+                x: 32,
+                y: 380,
+                w: 300,
+                h: 60,
+                size: 24,
+                color: "#141414",
+              },
+            ],
           },
         },
         location.origin
@@ -44,6 +58,7 @@ test.describe("Design Studio publishing", () => {
     });
     // The original plus three layout snapshots exceeded the unchanged 8 MB limit.
     expect(encoded.length * 4).toBeGreaterThan(8_000_000);
+    await expect(frame.locator(".mg-board")).toContainText("Hosted media test");
     await frame.getByRole("button", { name: "Media", exact: true }).click();
     await frame.getByRole("button", { name: "Browse & upload", exact: true }).click();
     await frame.getByLabel("Upload images or videos").setInputFiles({
@@ -58,9 +73,16 @@ test.describe("Design Studio publishing", () => {
     await page.getByLabel("Page title", { exact: true }).fill("Media upload");
     await page.getByLabel("URL /", { exact: true }).fill(slug);
     await page.getByRole("button", { name: "Save to site", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "Create site preview", exact: true })
-    ).toBeEnabled({ timeout: 30000 });
+    try {
+      await expect(
+        page.getByRole("button", { name: "Create site preview", exact: true })
+      ).toBeEnabled({ timeout: 30000 });
+    } catch (error) {
+      const status = await page
+        .locator('section[aria-label="Design Studio"] > div[aria-live="polite"]')
+        .innerText();
+      throw new Error(`${String(error)}\nStudio save status: ${status}`);
+    }
     await expect(page).toHaveURL(/\/admin\/design-studio\?id=/);
     await page.reload();
     const savedImage = frame.locator('.mg-board img[alt="studio-upload"]');
@@ -69,6 +91,9 @@ test.describe("Design Studio publishing", () => {
       /^https?:\/\/.*\/storage\/v1\/object\/public\/media\//
     );
     const src = (await savedImage.getAttribute("src"))!;
+    await expect
+      .poll(() => savedImage.evaluate((node) => (node as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
     expect((await page.request.get(src)).ok()).toBe(true);
     await page.getByRole("button", { name: "Create site preview", exact: true }).click();
     const preview = page.getByRole("link", { name: "Open site preview", exact: true });
