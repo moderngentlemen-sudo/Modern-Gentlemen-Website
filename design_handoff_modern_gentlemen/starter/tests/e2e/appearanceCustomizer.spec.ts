@@ -34,6 +34,7 @@ test.describe("Appearance Studio", () => {
             uid: "intro",
             height: 500,
             color: "#f8f7f3",
+            stops: ["#f8f7f3", "#f8f7f3"],
             backgroundMedia: { src: "/images/hero-cover.jpg", type: "image" },
           },
         ],
@@ -66,7 +67,7 @@ test.describe("Appearance Studio", () => {
           ? convertStudio(studio).sections
           : [{ _key: "heading", _type: "nativeHeading", settings: { text: "Appearance fixture" } }],
         ...(native ? { _designStudio: studio } : {}),
-        pageSettings: { noIndex: true, fullHeight: true },
+        pageSettings: { noIndex: true, fullHeight: false },
         retained: { message: "Keep this content" },
       };
       const db = createClient(url!, key!, { auth: { persistSession: false } });
@@ -111,6 +112,9 @@ test.describe("Appearance Studio", () => {
               .evaluate(() => window.innerWidth)
           )
           .toBe(390);
+        await expect(
+          page.frameLocator('iframe[title="Live appearance preview"]').locator("#top h1")
+        ).toHaveCSS("font-size", "44px");
         await page.screenshot({
           path: testInfo.outputPath("appearance-home-mobile.png"),
           fullPage: true,
@@ -121,6 +125,14 @@ test.describe("Appearance Studio", () => {
       await expect(preview.getByText("Appearance fixture", { exact: true }).first()).toBeVisible({
         timeout: 20000,
       });
+      await expect
+        .poll(() =>
+          preview
+            .locator("footer")
+            .first()
+            .evaluate((node) => Math.abs(node.getBoundingClientRect().bottom - window.innerHeight))
+        )
+        .toBeLessThan(2);
       await page.getByLabel("Header surface").selectOption("filled");
       await page.getByLabel("Header color", { exact: true }).fill("#123456");
       await expect(preview.locator("header").first()).toHaveAttribute(

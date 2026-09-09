@@ -50,9 +50,17 @@ export function AppearancePreview({
       document.documentElement.setAttribute("data-mgtheme", data.mode);
       setState({ ...data, theme: parseThemeSettings(theme.data) });
     };
+    const stayInPreview = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest("a[href]"))
+        event.preventDefault();
+    };
+    document.addEventListener("click", stayInPreview, true);
     window.addEventListener("message", receive);
     window.parent.postMessage({ type: "mg:appearance-ready" }, location.origin);
-    return () => window.removeEventListener("message", receive);
+    return () => {
+      window.removeEventListener("message", receive);
+      document.removeEventListener("click", stayInPreview, true);
+    };
   }, []);
   if (!state) return <p className="p-8 text-sm">Loading page preview…</p>;
   const header = (
@@ -78,11 +86,7 @@ export function AppearancePreview({
           {themeWebfontStylesheets(state.theme.typography).map((href) => (
             <link key={href} rel="stylesheet" href={href} />
           ))}
-          <div
-            onClickCapture={(e) => {
-              if ((e.target as Element).closest("a[href]")) e.preventDefault();
-            }}
-          >
+          <>
             <div
               data-site-chrome="header"
               data-default-header={headerTemplate ? undefined : "true"}
@@ -113,7 +117,7 @@ export function AppearancePreview({
                 footer
               )}
             </div>
-          </div>
+          </>
         </CartProvider>
       </CatalogProvider>
     </PreviewThemeProvider>
