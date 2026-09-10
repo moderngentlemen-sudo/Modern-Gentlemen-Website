@@ -163,6 +163,9 @@ test.describe("Editorial collection", () => {
     await search.getByRole("button", { name: "Close search", exact: true }).click();
     await page.getByRole("button", { name: "Save theme draft", exact: true }).click();
     await expect(
+      page.getByText("Site theme draft saved. Publish when you are ready.", { exact: true })
+    ).toBeVisible();
+    await expect(
       page.getByRole("button", { name: "Save theme draft", exact: true })
     ).toBeDisabled();
     await page.reload();
