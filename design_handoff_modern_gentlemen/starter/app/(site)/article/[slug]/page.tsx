@@ -1,3 +1,7 @@
+import { EditorialArticle } from "@/components/article/EditorialArticle";
+import { resolveArticleDesign, articleDesignById } from "@/lib/domain/articleDesign";
+import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
+import { expandPublicPatterns } from "@/lib/services/publicContent";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
@@ -78,12 +82,16 @@ export async function generateMetadata({
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [a, builder] = await Promise.all([
+  const [a, builder, theme] = await Promise.all([
     getPublishedArticle(slug),
     getPublishedArticleBuilder(slug),
+    getPublishedThemeSettings(),
   ]);
   if (!a || !builder) notFound();
   const composed = await composePublishedDocument("article", builder.id, builder.sections);
+  const design = resolveArticleDesign(theme.articles, a.presentation?.design);
+  const designed = !!articleDesignById(design.preset);
+  const articleSections = designed && !composed ? await expandPublicPatterns(builder.sections) : [];
 
   return (
     <>
@@ -109,6 +117,30 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       <ReadingProgress />
       {composed ? (
         <SectionRenderer sections={composed} />
+      ) : designed ? (
+        <>
+          <EditorialArticle
+            design={design}
+            article={{
+              slug: a.slug,
+              title: a.title,
+              dek: builder.editorial?.dek || a.dek,
+              category: a.category,
+              author: a.author,
+              issue: a.issue,
+              read: parseInt(a.read) || undefined,
+              image: a.heroImage,
+              media:
+                a.featuredMedia ||
+                (a.videoUrl
+                  ? { kind: "video", video: { kind: "video", url: a.videoUrl } }
+                  : undefined),
+            }}
+          >
+            <SectionRenderer sections={articleSections} />
+          </EditorialArticle>
+          <RelatedGrid items={a.related} />
+        </>
       ) : (
         <>
           <ArticleHero

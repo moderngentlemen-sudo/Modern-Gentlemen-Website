@@ -1,5 +1,7 @@
 "use client";
 
+import { SearchAppearanceControls } from "@/components/admin/SearchAppearanceControls";
+import { ArticleDesignControls } from "@/components/admin/articles/ArticleDesignControls";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -1175,6 +1177,18 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
               disabled={!canWrite || pending}
               help="Adds a subtle circular surface behind header actions."
               onChange={(value) => setHeader("iconBubbles", value)}
+            />
+            <SearchAppearanceControls
+              value={draft.header.search}
+              onChange={(value) => setHeader("search", value)}
+            />
+            <ArticleDesignControls
+              value={draft.articles}
+              onChange={(articles) => {
+                setDirty(true);
+                setError(null);
+                setDraft((current) => ({ ...current, articles }));
+              }}
             />
             <Toggle
               label="Show search"

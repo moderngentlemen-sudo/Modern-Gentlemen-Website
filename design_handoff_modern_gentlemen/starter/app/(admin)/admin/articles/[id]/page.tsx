@@ -1,3 +1,6 @@
+import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
+import type { BlockTree } from "@/lib/blocks/types";
+import { expandPatternRefs } from "@/lib/services/patterns";
 import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
@@ -68,6 +71,15 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
     ...(cover ? { cover } : {}),
   };
 
+  const [theme, previewSections] = await Promise.all([
+    getPublishedThemeSettings(),
+    expandPatternRefs(
+      (Array.isArray((document.draft_data as { sections?: unknown })?.sections)
+        ? (document.draft_data as { sections: unknown }).sections
+        : []) as BlockTree,
+      { preferDraft: true }
+    ),
+  ]);
   const canWrite = user.permissions.has("article.write");
   const canManageTemplate =
     user.permissions.has("template.read") && user.permissions.has("template.write");
@@ -105,6 +117,8 @@ export default async function ArticleDetailsPage({ params }: { params: Promise<{
       </AdminPageHeader>
 
       <ArticleDetails
+        defaultDesign={theme.articles}
+        previewSections={previewSections}
         initial={{
           id,
           title: meta.title,

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { listTaxonomy } from "@/lib/services/taxonomy";
+import { articleDesignSchema } from "@/lib/domain/articleDesign";
 
 import {
   createArticle,
@@ -136,6 +138,7 @@ const MetaInput = z.object({
     .optional(),
   presentation: z
     .object({
+      design: articleDesignSchema.optional(),
       headerMode: z.enum(ARTICLE_HEADER_MODES),
       appearance: z.enum(ARTICLE_APPEARANCES),
     })
@@ -156,18 +159,38 @@ export async function updateArticleMetaAction(input: unknown): Promise<ActionRes
     // from before the update knows about the first of those.
     const before = await publicPathsForArticle(id);
 
-    await updateArticleMeta(id, patch);
+    const updatedMeta = await updateArticleMeta(id, patch);
     if (featuredMedia || presentation) {
       const document = await getDocument("article", id);
       if (!document) throw new Error(`No such article: ${id}`);
       const withMedia = featuredMedia
         ? withArticleFeaturedMedia(document.draft_data, featuredMedia)
         : document.draft_data;
-      await saveDraft(
-        "article",
-        id,
-        (presentation ? withArticlePresentation(withMedia, presentation) : withMedia) as Json
-      );
+      const payload = (
+        presentation ? withArticlePresentation(withMedia, presentation) : withMedia
+      ) as Record<string, unknown>;
+      if (presentation?.design) {
+        const taxonomy = await listTaxonomy();
+        payload.hero = {
+          ...(payload.hero as Record<string, unknown>),
+          editorial: {
+            slug: updatedMeta.slug,
+            title: updatedMeta.title,
+            ...(updatedMeta.subtitle || updatedMeta.excerpt
+              ? { dek: updatedMeta.subtitle || updatedMeta.excerpt }
+              : {}),
+            category:
+              taxonomy.categories.find((c) => c.id === updatedMeta.category_id)?.name ||
+              "Editorial",
+            author:
+              taxonomy.authors.find((a) => a.id === updatedMeta.author_id)?.name ||
+              "Modern Gentlemen",
+            ...(updatedMeta.issue_no ? { issue: updatedMeta.issue_no } : {}),
+            ...(updatedMeta.reading_minutes ? { read: updatedMeta.reading_minutes } : {}),
+          },
+        };
+      }
+      await saveDraft("article", id, payload as Json);
     }
     if (tagIds) await setArticleTags(id, tagIds);
     // KEEP READING is rendered on this article's own page and nowhere else, so

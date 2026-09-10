@@ -25,6 +25,7 @@ import type {
 } from "@/lib/services/appearanceCustomizer";
 import {
   loadPageAction,
+  loadArticlePreviewAction,
   savePageAction,
   saveThemeAction,
   previewPageAction,
@@ -38,6 +39,8 @@ import { MediaOverlayEditor } from "./builder/MediaOverlayEditor";
 import { GradientEditor } from "./builder/GradientEditor";
 import type { AppearancePreviewState } from "./AppearancePreview";
 import styles from "./AppearanceStudio.module.css";
+import { SearchAppearanceControls } from "./SearchAppearanceControls";
+import { ArticleDesignControls } from "./articles/ArticleDesignControls";
 
 type Page = Awaited<ReturnType<typeof loadAppearancePage>>;
 type Theme = Awaited<ReturnType<typeof loadAppearanceTheme>>;
@@ -48,11 +51,13 @@ const options = (values: readonly string[]) =>
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export function AppearanceStudio({
   initialPage,
+  articleChoices = [],
   initialTheme,
   pages,
   permissions,
 }: {
   initialPage: Page | null;
+  articleChoices?: { slug: string; title: string }[];
   initialTheme: Theme;
   pages: Awaited<ReturnType<typeof listAppearancePages>>;
   permissions: {
@@ -70,6 +75,26 @@ export function AppearanceStudio({
   const [cursor, setCursor] = useState(0);
   const state = history[cursor];
   const [area, setArea] = useState("header");
+  const [articleSlug, setArticleSlug] = useState(articleChoices[0]?.slug || "");
+  const [articlePreview, setArticlePreview] = useState<AppearancePreviewState["article"]>();
+  useEffect(() => {
+    if (area !== "articles" || !articleSlug) return;
+    let cancelled = false;
+    void loadArticlePreviewAction(articleSlug)
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          setArticlePreview(result.data);
+          setPreviewError("");
+        } else setPreviewError(result.error);
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewError("The article preview could not load.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [area, articleSlug]);
   const [targetId, setTargetId] = useState("");
   const [device, setDevice] = useState("1280");
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -90,7 +115,7 @@ export function AppearanceStudio({
   const pageDirty = !!state.changes.page || state.changes.targets.length > 0;
   const themeDirty = !same(state.theme, savedTheme.settings);
   const dirty = pageDirty || themeDirty;
-  const global = area === "header" || area === "site";
+  const global = area === "header" || area === "site" || area === "articles";
   const canWrite = global ? permissions.themeWrite : permissions.pageWrite;
   const width = Number(device),
     scale = Math.min(1, Math.max(0.1, (stageSize.width - 40) / width));
@@ -195,9 +220,10 @@ export function AppearanceStudio({
             theme: compare ? savedTheme.settings : state.theme,
             mode,
             replay,
+            article: area === "articles" ? articlePreview : undefined,
           }
         : null,
-    [preview, compare, savedTheme.settings, state.theme, mode, replay]
+    [preview, compare, savedTheme.settings, state.theme, mode, replay, area, articlePreview]
   );
   useEffect(() => {
     const send = () => {
@@ -365,6 +391,7 @@ export function AppearanceStudio({
                 ? [
                     !same(state.theme.header, savedTheme.settings.header) && "Header",
                     !same(state.theme.colors, savedTheme.settings.colors) && "Colors",
+                    !same(state.theme.articles, savedTheme.settings.articles) && "Article designs",
                     !same(state.theme.typography, savedTheme.settings.typography) && "Typography",
                   ]
                     .filter(Boolean)
@@ -415,12 +442,13 @@ export function AppearanceStudio({
           {[
             ["site", "Site styles", "Colors & typography"],
             ["header", "Header", "Surface & motion"],
+            ["articles", "Articles", "Designs & featured media"],
             ["page", "Page appearance", "Background & chrome"],
             ["mega", "Mega menu", "Categories & stories"],
             ["media", "Media overlays", "Color & gradients"],
           ].map(([id, title, sub], i) => (
             <div key={id}>
-              {i === 2 && <small>THIS PAGE</small>}
+              {i === 3 && <small>THIS PAGE</small>}
               <button
                 aria-current={area === id ? "page" : undefined}
                 onClick={() => {
@@ -507,6 +535,7 @@ export function AppearanceStudio({
               {
                 site: "Site styles",
                 header: "Header",
+                articles: "Article designs",
                 page: "Page appearance",
                 mega: "Mega menu",
                 media: "Media overlays",
@@ -671,10 +700,37 @@ export function AppearanceStudio({
                   checked={h.showThemeToggle}
                   onChange={(showThemeToggle) => setHeader({ showThemeToggle })}
                 />
+                <SearchAppearanceControls
+                  value={h.search}
+                  onChange={(search) => setHeader({ search })}
+                  onPreview={() =>
+                    frame.current?.contentWindow?.postMessage(
+                      { type: "mg:preview-search" },
+                      location.origin
+                    )
+                  }
+                />
                 <p className={styles.hint}>
                   Separate mobile header settings and navigation remain available in the theme
                   editor.
                 </p>
+              </>
+            )}
+            {area === "articles" && (
+              <>
+                <Select
+                  label="Article to preview"
+                  value={articleSlug}
+                  options={articleChoices.map((a) => ({ value: a.slug, label: a.title }))}
+                  onChange={setArticleSlug}
+                />
+                <ArticleDesignControls
+                  value={state.theme.articles}
+                  onChange={(articles) => patch({ ...state, theme: { ...state.theme, articles } })}
+                />
+                <Link href="/admin/articles" className="block py-3 text-xs underline">
+                  Open articles to choose a design and featured media
+                </Link>
               </>
             )}
             {area === "page" && (

@@ -1,3 +1,4 @@
+import { articleDesignSchema } from "@/lib/domain/articleDesign";
 import { convertStudio, STUDIO_SOURCE_KEY } from "@/lib/blocks/studioPublishing";
 import { isDeepStrictEqual } from "node:util";
 import { pageSettingsSchema, pageSettingsMedia } from "@/lib/domain/pageSettings";
@@ -139,6 +140,22 @@ export function validateDocumentPayload(type: DocumentType, payload: Json): Docu
             key: "",
             type: "page",
             path: `pageSettings.${issue.path.join(".")}`,
+            message: issue.message,
+          }))
+        );
+    }
+  }
+  if (type === "article") {
+    const design = (payload as { hero?: { presentation?: { design?: unknown } } } | null)?.hero
+      ?.presentation?.design;
+    if (design !== undefined) {
+      const parsed = articleDesignSchema.safeParse(design);
+      if (!parsed.success)
+        issues.push(
+          ...parsed.error.issues.map((issue) => ({
+            key: "",
+            type: "article",
+            path: `hero.presentation.design.${issue.path.join(".")}`,
             message: issue.message,
           }))
         );

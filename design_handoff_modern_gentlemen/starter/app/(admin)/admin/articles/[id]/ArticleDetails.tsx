@@ -14,6 +14,9 @@ import {
   RelatedArticles,
   type RelatedCandidate,
 } from "@/components/admin/articles/RelatedArticles";
+import { ArticleDesignControls } from "@/components/admin/articles/ArticleDesignControls";
+import type { BlockTree } from "@/lib/blocks/types";
+import type { ArticleDesign } from "@/lib/domain/articleDesign";
 import { ArticlePresentationPreview } from "@/components/admin/articles/ArticlePresentationPreview";
 import {
   ARTICLE_FEATURED_MEDIA_KINDS,
@@ -85,6 +88,8 @@ export function ArticleDetails({
   tags,
   relatedCandidates,
   canWrite,
+  defaultDesign,
+  previewSections,
 }: {
   initial: ArticleMetaForm;
   categories: TaxonomyOption[];
@@ -92,6 +97,8 @@ export function ArticleDetails({
   tags: TaxonomyOption[];
   relatedCandidates: RelatedCandidate[];
   canWrite: boolean;
+  defaultDesign?: ArticleDesign;
+  previewSections?: BlockTree;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -126,7 +133,10 @@ export function ArticleDetails({
         tagIds: form.tagIds,
         relatedIds: form.relatedIds,
         featuredMedia: form.featuredMedia,
-        presentation: form.presentation,
+        presentation: {
+          ...form.presentation,
+          design: form.presentation.design || { preset: "inherit" },
+        },
       });
 
       if (!result.ok) {
@@ -240,7 +250,17 @@ export function ArticleDetails({
               help="Adjust the hero title scale while retaining the selected composition."
             />
           </div>
+          <ArticleDesignControls
+            inherit
+            value={form.presentation.design}
+            disabled={!canWrite}
+            onChange={(design) => set("presentation", { ...form.presentation, design })}
+          />
           <ArticlePresentationPreview
+            slug={form.slug}
+            sections={previewSections}
+            defaultDesign={defaultDesign}
+            featuredMedia={form.featuredMedia}
             template={form.template}
             presentation={form.presentation}
             title={form.title}

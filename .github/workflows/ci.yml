@@ -307,12 +307,28 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Editorial collection browser review
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e -- tests/e2e/editorialCollection.spec.ts
+
+      - name: Preserve editorial collection review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editorial-collection-review
+          path: ${{ env.APP_DIR }}/test-results/editorialCollection-*/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: E2E tests
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run test:e2e -- --grep-invert "Appearance Studio"
+        run: npm run test:e2e -- --grep-invert "Appearance Studio|Editorial collection"
 
       # Later Playwright suites clear test-results and replace the HTML report.
       - name: Preserve Studio publishing failure details

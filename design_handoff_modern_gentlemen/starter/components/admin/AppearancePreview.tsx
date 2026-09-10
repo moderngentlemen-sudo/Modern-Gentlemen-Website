@@ -14,6 +14,13 @@ import {
   themeWebfontStylesheets,
   type ThemeSettings,
 } from "@/lib/domain/theme";
+import {
+  EditorialArticle,
+  type EditorialArticleContent,
+} from "@/components/article/EditorialArticle";
+import { ArticlePresentationPreview } from "./articles/ArticlePresentationPreview";
+import { articleDesignById, resolveArticleDesign } from "@/lib/domain/articleDesign";
+import type { ArticlePresentation } from "@/lib/domain/articles";
 import type { BlockTree } from "@/lib/blocks/types";
 import type { getChromeNavigation } from "@/lib/services/publicNavigation";
 export interface AppearancePreviewState {
@@ -22,6 +29,12 @@ export interface AppearancePreviewState {
   pageSettings?: unknown;
   mode: "light" | "dark";
   replay: number;
+  article?: {
+    content: EditorialArticleContent;
+    sections: BlockTree;
+    template: string;
+    presentation?: ArticlePresentation;
+  };
 }
 export function AppearancePreview({
   products,
@@ -37,6 +50,15 @@ export function AppearancePreview({
   const [state, setState] = useState<AppearancePreviewState | null>(null);
   useEffect(() => {
     const receive = (event: MessageEvent) => {
+      if (
+        event.origin === location.origin &&
+        event.source === window.parent &&
+        event.data?.type === "mg:preview-search"
+      ) {
+        const button = document.querySelector<HTMLButtonElement>('button[aria-label="Search"]');
+        button?.click();
+        return;
+      }
       if (
         event.origin !== location.origin ||
         event.source !== window.parent ||
@@ -103,7 +125,30 @@ export function AppearancePreview({
               style={{ paddingTop: `calc(${state.theme.header.height}px + var(--mg-safe-top))` }}
             >
               <PagePresentation settings={state.pageSettings}>
-                <SectionRenderer sections={state.sections} />
+                {state.article &&
+                articleDesignById(resolveArticleDesign(state.theme.articles, undefined).preset) ? (
+                  <EditorialArticle
+                    preview
+                    article={state.article.content}
+                    design={resolveArticleDesign(state.theme.articles, undefined)}
+                  >
+                    <SectionRenderer sections={state.article.sections} />
+                  </EditorialArticle>
+                ) : state.article ? (
+                  <ArticlePresentationPreview
+                    template={state.article.template}
+                    presentation={
+                      state.article.presentation || {
+                        headerMode: "template",
+                        appearance: "template",
+                      }
+                    }
+                    title={state.article.content.title}
+                    image={state.article.content.image}
+                  />
+                ) : (
+                  <SectionRenderer sections={state.sections} />
+                )}
               </PagePresentation>
             </main>
             <div

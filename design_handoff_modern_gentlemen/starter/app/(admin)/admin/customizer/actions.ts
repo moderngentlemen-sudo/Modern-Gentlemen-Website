@@ -1,4 +1,5 @@
 "use server";
+import { loadArticleDesignPreview } from "@/lib/services/articleDesignPreview";
 import { z } from "zod";
 import {
   loadAppearancePage,
@@ -60,6 +61,13 @@ export async function publishAppearanceAction(input: unknown) {
     return data.scope === "theme"
       ? await publishThemeAction({ note: "Published from Appearance Studio" })
       : await publishAction({ id: data.id, note: "Published from Appearance Studio" });
+  } catch (e) {
+    return toActionResult(e);
+  }
+}
+export async function loadArticlePreviewAction(slug: string) {
+  try {
+    return ok(await loadArticleDesignPreview(slug));
   } catch (e) {
     return toActionResult(e);
   }
