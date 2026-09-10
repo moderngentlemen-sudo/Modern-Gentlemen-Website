@@ -1,3 +1,13 @@
+"use client";
+import { EditorialArticle } from "@/components/article/EditorialArticle";
+import { SectionRenderer } from "@/components/SectionRenderer";
+import type { BlockTree } from "@/lib/blocks/types";
+import {
+  resolveArticleDesign,
+  articleDesignById,
+  type ArticleDesign,
+} from "@/lib/domain/articleDesign";
+import type { ArticleFeaturedMedia } from "@/lib/domain/articles";
 import { ArticleBody } from "@/components/article/ArticleBody";
 import { ArticleHero } from "@/components/article/ArticleHero";
 import { authorInitial, layoutFor, type ArticlePresentation } from "@/lib/domain/articles";
@@ -14,6 +24,7 @@ const PREVIEW_SCALE = 0.5;
  */
 export function ArticlePresentationPreview({
   template,
+  slug = "preview",
   presentation,
   title,
   dek,
@@ -22,7 +33,14 @@ export function ArticlePresentationPreview({
   author,
   readingMinutes,
   image,
+  defaultDesign,
+  featuredMedia,
+  sections = [],
 }: {
+  defaultDesign?: ArticleDesign;
+  featuredMedia?: ArticleFeaturedMedia;
+  sections?: BlockTree;
+  slug?: string;
   template: string;
   presentation: ArticlePresentation;
   title: string;
@@ -38,6 +56,35 @@ export function ArticlePresentationPreview({
   const kicker = `${category || "Editorial"}${issue ? ` · NO. ${issue}` : ""}`;
   const byline = `WORDS · ${displayAuthor}${readingMinutes ? ` · ${readingMinutes} MIN READ` : ""}`;
 
+  const design = resolveArticleDesign(defaultDesign, presentation.design);
+  if (articleDesignById(design.preset))
+    return (
+      <section
+        aria-label="Article presentation preview"
+        data-article-presentation-preview
+        className="border border-mg-bd/15"
+      >
+        <div className="h-[650px] overflow-auto">
+          <EditorialArticle
+            preview
+            design={design}
+            article={{
+              slug,
+              title: title.trim() || "Untitled article",
+              dek: dek || undefined,
+              category: category || undefined,
+              author: displayAuthor,
+              issue: issue || undefined,
+              read: readingMinutes || undefined,
+              image: image || undefined,
+              media: featuredMedia,
+            }}
+          >
+            <SectionRenderer sections={sections} />
+          </EditorialArticle>
+        </div>
+      </section>
+    );
   return (
     <section
       aria-label="Article presentation preview"

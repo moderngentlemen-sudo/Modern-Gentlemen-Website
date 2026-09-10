@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { readSearchAppearance, type SearchAppearance } from "@/lib/domain/searchPresets";
 import { useRouter } from "next/navigation";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useFocusTrap } from "@/lib/useFocusTrap";
@@ -62,7 +64,34 @@ const POPULAR = ["Watches", "Grooming", "Film", "Racing Green", "The Debrief"];
  * either POPULAR SEARCHES chips (empty query) or EDITORIAL / STORE result groups
  * with thumbnails, per-group counts and hairline row rules.
  */
-export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+const SearchCollection = dynamic(() => import("./SearchCollection"), { ssr: false });
+export function SearchOverlay({
+  open,
+  onClose,
+  settings,
+}: {
+  open: boolean;
+  onClose: () => void;
+  settings?: SearchAppearance;
+}) {
+  const appearance = readSearchAppearance(settings);
+  if (
+    appearance.layout !== "legacy" ||
+    appearance.motion !== "legacy" ||
+    appearance.appearance !== "site" ||
+    appearance.debounceMs !== 180 ||
+    appearance.initialResults !== 6
+  )
+    return open ? (
+      <SearchCollection
+        key={`${appearance.layout}:${appearance.motion}`}
+        settings={appearance}
+        onClose={onClose}
+      />
+    ) : null;
+  return <LegacySearchOverlay open={open} onClose={onClose} />;
+}
+function LegacySearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [q, setQ] = useState("");
   const [closing, setClosing] = useState(false);
   const [editorialResults, setEditorialResults] = useState<EditorialSearchEntry[]>([]);

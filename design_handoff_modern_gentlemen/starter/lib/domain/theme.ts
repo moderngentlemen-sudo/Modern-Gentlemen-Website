@@ -28,6 +28,8 @@
  */
 
 import { z } from "zod";
+import { searchAppearanceSchema, type SearchAppearance } from "./searchPresets";
+import { articleDesignSchema, readArticleDesign, type ArticleDesign } from "./articleDesign";
 import {
   VISUAL_STYLE_CLASS_ID,
   validateVisualDesign,
@@ -427,6 +429,7 @@ export const HEADER_ENTRY_ANIMATIONS = [
   "settle",
 ] as const;
 export interface ThemeHeader {
+  search?: SearchAppearance;
   fillColor: string;
   fillOpacity: number;
   frostBlur: number;
@@ -580,6 +583,7 @@ export const DEFAULT_THEME_COMPONENTS: ThemeComponentDefaults = {
 };
 
 export interface ThemeSettings {
+  articles?: ArticleDesign;
   colors: ThemeColors;
   typography: ThemeTypography;
   header: ThemeHeader;
@@ -618,7 +622,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 /** Payload envelope version. Bumped only by a shape change, not a value change. */
-export const THEME_PAYLOAD_VERSION = 13;
+export const THEME_PAYLOAD_VERSION = 14;
 
 // ---------------------------------------------------------------------------
 // The injection boundary
@@ -908,6 +912,7 @@ export const headerAppearanceSchema = z.object({
   entryDuration: z.number().int().min(80).max(2000).default(450),
 });
 export const themeHeaderSchema = z.object({
+  search: searchAppearanceSchema.optional(),
   ...headerAppearanceSchema.shape,
   composition: z.enum(HEADER_COMPOSITIONS),
   scrollBehavior: z.enum(HEADER_SCROLL_BEHAVIORS),
@@ -1058,6 +1063,7 @@ export const themeTokenAliasesSchema = z
   });
 
 export const themeSettingsSchema = z.object({
+  articles: articleDesignSchema.optional(),
   colors: themeColorsSchema,
   typography: themeTypographySchema,
   header: themeHeaderSchema,
@@ -1069,6 +1075,7 @@ export const themeSettingsSchema = z.object({
 });
 
 export const themePayloadSchema = z.object({
+  articles: articleDesignSchema.optional(),
   version: z.number().int().optional(),
   colors: themeColorsSchema.optional(),
   typography: themeTypographySchema.optional(),
@@ -1320,6 +1327,8 @@ export function parseThemeHeader(value: unknown): ThemeHeader {
     const result = schema.safeParse(incoming[key]);
     if (result.success) Object.assign(out, { [key]: result.data });
   }
+  const search = searchAppearanceSchema.safeParse(incoming.search);
+  if (search.success) out.search = search.data;
   out.mobile = parseThemeMobileHeader(incoming.mobile);
   return out;
 }
@@ -1456,7 +1465,9 @@ export function parseThemeComponentDefaults(value: unknown): ThemeComponentDefau
 }
 
 export function parseThemeSettings(value: unknown): ThemeSettings {
+  const articles = readArticleDesign(asRecord(value)?.articles);
   return {
+    ...(articles ? { articles } : {}),
     colors: parseThemeColors(value),
     typography: parseThemeTypography(value),
     header: parseThemeHeader(value),

@@ -32,4 +32,5 @@ export interface EditorialSearchEntry {
   meta: string;
   href: string;
   img: string;
+  excerpt?: string;
 }

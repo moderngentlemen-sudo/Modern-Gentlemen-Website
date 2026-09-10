@@ -1,3 +1,4 @@
+import { readArticleDesign, type ArticleDesign } from "./articleDesign";
 /**
  * Article vocabulary — pure, no data access.
  *
@@ -81,6 +82,7 @@ export const ARTICLE_APPEARANCES = ["template", "compact", "large"] as const;
 export type ArticleAppearance = (typeof ARTICLE_APPEARANCES)[number];
 
 export interface ArticlePresentation {
+  design?: ArticleDesign;
   headerMode: ArticleHeaderMode;
   appearance: ArticleAppearance;
 }
@@ -294,7 +296,9 @@ export function articlePresentationOf(payload: unknown): ArticlePresentation {
   if (!value || typeof value !== "object" || Array.isArray(value))
     return DEFAULT_ARTICLE_PRESENTATION;
   const record = value as Record<string, unknown>;
+  const design = readArticleDesign(record.design);
   return {
+    ...(design ? { design } : {}),
     headerMode: (ARTICLE_HEADER_MODES as readonly unknown[]).includes(record.headerMode)
       ? (record.headerMode as ArticleHeaderMode)
       : "template",
@@ -344,14 +348,21 @@ export function articleEmbedUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:") return undefined;
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      (url.port && url.port !== "443") ||
+      /[\\\x00-\x20]/.test(value)
+    )
+      return undefined;
     const host = url.hostname.toLowerCase().replace(/^www\./, "");
     if (host === "youtu.be") {
       const id = url.pathname.split("/").filter(Boolean)[0];
       return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : undefined;
     }
     if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
-      const id = url.pathname.startsWith("/embed/")
+      const id = /^\/(embed|shorts|live)\//.test(url.pathname)
         ? url.pathname.split("/")[2]
         : url.searchParams.get("v");
       return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : undefined;

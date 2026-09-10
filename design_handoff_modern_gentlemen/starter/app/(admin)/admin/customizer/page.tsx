@@ -1,3 +1,4 @@
+import { listArticleDesignPreviews } from "@/lib/services/articleDesignPreview";
 import { requirePermission } from "@/lib/services/auth";
 import {
   loadAppearancePage,
@@ -20,9 +21,13 @@ export default async function CustomizerPage({
       : getPublishedThemeSettings().then((settings) => ({ settings, updatedAt: "" })),
   ]);
   const id = query.id || pages.find((p) => p.slug === "home")?.id || pages[0]?.id;
-  const page = id ? await loadAppearancePage(id) : null;
+  const [page, articleChoices] = await Promise.all([
+    id ? loadAppearancePage(id) : null,
+    listArticleDesignPreviews(),
+  ]);
   return (
     <AppearanceStudio
+      articleChoices={articleChoices}
       initialPage={page}
       initialTheme={theme}
       pages={pages}

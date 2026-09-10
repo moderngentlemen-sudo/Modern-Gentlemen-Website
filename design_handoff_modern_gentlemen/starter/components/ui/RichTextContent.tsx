@@ -128,7 +128,7 @@ export function RichTextContent({
   style?: CSSProperties;
 }) {
   return (
-    <div className={clsx("space-y-[0.9em] text-pretty", className)} style={style}>
+    <div data-rich-text className={clsx("space-y-[0.9em] text-pretty", className)} style={style}>
       {parseBlocks(value).map((block, index) => {
         const key = `${block.kind}-${index}`;
         if (block.kind === "heading") {

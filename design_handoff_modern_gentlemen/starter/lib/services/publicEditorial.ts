@@ -1,3 +1,4 @@
+import { articleDesignPreviewOf } from "@/lib/domain/articleDesign";
 /**
  * Public editorial reads — the category landing pages and the article pages.
  *
@@ -338,6 +339,7 @@ function searchEntryOf(row: SearchRow): EditorialSearchEntry {
   return {
     tag: categoryLabel(row) || "Editorial",
     title: row.title,
+    ...(row.excerpt || row.subtitle ? { excerpt: row.excerpt || row.subtitle || undefined } : {}),
     meta: row.reading_minutes === null ? "ARTICLE" : `${row.reading_minutes} MIN`,
     href: publicPathForArticle(row.slug),
     img: assetUrl(row.media_assets) ?? FALLBACK_RELATED_IMAGE,
@@ -475,9 +477,11 @@ export async function getPublishedArticle(slug: string): Promise<ResolvedArticle
 }
 
 /** Article identity and builder tree, separate from the legacy deep-equal view model. */
-export async function getPublishedArticleBuilder(
-  slug: string
-): Promise<{ id: string; sections: BlockTree } | null> {
+export async function getPublishedArticleBuilder(slug: string): Promise<{
+  id: string;
+  sections: BlockTree;
+  editorial?: ReturnType<typeof articleDesignPreviewOf>;
+} | null> {
   const db = createPublicClient();
   const { data, error } = await db
     .from("articles")
@@ -487,5 +491,12 @@ export async function getPublishedArticleBuilder(
     .maybeSingle();
 
   if (error) throw new Error(`Could not read the article builder content: ${error.message}`);
-  return data ? { id: data.id, sections: sectionsOf(data.published_data) } : null;
+  const editorial = articleDesignPreviewOf(data?.published_data);
+  return data
+    ? {
+        id: data.id,
+        sections: sectionsOf(data.published_data),
+        ...(editorial ? { editorial } : {}),
+      }
+    : null;
 }

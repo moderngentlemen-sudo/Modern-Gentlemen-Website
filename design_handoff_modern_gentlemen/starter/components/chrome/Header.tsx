@@ -377,7 +377,11 @@ export function Header({
             : undefined
         }
       />
-      <SearchOverlay open={effective.showSearch && search} onClose={() => setSearch(false)} />
+      <SearchOverlay
+        settings={effective.search}
+        open={effective.showSearch && search}
+        onClose={() => setSearch(false)}
+      />
       {/* Gated on `showBag` too, so navigating off the store journey with the
           drawer open can't leave it hanging with no trigger to close it. */}
       <BagDrawer open={bag && showBag} onClose={() => setBag(false)} />

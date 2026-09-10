@@ -1,3 +1,12 @@
+import { EditorialArticle } from "@/components/article/EditorialArticle";
+import {
+  articleDesignPreviewOf,
+  resolveArticleDesign,
+  articleDesignById,
+} from "@/lib/domain/articleDesign";
+import { articlePresentationOf, articleFeaturedMediaOf } from "@/lib/domain/articles";
+import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
+import { composePublishedDocument } from "@/lib/services/publicContent";
 import { PagePresentation } from "@/components/PagePresentation";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
@@ -78,6 +87,18 @@ export default async function PreviewPage({
       ? await templateView(preview.entityId, preview.data, first(query.area), preview.context)
       : { sections: await sectionsFor(preview.entityType, preview.data), areaNames: [] };
 
+  const article =
+    preview.entityType === "article" ? articleDesignPreviewOf(preview.data) : undefined;
+  const design = article
+    ? resolveArticleDesign(
+        (await getPublishedThemeSettings()).articles,
+        articlePresentationOf(preview.data).design
+      )
+    : undefined;
+  const assigned =
+    article && design && articleDesignById(design.preset)
+      ? await composePublishedDocument("article", preview.entityId, view.sections)
+      : null;
   return (
     <>
       <PreviewBar
@@ -95,7 +116,19 @@ export default async function PreviewPage({
             : undefined
         }
       >
-        {view.sections.length > 0 ? (
+        {article && design && articleDesignById(design.preset) ? (
+          assigned ? (
+            <SectionRenderer sections={assigned} />
+          ) : (
+            <EditorialArticle
+              preview
+              article={{ ...article, media: articleFeaturedMediaOf(preview.data, true) }}
+              design={design}
+            >
+              <SectionRenderer sections={view.sections} />
+            </EditorialArticle>
+          )
+        ) : view.sections.length > 0 ? (
           <SectionRenderer sections={view.sections} />
         ) : (
           <EmptyDraft entityType={preview.entityType} area={view.area} />
