@@ -101,8 +101,14 @@ describe("live search collection", () => {
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "collection focus" } });
     await userEvent.click(await screen.findByRole("button", { name: /Collection Test Story/ }));
     expect(document.querySelector('[data-focused="true"]')).not.toBeNull();
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Preview: Collection Test Story" })).toHaveFocus()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Back to results" }));
     expect(document.querySelector('[data-focused="true"]')).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Collection Test Story/ })).toHaveFocus()
+    );
   });
   it("switches light mode and closes once on Escape with reduced motion", async () => {
     const onClose = vi.fn();

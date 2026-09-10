@@ -525,7 +525,13 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
+.actions .mobileBack {
+  display: none;
+}
 @media (max-width: 680px) {
+  .actions .mobileBack {
+    display: inline-block;
+  }
   .root {
     padding: 12px;
   }

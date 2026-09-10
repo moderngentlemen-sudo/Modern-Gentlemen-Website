@@ -279,6 +279,15 @@ export function animateSearch(root: HTMLElement, motion: SearchMotionId, opening
         frames = frames
           .reverse()
           .map((f) => (f.offset == null ? f : { ...f, offset: 1 - f.offset }));
+      if (!opening && frames[0]) {
+        const current = getComputedStyle(track.target);
+        frames[0] = Object.fromEntries(
+          Object.entries(frames[0]).map(([key, value]) => [
+            key,
+            key === "offset" ? value : (current as unknown as Record<string, string>)[key] || value,
+          ])
+        );
+      }
       animations.push(
         track.target.animate(frames, {
           duration: total * track.span,

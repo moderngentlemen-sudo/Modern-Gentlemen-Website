@@ -81,8 +81,9 @@ export default function SearchCollection({
   const close = useCallback(() => {
     if (closing.current || !root.current) return;
     closing.current = true;
-    run.current?.cancel();
+    const previous = run.current;
     const animation = animateSearch(root.current, settings.motion, false);
+    previous?.cancel();
     run.current = animation;
     void animation.finished.then(() => {
       if (alive.current && run.current === animation) closeRef.current();
@@ -131,11 +132,27 @@ export default function SearchCollection({
   const direct = DIRECT.has(layout),
     inline = layout === "inline-reveal",
     focus = layout === "focus" && !!active;
-  const choose = (r: SearchResult) => {
+  const choose = (r: SearchResult, bringIntoView = false) => {
     setSelected(r);
     setRemembered((prev) => ({ ...prev, [collection]: r, [r.collection]: r }));
     setRevealed(false);
     setTrail((prev) => [r, ...prev.filter((v) => v.href !== r.href)].slice(0, 5));
+    if (layout === "focus" || (bringIntoView && window.matchMedia("(max-width: 680px)").matches))
+      requestAnimationFrame(() => {
+        const target = root.current?.querySelector<HTMLElement>("[data-search-preview]");
+        target?.focus({ preventScroll: true });
+        target?.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+      });
+  };
+  const returnToResults = () => {
+    const href = active?.href;
+    setSelected(null);
+    requestAnimationFrame(() => {
+      const rows = Array.from(
+        root.current?.querySelectorAll<HTMLButtonElement>("button[data-search-row]") || []
+      );
+      (rows.find((row) => row.dataset.resultHref === href) || input.current)?.focus();
+    });
   };
   const changeQuery = (value: string) => {
     setQ(value);
@@ -157,6 +174,7 @@ export default function SearchCollection({
     <section
       className={styles.preview}
       data-search-preview
+      tabIndex={-1}
       aria-label={`${secondary ? "Pinned" : "Preview"}: ${r.title}`}
     >
       {(layout !== "words-first" || revealed) && thumbnail(r)}
@@ -196,7 +214,11 @@ export default function SearchCollection({
               {secondary ? "Unpin" : "Pin alongside"}
             </button>
           )}
-          {focus && <button onClick={() => setSelected(null)}>Back to results</button>}
+          {!secondary && (
+            <button className={focus ? undefined : styles.mobileBack} onClick={returnToResults}>
+              Back to results
+            </button>
+          )}
         </div>
       </div>
     </section>
@@ -219,8 +241,9 @@ export default function SearchCollection({
         <button
           className={styles.row}
           data-search-row
+          data-result-href={r.href}
           aria-expanded={active?.href === r.href}
-          onClick={() => (inline && active?.href === r.href ? setSelected(null) : choose(r))}
+          onClick={() => (inline && active?.href === r.href ? setSelected(null) : choose(r, true))}
           onMouseEnter={() => {
             if (layout === "instant-peek") {
               if (peek.current) clearTimeout(peek.current);
@@ -303,7 +326,17 @@ export default function SearchCollection({
           }}
         >
           <span aria-hidden className={styles.magnifier}>
-            ⌕
+            <svg
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            >
+              <circle cx="10.5" cy="10.5" r="7.5" />
+              <path d="m16 16 5 5" />
+            </svg>
           </span>
           <input
             ref={input}

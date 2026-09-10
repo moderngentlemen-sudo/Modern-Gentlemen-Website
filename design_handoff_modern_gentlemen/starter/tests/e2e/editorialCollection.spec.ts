@@ -151,6 +151,7 @@ test.describe("Editorial collection", () => {
     await search.getByRole("searchbox").fill("watches");
     await expect(search.locator("[data-search-row]").first()).toBeVisible();
     await search.locator("button[data-search-row]").first().click();
+    await expect(search.locator("[data-search-preview]")).toBeInViewport();
     await page.screenshot({ path: info.outputPath("search-mobile.png") });
     await expect
       .poll(() =>
@@ -170,7 +171,10 @@ test.describe("Editorial collection", () => {
     );
     await page.getByRole("button", { name: "Review & publish", exact: true }).click();
     themePublished = true;
-    await page.getByRole("button", { name: "Publish site theme", exact: true }).click();
+    await Promise.all([
+      page.waitForEvent("framenavigated", { predicate: (frame) => frame === page.mainFrame() }),
+      page.getByRole("button", { name: "Publish site theme", exact: true }).click(),
+    ]);
     await page.waitForLoadState("domcontentloaded");
     await page.goto("/");
     await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -210,16 +214,12 @@ test.describe("Editorial collection", () => {
       ).toBeGreaterThan(30);
       expect(await article.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
     }
-    for (const preset of [
-      "immersive",
-      "diptych",
-      "portrait",
-      "film-journal",
-      "immersive-reference",
-    ]) {
+    for (const { id: preset } of ARTICLE_DESIGN_PRESETS) {
       await page.getByLabel("Viewport", { exact: true }).selectOption("390");
       await page.getByLabel("Default article design", { exact: true }).selectOption(preset);
       await expect(preview.locator(`[data-article-design="${preset}"]`)).toBeVisible();
+      const title = preview.locator(`[data-article-design="${preset}"] h1`);
+      expect(await title.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
       await page.screenshot({ path: info.outputPath(`article-${preset}-mobile.png`) });
       expect(
         await preview
@@ -256,6 +256,11 @@ test.describe("Editorial collection", () => {
     const article = page.locator('[data-article-design="immersive"]');
     await expect(article).toBeVisible();
     await expect(article.getByText("A considered approach", { exact: true }).first()).toBeVisible();
+    const body = article.locator("[data-rich-text] p").first();
+    await expect(body).toHaveCSS("font-size", "20px");
+    await article.getByRole("button", { name: "Larger type" }).click();
+    await expect(body).toHaveCSS("font-size", "22px");
+    await article.getByRole("button", { name: "Regular type" }).click();
     await article.getByRole("button", { name: /Play on YouTube/ }).click();
     await expect(article.locator("iframe")).toHaveAttribute(
       "src",

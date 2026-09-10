@@ -25,6 +25,7 @@ export function ArticleDesignMedia({
     [player, setPlayer] = useState(false),
     [slide, setSlide] = useState(0),
     [failed, setFailed] = useState(false);
+  useEffect(() => setMuted(design.muted !== false), [design.muted]);
   const photos = media?.kind === "gallery" && media.gallery?.length ? media.gallery : [];
   const poster = photos[slide]?.url || media?.cover?.url || image;
   const embed = articleEmbedUrl(media?.embedUrl);
