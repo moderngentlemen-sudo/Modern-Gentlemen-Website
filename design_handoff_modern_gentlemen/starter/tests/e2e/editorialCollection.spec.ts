@@ -169,13 +169,20 @@ test.describe("Editorial collection", () => {
     await expect(page.getByLabel("Search layout", { exact: true })).toHaveValue(
       "preview-on-demand"
     );
+    const previewPageId = await page.getByLabel("Preview page", { exact: true }).inputValue();
     await page.getByRole("button", { name: "Review & publish", exact: true }).click();
     themePublished = true;
     await Promise.all([
-      page.waitForEvent("framenavigated", { predicate: (frame) => frame === page.mainFrame() }),
+      page.waitForURL(
+        (url) =>
+          url.pathname === "/admin/customizer" && url.searchParams.get("id") === previewPageId,
+        { waitUntil: "load" }
+      ),
       page.getByRole("button", { name: "Publish site theme", exact: true }).click(),
     ]);
-    await page.waitForLoadState("domcontentloaded");
+    await expect(page.getByLabel("Search layout", { exact: true })).toHaveValue(
+      "preview-on-demand"
+    );
     await page.goto("/");
     await page.getByRole("button", { name: "Search", exact: true }).click();
     await expect(page.locator('[data-search-layout="preview-on-demand"]')).toBeVisible();
