@@ -231,6 +231,7 @@ export const articleDesignSchema = z
     focalY: z.number().finite().min(0).max(100).optional(),
     overlay: mediaOverlaySchema.optional(),
     autoplay: z.boolean().optional(),
+    youtubeAutoplay: z.boolean().optional(),
     loop: z.boolean().optional(),
     muted: z.boolean().optional(),
     controls: z.boolean().optional(),

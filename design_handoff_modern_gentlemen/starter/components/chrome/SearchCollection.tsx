@@ -40,14 +40,16 @@ function Match({ text, query }: { text: string; query: string }) {
 export default function SearchCollection({
   settings,
   onClose,
+  previewQuery,
 }: {
   settings: SearchAppearance;
   onClose: () => void;
+  previewQuery?: string;
 }) {
   const layout = settings.layout === "legacy" ? "refined-original" : settings.layout;
   const preset = searchLayoutById(layout)!;
-  const [q, setQ] = useState(""),
-    [submitted, setSubmitted] = useState("");
+  const [q, setQ] = useState(previewQuery ?? ""),
+    [submitted, setSubmitted] = useState(previewQuery ?? "");
   const [collection, setCollection] = useState(
       ["showroom", "product-essentials"].includes(layout) ? "Store" : "All"
     ),
@@ -75,6 +77,7 @@ export default function SearchCollection({
     alive = useRef(true),
     peek = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeRef = useRef(onClose);
+  const studioPreview = previewQuery !== undefined;
   closeRef.current = onClose;
   useScrollLock(true);
   useFocusTrap(true, panel, { skipInitialFocus: true });
@@ -91,8 +94,7 @@ export default function SearchCollection({
   }, [settings.motion]);
   useEffect(() => {
     alive.current = true;
-    input.current?.focus({ preventScroll: true });
-    if (root.current) run.current = animateSearch(root.current, settings.motion, true);
+    if (!studioPreview) input.current?.focus({ preventScroll: true });
     const escape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -106,7 +108,7 @@ export default function SearchCollection({
       if (peek.current) clearTimeout(peek.current);
       document.removeEventListener("keydown", escape);
     };
-  }, [settings.motion, close]);
+  }, [settings.motion, close, studioPreview]);
   const query = (layout === "query-shortcuts" ? submitted : q).trim().toLocaleLowerCase();
   const { results, status, retry } = useSearchCollection(query, settings.debounceMs);
   const filtered = useMemo(
@@ -118,6 +120,32 @@ export default function SearchCollection({
       ),
     [results, collection, topic]
   );
+  const previewSeeded = useRef(false);
+  useEffect(() => {
+    if (
+      previewQuery === undefined ||
+      previewSeeded.current ||
+      !filtered.length ||
+      DIRECT.has(layout) ||
+      (status !== "ready" && status !== "error")
+    )
+      return;
+    previewSeeded.current = true;
+    setSelected(filtered[0]);
+    setRemembered({ [filtered[0].collection]: filtered[0] });
+    setTrail(filtered.slice(0, 3));
+    if (layout === "compare-alongside" && filtered[1]) setPinned(filtered[1]);
+  }, [previewQuery, filtered, layout, status]);
+  const previewReady =
+    !studioPreview ||
+    !query ||
+    ((status === "ready" || status === "error") &&
+      (DIRECT.has(layout) || !filtered.length || previewSeeded.current));
+  useEffect(() => {
+    if (!previewReady || !root.current || closing.current) return;
+    // Studio previews wait for result/preview DOM, so row and image effects are visible too.
+    run.current = animateSearch(root.current, settings.motion, true);
+  }, [settings.motion, previewReady]);
   const visible = filtered.slice(0, count);
   const active =
     selected && filtered.some((r) => r.href === selected.href)
@@ -305,7 +333,9 @@ export default function SearchCollection({
       >
         <div className={styles.rule} data-search-rule />
         <div className={styles.rail}>
-          <h2 id="mg-collection-search-label">Search Modern Gentlemen</h2>
+          <h2 id="mg-collection-search-label">
+            {studioPreview ? `${preset.name} · Search preview` : "Search Modern Gentlemen"}
+          </h2>
           <div>
             <button
               onClick={() => setAppearance(appearance === "light" ? "dark" : "light")}

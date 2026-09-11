@@ -1,6 +1,6 @@
 import { MediaVideo } from "../ui/MediaVideo";
 import { MediaImage } from "@/components/ui/MediaImage";
-import { articleEmbedUrl, type ArticleFeaturedMedia as Media } from "@/lib/domain/articles";
+import { articleFeaturedEmbedUrl, type ArticleFeaturedMedia as Media } from "@/lib/domain/articles";
 
 export function ArticleFeaturedMedia({ media }: { media: Media }) {
   if (media.kind === "gallery" && media.gallery?.length) {
@@ -25,8 +25,8 @@ export function ArticleFeaturedMedia({ media }: { media: Media }) {
     );
   }
 
-  if (media.kind === "embed") {
-    const src = articleEmbedUrl(media.embedUrl);
+  const src = articleFeaturedEmbedUrl(media);
+  if (media.kind === "embed" || src) {
     if (!src) return null;
     return (
       <section className="container-mg py-10" aria-label="Featured video">

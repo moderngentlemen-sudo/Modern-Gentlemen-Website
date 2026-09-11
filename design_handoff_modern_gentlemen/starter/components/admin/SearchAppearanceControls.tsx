@@ -7,14 +7,19 @@ import {
 } from "@/lib/domain/searchPresets";
 import { Select } from "./ui/Select";
 import { NumberInput } from "./ui/NumberInput";
+import { TextInput } from "./ui/Input";
 export function SearchAppearanceControls({
   value,
   onChange,
   onPreview,
+  previewQuery,
+  onPreviewQueryChange,
 }: {
   value?: SearchAppearance;
   onChange: (value: SearchAppearance) => void;
   onPreview?: () => void;
+  previewQuery?: string;
+  onPreviewQueryChange?: (query: string) => void;
 }) {
   const settings = readSearchAppearance(value);
   const set = (patch: Partial<SearchAppearance>) => onChange({ ...settings, ...patch });
@@ -79,13 +84,23 @@ export function SearchAppearanceControls({
         modes. Opening and closing respect reduced motion preferences.
       </p>
       {onPreview && (
-        <button
-          type="button"
-          className="border border-mg-bd/25 px-4 py-2 text-xs"
-          onClick={onPreview}
-        >
-          Preview search & animation
-        </button>
+        <>
+          {onPreviewQueryChange && (
+            <TextInput
+              label="Preview search term"
+              value={previewQuery ?? ""}
+              onChange={onPreviewQueryChange}
+              help="Layouts open with published results and a selected preview. Use Preview search & animation to try another term. This term is only for the studio."
+            />
+          )}
+          <button
+            type="button"
+            className="border border-mg-bd/25 px-4 py-2 text-xs"
+            onClick={onPreview}
+          >
+            Preview search & animation
+          </button>
+        </>
       )}
     </fieldset>
   );

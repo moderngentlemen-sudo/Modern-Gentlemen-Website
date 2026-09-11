@@ -65,14 +65,21 @@ const POPULAR = ["Watches", "Grooming", "Film", "Racing Green", "The Debrief"];
  * with thumbnails, per-group counts and hairline row rules.
  */
 const SearchCollection = dynamic(() => import("./SearchCollection"), { ssr: false });
+export interface SearchPreviewRequest {
+  id: number;
+  open: boolean;
+  query: string;
+}
 export function SearchOverlay({
   open,
   onClose,
   settings,
+  previewQuery,
 }: {
   open: boolean;
   onClose: () => void;
   settings?: SearchAppearance;
+  previewQuery?: string;
 }) {
   const appearance = readSearchAppearance(settings);
   if (
@@ -87,12 +94,21 @@ export function SearchOverlay({
         key={`${appearance.layout}:${appearance.motion}`}
         settings={appearance}
         onClose={onClose}
+        previewQuery={previewQuery}
       />
     ) : null;
-  return <LegacySearchOverlay open={open} onClose={onClose} />;
+  return <LegacySearchOverlay open={open} onClose={onClose} previewQuery={previewQuery} />;
 }
-function LegacySearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [q, setQ] = useState("");
+function LegacySearchOverlay({
+  open,
+  onClose,
+  previewQuery,
+}: {
+  open: boolean;
+  onClose: () => void;
+  previewQuery?: string;
+}) {
+  const [q, setQ] = useState(previewQuery ?? "");
   const [closing, setClosing] = useState(false);
   const [editorialResults, setEditorialResults] = useState<EditorialSearchEntry[]>([]);
   const [editorialState, setEditorialState] = useState<"idle" | "loading" | "ready" | "error">(
@@ -109,8 +125,8 @@ function LegacySearchOverlay({ open, onClose }: { open: boolean; onClose: () => 
     if (!open) return;
     setClosing(false);
     openedAt.current = Date.now();
-    inputRef.current?.focus({ preventScroll: true });
-  }, [open]);
+    if (previewQuery === undefined) inputRef.current?.focus({ preventScroll: true });
+  }, [open, previewQuery]);
 
   /** Run the exit animation, then unmount and clear the query (as the prototype
    *  does — reopening always starts from POPULAR SEARCHES). */

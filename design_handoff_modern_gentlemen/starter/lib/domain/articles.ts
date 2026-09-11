@@ -380,6 +380,19 @@ export function articleEmbedUrl(value: string | undefined): string | undefined {
   return undefined;
 }
 
+/** Provider watch/share pages need their iframe player, even in the Video URL field. */
+export function articleFeaturedEmbedUrl(
+  media: ArticleFeaturedMedia | undefined
+): string | undefined {
+  return articleEmbedUrl(
+    media?.kind === "embed"
+      ? media.embedUrl
+      : media?.kind === "video"
+        ? media.video?.url
+        : undefined
+  );
+}
+
 export interface ResolvedArticle extends ArticleDoc, ArticleLayout {
   kicker: string;
   byline: string;
