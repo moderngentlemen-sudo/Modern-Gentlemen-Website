@@ -132,7 +132,7 @@ test.describe("Editorial collection", () => {
       const sheet = await root.locator("[data-search-sheet]").evaluate((el) => ({
         width: el.getBoundingClientRect().width,
         height: el.getBoundingClientRect().height,
-        viewportWidth: window.innerWidth,
+        viewportWidth: document.documentElement.clientWidth,
         viewportHeight: window.innerHeight,
       }));
       if (layout.id === "compact-overlay") expect(sheet.width).toBeLessThanOrEqual(680);
@@ -148,13 +148,18 @@ test.describe("Editorial collection", () => {
       await expect(root).toHaveCount(0);
     }
     await page.getByLabel("Search layout", { exact: true }).selectOption("preview-on-demand");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     for (const motion of SEARCH_MOTION_PRESETS) {
       await page.getByLabel("Opening & closing animation").selectOption(motion.id);
       const root = preview.locator(`[data-search-motion="${motion.id}"]`);
       await expect(root).toBeVisible();
+      await expect
+        .poll(() => root.evaluate((el) => el.getAnimations({ subtree: true }).length))
+        .toBeGreaterThan(0);
       await root.getByRole("searchbox").press("Escape");
       await expect(root).toHaveCount(0);
     }
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.getByLabel("Viewport", { exact: true }).selectOption("390");
     await page.getByRole("button", { name: "Preview search & animation" }).click();
     const search = preview.locator('[data-search-layout="preview-on-demand"]');
@@ -314,6 +319,10 @@ test.describe("Editorial collection", () => {
     await expect(page.getByText(/Published v\d+/)).toBeVisible();
     await page.goto(`/article/${slug}`);
     await expect(article).toHaveAttribute("data-inline-youtube", "true");
+    // The suite defaults to reduced motion: no autoplay iframe should load in that mode.
+    await expect(article.getByRole("button", { name: "Play YouTube video" })).toBeVisible();
+    await expect(article.locator("iframe")).toHaveCount(0);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await expect(article.locator("iframe")).toHaveAttribute(
       "src",
       /youtube-nocookie\.com\/embed\/QXZ6znSpEh0/
