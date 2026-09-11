@@ -129,17 +129,26 @@ test.describe("Editorial collection", () => {
       const row = root.locator("button[data-search-row]").first();
       if (await row.count())
         await expect(root.locator("section[data-search-preview]").first()).toBeVisible();
-      const sheet = await root.locator("[data-search-sheet]").evaluate((el) => ({
-        width: el.getBoundingClientRect().width,
-        height: el.getBoundingClientRect().height,
-        viewportWidth: document.documentElement.clientWidth,
-        viewportHeight: window.innerHeight,
-      }));
+      const sheet = await root.locator("[data-search-sheet]").evaluate((el) => {
+        const bounds = el.getBoundingClientRect();
+        // Fixed overlays use the layout area left by the stable scrollbar gutter.
+        const canvas = el.closest("[data-search-layout]")!.getBoundingClientRect();
+        return {
+          width: bounds.width,
+          height: bounds.height,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          left: bounds.left - canvas.left,
+          top: bounds.top - canvas.top,
+        };
+      });
       if (layout.id === "compact-overlay") expect(sheet.width).toBeLessThanOrEqual(680);
       if (layout.id === "side-drawer") expect(sheet.width).toBeLessThanOrEqual(480);
       if (layout.fullscreen) {
-        expect(sheet.width).toBeCloseTo(sheet.viewportWidth, 0);
-        expect(sheet.height).toBeCloseTo(sheet.viewportHeight, 0);
+        expect(sheet.width).toBeCloseTo(sheet.canvasWidth, 0);
+        expect(sheet.height).toBeCloseTo(sheet.canvasHeight, 0);
+        expect(sheet.left).toBeCloseTo(0, 0);
+        expect(sheet.top).toBeCloseTo(0, 0);
       }
       await page.screenshot({ path: info.outputPath(`search-${layout.id}.png`) });
       await root.getByRole("button", { name: /Switch search to/ }).click();
