@@ -122,14 +122,34 @@ test.describe("Editorial collection", () => {
     await page.getByLabel("Opening & closing animation").selectOption("none");
     for (const layout of SEARCH_LAYOUT_PRESETS) {
       await page.getByLabel("Search layout", { exact: true }).selectOption(layout.id);
-      await page.getByRole("button", { name: "Preview search & animation" }).click();
       const root = preview.locator(`[data-search-layout="${layout.id}"]`);
       await expect(root).toBeVisible();
-      await root.getByRole("searchbox").fill("watches");
-      await root.getByRole("searchbox").press("Enter");
-      await expect(root.locator("[data-search-row]").first()).toBeVisible();
+      await expect(root.getByRole("searchbox")).toHaveValue("Watches");
+      await expect(root.locator("[data-search-row]").first()).toBeAttached();
       const row = root.locator("button[data-search-row]").first();
-      if (await row.count()) await row.click();
+      if (await row.count())
+        await expect(root.locator("section[data-search-preview]").first()).toBeVisible();
+      const sheet = await root.locator("[data-search-sheet]").evaluate((el) => {
+        const bounds = el.getBoundingClientRect();
+        // Fixed overlays use the layout area left by the stable scrollbar gutter.
+        const canvas = el.closest("[data-search-layout]")!.getBoundingClientRect();
+        return {
+          width: bounds.width,
+          height: bounds.height,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          left: bounds.left - canvas.left,
+          top: bounds.top - canvas.top,
+        };
+      });
+      if (layout.id === "compact-overlay") expect(sheet.width).toBeLessThanOrEqual(680);
+      if (layout.id === "side-drawer") expect(sheet.width).toBeLessThanOrEqual(480);
+      if (layout.fullscreen) {
+        expect(sheet.width).toBeCloseTo(sheet.canvasWidth, 0);
+        expect(sheet.height).toBeCloseTo(sheet.canvasHeight, 0);
+        expect(sheet.left).toBeCloseTo(0, 0);
+        expect(sheet.top).toBeCloseTo(0, 0);
+      }
       await page.screenshot({ path: info.outputPath(`search-${layout.id}.png`) });
       await root.getByRole("button", { name: /Switch search to/ }).click();
       await expect(root).toHaveAttribute("data-appearance", "dark");
@@ -137,14 +157,18 @@ test.describe("Editorial collection", () => {
       await expect(root).toHaveCount(0);
     }
     await page.getByLabel("Search layout", { exact: true }).selectOption("preview-on-demand");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     for (const motion of SEARCH_MOTION_PRESETS) {
       await page.getByLabel("Opening & closing animation").selectOption(motion.id);
-      await page.getByRole("button", { name: "Preview search & animation" }).click();
       const root = preview.locator(`[data-search-motion="${motion.id}"]`);
       await expect(root).toBeVisible();
+      await expect
+        .poll(() => root.evaluate((el) => el.getAnimations({ subtree: true }).length))
+        .toBeGreaterThan(0);
       await root.getByRole("searchbox").press("Escape");
       await expect(root).toHaveCount(0);
     }
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.getByLabel("Viewport", { exact: true }).selectOption("390");
     await page.getByRole("button", { name: "Preview search & animation" }).click();
     const search = preview.locator('[data-search-layout="preview-on-demand"]');
@@ -241,15 +265,22 @@ test.describe("Editorial collection", () => {
     await page.goto(`/admin/articles/${articleId}`);
     await page.getByLabel("Article design", { exact: true }).selectOption("immersive");
     await page.getByLabel("Body type · px", { exact: true }).fill("20");
-    await page.getByLabel("Media type", { exact: true }).selectOption("embed");
+    // A provider link pasted into Video URL must never reach the native video element.
+    await page.getByLabel("Media type", { exact: true }).selectOption("video");
     await page
-      .getByLabel("YouTube or Vimeo URL", { exact: true })
-      .fill("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
+      .getByLabel("Video URL", { exact: true })
+      .fill("https://www.youtube.com/watch?v=QXZ6znSpEh0&pp=search");
+    const mediaPreview = page.getByLabel("Article presentation preview");
+    await expect(mediaPreview.locator("video")).toHaveCount(0);
+    await expect(mediaPreview.getByRole("button", { name: /Play on YouTube/ })).toBeVisible();
     await page.getByRole("button", { name: "Save details", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Article design", { exact: true })).toHaveValue("immersive");
     await expect(page.getByLabel("Body type · px", { exact: true })).toHaveValue("20");
+    await expect(page.getByLabel("Video URL", { exact: true })).toHaveValue(
+      "https://www.youtube.com/watch?v=QXZ6znSpEh0&pp=search"
+    );
     const db = createClient(url!, key!, { auth: { persistSession: false } });
     const saved = await db.from("articles").select("draft_data").eq("id", articleId).single();
     if (saved.error) throw saved.error;
@@ -265,6 +296,7 @@ test.describe("Editorial collection", () => {
     await page.goto(`/article/${slug}`);
     const article = page.locator('[data-article-design="immersive"]');
     await expect(article).toBeVisible();
+    await expect(article.locator("video")).toHaveCount(0);
     await expect(article.getByText("A considered approach", { exact: true }).first()).toBeVisible();
     const body = article.locator("[data-rich-text] p").first();
     await expect(body).toHaveCSS("font-size", "20px");
@@ -274,12 +306,55 @@ test.describe("Editorial collection", () => {
     await article.getByRole("button", { name: /Play on YouTube/ }).click();
     await expect(article.locator("iframe")).toHaveAttribute(
       "src",
-      /youtube-nocookie\.com\/embed\/aqz-KE-bpKQ/
+      /youtube-nocookie\.com\/embed\/QXZ6znSpEh0/
     );
     await article.getByRole("button", { name: /Close player/ }).click();
     await expect(article.locator("iframe")).toHaveCount(0);
+
+    // The opt-in autoplay experience publishes through the same saved article design.
+    await page.goto(`/admin/articles/${articleId}`);
+    await page.getByText("Video playback", { exact: true }).click();
+    await page.getByRole("switch", { name: "Autoplay YouTube silently", exact: true }).click();
+    await page.getByRole("button", { name: "Save details", exact: true }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.reload();
+    await page.getByText("Video playback", { exact: true }).click();
+    await expect(
+      page.getByRole("switch", { name: "Autoplay YouTube silently", exact: true })
+    ).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("link", { name: "Compose sections", exact: true }).click();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Publish", exact: true }).click();
+    await expect(page.getByText(/Published v\d+/)).toBeVisible();
+    await page.goto(`/article/${slug}`);
+    await expect(article).toHaveAttribute("data-inline-youtube", "true");
+    // The suite defaults to reduced motion: no autoplay iframe should load in that mode.
+    await expect(article.getByRole("button", { name: "Play YouTube video" })).toBeVisible();
+    await expect(article.locator("iframe")).toHaveCount(0);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expect(article.locator("iframe")).toHaveAttribute(
+      "src",
+      /youtube-nocookie\.com\/embed\/QXZ6znSpEh0/
+    );
+    await expect(article.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(article.getByRole("button", { name: /Close player/ })).toHaveCount(0);
+    const mediaBottom = await article
+      .locator("iframe")
+      .evaluate((el) => el.getBoundingClientRect().bottom);
+    const titleTop = await article.locator("h1").evaluate((el) => el.getBoundingClientRect().top);
+    expect(titleTop).toBeGreaterThanOrEqual(mediaBottom);
     await page.screenshot({
       path: info.outputPath("article-public-integrated.png"),
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(article.getByRole("heading", { level: 1 })).toBeVisible();
+    const mobilePlayer = await article.locator("iframe").boundingBox();
+    expect(mobilePlayer?.width).toBeGreaterThanOrEqual(200);
+    expect(mobilePlayer?.height).toBeGreaterThanOrEqual(200);
+    expect(await article.evaluate((el) => el.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({
+      path: info.outputPath("article-youtube-autoplay-mobile.png"),
       fullPage: true,
     });
     const violations = (

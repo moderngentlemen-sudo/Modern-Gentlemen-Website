@@ -10,7 +10,7 @@ import { useTheme } from "@/lib/theme";
 import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import { useCart } from "@/lib/cart/CartProvider";
 import { Drawer } from "./Drawer";
-import { SearchOverlay } from "./SearchOverlay";
+import { SearchOverlay, type SearchPreviewRequest } from "./SearchOverlay";
 import { BagDrawer } from "./BagDrawer";
 import { MegaMenu } from "./MegaMenu";
 import type { NavLink } from "@/lib/domain/navigation";
@@ -59,10 +59,12 @@ export function Header({
   nav = [],
   drawerSecondary = [],
   settings = DEFAULT_THEME_HEADER,
+  previewSearch,
 }: {
   nav?: NavLink[];
   drawerSecondary?: NavLink[];
   settings?: ThemeHeader;
+  previewSearch?: SearchPreviewRequest;
 }) {
   const { theme, toggle } = useTheme();
   const cart = useCart();
@@ -111,6 +113,17 @@ export function Header({
   const navZoneRef = useRef<HTMLDivElement>(null);
   const visibleNav = useVisibleNavigation(nav);
   const visibleSecondary = useVisibleNavigation(drawerSecondary);
+  const previewSearchId = previewSearch?.id;
+  const previewSearchOpen = previewSearch?.open;
+  useEffect(() => {
+    if (previewSearchOpen === undefined) return;
+    setSearch(previewSearchOpen);
+    if (previewSearchOpen) {
+      setDrawer(false);
+      setBag(false);
+      setMenuKey(null);
+    }
+  }, [previewSearchId, previewSearchOpen]);
 
   // Touch devices synthesise a mouseenter on tap but often never fire the
   // matching mouseleave, which would leave the bar frosted AND pinned open for
@@ -378,9 +391,11 @@ export function Header({
         }
       />
       <SearchOverlay
+        key={previewSearchId}
         settings={effective.search}
-        open={effective.showSearch && search}
+        open={(effective.showSearch || previewSearchOpen === true) && search}
         onClose={() => setSearch(false)}
+        previewQuery={previewSearchOpen ? previewSearch?.query : undefined}
       />
       {/* Gated on `showBag` too, so navigating off the store journey with the
           drawer open can't leave it hanging with no trigger to close it. */}

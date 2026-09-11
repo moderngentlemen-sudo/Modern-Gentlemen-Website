@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { MediaImage } from "@/components/ui/MediaImage";
-import { type ArticleFeaturedMedia } from "@/lib/domain/articles";
+import { articleFeaturedEmbedUrl, type ArticleFeaturedMedia } from "@/lib/domain/articles";
 import { articleDesignById, type ArticleDesign } from "@/lib/domain/articleDesign";
 import { ArticleDesignMedia } from "./ArticleDesignMedia";
 import styles from "./EditorialArticle.module.css";
@@ -111,6 +111,10 @@ export function EditorialArticle({
         data-custom-color={!!design.titleColor}
         data-article-design={preset.id}
         data-player-open={player}
+        data-inline-youtube={
+          design.youtubeAutoplay === true &&
+          articleFeaturedEmbedUrl(article.media)?.startsWith("https://www.youtube-nocookie.com/")
+        }
         data-has-media={
           !!(
             article.image ||

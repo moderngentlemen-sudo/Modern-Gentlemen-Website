@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { MediaImage } from "@/components/ui/MediaImage";
 import { MediaVideo } from "@/components/ui/MediaVideo";
-import { articleEmbedUrl, type ArticleFeaturedMedia } from "@/lib/domain/articles";
+import { articleFeaturedEmbedUrl, type ArticleFeaturedMedia } from "@/lib/domain/articles";
 import { type ArticleDesign } from "@/lib/domain/articleDesign";
 import { mediaOverlayStyle } from "@/lib/domain/mediaOverlay";
 import styles from "./EditorialArticle.module.css";
+import { YouTubeArticlePlayer } from "./YouTubeArticlePlayer";
 export function ArticleDesignMedia({
   media,
   image,
@@ -28,8 +29,8 @@ export function ArticleDesignMedia({
   useEffect(() => setMuted(design.muted !== false), [design.muted]);
   const photos = media?.kind === "gallery" && media.gallery?.length ? media.gallery : [];
   const poster = photos[slide]?.url || media?.cover?.url || image;
-  const embed = articleEmbedUrl(media?.embedUrl);
-  const videoUrl = media?.kind === "video" ? media.video?.url : undefined;
+  const embed = articleFeaturedEmbedUrl(media);
+  const videoUrl = media?.kind === "video" && !embed ? media.video?.url : undefined;
   const overlay = mediaOverlayStyle(design.overlay);
   useEffect(() => {
     const el = video.current;
@@ -64,7 +65,7 @@ export function ArticleDesignMedia({
     onPlayerChange?.(false);
     setFailed(false);
     setSlide(0);
-  }, [media?.embedUrl, videoUrl, onPlayerChange]);
+  }, [embed, videoUrl, onPlayerChange]);
   const setOpen = (open: boolean) => {
     setPlayer(open);
     onPlayerChange?.(open);
@@ -75,10 +76,23 @@ export function ArticleDesignMedia({
     if (el.paused) void el.play().catch(() => setFailed(true));
     else el.pause();
   };
+  if (design.youtubeAutoplay && embed?.startsWith("https://www.youtube-nocookie.com/")) {
+    return (
+      <figure className={styles["hero-media"]} data-media-kind="embed" data-playing="true">
+        <YouTubeArticlePlayer
+          key={embed}
+          embed={embed}
+          title={title}
+          poster={poster}
+          loop={design.loop}
+        />
+      </figure>
+    );
+  }
   return (
     <figure
       className={styles["hero-media"]}
-      data-media-kind={media?.kind || "image"}
+      data-media-kind={embed ? "embed" : media?.kind || "image"}
       data-playing={player}
     >
       {poster && !videoUrl && (
@@ -113,7 +127,7 @@ export function ArticleDesignMedia({
         </button>
       )}
       {overlay && !player && <span className={styles.overlay} style={overlay} aria-hidden />}
-      {media?.kind === "embed" && embed && player && (
+      {embed && player && (
         <div className={styles.player}>
           <button onClick={() => setOpen(false)}>Close player ×</button>
           <iframe
@@ -125,9 +139,9 @@ export function ArticleDesignMedia({
           />
         </div>
       )}
-      {((media?.kind === "embed" && embed && !player) || videoUrl || photos.length > 1) && (
+      {((embed && !player) || videoUrl || photos.length > 1) && (
         <div className={styles["media-bar"]}>
-          {media?.kind === "embed" && embed && !player && (
+          {embed && !player && (
             <button onClick={() => setOpen(true)}>
               ▶ Play {embed.includes("youtube") ? "on YouTube" : "video"}
             </button>

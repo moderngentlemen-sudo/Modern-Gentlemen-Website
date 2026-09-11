@@ -100,6 +100,9 @@ export function AppearanceStudio({
   const [mode, setMode] = useState<"light" | "dark">("light");
   const [compare, setCompare] = useState(false);
   const [replay, setReplay] = useState(0);
+  const [searchPreviewId, setSearchPreviewId] = useState(0);
+  const [searchPreviewOpen, setSearchPreviewOpen] = useState(false);
+  const [searchPreviewQuery, setSearchPreviewQuery] = useState("Watches");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -138,13 +141,21 @@ export function AppearanceStudio({
   const target = choices.find((t) => t.id === targetId) || choices[0];
   const pageSettings = readPageSettings(computed.payload?.pageSettings);
   const patch = (next: State) => {
+    setCompare(false);
     setHistory([...history.slice(0, cursor + 1), next].slice(-80));
     setCursor(Math.min(cursor + 1, 79));
     setMessage("");
     setError("");
   };
-  const setHeader = (value: Partial<ThemeHeader>) =>
+  const setHeader = (value: Partial<ThemeHeader>) => {
+    if (!("search" in value)) setSearchPreviewOpen(false);
     patch({ ...state, theme: { ...state.theme, header: { ...state.theme.header, ...value } } });
+  };
+  const showSearchPreview = () => {
+    setCompare(false);
+    setSearchPreviewOpen(true);
+    setSearchPreviewId((id) => id + 1);
+  };
   const setPageAppearance = (value: NonNullable<AppearanceChanges["page"]>) =>
     patch({ ...state, changes: { ...state.changes, page: { ...state.changes.page, ...value } } });
   const setTarget = (value: Omit<AppearanceChanges["targets"][number], "id">) => {
@@ -220,10 +231,27 @@ export function AppearanceStudio({
             theme: compare ? savedTheme.settings : state.theme,
             mode,
             replay,
+            searchPreview: {
+              id: searchPreviewId,
+              open: area === "header" && searchPreviewOpen,
+              query: searchPreviewQuery,
+            },
             article: area === "articles" ? articlePreview : undefined,
           }
         : null,
-    [preview, compare, savedTheme.settings, state.theme, mode, replay, area, articlePreview]
+    [
+      preview,
+      compare,
+      savedTheme.settings,
+      state.theme,
+      mode,
+      replay,
+      area,
+      articlePreview,
+      searchPreviewId,
+      searchPreviewOpen,
+      searchPreviewQuery,
+    ]
   );
   useEffect(() => {
     const send = () => {
@@ -689,7 +717,14 @@ export function AppearanceStudio({
                   value={h.entryDuration}
                   onChange={(v) => v !== undefined && setHeader({ entryDuration: v })}
                 />
-                <button onClick={() => setReplay(replay + 1)}>Replay animation</button>
+                <button
+                  onClick={() => {
+                    setSearchPreviewOpen(false);
+                    setReplay(replay + 1);
+                  }}
+                >
+                  Replay animation
+                </button>
                 <Toggle
                   label="Show search"
                   checked={h.showSearch}
@@ -702,13 +737,13 @@ export function AppearanceStudio({
                 />
                 <SearchAppearanceControls
                   value={h.search}
-                  onChange={(search) => setHeader({ search })}
-                  onPreview={() =>
-                    frame.current?.contentWindow?.postMessage(
-                      { type: "mg:preview-search" },
-                      location.origin
-                    )
-                  }
+                  onChange={(search) => {
+                    setHeader({ search });
+                    showSearchPreview();
+                  }}
+                  onPreview={showSearchPreview}
+                  previewQuery={searchPreviewQuery}
+                  onPreviewQueryChange={setSearchPreviewQuery}
                 />
                 <p className={styles.hint}>
                   Separate mobile header settings and navigation remain available in the theme

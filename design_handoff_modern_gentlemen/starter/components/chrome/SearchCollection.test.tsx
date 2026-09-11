@@ -68,6 +68,31 @@ function open(layout: SearchLayoutId = "preview-on-demand", onClose = vi.fn()) {
   );
 }
 describe("live search collection", () => {
+  it("populates a studio preview with real results and makes on-demand differences visible", async () => {
+    render(
+      <CatalogProvider products={[product]}>
+        <SearchCollection
+          settings={{
+            ...DEFAULT_SEARCH_APPEARANCE,
+            layout: "compare-alongside",
+            motion: "none",
+            debounceMs: 80,
+          }}
+          onClose={vi.fn()}
+          previewQuery="collection preview"
+        />
+      </CatalogProvider>
+    );
+    expect(screen.getByRole("searchbox")).toHaveValue("collection preview");
+    expect(
+      await screen.findByRole("region", { name: "Preview: Collection Test Story" })
+    ).toBeVisible();
+    expect(screen.getByText(editorial.excerpt)).toBeVisible();
+    expect(screen.getByRole("link", { name: /Read article/ })).toHaveAttribute(
+      "href",
+      editorial.href
+    );
+  });
   it("fetches no results or preview images until requested, then supports real editorial and store previews", async () => {
     open();
     expect(fetch).not.toHaveBeenCalled();

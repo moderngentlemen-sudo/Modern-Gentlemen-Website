@@ -130,6 +130,12 @@ export function ArticleDesignControls({
                 onChange={(autoplay) => set({ autoplay })}
               />
               <Toggle
+                label="Autoplay YouTube silently"
+                checked={design.youtubeAutoplay === true}
+                onChange={(youtubeAutoplay) => set({ youtubeAutoplay })}
+                help="Play inline when the video comes into view. The title stays below the player."
+              />
+              <Toggle
                 label="Loop playback"
                 checked={design.loop === true}
                 onChange={(loop) => set({ loop })}
@@ -150,8 +156,9 @@ export function ArticleDesignControls({
                 onChange={(showPlayButton) => set({ showPlayButton })}
               />
               <p className="text-xs text-mg-fg/60">
-                YouTube and Vimeo load when the reader presses play. Pause and sound controls remain
-                available for uploaded video.
+                YouTube defaults to click-to-play. Silent autoplay respects reduced motion and
+                browser restrictions; player controls remain available. Vimeo loads when the reader
+                presses play.
               </p>
             </div>
           </details>

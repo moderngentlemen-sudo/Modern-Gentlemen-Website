@@ -45,6 +45,7 @@ describe("ArticleFeaturedMedia", () => {
         media={{
           kind: "video",
           video: { kind: "video", url: "/film.mp4" },
+          embedUrl: "https://youtu.be/previous-selection",
           cover: { kind: "image", url: "/poster.jpg" },
         }}
       />
@@ -52,5 +53,25 @@ describe("ArticleFeaturedMedia", () => {
 
     expect(document.querySelector("video")).toHaveAttribute("src", "/film.mp4");
     expect(document.querySelector("video")).toHaveAttribute("poster", "/poster.jpg");
+  });
+
+  it("uses the YouTube player for a watch link saved as a video", () => {
+    const { container } = render(
+      <ArticleFeaturedMedia
+        media={{
+          kind: "video",
+          video: {
+            kind: "video",
+            url: "https://www.youtube.com/watch?v=QXZ6znSpEh0&pp=search",
+          },
+          embedUrl: "https://youtu.be/previous-selection",
+        }}
+      />
+    );
+    expect(container.querySelector("video")).toBeNull();
+    expect(screen.getByTitle("Featured video")).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/QXZ6znSpEh0"
+    );
   });
 });

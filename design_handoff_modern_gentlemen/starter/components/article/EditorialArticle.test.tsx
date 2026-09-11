@@ -49,6 +49,35 @@ describe("article collection", () => {
     await userEvent.click(screen.getByRole("button", { name: /Close player/ }));
     expect(document.querySelector("iframe")).toBeNull();
   });
+  it.each([
+    [
+      "https://www.youtube.com/watch?v=QXZ6znSpEh0&pp=ygUYdGhlIG1hdGVyaWFsaXN0cyB0cmFpbGVy",
+      "https://www.youtube-nocookie.com/embed/QXZ6znSpEh0",
+    ],
+    ["https://youtu.be/QXZ6znSpEh0?si=share", "https://www.youtube-nocookie.com/embed/QXZ6znSpEh0"],
+    ["https://vimeo.com/12345", "https://player.vimeo.com/video/12345"],
+  ])("recognizes a provider link in the Video URL field: %s", async (url, playerUrl) => {
+    render(
+      <EditorialArticle
+        article={{
+          ...article,
+          media: {
+            kind: "video",
+            video: { kind: "video", url },
+            embedUrl: "https://youtu.be/old-selection",
+          },
+        }}
+        design={{ preset: "immersive" }}
+      />
+    );
+    expect(document.querySelector("video")).toBeNull();
+    expect(document.querySelector("iframe")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^▶ Play/ }));
+    expect(document.querySelector("iframe")?.src).toBe(`${playerUrl}?autoplay=1&playsinline=1`);
+    expect(screen.queryByText(/This video could not be played/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /Close player/ }));
+    expect(document.querySelector("iframe")).toBeNull();
+  });
   it("keeps image gallery navigation and reading size controls functional", async () => {
     render(
       <EditorialArticle

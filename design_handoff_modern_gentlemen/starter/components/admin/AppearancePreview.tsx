@@ -29,6 +29,7 @@ export interface AppearancePreviewState {
   pageSettings?: unknown;
   mode: "light" | "dark";
   replay: number;
+  searchPreview?: ComponentProps<typeof Header>["previewSearch"];
   article?: {
     content: EditorialArticleContent;
     sections: BlockTree;
@@ -50,15 +51,6 @@ export function AppearancePreview({
   const [state, setState] = useState<AppearancePreviewState | null>(null);
   useEffect(() => {
     const receive = (event: MessageEvent) => {
-      if (
-        event.origin === location.origin &&
-        event.source === window.parent &&
-        event.data?.type === "mg:preview-search"
-      ) {
-        const button = document.querySelector<HTMLButtonElement>('button[aria-label="Search"]');
-        button?.click();
-        return;
-      }
       if (
         event.origin !== location.origin ||
         event.source !== window.parent ||
@@ -91,6 +83,7 @@ export function AppearancePreview({
       nav={nav.header}
       drawerSecondary={nav.drawerSecondary}
       settings={state.theme.header}
+      previewSearch={state.searchPreview}
     />
   );
   const footer = <Footer nav={nav.footer} legal={nav.footerLegal} settings={state.theme.footer} />;

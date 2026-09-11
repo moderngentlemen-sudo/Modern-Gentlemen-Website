@@ -409,7 +409,7 @@ export function ArticleDetails({
                   })
                 }
                 disabled={!canWrite}
-                help="Choose a library video or enter an HTTPS/CDN URL."
+                help="Choose a library video or enter a direct HTTPS/CDN video URL. YouTube and Vimeo links use their embedded player."
               />
               {canWrite && (
                 <Button size="sm" variant="ghost" onClick={() => setPicking("video")}>

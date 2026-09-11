@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_THEME_HEADER, type HeaderComposition } from "@/lib/domain/theme";
@@ -8,7 +8,23 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.mock("@/lib/theme", () => ({ useTheme: () => ({ theme: "light", toggle: vi.fn() }) }));
 vi.mock("@/lib/cart/CartProvider", () => ({ useCart: () => ({ count: 0 }) }));
 vi.mock("./Drawer", () => ({ Drawer: () => null }));
-vi.mock("./SearchOverlay", () => ({ SearchOverlay: () => null }));
+vi.mock("./SearchOverlay", () => ({
+  SearchOverlay: ({
+    open,
+    previewQuery,
+    onClose,
+  }: {
+    open: boolean;
+    previewQuery?: string;
+    onClose: () => void;
+  }) =>
+    open ? (
+      <section data-testid="search-preview">
+        {previewQuery}
+        <button onClick={onClose}>Close preview</button>
+      </section>
+    ) : null,
+}));
 vi.mock("./BagDrawer", () => ({ BagDrawer: () => null }));
 vi.mock("./MegaMenu", () => ({ MegaMenu: () => null }));
 
@@ -25,6 +41,16 @@ afterEach(() => {
 });
 
 describe("Header compositions", () => {
+  it("opens and replays a studio search request without requiring a header click", () => {
+    const { rerender } = render(<Header previewSearch={{ id: 1, open: true, query: "Watches" }} />);
+    expect(screen.getByTestId("search-preview")).toHaveTextContent("Watches");
+    fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
+    expect(screen.queryByTestId("search-preview")).toBeNull();
+    rerender(<Header previewSearch={{ id: 2, open: true, query: "Film" }} />);
+    expect(screen.getByTestId("search-preview")).toHaveTextContent("Film");
+    rerender(<Header previewSearch={{ id: 2, open: false, query: "Film" }} />);
+    expect(screen.queryByTestId("search-preview")).toBeNull();
+  });
   it.each(["balanced", "navigation-left"] as const)(
     "renders the complete primary menu in the %s composition",
     (composition) => {
