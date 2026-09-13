@@ -95,3 +95,10 @@ category therefore render working story links without exposing related drafts.
 Route tests cover all three binding contexts and an authenticated E2E checks the
 actual category preview. CI prints each E2E test name to help trace server errors
 that might otherwise appear between anonymous progress dots.
+
+The editor canvas shows dynamic-content placeholders for unresolved queries,
+preserving the stored descriptors and normal selection/reorder/delete controls.
+This prevents a full editor reload from rendering an undefined story link before
+client error boundaries can run. The site preview resolves the actual stories.
+SSR tests cover both storage formats; E2E reloads the editor, checks the public
+preview, and preserves an editor screenshot for review.

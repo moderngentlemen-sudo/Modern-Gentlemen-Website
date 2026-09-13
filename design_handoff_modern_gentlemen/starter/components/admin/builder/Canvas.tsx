@@ -25,7 +25,8 @@ import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
 import { FreeCanvasControls } from "./FreeCanvasControls";
 import { useEditorExperience } from "./EditorExperience";
-import { normalizeBlock } from "@/lib/blocks/normalize";
+import { blockProps, normalizeBlock } from "@/lib/blocks/normalize";
+import { isBindingDescriptor } from "@/lib/blocks/bindingDescriptor";
 import { manifestFor } from "@/lib/blocks/manifests";
 import { findBlock } from "@/lib/blocks/traverse";
 import { visualCss } from "@/lib/blocks/visual";
@@ -824,6 +825,8 @@ function SortableBlock({
   const detachPatternRef = useBuilder((s) => s.detachPatternRef);
 
   const label = isRef ? (pattern?.name ?? "Synced pattern") : (manifest?.label ?? node._type);
+  const previewProps = blockProps(previewNode);
+  const boundFields = manifest?.bindable.filter((name) => isBindingDescriptor(previewProps[name]));
 
   /** Only a block whose manifest declares a slot may hold children. */
   const slot = manifest?.slot;
@@ -914,6 +917,23 @@ function SortableBlock({
                 locked={locked}
                 onDetach={() => pattern && detachPatternRef(node._key, pattern.blocks)}
               />
+            ) : boundFields?.length ? (
+              // Queries remain editable data. Passing one to a story component
+              // creates missing hrefs and crashes SSR before an error boundary
+              // can help. The site preview resolves their published content.
+              <div
+                data-binding-fields={boundFields.join(" ")}
+                className="border border-mg-bd/20 bg-mg-surface px-6 py-10 text-center"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mg-fg/60">
+                  Dynamic content
+                </p>
+                <p className="mt-2 text-[15px] font-semibold">{label}</p>
+                <p className="mt-2 text-[13px] text-mg-fg/70">
+                  This section updates from published content. Open the site preview to see its
+                  current results.
+                </p>
+              </div>
             ) : Component ? (
               <BlockErrorBoundary type={node._type} onSelect={() => select(node._key)}>
                 {slot ? (

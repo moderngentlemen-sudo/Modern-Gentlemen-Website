@@ -334,6 +334,15 @@ jobs:
         run: npm run test:e2e -- --reporter=line,github,html --grep-invert "Appearance Studio|Editorial collection"
 
       # Later Playwright suites clear test-results and replace the HTML report.
+      - name: Preserve dynamic-content editor review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-binding-review
+          path: ${{ env.APP_DIR }}/test-results/previewBindings-*/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Preserve Studio publishing failure details
         if: failure()
         uses: actions/upload-artifact@v4

@@ -4,7 +4,7 @@ import { getCategory, slugify } from "../../lib/demo/editorial";
 const email = process.env.E2E_ADMIN_EMAIL;
 const password = process.env.E2E_ADMIN_PASSWORD;
 
-test("a category preview resolves its published story links", async ({ page }) => {
+test("a category preview resolves its published story links", async ({ page }, testInfo) => {
   test.skip(!email || !password, "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set");
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -23,6 +23,16 @@ test("a category preview resolves its published story links", async ({ page }) =
     .getByRole("link", { name: "Edit layout" })
     .click();
   await expect(page).toHaveURL(/\/admin\/categories\/[0-9a-f-]{36}$/);
+  // A full reload exercises server rendering, where a client error boundary
+  // cannot contain a story card receiving a query descriptor instead of data.
+  const editorResponse = await page.reload();
+  expect(editorResponse?.status()).toBe(200);
+  await expect(page.locator("[data-binding-fields]")).toHaveCount(2);
+  await expect(page.getByText(/could not be rendered with its current settings/)).toHaveCount(0);
+  await page.screenshot({
+    path: testInfo.outputPath("preview-binding-editor.png"),
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   const link = page.getByRole("dialog", { name: "Preview link" }).getByRole("link");
   await expect(link).toBeVisible({ timeout: 15_000 });
