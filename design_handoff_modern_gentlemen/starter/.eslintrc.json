@@ -33,6 +33,10 @@
   },
   "overrides": [
     {
+      "files": ["**/*.mts"],
+      "parserOptions": { "sourceType": "module" }
+    },
+    {
       "files": ["lib/domain/**/*.ts"],
       "rules": {
         "no-restricted-imports": [

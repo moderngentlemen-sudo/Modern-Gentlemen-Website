@@ -65,8 +65,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Runtime dependency security
-        run: npm audit --omit=dev --audit-level=moderate
+      - name: Dependency security (runtime and development)
+        run: npm audit --audit-level=low
 
       - name: Prettier
         run: npm run format:check

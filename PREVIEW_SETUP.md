@@ -175,12 +175,18 @@ to admin search. Anonymous access is granted only to the new derived column,
 with existing row-level security intact. The application can read published rows
 through its compatibility path if the new column has not arrived yet.
 
-Runtime dependencies are audited in CI with
-`npm audit --omit=dev --audit-level=moderate`. Next and its ESLint configuration
+Runtime and development dependencies are audited in CI with
+`npm audit --audit-level=low`; any reported vulnerability blocks the verification
+job. Next and its ESLint configuration
 are pinned to 15.5.24 for GHSA-2xp9-vwfh-vxw4; Next's nested PostCSS and Sharp
 are explicitly pinned to patched versions through package overrides. The XML
 parser is updated to 5.11.1, with the existing string-preserving feed adapter
-tests retained. The runtime audit does not certify development-tool dependencies.
+tests retained. Vitest 4.1.11 and Vite 6.4.3 replace the vulnerable test toolchain;
+the unit and integration projects now live in `vitest.config.mts`. Their include
+patterns, setup files and database test serialization are retained. The lockfile
+also updates the affected JS-YAML and brace-expansion dependencies. Playwright,
+the Supabase CLI and the application runtime versions are unchanged by this
+toolchain update.
 
 On the initial hosted preview, migration 0012_grants was not executed: automatic
 approval review rejected its grants on all current and future tables/sequences.
