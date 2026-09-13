@@ -82,6 +82,25 @@ marker absent. After checking the exact candidate's CI result, deploy it manuall
 and verify the deployed SHA. This is not Railway's Wait for CI feature: the
 existing workflow runs for preview pull requests and pushes to main only.
 
+For a first build, the connector's Redeploy action cannot use a skipped deployment
+because it has no build snapshot. A safe GitHub release flow is:
+
+1. Prepare a release commit on a separate verification branch and open a draft
+   pull request against the preview branch. Run the full existing CI workflow.
+2. After every required job passes, confirm the checked head SHA and that the
+   preview branch is still its expected parent. Temporarily set the preview
+   service's watch paths to include a file changed by that verified commit.
+3. Fast-forward the preview branch to that exact SHA with force disabled. The
+   existing GitHub integration builds the configured preview service.
+4. Confirm the deployment's branch, SHA, build/start commands and health result.
+   Restore the restrictive watch path after the release and run hosted smoke
+   checks. Keep Render until sign-in and editor behavior are verified.
+
+This uses the existing service and preserves CI before release. Do not push an
+unchecked trigger commit, change the production branch, or create duplicate
+services merely to obtain a new deployment. The alternative is Railway's
+Dashboard command **Deploy Latest Commit** for the connected preview branch.
+
 ## Preview environment
 
 Set these variables only on the preview service (the Render Blueprint supplies
