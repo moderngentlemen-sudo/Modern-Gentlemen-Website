@@ -52,7 +52,7 @@ service only, then deploy a CI-verified commit from `codex/persistent-preview`:
 - Node version: RAILPACK_NODE_VERSION=22
 - Build command: npm run preview:check && npm run build
 - Start command: npm run preview:start
-- Healthcheck: /_mg-preview/health
+- Healthcheck: /_mg_preview/health (Railway's connector rejects hyphens)
 - Healthcheck timeout: 180 seconds
 - Restart policy: ON_FAILURE, at most 3 retries
 - Serverless/app sleeping: off for consistent access
@@ -73,6 +73,14 @@ to a workspace that also hosts production, because that can stop every workload.
 Keep the Render trial available until the Railway replacement is verified.
 Add the Railway origin and Auth callback URLs to the preview Supabase Auth
 settings; the existing preview administrator and stored media can be reused.
+
+Disable GitHub automatic deployments in the preview service's Source settings.
+The current connector does not expose that switch. While using the connector,
+watch paths are restricted to `/.mg-preview-manual-deploy`, an intentionally
+absent marker, so normal source changes do not deploy automatically. Keep that
+marker absent. After checking the exact candidate's CI result, deploy it manually
+and verify the deployed SHA. This is not Railway's Wait for CI feature: the
+existing workflow runs for preview pull requests and pushes to main only.
 
 ## Preview environment
 

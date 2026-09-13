@@ -171,6 +171,19 @@ test("health reveals only readiness, while robots excludes every route", async (
   assert.equal((await get("/_mg-preview/health")).body, "Ready");
   assert.equal((await get("/robots.txt")).body, "User-agent: *\nDisallow: /\n");
 });
+test("Railway's underscore health URL reports readiness without revealing content", async () => {
+  ready = false;
+  const starting = await get("/_mg_preview/health");
+  assert.equal(starting.status, 503);
+  assert.equal(starting.body, "Starting");
+  ready = true;
+  const result = await get("/_mg_preview/health");
+  assert.equal(result.status, 200);
+  assert.equal(result.body, "Ready");
+  assert.match(result.headers["cache-control"], /no-store/);
+  assert.match(result.headers["x-robots-tag"], /noindex/);
+  assert.equal((await get("/_mg_preview/health/private")).status, 401);
+});
 test("preserves action bodies, session cookies and query strings while stripping gateway secrets", async () => {
   const result = await get(
     "/admin/actions?draft=1",

@@ -89,7 +89,7 @@ export function createPreviewGateway(config, isReady = () => true) {
     } catch {
       return end(response, 400, "Invalid request");
     }
-    if (pathname === "/_mg-preview/health") {
+    if (["/_mg-preview/health", "/_mg_preview/health"].includes(pathname)) {
       return end(response, isReady() ? 200 : 503, isReady() ? "Ready" : "Starting");
     }
     if (pathname === "/robots.txt") {
