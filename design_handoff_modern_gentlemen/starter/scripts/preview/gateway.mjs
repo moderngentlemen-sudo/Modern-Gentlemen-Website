@@ -8,6 +8,45 @@ const privateHeaders = {
   "referrer-policy": "strict-origin-when-cross-origin",
 };
 
+function canCacheBuildAsset(request, incoming) {
+  // Only canonical, fingerprinted build files can enter the browser cache.
+  // Documents, image optimization, uploads, manifests and source maps stay fresh.
+  if (!["GET", "HEAD"].includes(request.method) || request.url.includes("?")) return false;
+  const path = request.url;
+  let expectedType;
+  if (
+    /^\/_next\/static\/chunks\/(?:[A-Za-z0-9_()[\]-]+\/)*(?:[A-Za-z0-9_-]+-)?[a-f0-9]{16}\.js$/.test(
+      path
+    )
+  ) {
+    expectedType = /^(?:application|text)\/javascript$/;
+  } else if (/^\/_next\/static\/css\/[a-f0-9]{16}\.css$/.test(path)) {
+    expectedType = /^text\/css$/;
+  } else if (/^\/_next\/static\/media\/[a-f0-9]{16}(?:-s(?:\.p)?)?\.woff2$/.test(path)) {
+    expectedType = /^font\/woff2$/;
+  } else {
+    return false;
+  }
+  const headers = incoming.headers;
+  const policy = String(headers["cache-control"] || "");
+  const maxAge = /(?:^|,)\s*max-age=(\d+)\s*(?:,|$)/i.exec(policy);
+  const contentType = String(headers["content-type"] || "")
+    .split(";")[0]
+    .trim();
+  return (
+    [200, 304].includes(incoming.statusCode) &&
+    !headers["set-cookie"] &&
+    !headers.location &&
+    !String(headers.vary || "")
+      .split(",")
+      .some((name) => name.trim() === "*") &&
+    /(?:^|,)\s*immutable\s*(?:,|$)/i.test(policy) &&
+    !/\b(?:no-store|no-cache)\b/i.test(policy) &&
+    Number(maxAge?.[1]) >= 3600 &&
+    (expectedType.test(contentType) || (incoming.statusCode === 304 && !contentType))
+  );
+}
+
 function end(response, status, text, extra = {}) {
   response.writeHead(status, {
     "content-type": "text/plain; charset=utf-8",
@@ -109,9 +148,16 @@ export function createPreviewGateway(config, isReady = () => true) {
         }
         delete outgoingHeaders["cdn-cache-control"];
         delete outgoingHeaders["surrogate-control"];
+        delete outgoingHeaders["vercel-cdn-cache-control"];
+        const responseHeaders = { ...outgoingHeaders, ...privateHeaders };
+        if (canCacheBuildAsset(request, incoming)) {
+          // Keep shared/CDN caching disabled and bound local retention to one hour.
+          // A cache miss still passes through the password gate above.
+          responseHeaders["cache-control"] = "private, max-age=3600, must-revalidate";
+          responseHeaders.vary = [outgoingHeaders.vary, "Authorization"].filter(Boolean).join(", ");
+        }
         response.writeHead(incoming.statusCode || 502, {
-          ...outgoingHeaders,
-          ...privateHeaders,
+          ...responseHeaders,
         });
         incoming.on("error", () => response.destroy());
         incoming.pipe(response);

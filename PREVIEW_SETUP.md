@@ -41,14 +41,38 @@ Full hosted verification still requires the scoped media transfer, the separate
 administrator and Auth redirects described below. Do not interpret successful
 public-page rendering as authenticated editor or video verification.
 
-## Railway alternative
+## Railway preview
 
-- Repository root directory: design_handoff_modern_gentlemen/starter
-- Config file: design_handoff_modern_gentlemen/starter/railway.preview.json
+Create a separate private preview project in the existing workspace, using the
+existing preview Supabase project. Configure these settings on the preview
+service only, then deploy a CI-verified commit from `codex/persistent-preview`:
+
+- Repository: moderngentlemen-sudo/Modern-Gentlemen-Website
+- Root directory: /design_handoff_modern_gentlemen/starter
+- Node version: RAILPACK_NODE_VERSION=22
 - Build command: npm run preview:check && npm run build
 - Start command: npm run preview:start
 - Healthcheck: /_mg-preview/health
-- Deploy only after hosting costs have been approved.
+- Healthcheck timeout: 180 seconds
+- Restart policy: ON_FAILURE, at most 3 retries
+- Serverless/app sleeping: off for consistent access
+- One service and one replica; no additional database, volume, worker or cron
+- Generate a Railway domain pointing to gateway PORT=8080, then set
+  NEXT_PUBLIC_SITE_URL to that exact HTTPS origin before building.
+
+Use explicit service settings for new services. Railway's current documentation
+deprecates Config as Code for new services; `railway.preview.json` remains a
+reference for legacy setups. Do not select the production `railway.json`.
+See https://docs.railway.com/config-as-code and
+https://docs.railway.com/deployments/monorepo.
+
+Hosting usage must be approved before provisioning. A preview in an existing
+paid workspace consumes that workspace's included usage and any overage; the
+estimate is not a spending cap. Do not apply a preview-sized hard spending limit
+to a workspace that also hosts production, because that can stop every workload.
+Keep the Render trial available until the Railway replacement is verified.
+Add the Railway origin and Auth callback URLs to the preview Supabase Auth
+settings; the existing preview administrator and stored media can be reused.
 
 ## Preview environment
 
@@ -68,7 +92,15 @@ the site origin and generated gateway credentials automatically):
 
 The gateway protects HTML, assets, API routes, and media served by the app.
 It preserves session cookies, streamed responses and video byte ranges.
-Every response has noindex and no-store headers; robots.txt disallows crawling.
+Every response has noindex headers; robots.txt disallows crawling. Authenticated
+GET/HEAD responses for fingerprinted Next.js JavaScript, CSS and WOFF2 build
+files may be cached privately in the browser for one hour, with Authorization
+included in Vary. They must have an upstream immutable policy, a matching
+content type and no session cookies. Cached build files can remain locally
+available for that hour after gateway credential rotation. HTML, editor data,
+APIs, uploaded media, errors and unversioned assets retain no-store headers;
+shared/CDN caching stays disabled. A network request for any protected asset
+still requires the gateway password.
 Only robots.txt and a content-free readiness endpoint are available without
 the preview password. Expose the hosting provider's public domain on the gateway port only;
 Next listens on loopback at the next port.

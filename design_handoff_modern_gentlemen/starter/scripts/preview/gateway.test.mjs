@@ -54,6 +54,17 @@ let gateway;
 let port;
 let ready = true;
 let upstreamRequests = 0;
+const assetReplies = new Map();
+const chunkPath = "/_next/static/chunks/main-15f9a5313c282223.js";
+const assetHeaders = {
+  "content-type": "application/javascript; charset=UTF-8",
+  "cache-control": "public, max-age=31536000, immutable",
+  "cdn-cache-control": "public, max-age=31536000",
+  "surrogate-control": "max-age=31536000",
+  "vercel-cdn-cache-control": "public, max-age=31536000",
+  vary: "Accept-Encoding",
+  etag: '"build-asset"',
+};
 const auth =
   "Basic " +
   Buffer.from(env.MG_PREVIEW_USERNAME + ":" + env.MG_PREVIEW_PASSWORD).toString("base64");
@@ -80,6 +91,11 @@ function get(path, headers = {}, method = "GET", body = "") {
 before(async () => {
   upstream = createServer((req, res) => {
     upstreamRequests++;
+    const asset = assetReplies.get(req.url);
+    if (asset) {
+      res.writeHead(asset.status ?? 200, { ...assetHeaders, ...asset.headers });
+      return res.end("/* build asset */");
+    }
     if (req.url === "/admin") {
       res.writeHead(307, {
         location: "https://localhost:" + upstream.address().port + "/sign-in?next=%2Fadmin",
@@ -131,7 +147,7 @@ after(async () => {
   await close(upstream);
 });
 
-for (const path of ["/", "/admin", "/_next/static/chunk.js", "/_next/image?url=x", "/clip.mp4"]) {
+for (const path of ["/", "/admin", chunkPath, "/_next/image?url=x", "/clip.mp4"]) {
   test("requires preview access for " + path, async () => {
     const count = upstreamRequests;
     const res = await get(path);
@@ -217,4 +233,83 @@ test("preserves deliberate external redirect destinations", async () => {
   const result = await get("/external", { authorization: auth });
   assert.equal(result.status, 302);
   assert.equal(result.headers.location, "https://external.mg.test/story");
+});
+
+test("allows private one-hour browser caching for fingerprinted build files", async () => {
+  for (const [path, type] of [
+    [chunkPath, "application/javascript; charset=UTF-8"],
+    ["/_next/static/chunks/app/(admin)/admin/page-5d24891b9175f8a9.js", "text/javascript"],
+    ["/_next/static/css/9fff25ee68667291.css", "text/css; charset=UTF-8"],
+    ["/_next/static/media/d3ebbfd689654d3a-s.p.woff2", "font/woff2"],
+  ]) {
+    assetReplies.set(path, { headers: { "content-type": type } });
+    for (const method of ["GET", "HEAD"]) {
+      const res = await get(path, { authorization: auth }, method);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers["cache-control"], "private, max-age=3600, must-revalidate");
+      assert.equal(res.headers.vary, "Accept-Encoding, Authorization");
+      assert.equal(res.headers.etag, '"build-asset"');
+      assert.match(res.headers["x-robots-tag"], /noindex/);
+      for (const name of ["cdn-cache-control", "surrogate-control", "vercel-cdn-cache-control"]) {
+        assert.equal(res.headers[name], undefined);
+      }
+    }
+  }
+});
+
+test("preserves conditional requests and private caching on a static 304", async () => {
+  assetReplies.set(chunkPath, { status: 304, headers: { "content-type": "" } });
+  const res = await get(chunkPath, { authorization: auth, "if-none-match": '"build-asset"' });
+  assert.equal(res.status, 304);
+  assert.equal(res.body, "");
+  assert.equal(res.headers["cache-control"], "private, max-age=3600, must-revalidate");
+  // Knowing the path and ETag never bypasses gateway authentication.
+  const count = upstreamRequests;
+  assert.equal((await get(chunkPath, { "if-none-match": '"build-asset"' })).status, 401);
+  assert.equal(upstreamRequests, count);
+});
+
+test("keeps documents, uploads, dynamic URLs and ambiguous paths out of the cache", async () => {
+  for (const path of [
+    "/admin",
+    "/api/search?q=style",
+    "/_next/image?url=photo.jpg",
+    "/media/15f9a5313c282223.js",
+    "/_next/static/chunks/main.js",
+    "/_next/static/build-id/_buildManifest.js",
+    chunkPath + ".map",
+    chunkPath + "?draft=1",
+    chunkPath + "?",
+    "/_next/static/chunks/../chunks/main-15f9a5313c282223.js",
+    "/_next/static/chunks/%2e%2e/chunks/main-15f9a5313c282223.js",
+    "/_next/static/chunks%2fmain-15f9a5313c282223.js",
+  ]) {
+    assetReplies.set(path, {});
+    const res = await get(path, { authorization: auth });
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers["cache-control"], /no-store/, path);
+  }
+});
+
+test("never caches static-path errors, redirects, session responses or unsafe upstream policy", async () => {
+  for (const fixture of [
+    { status: 404 },
+    { status: 500 },
+    { status: 302, headers: { location: "/sign-in" } },
+    { status: 206 },
+    { headers: { "set-cookie": "session=rotated; HttpOnly" } },
+    { headers: { "content-type": "text/html" } },
+    { headers: { vary: "*" } },
+    { headers: { "cache-control": "public, max-age=31536000" } },
+    { headers: { "cache-control": "private, no-store, max-age=31536000, immutable" } },
+    { headers: { "cache-control": "no-cache, max-age=31536000, immutable" } },
+    { headers: { "cache-control": "max-age=60, immutable" } },
+  ]) {
+    assetReplies.set(chunkPath, fixture);
+    const res = await get(chunkPath, { authorization: auth });
+    assert.match(res.headers["cache-control"], /no-store/);
+  }
+  assetReplies.set(chunkPath, {});
+  const res = await get(chunkPath, { authorization: auth }, "POST", "data");
+  assert.match(res.headers["cache-control"], /no-store/);
 });
