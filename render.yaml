@@ -1,0 +1,35 @@
+# One optional, isolated preview. Do not add paid resources to this Blueprint.
+services:
+  - type: web
+    name: mg-protected-preview
+    runtime: node
+    plan: free
+    region: ohio
+    branch: codex/persistent-preview
+    rootDir: design_handoff_modern_gentlemen/starter
+    autoDeployTrigger: "off"
+    buildCommand: node scripts/check-preview.mjs && npm ci --include=dev && npm run build
+    startCommand: npm run preview:start
+    healthCheckPath: /_mg-preview/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MG_PREVIEW
+        value: "1"
+      - key: MG_PREVIEW_USERNAME
+        value: preview
+      - key: MG_PREVIEW_PASSWORD
+        generateValue: true
+      - key: MG_PREVIEW_SUPABASE_REF
+        sync: false
+      - key: MG_PREVIEW_SOURCE_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        fromService:
+          name: mg-protected-preview
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL

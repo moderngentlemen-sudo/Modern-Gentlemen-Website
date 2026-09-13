@@ -2,9 +2,46 @@
 
 The optional preview service runs the existing Next.js application behind a
 password gate. The production start command and application renderer are unchanged.
-Use a separate development branch, Railway service, and Supabase project.
+Use a separate development branch, hosting service, and Supabase project.
 
-## Service configuration
+## Render free-tier trial
+
+The repository-root `render.yaml` creates one Node 22 web service on the explicit
+`free` plan. It creates no database, disk, worker or paid service. Deploy from
+`codex/persistent-preview`, with Blueprint auto-sync disabled during setup and
+service auto-deploys off. Use manual deployments of commits that have passed CI.
+If a service named `mg-protected-preview` already exists, inspect it before
+applying the Blueprint; Render can update resources with a matching name.
+
+During Blueprint creation, supply the four preview database/source variables
+marked `sync: false` using the separate preview project's verified values.
+Render generates the gateway password and supplies its actual HTTPS origin
+through `RENDER_EXTERNAL_URL` at build and runtime. Read the generated password
+in the service's Environment settings; the gateway username is `preview`.
+No server key is required in the ordinary web-service environment.
+
+- Root directory: design_handoff_modern_gentlemen/starter
+- Build: node scripts/check-preview.mjs && npm ci --include=dev && npm run build
+- Start: npm run preview:start
+- Healthcheck: /_mg-preview/health
+- Keep the service on Free. Do not add a payment method or authorize usage
+  overages for this trial. A quota-related pause is preferable to an automatic
+  charge; do not upgrade without a separate cost decision.
+
+Render's free service has 512 MB RAM and 0.1 CPU. It sleeps after 15 minutes
+without inbound traffic and takes about a minute to wake. It has an ephemeral
+filesystem, so content and uploads stay in the separate Supabase project.
+Do not run keep-alive pings to defeat idle sleep. Verify memory, cold starts,
+sign-in, both builders and media playback on the actual free instance before
+calling the hosted trial successful. Local measurements are only a feasibility
+check. Free service hours, build minutes, bandwidth and outbound traffic limits
+still apply; see https://render.com/docs/free.
+
+Full hosted verification still requires the scoped media transfer, the separate
+administrator and Auth redirects described below. Do not interpret successful
+public-page rendering as authenticated editor or video verification.
+
+## Railway alternative
 
 - Repository root directory: design_handoff_modern_gentlemen/starter
 - Config file: design_handoff_modern_gentlemen/starter/railway.preview.json
@@ -13,7 +50,10 @@ Use a separate development branch, Railway service, and Supabase project.
 - Healthcheck: /_mg-preview/health
 - Deploy only after hosting costs have been approved.
 
-Set these variables only on the preview service:
+## Preview environment
+
+Set these variables only on the preview service (the Render Blueprint supplies
+the site origin and generated gateway credentials automatically):
 
 | Variable | Value |
 | --- | --- |
@@ -30,7 +70,7 @@ The gateway protects HTML, assets, API routes, and media served by the app.
 It preserves session cookies, streamed responses and video byte ranges.
 Every response has noindex and no-store headers; robots.txt disallows crawling.
 Only robots.txt and a content-free readiness endpoint are available without
-the preview password. Use Railway's public domain for the gateway port only;
+the preview password. Expose the hosting provider's public domain on the gateway port only;
 Next listens on loopback at the next port.
 
 Supabase public content and public Storage remain governed by their own API/RLS
