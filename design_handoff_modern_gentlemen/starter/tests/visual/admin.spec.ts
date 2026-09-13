@@ -16,19 +16,10 @@ const email = process.env.E2E_ADMIN_EMAIL;
 const password = process.env.E2E_ADMIN_PASSWORD;
 
 /**
- * Skip — visibly — when a baseline has never been captured.
- *
- * Unlike the public shots, these cannot be produced anywhere the repo is
- * merely checked out: they require a signed-in session, so a host needs both a
- * database and an admin account before it can take the first picture. CI has
- * both but cannot commit what it captures, and the dev container has neither.
- * Left alone, Playwright writes the actual and fails, which makes the job
- * permanently red for a reason no push can fix.
- *
- * A skip says the same thing without pretending it is a regression, and the
- * gate arms itself the moment a baseline lands next to the spec. The
- * `--update-snapshots` escape hatch is deliberate: without it, the guard would
- * also skip the run that is trying to create the baselines in the first place.
+ * Reviewed references are part of the regression gate. Losing one must fail
+ * verification rather than silently removing coverage. An explicit
+ * --update-snapshots run can capture candidates on a seeded, authenticated host;
+ * review those images before committing them.
  */
 function requireBaseline(name: string) {
   // Not destructured: snapshotPath lives on TestInfo's prototype, and a rest
@@ -38,12 +29,13 @@ function requireBaseline(name: string) {
   const writing = mode === "all" || mode === "changed";
   const baseline = info.snapshotPath(name);
 
-  test.skip(
-    !writing && !existsSync(baseline),
-    `No baseline for ${basename(baseline)}. Capture it on a host that can sign in — ` +
-      `start a local Supabase stack, provision an admin, run ` +
-      `\`npm run test:visual -- --update-snapshots\`, and commit the PNGs.`
-  );
+  if (!writing) {
+    expect(
+      existsSync(baseline),
+      `Missing reviewed baseline ${basename(baseline)}. Restore it, or capture and review ` +
+        `a replacement with \`npm run test:visual -- --update-snapshots\`.`
+    ).toBe(true);
+  }
 }
 
 async function signIn(page: Page, theme: "light" | "dark") {

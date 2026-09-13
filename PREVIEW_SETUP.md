@@ -83,6 +83,15 @@ disposable seeded databases. It also runs npm run test:preview for the gateway.
 Hosted preview smoke checks complement those fixture-based tests; do not run
 destructive fixture suites against production or an editor's working preview.
 
-The initial baseline run had one mobile theme test retry and four missing admin
-screenshot references. Skipped screenshots are not passing regression checks;
-capture and review actual references before calling that coverage complete.
+The four admin screenshot references were captured on the authenticated Linux CI
+host and visually reviewed. They cover the dashboard and page list in both themes,
+masking changing table content. Missing references now fail instead of skipping;
+explicit snapshot updates remain a capture-and-review operation. Normal CI compares
+against the committed images rather than regenerating them.
+
+Preview routes resolve dynamic story listings after pattern/template composition,
+using the public binding sources. A category preview and a template framing that
+category therefore render working story links without exposing related drafts.
+Route tests cover all three binding contexts and an authenticated E2E checks the
+actual category preview. CI prints each E2E test name to help trace server errors
+that might otherwise appear between anonymous progress dots.

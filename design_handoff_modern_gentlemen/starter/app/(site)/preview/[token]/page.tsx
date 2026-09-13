@@ -11,6 +11,8 @@ import { PagePresentation } from "@/components/PagePresentation";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { SectionRenderer, type Block } from "@/components/SectionRenderer";
+import { resolveBindings } from "@/lib/blocks/binding";
+import { supabaseBindingSources } from "@/lib/services/bindingSources";
 import { expandPatternRefs } from "@/lib/services/patterns";
 import {
   expandPublicPatterns,
@@ -99,6 +101,10 @@ export default async function PreviewPage({
     article && design && articleDesignById(design.preset)
       ? await composePublishedDocument("article", preview.entityId, view.sections)
       : null;
+  // Resolve after pattern/template composition, including framed categories.
+  // The token grants this draft only; related listings use published rows via
+  // the same anonymous binding sources as the public category route.
+  const sections = await resolveBindings(assigned ?? view.sections, supabaseBindingSources);
   return (
     <>
       <PreviewBar
@@ -118,18 +124,18 @@ export default async function PreviewPage({
       >
         {article && design && articleDesignById(design.preset) ? (
           assigned ? (
-            <SectionRenderer sections={assigned} />
+            <SectionRenderer sections={sections} />
           ) : (
             <EditorialArticle
               preview
               article={{ ...article, media: articleFeaturedMediaOf(preview.data, true) }}
               design={design}
             >
-              <SectionRenderer sections={view.sections} />
+              <SectionRenderer sections={sections} />
             </EditorialArticle>
           )
-        ) : view.sections.length > 0 ? (
-          <SectionRenderer sections={view.sections} />
+        ) : sections.length > 0 ? (
+          <SectionRenderer sections={sections} />
         ) : (
           <EmptyDraft entityType={preview.entityType} area={view.area} />
         )}
