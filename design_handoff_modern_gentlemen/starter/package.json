@@ -22,7 +22,10 @@
     "test:visual": "playwright test --project=visual --pass-with-no-tests",
     "test:a11y": "playwright test --project=a11y --pass-with-no-tests",
     "test:perf": "playwright test --project=perf --pass-with-no-tests",
-    "db:types": "npx --yes supabase gen types typescript --project-id qnfoztnyxhubnnulpfwt --schema public > lib/db/database.types.ts.tmp && mv lib/db/database.types.ts.tmp lib/db/database.types.ts || (rm -f lib/db/database.types.ts.tmp; echo 'db:types failed \u2014 database.types.ts left untouched. Needs SUPABASE_ACCESS_TOKEN, or use the Supabase MCP generate_typescript_types.' >&2; exit 1)"
+    "db:types": "npx --yes supabase gen types typescript --project-id qnfoztnyxhubnnulpfwt --schema public > lib/db/database.types.ts.tmp && mv lib/db/database.types.ts.tmp lib/db/database.types.ts || (rm -f lib/db/database.types.ts.tmp; echo 'db:types failed \u2014 database.types.ts left untouched. Needs SUPABASE_ACCESS_TOKEN, or use the Supabase MCP generate_typescript_types.' >&2; exit 1)",
+    "preview:check": "node scripts/check-preview.mjs",
+    "preview:start": "node scripts/start-preview.mjs",
+    "test:preview": "eslint scripts/preview/*.mjs scripts/check-preview.mjs scripts/start-preview.mjs scripts/copy-preview-media.mjs --max-warnings=0 && node --test scripts/preview/*.test.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
