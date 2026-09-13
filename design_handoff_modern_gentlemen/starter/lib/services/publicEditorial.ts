@@ -43,8 +43,8 @@ import {
 } from "@/lib/domain/articles";
 import { resolveAssetUrl } from "@/lib/domain/media";
 import { publicPathForArticle } from "@/lib/domain/routes";
-import { matchesSearchQuery, searchWords, type EditorialSearchEntry } from "@/lib/domain/search";
-import { articleSearchVectorIsMissing } from "@/lib/db/articleSearch";
+import { matchesSearchQuery, type EditorialSearchEntry } from "@/lib/domain/search";
+import { articlePrefixQuery, articleSearchVectorIsMissing } from "@/lib/db/articleSearch";
 
 // ---------------------------------------------------------------------------
 // Shared payload and asset reading
@@ -272,11 +272,14 @@ interface SearchRow extends CardRow {
  * anonymous client plus the explicit published filter makes draft exclusion a
  * property of the read itself. The indexed path returns every match in batches;
  * the compatibility path does the same over published rows if production code
- * temporarily arrives before migration 0030.
+ * temporarily arrives before the prefix-search migration. The simple dictionary
+ * retains literal words, including short prefixes such as `be` in `bespoke`;
+ * English stemming/stop-word removal would make results disappear while typing.
  */
 export async function searchPublishedArticles(term: string): Promise<EditorialSearchEntry[]> {
   const normalized = term.trim();
-  if (searchWords(normalized).length === 0) return [];
+  const prefixQuery = articlePrefixQuery(normalized);
+  if (!prefixQuery) return [];
 
   const db = createPublicClient();
   const rows: SearchRow[] = [];
@@ -286,13 +289,14 @@ export async function searchPublishedArticles(term: string): Promise<EditorialSe
       .from("articles")
       .select(SEARCH_SELECT)
       .eq("status", "published")
-      .textSearch("search_vector", normalized, { type: "websearch", config: "english" })
+      .textSearch("search_prefix_vector", prefixQuery, { config: "simple" })
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("title", { ascending: true })
+      .order("slug", { ascending: true })
       .range(start, start + SEARCH_BATCH - 1);
 
     if (error) {
-      if (articleSearchVectorIsMissing(error)) {
+      if (articleSearchVectorIsMissing(error, "search_prefix_vector")) {
         return searchPublishedArticlesWithoutVector(normalized);
       }
       throw new Error(`Could not search the published articles: ${error.message}`);
@@ -317,6 +321,7 @@ async function searchPublishedArticlesWithoutVector(term: string): Promise<Edito
       .eq("status", "published")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("title", { ascending: true })
+      .order("slug", { ascending: true })
       .range(start, start + SEARCH_BATCH - 1);
 
     if (error) throw new Error(`Could not search the published articles: ${error.message}`);

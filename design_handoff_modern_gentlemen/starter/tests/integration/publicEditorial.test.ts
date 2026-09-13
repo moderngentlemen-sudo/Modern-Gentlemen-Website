@@ -34,7 +34,7 @@ import {
 import { ARTICLES, articleSlugs, getArticleBySlug } from "@/lib/demo/articles";
 import { categoryDocumentSections, demoCategorySections } from "@/lib/demo/category-sections";
 import { categorySlugs, getCategory } from "@/lib/demo/editorial";
-import { adminClient } from "../support/fixtures";
+import { adminClient, anonClient, Fixtures, prefixed } from "../support/fixtures";
 import { testEnv } from "../setup/integration.setup";
 
 /** What the renderer actually spreads onto a component: defaults applied,
@@ -134,6 +134,83 @@ describe("the published articles", () => {
         }),
       ])
     );
+  });
+
+  it.each(["sp", "spee", "speed", "speed cons", "spee-cons", "SPEE CONS", "speed considered"])(
+    "finds Speed, Considered while typing %j",
+    async (query) => {
+      expect(await searchPublishedArticles(query)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ href: "/article/speed-considered" })])
+      );
+    }
+  );
+
+  it("matches partial words across the full archive", async () => {
+    expect(await searchPublishedArticles("ward ten thi")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ href: "/article/building-a-wardrobe-of-ten-things" }),
+      ])
+    );
+  });
+
+  it.each(["' | ! & :*", "spee unmatchedwordxyz"])(
+    "does not broaden %j into unrelated stories",
+    async (query) => {
+      expect(await searchPublishedArticles(query)).toEqual([]);
+    }
+  );
+
+  it("keeps short stop-word prefixes searchable and excludes drafts", async () => {
+    const db = adminClient();
+    const fixtures = new Fixtures(db);
+    const publishedSlug = prefixed("prefix-published");
+    const draftSlug = prefixed("prefix-draft");
+    try {
+      for (const [slug, status] of [
+        [publishedSlug, "published"],
+        [draftSlug, "draft"],
+      ]) {
+        const { data, error } = await db
+          .from("articles")
+          .insert({
+            slug,
+            status,
+            title: "Bespoke Weekend Jackets",
+            subtitle: "Summer tailoring",
+            excerpt: "A guide to relaxed dressing",
+            published_data: { hero: {} },
+          })
+          .select("id")
+          .single();
+        expect(error).toBeNull();
+        fixtures.track("articles", data!.id);
+      }
+
+      // Verify the public indexed read itself works: a compatibility scan could
+      // otherwise hide a missing column grant while the service tests pass.
+      const indexed = await anonClient()
+        .from("articles")
+        .select("slug")
+        .textSearch("search_prefix_vector", "'be':* & 'we':*", { config: "simple" });
+      expect(indexed.error).toBeNull();
+      expect(indexed.data?.map((row) => row.slug)).toContain(publishedSlug);
+      expect(indexed.data?.map((row) => row.slug)).not.toContain(draftSlug);
+
+      for (const query of [
+        "be",
+        "be we",
+        "besp week",
+        "bespoke weekend jackets",
+        "sum tail",
+        "rela dres",
+      ]) {
+        const hrefs = (await searchPublishedArticles(query)).map((entry) => entry.href);
+        expect(hrefs, query).toContain(`/article/${publishedSlug}`);
+        expect(hrefs, query).not.toContain(`/article/${draftSlug}`);
+      }
+    } finally {
+      await fixtures.cleanup();
+    }
   });
 });
 
