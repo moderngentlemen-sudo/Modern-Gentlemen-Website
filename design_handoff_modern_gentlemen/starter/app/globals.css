@@ -670,3 +670,11 @@ body:has([data-site-main] [data-article-header-overlay="site"])
   [data-header-scrim][data-article-overlay-idle="true"] {
   opacity: 0 !important;
 }
+
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  a[class*="hover:bg-mg-accent"]:hover {
+  color: #fff;
+  border-color: var(--mg-accent);
+}

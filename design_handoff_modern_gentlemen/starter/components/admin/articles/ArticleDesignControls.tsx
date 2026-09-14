@@ -80,15 +80,21 @@ export function ArticleDesignControls({
               set({ headerOverlay: value === "inherit" ? undefined : value === "overlay" })
             }
           />
-          {design.headerOverlay && (
+          {(design.headerOverlay || (inherit && design.headerOverlay === undefined)) && (
             <Select
               label="Transparent header text"
-              value={design.headerInk || "light"}
+              value={design.headerInk || (inherit ? "inherit" : "light")}
               options={[
+                ...(inherit ? [{ value: "inherit", label: "Use Appearance Studio default" }] : []),
                 { value: "light", label: "Light — for darker images" },
                 { value: "dark", label: "Dark — for lighter images" },
               ]}
-              onChange={(headerInk) => set({ headerInk: headerInk as ArticleDesign["headerInk"] })}
+              onChange={(headerInk) =>
+                set({
+                  headerInk:
+                    headerInk === "inherit" ? undefined : (headerInk as ArticleDesign["headerInk"]),
+                })
+              }
             />
           )}
           <p className="text-xs leading-relaxed text-mg-fg/60">
