@@ -84,6 +84,7 @@ test.describe("Editorial collection", () => {
         .eq("id", originalTheme.id);
       if (restored.error) throw restored.error;
       if (themePublished) {
+        await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto("/admin/theme");
         await page.getByRole("button", { name: "Publish", exact: true }).click();
         await expect(page.getByText("Theme published", { exact: true })).toBeVisible();
@@ -174,10 +175,15 @@ test.describe("Editorial collection", () => {
       await expect(page.getByLabel("Site header placement", { exact: true })).toHaveValue(
         "overlay"
       );
+      // The section builder has a desktop toolbar; publish there, then verify the
+      // requested public viewport. Article detail controls above still run at both widths.
+      await page.setViewportSize({ width: 1440, height: 900 });
       await page.getByRole("link", { name: "Compose sections", exact: true }).click();
-      await page.getByRole("button", { name: "Publish", exact: true }).click();
+      await page.getByRole("button", { name: "Publish", exact: true }).click({ timeout: 10000 });
+      await expect(page.getByRole("dialog")).toBeVisible();
       await page.getByRole("dialog").getByRole("button", { name: "Publish", exact: true }).click();
       await expect(page.getByText(/Published v\d+/)).toBeVisible();
+      await page.setViewportSize({ width, height: 900 });
       await page.goto(`/article/${slug}`);
       const chrome = page.locator('[data-site-chrome="header"] header');
       const article = page.locator('[data-article-header-overlay="site"]');
