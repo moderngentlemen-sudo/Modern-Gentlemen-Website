@@ -155,6 +155,9 @@ export function Header({
   const headerHeight = compact ? effective.shrunkHeight : effective.height;
   const announcementHeight = effective.announcementText ? 28 : 0;
   const chromeHeight = headerHeight + announcementHeight;
+  // CSS scopes this state to the current article; no global theme mutation or route listener.
+  const articleOverlayIdle =
+    !scrolled && !drawer && !search && !(bag && showBag) && !menuKey && !navHover;
 
   // Dynamic is the verified prototype behavior; the other two are explicit
   // editor choices and leave menu/overlay behavior unchanged.
@@ -240,6 +243,7 @@ export function Header({
       <div
         aria-hidden
         data-header-scrim
+        data-article-overlay-idle={articleOverlayIdle}
         className="fixed inset-x-0 top-0 z-40 pointer-events-none will-change-[opacity,transform]"
         style={{
           height: `calc(${chromeHeight + 13}px + var(--mg-safe-top))`,
@@ -309,6 +313,7 @@ export function Header({
         <header
           // ≤680 the bar insets 20px, two below the sections' 22px.
           data-header-composition={effective.composition}
+          data-article-overlay-idle={articleOverlayIdle}
           data-contrast={effective.autoContrast ? (darkInk ? "dark" : "light") : undefined}
           data-mobile-customized={mobileActive || undefined}
           className={`${appearance.header} container-mg max-[680px]:!px-5 box-border items-center pt-[2px] border-b ${

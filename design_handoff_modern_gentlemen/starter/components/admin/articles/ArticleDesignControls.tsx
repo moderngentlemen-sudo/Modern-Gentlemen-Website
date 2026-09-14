@@ -62,6 +62,40 @@ export function ArticleDesignControls({
       </details>
       {design.preset !== "legacy" && (
         <>
+          <Select
+            label="Site header placement"
+            value={
+              design.headerOverlay === undefined && inherit
+                ? "inherit"
+                : design.headerOverlay
+                  ? "overlay"
+                  : "below"
+            }
+            options={[
+              ...(inherit ? [{ value: "inherit", label: "Use Appearance Studio default" }] : []),
+              { value: "below", label: "Featured media below header" },
+              { value: "overlay", label: "Featured media behind transparent header" },
+            ]}
+            onChange={(value) =>
+              set({ headerOverlay: value === "inherit" ? undefined : value === "overlay" })
+            }
+          />
+          {design.headerOverlay && (
+            <Select
+              label="Transparent header text"
+              value={design.headerInk || "light"}
+              options={[
+                { value: "light", label: "Light — for darker images" },
+                { value: "dark", label: "Dark — for lighter images" },
+              ]}
+              onChange={(headerInk) => set({ headerInk: headerInk as ArticleDesign["headerInk"] })}
+            />
+          )}
+          <p className="text-xs leading-relaxed text-mg-fg/60">
+            Behind-header placement uses a full-width photo or uploaded video cover, while keeping
+            the article body design. The usual header style returns on scroll or when a menu opens.
+            Embedded players and articles without media keep their normal placement.
+          </p>
           <div className="grid grid-cols-2 gap-3">
             {(
               [

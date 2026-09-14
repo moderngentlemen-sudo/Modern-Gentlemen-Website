@@ -29,11 +29,14 @@ export function EditorialArticle({
   design,
   children,
   preview = false,
+  siteHeader = !preview,
 }: {
   article: EditorialArticleContent;
   design: ArticleDesign;
   children?: ReactNode;
   preview?: boolean;
+  /** Only full-site previews may affect their own surrounding site chrome. */
+  siteHeader?: boolean;
 }) {
   const preset = articleDesignById(design.preset);
   const content = useRef<HTMLDivElement>(null),
@@ -89,6 +92,16 @@ export function EditorialArticle({
     }
   };
   const secondary = article.media?.gallery?.[1];
+  const hasMedia = !!(
+    article.image ||
+    article.media?.cover ||
+    article.media?.video ||
+    article.media?.embedUrl ||
+    article.media?.gallery?.length
+  );
+  // Provider players retain their unobstructed controls and existing inline layout.
+  const headerOverlay =
+    design.headerOverlay === true && hasMedia && !articleFeaturedEmbedUrl(article.media);
   const vars = {
     "--ad-body-width": `${design.bodyWidth || 720}px`,
     "--ad-body-size": `${(design.bodySize || 18) + (large ? 2 : 0)}px`,
@@ -110,20 +123,15 @@ export function EditorialArticle({
         data-custom-align={!!design.titleAlign}
         data-custom-color={!!design.titleColor}
         data-article-design={preset.id}
+        data-article-header-overlay={headerOverlay ? (siteHeader ? "site" : "preview") : undefined}
+        data-article-header-ink={headerOverlay ? design.headerInk || "light" : undefined}
+        data-header-cover-scrim={headerOverlay ? design.overlay === undefined : undefined}
         data-player-open={player}
         data-inline-youtube={
           design.youtubeAutoplay === true &&
           articleFeaturedEmbedUrl(article.media)?.startsWith("https://www.youtube-nocookie.com/")
         }
-        data-has-media={
-          !!(
-            article.image ||
-            article.media?.cover ||
-            article.media?.video ||
-            article.media?.embedUrl ||
-            article.media?.gallery?.length
-          )
-        }
+        data-has-media={hasMedia}
         data-custom-overlay={!!design.overlay && design.overlay.mode !== "none"}
       >
         <header className={styles.hero}>

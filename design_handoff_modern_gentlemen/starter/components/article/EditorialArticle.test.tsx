@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EditorialArticle } from "./EditorialArticle";
+import { DEFAULT_MEDIA_OVERLAY } from "@/lib/domain/mediaOverlay";
 vi.mock("@/components/ui/MediaImage", () => ({
   MediaImage: ({ src, alt }: { src: string; alt: string }) => (
     <span data-image={src} aria-label={alt} />
@@ -16,6 +17,48 @@ const article = {
   author: "Editorial team",
 };
 describe("article collection", () => {
+  it("keeps header overlay opt-in, scopes embedded previews, and preserves media settings", () => {
+    const { container, rerender } = render(
+      <EditorialArticle article={article} design={{ preset: "immersive" }} />
+    );
+    expect(container.querySelector("article")).not.toHaveAttribute("data-article-header-overlay");
+    const design = {
+      preset: "immersive",
+      headerOverlay: true,
+      headerInk: "dark",
+      overlay: DEFAULT_MEDIA_OVERLAY,
+    } as const;
+    rerender(
+      <EditorialArticle preview article={article} design={design}>
+        <p>Original copy</p>
+      </EditorialArticle>
+    );
+    expect(container.querySelector("article")).toHaveAttribute(
+      "data-article-header-overlay",
+      "preview"
+    );
+    expect(container.querySelector("article")).toHaveAttribute("data-header-cover-scrim", "false");
+    rerender(
+      <EditorialArticle preview siteHeader article={article} design={design}>
+        <p>Original copy</p>
+      </EditorialArticle>
+    );
+    expect(container.querySelector("article")).toHaveAttribute(
+      "data-article-header-overlay",
+      "site"
+    );
+    expect(container.querySelector("article")).toHaveAttribute("data-article-header-ink", "dark");
+    expect(screen.getByText("Original copy")).toBeVisible();
+    rerender(<EditorialArticle article={{ ...article, image: undefined }} design={design} />);
+    expect(container.querySelector("article")).not.toHaveAttribute("data-article-header-overlay");
+    rerender(
+      <EditorialArticle
+        article={{ ...article, media: { kind: "embed", embedUrl: "https://youtu.be/aqz-KE-bpKQ" } }}
+        design={design}
+      />
+    );
+    expect(container.querySelector("article")).not.toHaveAttribute("data-article-header-overlay");
+  });
   it("uses the supplied article body and builds its reading index from actual headings", () => {
     render(
       <EditorialArticle article={article} design={{ preset: "long-read" }}>

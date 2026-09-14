@@ -2987,3 +2987,93 @@
 .youtubeStatus a {
   text-decoration: underline;
 }
+
+/* Explicit media cover override; the selected design still owns the article body. */
+.root[data-article-header-overlay] {
+  max-width: none;
+}
+.root[data-article-header-overlay] .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: end;
+  min-height: max(580px, var(--ad-hero-height, 85svh));
+  max-width: none;
+  margin: 0;
+  padding: max(150px, calc(var(--header-height, 72px) + 60px)) max(24px, calc((100% - 1232px) / 2))
+    80px;
+  gap: 0;
+  border: 0;
+  color: #fff;
+  background: #0d0d0d;
+  text-align: left;
+}
+.root[data-article-header-overlay] .hero-media {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  transform: none;
+  z-index: 0;
+}
+.root[data-article-header-overlay][data-header-cover-scrim="true"]
+  .hero-media:not([data-playing="true"])::after {
+  display: block;
+  background: linear-gradient(0deg, #090b0df2, #090b0d99 30%, transparent 75%);
+}
+.root[data-article-header-overlay][data-header-cover-scrim="false"] .hero-media::after {
+  display: none;
+}
+.root[data-article-header-overlay] .hero-head {
+  display: block;
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: 850px;
+  align-self: start;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #fff;
+  transform: none;
+  text-align: var(--ad-title-align, left);
+}
+.root[data-article-header-overlay] .hero-head h1 {
+  max-width: none;
+  margin: 0 0 20px;
+  padding: 0;
+  background: transparent;
+  color: var(--ad-title-color, #fff);
+  font-size: var(--ad-title-size, clamp(38px, 6.2cqw, 77px));
+}
+.root[data-article-header-overlay] .hero-head .deck {
+  display: block;
+  max-width: 600px;
+  margin: 0 0 27px;
+  color: #eee;
+}
+.root[data-article-header-overlay] .hero-head :is(.eyebrow, .byline) {
+  justify-content: start;
+}
+.root[data-article-header-overlay] .hero-head :is(.reading-time, .author-copy small) {
+  color: #eee;
+}
+.root[data-article-header-overlay] .hero-head .category {
+  color: #ff91a3;
+}
+.root[data-article-header-overlay] .hero-head .author-mark {
+  border-color: #fff6;
+}
+.root[data-article-header-overlay] :is(.hero-note, .folio, .secondary-media) {
+  display: none;
+}
+@container mg-article (max-width: 680px) {
+  .root[data-article-header-overlay] .hero {
+    min-height: max(560px, var(--ad-hero-height, 85svh));
+    padding-bottom: 64px;
+  }
+}

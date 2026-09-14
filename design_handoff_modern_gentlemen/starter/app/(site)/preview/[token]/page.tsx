@@ -128,6 +128,7 @@ export default async function PreviewPage({
           ) : (
             <EditorialArticle
               preview
+              siteHeader
               article={{ ...article, media: articleFeaturedMediaOf(preview.data, true) }}
               design={design}
             >

@@ -216,6 +216,8 @@ const presetSchema = z.custom<ArticleDesignId>(
 export const articleDesignSchema = z
   .object({
     preset: presetSchema,
+    headerOverlay: z.boolean().optional(),
+    headerInk: z.enum(["light", "dark"]).optional(),
     heroHeight: z.number().finite().min(240).max(1200).optional(),
     bodyWidth: z.number().finite().min(420).max(900).optional(),
     titleSize: z.number().finite().min(32).max(120).optional(),

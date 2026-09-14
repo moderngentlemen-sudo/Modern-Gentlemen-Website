@@ -41,6 +41,18 @@ afterEach(() => {
 });
 
 describe("Header compositions", () => {
+  it("allows the article cover only at the top with all header overlays closed", () => {
+    const { container } = render(<Header />);
+    const header = container.querySelector("header");
+    expect(header).toHaveAttribute("data-article-overlay-idle", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    expect(header).toHaveAttribute("data-article-overlay-idle", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
+    expect(header).toHaveAttribute("data-article-overlay-idle", "true");
+    vi.stubGlobal("scrollY", 120);
+    fireEvent.scroll(window);
+    expect(header).toHaveAttribute("data-article-overlay-idle", "false");
+  });
   it("opens and replays a studio search request without requiring a header click", () => {
     const { rerender } = render(<Header previewSearch={{ id: 1, open: true, query: "Watches" }} />);
     expect(screen.getByTestId("search-preview")).toHaveTextContent("Watches");
