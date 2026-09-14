@@ -13,6 +13,32 @@ import {
   withArticleFeaturedMedia,
 } from "./articles";
 describe("approved editorial collections", () => {
+  it("validates and preserves independent article header overrides", () => {
+    const global = { preset: "immersive", headerOverlay: true, headerInk: "dark" } as const;
+    expect(
+      themeSettingsSchema.parse({ ...DEFAULT_THEME_SETTINGS, articles: global }).articles
+    ).toEqual(global);
+    expect(resolveArticleDesign(global, { preset: "inherit" })).toEqual(global);
+    expect(
+      resolveArticleDesign(global, { preset: "inherit", headerOverlay: false }).headerOverlay
+    ).toBe(false);
+    const payload = {
+      sections: [{ _key: "copy", _type: "nativeText", settings: { content: "Keep this copy." } }],
+    };
+    const updated = withArticlePresentation(payload, {
+      headerMode: "template",
+      appearance: "template",
+      design: global,
+    });
+    expect(articlePresentationOf(updated).design).toEqual(global);
+    expect(updated.sections).toEqual(payload.sections);
+    expect(
+      articleDesignSchema.safeParse({ preset: "immersive", headerOverlay: "yes" }).success
+    ).toBe(false);
+    expect(
+      articleDesignSchema.safeParse({ preset: "immersive", headerInk: "url(x)" }).success
+    ).toBe(false);
+  });
   it("keeps the previous live defaults and independent builder selections intact", () => {
     expect(parseThemeSettings({})).toEqual(DEFAULT_THEME_SETTINGS);
     const payload = {

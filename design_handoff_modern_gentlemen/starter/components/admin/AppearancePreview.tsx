@@ -122,6 +122,7 @@ export function AppearancePreview({
                 articleDesignById(resolveArticleDesign(state.theme.articles, undefined).preset) ? (
                   <EditorialArticle
                     preview
+                    siteHeader
                     article={state.article.content}
                     design={resolveArticleDesign(state.theme.articles, undefined)}
                   >

@@ -84,6 +84,7 @@ test.describe("Editorial collection", () => {
         .eq("id", originalTheme.id);
       if (restored.error) throw restored.error;
       if (themePublished) {
+        await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto("/admin/theme");
         await page.getByRole("button", { name: "Publish", exact: true }).click();
         await expect(page.getByText("Theme published", { exact: true })).toBeVisible();
@@ -103,6 +104,116 @@ test.describe("Editorial collection", () => {
       if (result.error) throw result.error;
     }
   });
+  for (const width of [1440, 390]) {
+    test(`publishes an optional transparent article header at ${width}px`, async ({
+      page,
+    }, info) => {
+      test.setTimeout(180000);
+      await page.setViewportSize({ width, height: 900 });
+      await signIn(page);
+      const db = createClient(url!, key!, { auth: { persistSession: false } });
+      const theme = await db
+        .from("theme_settings")
+        .select("id,draft_data,published_data")
+        .eq("key", "default")
+        .single();
+      if (theme.error) throw theme.error;
+      originalTheme = theme.data;
+      const data = originalTheme.published_data as Record<string, Json>;
+      const header = data.header as Record<string, Json>;
+      const patched = await db
+        .from("theme_settings")
+        .update({
+          draft_data: {
+            ...data,
+            header: {
+              ...header,
+              background: "filled",
+              fillColor: "#26323c",
+              fillOpacity: 100,
+              autoContrast: false,
+              scrollBehavior: "always-visible",
+              mobile: { ...(header.mobile as Record<string, Json>), enabled: false },
+            },
+          },
+        })
+        .eq("id", originalTheme.id);
+      if (patched.error) throw patched.error;
+      await page.goto("/admin/theme");
+      themePublished = true;
+      await page.getByRole("button", { name: "Publish", exact: true }).click();
+      await expect(page.getByText("Theme published", { exact: true })).toBeVisible();
+      await page.goto(`/admin/articles/${articleId}`);
+      await page.getByLabel("Article design", { exact: true }).selectOption("immersive");
+      await page.getByLabel("Site header placement", { exact: true }).selectOption("overlay");
+      await page
+        .getByLabel("Transparent header text", { exact: true })
+        .selectOption(width === 390 ? "dark" : "light");
+      // All cover compositions use the same full-width media override, including text-led designs.
+      const mini = page.getByLabel("Article presentation preview");
+      for (const preset of ARTICLE_DESIGN_PRESETS) {
+        await page.getByLabel("Article design", { exact: true }).selectOption(preset.id);
+        const cover = mini.locator("[data-article-header-overlay=preview]");
+        await expect(cover).toBeAttached();
+        const bounds = await cover.evaluate((el) => {
+          const media = el.querySelector("figure")!.getBoundingClientRect();
+          const root = el.getBoundingClientRect();
+          return {
+            left: media.left - root.left,
+            width: media.width - root.width,
+            overflow: el.scrollWidth - el.clientWidth,
+          };
+        });
+        expect(Math.abs(bounds.left)).toBeLessThan(2);
+        expect(Math.abs(bounds.width)).toBeLessThan(2);
+        expect(bounds.overflow).toBeLessThanOrEqual(1);
+      }
+      await page.getByLabel("Article design", { exact: true }).selectOption("immersive");
+      await page.getByRole("button", { name: "Save details", exact: true }).click();
+      await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+      await page.reload();
+      await expect(page.getByLabel("Site header placement", { exact: true })).toHaveValue(
+        "overlay"
+      );
+      // The section builder has a desktop toolbar; publish there, then verify the
+      // requested public viewport. Article detail controls above still run at both widths.
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.getByRole("link", { name: "Compose sections", exact: true }).click();
+      await page.getByRole("button", { name: "Publish", exact: true }).click({ timeout: 10000 });
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.getByRole("dialog").getByRole("button", { name: "Publish", exact: true }).click();
+      await expect(page.getByText(/Published v\d+/)).toBeVisible();
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/article/${slug}`);
+      const chrome = page.locator('[data-site-chrome="header"] header');
+      const article = page.locator('[data-article-header-overlay="site"]');
+      await expect(article).toBeVisible();
+      await expect(page.locator("[data-site-main]")).toHaveCSS("padding-top", "0px");
+      await expect(chrome).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(chrome).toHaveCSS("backdrop-filter", "none");
+      await expect(chrome.getByRole("link", { name: /Modern Gentlemen/ })).toHaveCSS(
+        "color",
+        width === 390 ? "rgb(20, 20, 20)" : "rgb(244, 244, 244)"
+      );
+      const media = await article.locator("figure").first().boundingBox();
+      expect(media!.y).toBeLessThan(2);
+      expect(media!.x).toBeLessThan(2);
+      expect(media!.width).toBeGreaterThan(width - 25);
+      await page.screenshot({ path: info.outputPath(`article-header-overlay-${width}.png`) });
+      await chrome.getByRole("button", { name: "Open menu", exact: true }).click();
+      await expect(chrome).toHaveAttribute("data-article-overlay-idle", "false");
+      await expect(chrome).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await page.keyboard.press("Escape");
+      await expect(chrome).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await page.mouse.move(width - 10, 800);
+      await page.evaluate(() => window.scrollTo(0, 300));
+      await expect(chrome).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await chrome.getByRole("link", { name: /Modern Gentlemen/ }).click();
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.locator("[data-article-header-overlay=site]")).toHaveCount(0);
+      await expect(page.locator("[data-site-main]")).not.toHaveCSS("padding-top", "0px");
+    });
+  }
   test("previews all search layouts, both color modes, and all paired animations", async ({
     page,
   }, info) => {

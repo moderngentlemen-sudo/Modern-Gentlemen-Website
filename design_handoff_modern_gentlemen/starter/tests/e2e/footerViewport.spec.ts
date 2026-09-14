@@ -46,13 +46,15 @@ test("mobile bottom canvas respects theme and footer overrides", async ({ page }
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(13, 13, 13)");
   }
   await root.evaluate((node) => node.setAttribute("data-mgtheme", "light"));
-  const themeBackground = await page
-    .locator("[data-site-main]")
-    .evaluate((node) => getComputedStyle(node).backgroundColor);
   await expect(page.locator("[data-site-main]")).toHaveCSS(
     "background-color",
     "rgb(244, 244, 244)"
   );
+  // Capture only after the expected theme has painted. Sampling before this
+  // assertion can retain the previous dark value while hydration settles.
+  const themeBackground = await page
+    .locator("[data-site-main]")
+    .evaluate((node) => getComputedStyle(node).backgroundColor);
   await page.locator("[data-site-main]").evaluate((main) => {
     const marker = document.createElement("div");
     marker.dataset.pagePresentation = "public";

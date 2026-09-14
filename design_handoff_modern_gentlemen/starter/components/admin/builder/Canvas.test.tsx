@@ -27,6 +27,9 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DndContext } from "@dnd-kit/core";
+import { renderToString } from "react-dom/server";
+import { categoryDocumentSections } from "@/lib/demo/category-sections";
+import { blockProps } from "@/lib/blocks/normalize";
 
 import { blockTypes, manifestFor } from "@/lib/blocks/manifests";
 import { flattenBlocks } from "@/lib/blocks/traverse";
@@ -37,14 +40,14 @@ import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { BuilderStoreProvider } from "./StoreContext";
 import { newBlockNode } from "./node";
 
-function renderCanvas(
+function canvasElement(
   tree: BlockTree,
   drag: {
     libraryDragType?: string | null;
     drop?: { parentKey: string | null; index: number } | null;
   } = {}
 ) {
-  return render(
+  return (
     <BuilderStoreProvider
       init={{
         doc: {
@@ -66,6 +69,41 @@ function renderCanvas(
     </BuilderStoreProvider>
   );
 }
+
+function renderCanvas(...args: Parameters<typeof canvasElement>) {
+  return render(canvasElement(...args));
+}
+
+describe("dynamic content on the canvas", () => {
+  const boundTree = () =>
+    categoryDocumentSections("style").filter((node) =>
+      ["featuredLead", "articleGrid"].includes(node._type)
+    );
+
+  for (const shape of ["legacy", "canonical"] as const) {
+    it(`server renders ${shape} query blocks without passing descriptors to story cards`, () => {
+      const tree = boundTree().map((node) =>
+        shape === "legacy"
+          ? node
+          : { _key: node._key, _type: node._type, settings: blockProps(node) }
+      );
+      const saved = JSON.stringify(tree);
+      const html = renderToString(canvasElement(tree));
+      expect(html.match(/Dynamic content/g)).toHaveLength(2);
+      expect(html).toContain("site preview");
+      expect(JSON.stringify(tree)).toBe(saved);
+    });
+  }
+
+  it("keeps a dynamic block selectable and removable", () => {
+    renderCanvas(boundTree());
+    const card = screen.getAllByText("Dynamic content")[0];
+    fireEvent.mouseDown(card);
+    fireEvent.click(screen.getByRole("button", { name: "Delete Category — featured lead" }));
+    expect(screen.getAllByText("Dynamic content")).toHaveLength(1);
+    expect(screen.queryByText(/could not be rendered with its current settings/)).toBeNull();
+  });
+});
 
 describe("every registered block renders on the canvas", () => {
   it("mounts one node of every registered type without throwing", () => {

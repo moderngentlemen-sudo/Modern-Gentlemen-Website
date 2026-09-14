@@ -611,3 +611,70 @@ body:has([data-site-main] [data-after-hours-standalone="true"]) [data-site-chrom
     padding-top: 0 !important;
   }
 }
+
+/* An article's opt-in cover affects only its own site chrome, never editor canvases.
+   :has() applies before hydration and removes the override automatically on navigation. */
+[data-site-main]:has([data-article-header-overlay="site"]) {
+  padding-top: 0 !important;
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"] {
+  --article-header-ink: #f4f4f4;
+  --article-header-logo: none;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom-color: transparent !important;
+  color: var(--article-header-ink);
+}
+body:has([data-site-main] [data-article-header-overlay="site"][data-article-header-ink="dark"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"] {
+  --article-header-ink: #141414;
+  --article-header-logo: invert(1);
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  :is(a, button) {
+  color: var(--article-header-ink);
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  img[src="/mg-logo.svg"] {
+  filter: var(--article-header-logo);
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  button[aria-label="Open menu"]
+  > span:first-child {
+  background-color: var(--article-header-ink);
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  [class*="border-white"] {
+  border-color: color-mix(in srgb, var(--article-header-ink) 25%, transparent);
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  [class*="bg-white"] {
+  background-color: color-mix(in srgb, var(--article-header-ink) 8%, transparent);
+}
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  [data-header-scrim][data-article-overlay-idle="true"] {
+  opacity: 0 !important;
+}
+
+body:has([data-site-main] [data-article-header-overlay="site"])
+  [data-site-chrome="header"]
+  header[data-article-overlay-idle="true"]
+  a[class*="hover:bg-mg-accent"]:hover {
+  color: #fff;
+  border-color: var(--mg-accent);
+}

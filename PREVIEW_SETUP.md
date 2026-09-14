@@ -1,0 +1,225 @@
+# Isolated website preview
+
+The optional preview service runs the existing Next.js application behind a
+password gate. The production start command and application renderer are unchanged.
+Use a separate development branch, hosting service, and Supabase project.
+
+## Render free-tier trial
+
+The repository-root `render.yaml` creates one Node 22 web service on the explicit
+`free` plan. It creates no database, disk, worker or paid service. Deploy from
+`codex/persistent-preview`, with Blueprint auto-sync disabled during setup and
+service auto-deploys off. Use manual deployments of commits that have passed CI.
+If a service named `mg-protected-preview` already exists, inspect it before
+applying the Blueprint; Render can update resources with a matching name.
+
+During Blueprint creation, supply the four preview database/source variables
+marked `sync: false` using the separate preview project's verified values.
+Render generates the gateway password and supplies its actual HTTPS origin
+through `RENDER_EXTERNAL_URL` at build and runtime. Read the generated password
+in the service's Environment settings; the gateway username is `preview`.
+No server key is required in the ordinary web-service environment.
+
+- Root directory: design_handoff_modern_gentlemen/starter
+- Build: node scripts/check-preview.mjs && npm ci --include=dev && npm run build
+- Start: npm run preview:start
+- Healthcheck: /_mg-preview/health
+- Keep the service on Free. Do not add a payment method or authorize usage
+  overages for this trial. A quota-related pause is preferable to an automatic
+  charge; do not upgrade without a separate cost decision.
+
+Render's free service has 512 MB RAM and 0.1 CPU. It sleeps after 15 minutes
+without inbound traffic and takes about a minute to wake. It has an ephemeral
+filesystem, so content and uploads stay in the separate Supabase project.
+Do not run keep-alive pings to defeat idle sleep. Verify memory, cold starts,
+sign-in, both builders and media playback on the actual free instance before
+calling the hosted trial successful. Local measurements are only a feasibility
+check. Free service hours, build minutes, bandwidth and outbound traffic limits
+still apply; see https://render.com/docs/free.
+
+Full hosted verification still requires the scoped media transfer, the separate
+administrator and Auth redirects described below. Do not interpret successful
+public-page rendering as authenticated editor or video verification.
+
+## Railway preview
+
+Create a separate private preview project in the existing workspace, using the
+existing preview Supabase project. Configure these settings on the preview
+service only, then deploy a CI-verified commit from `codex/persistent-preview`:
+
+- Repository: moderngentlemen-sudo/Modern-Gentlemen-Website
+- Root directory: /design_handoff_modern_gentlemen/starter
+- Node version: RAILPACK_NODE_VERSION=22
+- Build command: npm run preview:check && npm run build
+- Start command: npm run preview:start
+- Healthcheck: /_mg_preview/health (Railway's connector rejects hyphens)
+- Healthcheck timeout: 180 seconds
+- Restart policy: ON_FAILURE, at most 3 retries
+- Serverless/app sleeping: off for consistent access
+- One service and one replica; no additional database, volume, worker or cron
+- Generate a Railway domain pointing to gateway PORT=8080, then set
+  NEXT_PUBLIC_SITE_URL to that exact HTTPS origin before building.
+
+Use explicit service settings for new services. Railway's current documentation
+deprecates Config as Code for new services; `railway.preview.json` remains a
+reference for legacy setups. Do not select the production `railway.json`.
+See https://docs.railway.com/config-as-code and
+https://docs.railway.com/deployments/monorepo.
+
+Hosting usage must be approved before provisioning. A preview in an existing
+paid workspace consumes that workspace's included usage and any overage; the
+estimate is not a spending cap. Do not apply a preview-sized hard spending limit
+to a workspace that also hosts production, because that can stop every workload.
+Keep the Render trial available until the Railway replacement is verified.
+Add the Railway origin and Auth callback URLs to the preview Supabase Auth
+settings; the existing preview administrator and stored media can be reused.
+
+Disable GitHub automatic deployments in the preview service's Source settings.
+The current connector does not expose that switch. While using the connector,
+watch paths are restricted to `/.mg-preview-manual-deploy`, an intentionally
+absent marker, so normal source changes do not deploy automatically. Keep that
+marker absent. After checking the exact candidate's CI result, deploy it manually
+and verify the deployed SHA. This is not Railway's Wait for CI feature: the
+existing workflow runs for preview pull requests and pushes to main only.
+
+For a first build, the connector's Redeploy action cannot use a skipped deployment
+because it has no build snapshot. A safe GitHub release flow is:
+
+1. Prepare a release commit on a separate verification branch and open a draft
+   pull request against the preview branch. Run the full existing CI workflow.
+2. After every required job passes, confirm the checked head SHA and that the
+   preview branch is still its expected parent. Temporarily set the preview
+   service's watch paths to include a file changed by that verified commit.
+3. Fast-forward the preview branch to that exact SHA with force disabled. The
+   existing GitHub integration builds the configured preview service.
+4. Confirm the deployment's branch, SHA, build/start commands and health result.
+   Restore the restrictive watch path after the release and run hosted smoke
+   checks. Keep Render until sign-in and editor behavior are verified.
+
+This uses the existing service and preserves CI before release. Do not push an
+unchecked trigger commit, change the production branch, or create duplicate
+services merely to obtain a new deployment. The alternative is Railway's
+Dashboard command **Deploy Latest Commit** for the connected preview branch.
+
+## Preview environment
+
+Set these variables only on the preview service (the Render Blueprint supplies
+the site origin and generated gateway credentials automatically):
+
+| Variable | Value |
+| --- | --- |
+| MG_PREVIEW | 1 |
+| MG_PREVIEW_SUPABASE_REF | The independently verified preview project reference |
+| MG_PREVIEW_SOURCE_SUPABASE_URL | Source site's Supabase HTTPS origin |
+| NEXT_PUBLIC_SUPABASE_URL | Preview project's Supabase HTTPS origin |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY | Preview project's enabled publishable key |
+| NEXT_PUBLIC_SITE_URL | The preview service's actual HTTPS origin |
+| MG_PREVIEW_USERNAME | Preview access username |
+| MG_PREVIEW_PASSWORD | Unique random password of at least 32 characters |
+
+The gateway protects HTML, assets, API routes, and media served by the app.
+It preserves session cookies, streamed responses and video byte ranges.
+Every response has noindex headers; robots.txt disallows crawling. Authenticated
+GET/HEAD responses for fingerprinted Next.js JavaScript, CSS and WOFF2 build
+files may be cached privately in the browser for one hour, with Authorization
+included in Vary. They must have an upstream immutable policy, a matching
+content type and no session cookies. Cached build files can remain locally
+available for that hour after gateway credential rotation. HTML, editor data,
+APIs, uploaded media, errors and unversioned assets retain no-store headers;
+shared/CDN caching stays disabled. A network request for any protected asset
+still requires the gateway password.
+Only robots.txt and a content-free readiness endpoint are available without
+the preview password. Expose the hosting provider's public domain on the gateway port only;
+Next listens on loopback at the next port.
+
+Supabase public content and public Storage remain governed by their own API/RLS
+policies. The gateway does not make published database content private.
+
+Scheduled job endpoints are disabled in the preview. The Next child process
+receives no gateway password, service-role key, scheduled-job secret or feed
+credentials. Ordinary admin editing still uses the editor's session and RLS.
+
+## Content and media
+
+Import only published document payloads, referenced media metadata, navigation,
+theme settings and public taxonomy into the separate project. Initialize preview
+drafts from published payloads, clear source user references and schedules, and
+omit members, subscribers, form submissions, history and integration credentials.
+Keep export files out of git. An initial copy must not overwrite subsequent
+editor work; further refreshes need a deliberate reconciliation.
+
+Rewrite source Storage origins to the preview origin in imported documents.
+Then, with the preview environment loaded and its server key supplied securely:
+
+    node scripts/copy-preview-media.mjs <published-asset-id> [more-published-asset-ids]
+
+Pass only the asset IDs identified by the published-content export. This reads
+those specific preview catalogue rows, fetches source objects publicly,
+uploads to preview Storage, and verifies SHA-256 bytes. It never overwrites an
+existing object. External and bundled image references remain external references.
+Do not import the entire source media library merely to make this script broader.
+
+Use the existing scripts/create-admin.ts with an explicit preview admin email
+and password and the preview server key. Configure Supabase Auth's site URL and
+allowed redirects for the preview origin. Keep production users and secrets out
+of this environment.
+
+## Migration exception and verification
+
+The public prefix-search update adds
+`20260913202716_public_article_prefix_search.sql`. After its CI migration replay
+passes, apply this one additive migration to the preview before deploying its
+application commit. It adds a simple-dictionary GIN index over public article
+title/subtitle/excerpt/slug values; the existing English index remains available
+to admin search. Anonymous access is granted only to the new derived column,
+with existing row-level security intact. The application can read published rows
+through its compatibility path if the new column has not arrived yet.
+
+Runtime and development dependencies are audited in CI with
+`npm audit --audit-level=low`; any reported vulnerability blocks the verification
+job. Next and its ESLint configuration
+are pinned to 15.5.24 for GHSA-2xp9-vwfh-vxw4; Next's nested PostCSS and Sharp
+are explicitly pinned to patched versions through package overrides. The XML
+parser is updated to 5.11.1, with the existing string-preserving feed adapter
+tests retained. Vitest 4.1.11 and Vite 6.4.3 replace the vulnerable test toolchain;
+the unit and integration projects now live in `vitest.config.mts`. Their include
+patterns, setup files and database test serialization are retained. The lockfile
+also updates the affected JS-YAML and brace-expansion dependencies. Playwright,
+the Supabase CLI and the application runtime versions are unchanged by this
+toolchain update.
+
+On the initial hosted preview, migration 0012_grants was not executed: automatic
+approval review rejected its grants on all current and future tables/sequences.
+The project already had the necessary table grants. No override or substitute
+blanket grant was used. All other 30 existing migrations were applied.
+
+Checks confirmed that all seven document tables have RLS enabled, anonymous
+published-data column access, no anonymous draft-data access, and authenticated
+staff read policies. This is a recorded environment exception, not a claim that
+31 migrations executed there. Do not automatically replay migrations into the
+hosted preview; review unapplied entries individually.
+
+The existing GitHub Actions workflow remains the full regression gate against
+disposable seeded databases. It also runs npm run test:preview for the gateway.
+Hosted preview smoke checks complement those fixture-based tests; do not run
+destructive fixture suites against production or an editor's working preview.
+
+The four admin screenshot references were captured on the authenticated Linux CI
+host and visually reviewed. They cover the dashboard and page list in both themes,
+masking changing table content. Missing references now fail instead of skipping;
+explicit snapshot updates remain a capture-and-review operation. Normal CI compares
+against the committed images rather than regenerating them.
+
+Preview routes resolve dynamic story listings after pattern/template composition,
+using the public binding sources. A category preview and a template framing that
+category therefore render working story links without exposing related drafts.
+Route tests cover all three binding contexts and an authenticated E2E checks the
+actual category preview. CI prints each E2E test name to help trace server errors
+that might otherwise appear between anonymous progress dots.
+
+The editor canvas shows dynamic-content placeholders for unresolved queries,
+preserving the stored descriptors and normal selection/reorder/delete controls.
+This prevents a full editor reload from rendering an undefined story link before
+client error boundaries can run. The site preview resolves the actual stories.
+SSR tests cover both storage formats; E2E reloads the editor, checks the public
+preview, and preserves an editor screenshot for review.

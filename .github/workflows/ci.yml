@@ -65,6 +65,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Dependency security (runtime and development)
+        run: npm audit --audit-level=low
+
       - name: Prettier
         run: npm run format:check
 
@@ -85,6 +88,9 @@ jobs:
 
       - name: Unit & component tests
         run: npm test
+
+      - name: Isolated preview gateway tests
+        run: npm run test:preview
 
       # Advisory only: docs discipline must never block a hotfix.
       #
@@ -328,9 +334,18 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run test:e2e -- --grep-invert "Appearance Studio|Editorial collection"
+        run: npm run test:e2e -- --reporter=line,github,html --grep-invert "Appearance Studio|Editorial collection"
 
       # Later Playwright suites clear test-results and replace the HTML report.
+      - name: Preserve dynamic-content editor review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-binding-review
+          path: ${{ env.APP_DIR }}/test-results/previewBindings-*/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Preserve Studio publishing failure details
         if: failure()
         uses: actions/upload-artifact@v4
