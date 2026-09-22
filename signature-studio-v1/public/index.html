@@ -4,121 +4,214 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Signature Studio · Modern Gentlemen</title>
-<meta name="description" content="Design, save, and install sophisticated email signatures.">
+<meta name="description" content="Design, save, test, and install sophisticated email signatures.">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-:root{--bg:#f3f2ef;--panel:#fff;--ink:#171717;--muted:#6c6c6c;--line:#deddd8;--accent:#111;--blue:#356fb8}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
-button,input,select,textarea{font:inherit}.app{display:grid;grid-template-columns:340px 1fr;min-height:100vh}
-aside{background:#111214;color:#fff;padding:22px;overflow:auto;height:100vh;position:sticky;top:0}
-.brand{display:flex;gap:13px;align-items:center;margin-bottom:20px}.mark{width:42px;height:42px;background:#000;border:1px solid #343434;display:grid;place-items:center;font-weight:800}.brand h1{font-size:17px;margin:0}.brand small{color:#aaa}
-.section{border-top:1px solid #303134;padding-top:15px;margin-top:15px}.section h2{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#999;margin:0 0 12px}
-.field{margin:10px 0}.field label{display:block;font-size:11px;color:#aaa;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:1px solid #3b3c3f;background:#1a1b1d;color:white;border-radius:8px;padding:9px 10px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.btn{border:1px solid #3b3c3f;background:#232427;color:#fff;border-radius:8px;padding:9px 11px;cursor:pointer}.btn.primary{background:#fff;color:#111}.btn:disabled{opacity:.45}
-main{padding:26px 28px 50px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h2{margin:0;font-size:22px}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:22px}.stage{background:#dddcd8;border-radius:18px;padding:24px;min-height:540px;display:grid;place-items:center;overflow:auto}.canvas{background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.08);padding:26px;width:min(760px,100%);overflow:auto}
-#sigWrap{transform-origin:top left;display:inline-block;white-space:nowrap}.sig{font-family:Arial,Helvetica,sans-serif;color:#222;border-collapse:collapse}.sig td{vertical-align:middle}.logoBox{width:125px;height:125px;overflow:hidden;background:#000}.logoBox img{width:100%;height:100%;object-fit:cover}.content{padding-left:28px}.name{font-size:25px;font-weight:700;line-height:1.1}.role{font-size:15px;font-weight:600;color:#737373;margin-top:8px}.tag{font-size:16px;margin-top:18px}.contact{font-size:14px;margin-top:12px}.contact a,.site a{color:var(--blue)}.site{font-size:14px;margin-top:10px}.social{display:flex;gap:8px;margin-top:16px;align-items:center}.social a{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#333;color:#fff;text-decoration:none;font-size:12px;font-weight:700}
-.side{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;height:max-content}.side h3{margin:0 0 12px;font-size:15px}.template{padding:10px;border:1px solid var(--line);border-radius:10px;margin:8px 0;cursor:pointer}.template.active{border-color:#111;background:#f5f5f2}.note{font-size:12px;color:var(--muted);line-height:1.45}.status{font-size:12px;margin-top:10px;min-height:18px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.48);display:none;place-items:center;padding:20px;z-index:20}.modal.open{display:grid}.modalCard{background:#fff;width:min(520px,100%);border-radius:16px;padding:22px}.modalCard h3{margin-top:0}.modalCard input{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;margin:6px 0}.modalCard button{margin-top:8px}
-@media(max-width:980px){.app{grid-template-columns:1fr}aside{height:auto;position:relative}.grid{grid-template-columns:1fr}.stage{min-height:440px}}
+:root{--bg:#f1f0ec;--panel:#fff;--ink:#171717;--muted:#737373;--line:#d9d8d3;--side:#111214;--side2:#1a1b1d;--blue:#356fb8;--ok:#1f7a4d;--warn:#9a6412}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}button,input,select,textarea{font:inherit}
+button{cursor:pointer}.app{display:grid;grid-template-columns:368px 1fr;min-height:100vh}.sidebar{background:var(--side);color:white;height:100vh;overflow:auto;position:sticky;top:0;padding:18px}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:12px}.mark{width:42px;height:42px;background:#000;border:1px solid #333;display:grid;place-items:center;font-weight:800}.brand h1{font-size:17px;margin:0}.brand small{color:#999}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}.tab{border:1px solid #343538;background:#1a1b1d;color:#bbb;border-radius:999px;padding:7px 10px;font-size:11px}.tab.active{background:#fff;color:#111;border-color:#fff}
+.pane{display:none}.pane.active{display:block}.section{border-top:1px solid #303134;padding-top:14px;margin-top:14px}.section h2{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#999;margin:0 0 11px}
+.field{margin:9px 0}.field label{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#aaa;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:1px solid #3b3c3f;background:var(--side2);color:#fff;border-radius:8px;padding:9px}.field input[type="color"]{height:38px;padding:4px}.field input[type="range"]{padding:0;border:0}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:1px solid #3b3c3f;background:#242528;color:#fff;border-radius:8px;padding:9px 10px}.btn.primary{background:#fff;color:#111}.btn.danger{border-color:#704040;color:#ffc5c5}.btn:disabled{opacity:.45;cursor:not-allowed}.tiny{font-size:10px;color:#8f8f8f}.status{font-size:11px;line-height:1.4;margin-top:9px;min-height:16px}
+.social-editor{border:1px solid #333;border-radius:10px;padding:9px;margin:8px 0}.social-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.social-actions{display:flex;gap:4px}.iconbtn{width:27px;height:27px;border:1px solid #3b3c3f;background:#232427;color:#fff;border-radius:7px}
+main{padding:20px 24px 50px;min-width:0}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}.toolbar h2{margin:0;font-size:22px}.tools{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.tools button,.tools select{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px}.stage{border-radius:18px;padding:24px;min-height:590px;display:grid;place-items:center;overflow:auto;background:#deddd8;transition:.2s}.stage.dark{background:#26272a}.stage.checker{background-image:linear-gradient(45deg,#e9e9e6 25%,transparent 25%),linear-gradient(-45deg,#e9e9e6 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9e9e6 75%),linear-gradient(-45deg,transparent 75%,#e9e9e6 75%);background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0}
+.canvas{background:white;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.08);padding:28px;max-width:100%;overflow:auto}.stage.dark .canvas{background:#1a1b1d}.stage.dark .sig{filter:invert(.92) hue-rotate(180deg)}
+#sigWrap{transform-origin:top left;display:inline-block;white-space:nowrap}.sig{font-family:Arial,Helvetica,sans-serif;color:#222;border-collapse:collapse}.sig td{vertical-align:middle}.logoBox{overflow:hidden;background:#000}.logoBox img{width:100%;height:100%;object-fit:cover}.content{vertical-align:middle}.name{line-height:1.08}.social{display:flex;align-items:center}.social a{text-decoration:none;display:inline-grid;place-items:center}.divider{display:none}
+.rightcol{display:flex;flex-direction:column;gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px}.card h3{font-size:14px;margin:0 0 10px}.note{font-size:11px;color:var(--muted);line-height:1.5}.template-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:310px;overflow:auto}.template{border:1px solid var(--line);border-radius:10px;padding:9px;cursor:pointer;background:#fff;min-height:68px}.template.active{border-color:#111;box-shadow:inset 0 0 0 1px #111}.template strong{display:block;font-size:11px}.template span{font-size:9px;color:#888}
+.metric{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:11px}.metric:last-child{border:0}.good{color:var(--ok)}.warning{color:var(--warn)}
+.installSteps{counter-reset:s}.installSteps div{position:relative;padding-left:24px;margin:8px 0;font-size:11px;color:#555}.installSteps div:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-1px;width:17px;height:17px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;font-size:9px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;place-items:center;padding:18px;z-index:50}.modal.open{display:grid}.modalCard{background:#fff;width:min(680px,100%);max-height:85vh;overflow:auto;border-radius:16px;padding:20px}.modalCard h3{margin:0 0 12px}.projectRow{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;border-top:1px solid #eee;padding:9px 0}.projectRow:first-child{border-top:0}.projectRow button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 8px}
+.badge{display:inline-block;border-radius:999px;padding:3px 7px;font-size:9px;background:#efefec}.banner{padding:9px 11px;border-radius:10px;background:#f6f5f1;font-size:11px;color:#555;margin-bottom:10px}
+@media(max-width:1100px){.app{grid-template-columns:335px 1fr}.work{grid-template-columns:1fr}.rightcol{display:grid;grid-template-columns:1fr 1fr}.template-grid{max-height:none}}
+@media(max-width:780px){.app{display:block}.sidebar{position:relative;height:auto}.toolbar{display:block}.tools{justify-content:flex-start;margin-top:10px}.rightcol{display:block}.card{margin-top:12px}.stage{min-height:430px;padding:12px}}
 </style>
 </head>
 <body>
 <div class="app">
-<aside>
-  <div class="brand"><div class="mark">MG</div><div><h1>Signature Studio</h1><small>Modern Gentlemen · v1</small></div></div>
-  <div class="section"><h2>Identity</h2>
-    <div class="field"><label>Name</label><input id="name" value="Jason Mallard"></div>
-    <div class="field"><label>Title</label><input id="role" value="Creator and Founder of Modern Gentlemen"></div>
-    <div class="field"><label>Tagline</label><input id="tag" value="The Lifestyle Guide for the Modern Man"></div>
-    <div class="row"><div class="field"><label>Phone</label><input id="phone" value="334-581-1193"></div><div class="field"><label>Email</label><input id="email" value="partners@moderngentlemen.co"></div></div>
-    <div class="field"><label>Website</label><input id="site" value="https://www.moderngentlemen.co"></div>
-  </div>
-  <div class="section"><h2>Brand</h2>
-    <div class="field"><label>Logo image</label><input id="logoFile" type="file" accept="image/*"></div>
-    <div class="field"><label>Logo zoom <span id="logoZoomVal">100%</span></label><input id="logoZoom" type="range" min="50" max="250" value="100"></div>
-    <div class="field"><label>Design scale <span id="scaleVal">100%</span></label><input id="scale" type="range" min="50" max="120" value="100"></div>
-    <div class="row"><div class="field"><label>Target width</label><select id="target"><option>420</option><option selected>520</option><option>600</option></select></div><div class="field"><label>&nbsp;</label><button class="btn" id="fit">Auto fit</button></div></div>
-  </div>
-  <div class="section"><h2>Social links</h2>
-    <div class="field"><label>Instagram</label><input id="instagram" placeholder="https://instagram.com/..."></div>
-    <div class="field"><label>TikTok</label><input id="tiktok" placeholder="https://tiktok.com/@..."></div>
-    <div class="field"><label>Facebook</label><input id="facebook" placeholder="https://facebook.com/..."></div>
-    <div class="field"><label>LinkedIn</label><input id="linkedin" placeholder="https://linkedin.com/in/..."></div>
-    <div class="field"><label>Icon style</label><select id="iconStyle"><option value="circle">Filled circle</option><option value="outline">Outline circle</option><option value="text">Platform names</option></select></div>
-  </div>
-  <div class="section"><h2>Cloud</h2>
-    <div id="cloudGuest">
-      <div class="field"><label>Email</label><input id="authEmail" type="email" placeholder="you@example.com"></div>
-      <div class="field"><label>Password</label><input id="authPassword" type="password" placeholder="••••••••"></div>
-      <div class="row"><button class="btn primary" id="signIn">Sign in</button><button class="btn" id="signUp">Create account</button></div>
-    </div>
-    <div id="cloudUser" style="display:none"><div class="note" id="who"></div><div class="field"><label>Project name</label><input id="projectName" value="Modern Gentlemen Signature"></div><div class="row"><button class="btn primary" id="saveCloud">Save cloud</button><button class="btn" id="loadCloud">Load projects</button></div><button class="btn" id="signOut" style="margin-top:8px;width:100%">Sign out</button></div>
-    <div class="status" id="cloudStatus"></div>
-  </div>
+<aside class="sidebar">
+<div class="brand"><div class="mark">MG</div><div><h1>Signature Studio</h1><small>Modern Gentlemen · v1</small></div></div>
+<div class="tabs"><button class="tab active" data-pane="content">Content</button><button class="tab" data-pane="design">Design</button><button class="tab" data-pane="social">Social</button><button class="tab" data-pane="cloud">Cloud</button><button class="tab" data-pane="gmail">Gmail</button></div>
+
+<div class="pane active" id="pane-content">
+<div class="section"><h2>Identity</h2>
+<div class="field"><label>Name</label><input id="name" value="Jason Mallard"></div>
+<div class="field"><label>Title / role</label><input id="role" value="Creator and Founder of Modern Gentlemen"></div>
+<div class="field"><label>Company</label><input id="company" value="Modern Gentlemen"></div>
+<div class="field"><label>Tagline</label><input id="tag" value="The Lifestyle Guide for the Modern Man"></div>
+<div class="field"><label>Pronouns</label><input id="pronouns" placeholder="Optional"></div>
+</div>
+<div class="section"><h2>Contact</h2>
+<div class="row"><div class="field"><label>Phone</label><input id="phone" value="334-581-1193"></div><div class="field"><label>Email</label><input id="email" value="partners@moderngentlemen.co"></div></div>
+<div class="field"><label>Website</label><input id="site" value="https://www.moderngentlemen.co"></div>
+<div class="field"><label>Address</label><input id="address" placeholder="Optional"></div>
+<div class="field"><label>Calendar / booking URL</label><input id="booking" placeholder="Optional"></div>
+</div>
+<div class="section"><h2>Signature modes</h2>
+<div class="row"><button class="btn primary" id="fullMode">Full signature</button><button class="btn" id="replyMode">Reply signature</button></div>
+<div class="tiny" style="margin-top:7px">Reply mode automatically reduces visual weight for long email threads.</div>
+</div>
+</div>
+
+<div class="pane" id="pane-design">
+<div class="section"><h2>Logo</h2>
+<div class="field"><label>Logo image</label><input id="logoFile" type="file" accept="image/*"></div>
+<div class="row"><div class="field"><label>Frame px <span id="frameVal"></span></label><input id="logoFrame" type="range" min="40" max="180" value="125"></div><div class="field"><label>Zoom <span id="logoZoomVal"></span></label><input id="logoZoom" type="range" min="50" max="300" value="100"></div></div>
+<div class="row"><div class="field"><label>Frame shape</label><select id="logoShape"><option value="square">Square</option><option value="round">Rounded</option><option value="circle">Circle</option></select></div><div class="field"><label>Logo background</label><input id="logoBg" type="color" value="#000000"></div></div>
+</div>
+<div class="section"><h2>Typography</h2>
+<div class="field"><label>Font family</label><select id="font"><option value="Arial,Helvetica,sans-serif">Arial / Helvetica</option><option value="Georgia,serif">Georgia</option><option value="'Trebuchet MS',Arial,sans-serif">Trebuchet</option><option value="Verdana,Arial,sans-serif">Verdana</option><option value="'Times New Roman',serif">Times New Roman</option></select></div>
+<div class="row"><div class="field"><label>Name size</label><input id="nameSize" type="range" min="16" max="34" value="25"></div><div class="field"><label>Body size</label><input id="bodySize" type="range" min="10" max="18" value="14"></div></div>
+</div>
+<div class="section"><h2>Color</h2>
+<div class="row"><div class="field"><label>Primary</label><input id="primaryColor" type="color" value="#222222"></div><div class="field"><label>Secondary</label><input id="secondaryColor" type="color" value="#737373"></div></div>
+<div class="row"><div class="field"><label>Links</label><input id="linkColor" type="color" value="#356fb8"></div><div class="field"><label>Accent</label><input id="accentColor" type="color" value="#111111"></div></div>
+</div>
+<div class="section"><h2>Fit & spacing</h2>
+<div class="field"><label>Design scale <span id="scaleVal"></span></label><input id="scale" type="range" min="45" max="120" value="100"></div>
+<div class="row"><div class="field"><label>Target width</label><select id="target"><option value="360">360 px</option><option value="420">420 px</option><option selected value="520">520 px</option><option value="600">600 px</option></select></div><div class="field"><label>Content gap</label><input id="gap" type="range" min="8" max="48" value="28"></div></div>
+<div class="row"><button class="btn" id="fit">Auto fit</button><button class="btn" id="fitMobile">Fit mobile</button></div>
+</div>
+</div>
+
+<div class="pane" id="pane-social">
+<div class="section"><h2>Social icon styling</h2>
+<div class="row"><div class="field"><label>Style</label><select id="iconStyle"><option value="circle">Filled circle</option><option value="outline">Outline</option><option value="tile">Rounded tile</option><option value="text">Platform names</option></select></div><div class="field"><label>Size</label><input id="iconSize" type="range" min="18" max="42" value="30"></div></div>
+<div class="field"><label>Spacing</label><input id="iconGap" type="range" min="3" max="18" value="8"></div>
+</div>
+<div class="section"><h2>Accounts · reorder with arrows</h2><div id="socialEditors"></div></div>
+</div>
+
+<div class="pane" id="pane-cloud">
+<div class="section"><h2>Account & saves</h2>
+<div id="cloudGuest"><div class="field"><label>Email</label><input id="authEmail" type="email" placeholder="you@example.com"></div><div class="field"><label>Password</label><input id="authPassword" type="password" placeholder="••••••••"></div><div class="row"><button class="btn primary" id="signIn">Sign in</button><button class="btn" id="signUp">Create account</button></div></div>
+<div id="cloudUser" style="display:none"><div class="tiny" id="who"></div><div class="field"><label>Project name</label><input id="projectName" value="Modern Gentlemen Signature"></div><div class="row"><button class="btn primary" id="saveCloud">Save</button><button class="btn" id="saveAsCloud">Save as new</button></div><div class="row" style="margin-top:8px"><button class="btn" id="loadCloud">Manage projects</button><button class="btn" id="uploadAssets">Host embedded images</button></div><button class="btn" id="signOut" style="width:100%;margin-top:8px">Sign out</button></div>
+<div class="status" id="cloudStatus"></div>
+</div>
+<div class="section"><h2>Local project</h2>
+<div class="row"><button class="btn" id="exportJsonSide">Export JSON</button><label class="btn" style="text-align:center">Import JSON<input id="importJson" type="file" accept=".json,application/json" hidden></label></div>
+</div>
+</div>
+
+<div class="pane" id="pane-gmail">
+<div class="section"><h2>Guided Gmail install</h2><button class="btn primary" id="guidedGmail" style="width:100%">Copy + open Gmail settings</button><div class="tiny" style="margin-top:7px">No Gmail permission required.</div></div>
+<div class="section"><h2>Direct Gmail install</h2>
+<div id="gmailDirectInfo" class="tiny"></div>
+<button class="btn primary" id="directGmail" style="width:100%;margin-top:8px">Connect Gmail & install</button>
+<div class="status" id="gmailStatus"></div>
+</div>
+</div>
 </aside>
+
 <main>
-  <div class="top"><div><h2>Email Signature Designer</h2><div class="note">Gmail-friendly HTML · cloud saves · responsive scaling</div></div>
-    <div class="actions"><button id="copy">Copy signature</button><button id="gmail">Install in Gmail</button><button id="exportHtml">Export HTML</button><button id="exportJson">Export project</button></div>
-  </div>
-  <div class="grid">
-    <div class="stage"><div class="canvas" id="canvas"><div id="sigWrap"><table class="sig" id="signature" cellpadding="0" cellspacing="0" role="presentation"><tr><td><div class="logoBox"><img id="logo" src="assets/mg-logo.svg" alt="Modern Gentlemen"></div></td><td class="content"><div class="name" id="pName"></div><div class="role" id="pRole"></div><div class="tag" id="pTag"></div><div class="contact"><span id="pPhone"></span> <span id="sep">|</span> <a id="pEmail"></a></div><div class="site"><a id="pSite"></a></div><div class="social" id="pSocial"></div></td></tr></table></div></div></div>
-    <div class="side"><h3>Templates</h3><div class="template active" data-template="editorial"><strong>Editorial Classic</strong><div class="note">MG's original horizontal structure.</div></div><div class="template" data-template="executive"><strong>Executive Compact</strong><div class="note">Smaller logo, tighter type and spacing.</div></div><div class="template" data-template="minimal"><strong>Minimal Founder</strong><div class="note">Text-led with understated logo.</div></div><div class="template" data-template="luxury"><strong>Luxury Wide</strong><div class="note">Generous spacing and larger identity.</div></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><div class="note"><strong>Gmail install</strong><br>“Install in Gmail” copies the rich signature and opens Gmail Settings. Direct Gmail API installation can be enabled after Google OAuth verification.</div><div class="status" id="mainStatus"></div></div>
-  </div>
+<div class="toolbar"><div><h2>Email Signature Designer</h2><div class="note">Professional email signatures with Gmail-safe export, cloud projects, and compatibility checks.</div></div><div class="tools"><button id="undo">Undo</button><button id="redo">Redo</button><select id="previewMode"><option value="light">Light preview</option><option value="dark">Dark preview</option><option value="checker">Transparent preview</option></select><button id="reset">Reset</button><button id="copy">Copy</button><button id="exportHtml">HTML</button></div></div>
+<div class="work">
+<div class="stage" id="stage"><div class="canvas"><div id="sigWrap"><table class="sig" id="signature" cellpadding="0" cellspacing="0" role="presentation"><tr id="signatureRow"><td id="logoCell"><div class="logoBox"><img id="logo" src="assets/mg-logo.svg" alt="Modern Gentlemen"></div></td><td class="content" id="contentCell"><div class="name" id="pName"></div><div class="role" id="pRole"></div><div class="companyLine" id="pCompany"></div><div class="tag" id="pTag"></div><div class="contact" id="contactLine"><span id="pPhone"></span><span id="sep"> | </span><a id="pEmail"></a></div><div class="site"><a id="pSite"></a></div><div class="address" id="pAddress"></div><div class="booking" id="pBookingWrap"><a id="pBooking">Book a meeting</a></div><div class="divider" id="divider"></div><div class="social" id="pSocial"></div></td></tr></table></div></div></div>
+<div class="rightcol">
+<div class="card"><h3>Template library <span class="badge">12</span></h3><div class="template-grid" id="templateGrid"></div></div>
+<div class="card"><h3>Compatibility</h3><div class="metric"><span>Rendered width</span><strong id="mWidth">—</strong></div><div class="metric"><span>Target width</span><strong id="mTarget">—</strong></div><div class="metric"><span>Wrapping</span><strong id="mWrap">—</strong></div><div class="metric"><span>Embedded images</span><strong id="mImages">—</strong></div><div class="metric"><span>Gmail readiness</span><strong id="mReady">—</strong></div><div class="note" id="compatNote" style="margin-top:8px"></div></div>
+<div class="card"><h3>Install in Gmail</h3><div class="installSteps"><div>Finish your design and run Auto fit.</div><div>Use Guided Install immediately, or Direct Install after Google OAuth is connected.</div><div>Send yourself a test email and inspect desktop + mobile rendering.</div></div><button class="btn primary" id="gmailCardBtn" style="width:100%;margin-top:6px">Install in Gmail</button><div class="status" id="mainStatus"></div></div>
+</div>
+</div>
 </main>
 </div>
+
 <div class="modal" id="projectsModal"><div class="modalCard"><h3>Cloud projects</h3><div id="projectsList"></div><button class="btn" id="closeProjects">Close</button></div></div>
 <script src="/config.js"></script>
 <script>
-const C=window.SIGNATURE_STUDIO_CONFIG||{};
-const $=id=>document.getElementById(id);
-const fields=['name','role','tag','phone','email','site','instagram','tiktok','facebook','linkedin','logoZoom','scale','target','iconStyle','projectName'];
-let state={template:'editorial',logo:'assets/mg-logo.svg',projectId:null};
-const socials=[['instagram','IG'],['tiktok','TT'],['facebook','f'],['linkedin','in']];
-function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function draw(){
- $('pName').textContent=$('name').value;$('pRole').textContent=$('role').value;$('pTag').textContent=$('tag').value;
- $('pPhone').textContent=$('phone').value;$('pEmail').textContent=$('email').value;$('pEmail').href='mailto:'+$('email').value;
- const site=$('site').value;$('pSite').textContent=site.replace(/^https?:\/\//,'').replace(/\/$/,'');$('pSite').href=site;
- $('sep').style.display=$('phone').value&&$('email').value?'inline':'none';
- $('logo').src=state.logo;$('logo').style.transform='scale('+($('logoZoom').value/100)+')';
- $('logoZoomVal').textContent=$('logoZoom').value+'%';$('scaleVal').textContent=$('scale').value+'%';
- $('sigWrap').style.transform='scale('+($('scale').value/100)+')';
- const row=$('pSocial');row.innerHTML='';
- socials.forEach(([id,label])=>{const url=$(id).value.trim();if(!url)return;const a=document.createElement('a');a.href=url;a.target='_blank';a.textContent=$('iconStyle').value==='text'?id[0].toUpperCase()+id.slice(1):label;if($('iconStyle').value==='text'){a.style.width='auto';a.style.height='auto';a.style.background='none';a.style.color='#333';a.style.borderRadius='0'}else if($('iconStyle').value==='outline'){a.style.background='transparent';a.style.color='#333';a.style.border='1px solid #777'}row.appendChild(a)});
- applyTemplate(); saveLocal();
+const C=window.SIGNATURE_STUDIO_CONFIG||{},$=id=>document.getElementById(id);
+const templates=[
+['editorial','Editorial Classic','MG original structure'],['executive','Executive Compact','Tighter business layout'],['minimal','Minimal Founder','Small mark, restrained type'],['luxury','Luxury Wide','Large mark and generous spacing'],['monogram','Monogram Left','Compact logo emphasis'],['bordered','Architectural','Vertical accent divider'],['centered','Centered Mark','Balanced centered composition'],['publisher','Publisher','Editorial hierarchy'],['creative','Creative Director','Bold name and accent'],['corporate','Corporate Clean','Conservative and compact'],['hospitality','Hospitality','Polished guest-facing layout'],['reply','Reply Minimal','Ultra-compact thread signature']
+];
+const defaults={template:'editorial',mode:'full',logo:'assets/mg-logo.svg',socialOrder:['instagram','tiktok','facebook','linkedin'],socialVisible:{instagram:true,tiktok:true,facebook:true,linkedin:true},socialIcons:{},projectId:null};
+let state=structuredClone(defaults),history=[],future=[],suppressHistory=false,lastSnapshot='';
+const fieldIds=['name','role','company','tag','pronouns','phone','email','site','address','booking','logoFrame','logoZoom','logoShape','logoBg','font','nameSize','bodySize','primaryColor','secondaryColor','linkColor','accentColor','scale','target','gap','iconStyle','iconSize','iconGap','projectName'];
+const socialMeta={instagram:{label:'Instagram',mark:'IG',url:''},tiktok:{label:'TikTok',mark:'TT',url:''},facebook:{label:'Facebook',mark:'f',url:''},linkedin:{label:'LinkedIn',mark:'in',url:''}};
+function snapshot(){const d={state:structuredClone(state)};fieldIds.forEach(id=>d[id]=$(id).value);Object.keys(socialMeta).forEach(id=>d['social_'+id]=$('social_'+id)?.value||'');return d}
+function record(){if(suppressHistory)return;const s=JSON.stringify(snapshot());if(s===lastSnapshot)return;if(lastSnapshot)history.push(lastSnapshot);if(history.length>60)history.shift();lastSnapshot=s;future=[];syncUndo()}
+function restoreSnapshot(s){suppressHistory=true;const d=typeof s==='string'?JSON.parse(s):s;state={...structuredClone(defaults),...(d.state||{})};fieldIds.forEach(id=>{if(d[id]!=null&&$(id))$(id).value=d[id]});renderSocialEditors(d);selectTemplate();draw(false);suppressHistory=false;lastSnapshot=JSON.stringify(snapshot());syncUndo()}
+function syncUndo(){$('undo').disabled=!history.length;$('redo').disabled=!future.length}
+$('undo').onclick=()=>{if(!history.length)return;future.push(JSON.stringify(snapshot()));restoreSnapshot(history.pop())};$('redo').onclick=()=>{if(!future.length)return;history.push(JSON.stringify(snapshot()));restoreSnapshot(future.pop())};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+b.dataset.pane))});
+function buildTemplates(){const g=$('templateGrid');g.innerHTML='';templates.forEach(([id,title,desc])=>{const d=document.createElement('div');d.className='template';d.dataset.template=id;d.innerHTML='<strong>'+title+'</strong><span>'+desc+'</span>';d.onclick=()=>{state.template=id;if(id==='reply')state.mode='reply';selectTemplate();draw();};g.appendChild(d)});selectTemplate()}
+function selectTemplate(){document.querySelectorAll('.template').forEach(x=>x.classList.toggle('active',x.dataset.template===state.template))}
+function renderSocialEditors(data){const box=$('socialEditors');box.innerHTML='';state.socialOrder.forEach((id,i)=>{const m=socialMeta[id],wrap=document.createElement('div');wrap.className='social-editor';wrap.innerHTML='<div class="social-head"><label><input type="checkbox" id="visible_'+id+'" '+(state.socialVisible[id]?'checked':'')+'> '+m.label+'</label><div class="social-actions"><button class="iconbtn" data-up="'+id+'">↑</button><button class="iconbtn" data-down="'+id+'">↓</button></div></div><div class="field"><input id="social_'+id+'" placeholder="https://..." value="'+(data?.['social_'+id]||'')+'"></div><div class="field"><label>Custom icon</label><input id="icon_'+id+'" type="file" accept="image/*"></div>';box.appendChild(wrap)});
+box.querySelectorAll('input[type="checkbox"]').forEach(c=>c.onchange=()=>{state.socialVisible[c.id.replace('visible_','')]=c.checked;draw()});
+box.querySelectorAll('input[id^="social_"]').forEach(inp=>inp.oninput=()=>draw());
+box.querySelectorAll('input[id^="icon_"]').forEach(inp=>inp.onchange=e=>{const id=inp.id.replace('icon_',''),f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{state.socialIcons[id]=r.result;draw()};r.readAsDataURL(f)});
+box.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>moveSocial(b.dataset.up,-1));box.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>moveSocial(b.dataset.down,1));
 }
-function applyTemplate(){
- const sig=$('signature'),content=document.querySelector('.content'),name=$('pName'),role=$('pRole'),tag=$('pTag'),box=document.querySelector('.logoBox');
- sig.style.borderLeft='0';content.style.paddingLeft='28px';box.style.width='125px';box.style.height='125px';name.style.fontSize='25px';tag.style.fontSize='16px';role.style.fontSize='15px';
- if(state.template==='executive'){box.style.width='92px';box.style.height='92px';content.style.paddingLeft='20px';name.style.fontSize='21px';tag.style.fontSize='13px';role.style.fontSize='13px'}
- if(state.template==='minimal'){box.style.width='58px';box.style.height='58px';content.style.paddingLeft='18px';name.style.fontSize='22px';tag.style.fontSize='13px';role.style.fontSize='12px'}
- if(state.template==='luxury'){box.style.width='145px';box.style.height='145px';content.style.paddingLeft='34px';name.style.fontSize='29px';tag.style.fontSize='17px';role.style.fontSize='15px'}
+function moveSocial(id,dir){const i=state.socialOrder.indexOf(id),j=i+dir;if(j<0||j>=state.socialOrder.length)return;[state.socialOrder[i],state.socialOrder[j]]=[state.socialOrder[j],state.socialOrder[i]];const d=snapshot();renderSocialEditors(d);draw()}
+function draw(withHistory=true){
+const font=$('font').value,body=+$('bodySize').value,nameSize=+$('nameSize').value,primary=$('primaryColor').value,secondary=$('secondaryColor').value,link=$('linkColor').value,accent=$('accentColor').value;
+$('signature').style.fontFamily=font;$('signature').style.color=primary;$('pName').textContent=$('name').value;$('pName').style.fontSize=nameSize+'px';$('pName').style.fontWeight=state.template==='creative'?'800':'700';
+let role=$('role').value,company=$('company').value,pronouns=$('pronouns').value;$('pRole').textContent=role+(pronouns?' · '+pronouns:'');$('pRole').style.fontSize=body+'px';$('pRole').style.color=secondary;
+$('pCompany').textContent=company;$('pCompany').style.fontSize=(body-1)+'px';$('pCompany').style.color=secondary;$('pCompany').style.marginTop='4px';
+$('pTag').textContent=$('tag').value;$('pTag').style.fontSize=(body+1)+'px';$('pTag').style.marginTop=state.mode==='reply'?'6px':'16px';
+$('pPhone').textContent=$('phone').value;$('pEmail').textContent=$('email').value;$('pEmail').href='mailto:'+$('email').value;$('pEmail').style.color=link;$('sep').style.display=$('phone').value&&$('email').value?'inline':'none';
+const site=$('site').value;$('pSite').textContent=site.replace(/^https?:\/\//,'').replace(/\/$/,'');$('pSite').href=site;$('pSite').style.color=link;
+$('pAddress').textContent=$('address').value;$('pBookingWrap').style.display=$('booking').value?'block':'none';$('pBooking').href=$('booking').value;$('pBooking').style.color=link;
+document.querySelectorAll('.contact,.site,.address,.booking').forEach(x=>{x.style.fontSize=body+'px';x.style.marginTop='8px'});$('contactLine').style.marginTop=state.mode==='reply'?'6px':'10px';
+const box=document.querySelector('.logoBox'),frame=+$('logoFrame').value;box.style.width=frame+'px';box.style.height=frame+'px';box.style.background=$('logoBg').value;box.style.borderRadius=$('logoShape').value==='circle'?'50%':$('logoShape').value==='round'?'16px':'0';$('logo').src=state.logo;$('logo').style.transform='scale('+($('logoZoom').value/100)+')';
+$('frameVal').textContent=frame;$('logoZoomVal').textContent=$('logoZoom').value+'%';$('scaleVal').textContent=$('scale').value+'%';$('sigWrap').style.transform='scale('+($('scale').value/100)+')';
+const content=$('contentCell');content.style.paddingLeft=$('gap').value+'px';const row=$('pSocial');row.innerHTML='';row.style.gap=$('iconGap').value+'px';row.style.marginTop=state.mode==='reply'?'7px':'14px';
+state.socialOrder.forEach(id=>{if(!state.socialVisible[id])return;const url=$('social_'+id)?.value?.trim();if(!url)return;const a=document.createElement('a');a.href=url;a.target='_blank';const size=+$('iconSize').value;if(state.socialIcons[id]){const im=document.createElement('img');im.src=state.socialIcons[id];im.alt=socialMeta[id].label;im.style.width=size+'px';im.style.height=size+'px';im.style.objectFit='contain';a.appendChild(im)}else{a.textContent=$('iconStyle').value==='text'?socialMeta[id].label:socialMeta[id].mark;a.style.width=$('iconStyle').value==='text'?'auto':size+'px';a.style.height=$('iconStyle').value==='text'?'auto':size+'px';a.style.fontSize=Math.max(9,Math.round(size*.38))+'px';a.style.fontWeight='700';a.style.color=$('iconStyle').value==='circle'||$('iconStyle').value==='tile'?'#fff':accent;a.style.background=$('iconStyle').value==='circle'||$('iconStyle').value==='tile'?accent:'transparent';a.style.border=$('iconStyle').value==='outline'?'1px solid '+accent:'0';a.style.borderRadius=$('iconStyle').value==='circle'||$('iconStyle').value==='outline'?'50%':$('iconStyle').value==='tile'?'7px':'0'}row.appendChild(a)});
+applyTemplate();saveLocal();setTimeout(metrics,0);if(withHistory)record()
 }
-function data(){const d={template:state.template,logo:state.logo};fields.forEach(id=>d[id]=$(id).value);return d}
-function load(d){if(!d)return;state.template=d.template||state.template;state.logo=d.logo||state.logo;fields.forEach(id=>{if(d[id]!=null)$(id).value=d[id]});document.querySelectorAll('.template').forEach(x=>x.classList.toggle('active',x.dataset.template===state.template));draw()}
-function saveLocal(){try{localStorage.setItem('signatureStudioV1',JSON.stringify(data()))}catch{}}
-fields.forEach(id=>$(id).addEventListener('input',draw));document.querySelectorAll('.template').forEach(x=>x.onclick=()=>{state.template=x.dataset.template;document.querySelectorAll('.template').forEach(y=>y.classList.toggle('active',y===x));draw()});
+function applyTemplate(){const content=$('contentCell'),box=document.querySelector('.logoBox'),divider=$('divider'),logoCell=$('logoCell'),sig=$('signature');divider.style.display='none';divider.style.cssText='display:none';sig.style.borderLeft='0';logoCell.style.display=state.mode==='reply'?'none':'table-cell';
+if(state.template==='executive'){$('logoFrame').value=Math.min(+$('logoFrame').value,95);content.style.paddingLeft='18px'}
+if(state.template==='minimal'||state.template==='monogram'){$('logoFrame').value=Math.min(+$('logoFrame').value,72);content.style.paddingLeft='16px'}
+if(state.template==='luxury'){$('logoFrame').value=Math.max(+$('logoFrame').value,140);content.style.paddingLeft='34px'}
+if(state.template==='bordered'){divider.style.display='block';divider.style.width='1px';divider.style.height='38px';divider.style.background=$('accentColor').value;divider.style.marginTop='12px'}
+if(state.template==='centered'){content.style.textAlign='center';$('signatureRow').style.display='block';logoCell.style.display=state.mode==='reply'?'none':'block';logoCell.style.width='max-content';logoCell.style.margin='0 auto 14px';content.style.paddingLeft='0'}else{$('signatureRow').style.display='table-row';logoCell.style.width='auto';logoCell.style.margin='0';content.style.textAlign='left'}
+if(state.template==='publisher'){$('pName').style.letterSpacing='.03em';$('pTag').style.fontStyle='italic'}
+else{$('pName').style.letterSpacing='0';$('pTag').style.fontStyle='normal'}
+if(state.template==='creative'){$('pName').style.textTransform='uppercase';$('pName').style.letterSpacing='.08em'}else{$('pName').style.textTransform='none'}
+if(state.template==='corporate'){$('pTag').style.display='none';$('pCompany').style.fontWeight='700'}else{$('pTag').style.display=state.mode==='reply'?'none':'block';$('pCompany').style.fontWeight='400'}
+if(state.template==='hospitality'){$('pTag').style.fontFamily='Georgia,serif';$('pTag').style.fontStyle='italic'}
+if(state.template==='reply'||state.mode==='reply'){logoCell.style.display='none';$('pCompany').style.display='none';$('pAddress').style.display='none';$('pBookingWrap').style.display='none'}else{$('pCompany').style.display='block';$('pAddress').style.display='block'}
+}
+function saveLocal(){try{localStorage.setItem('signatureStudioV1.1',JSON.stringify(snapshot()))}catch{}}
+function metrics(){const w=Math.round($('signature').getBoundingClientRect().width*($('scale').value/100)),target=+$('target').value,embedded=(state.logo.startsWith('data:')?1:0)+Object.values(state.socialIcons).filter(x=>x&&x.startsWith('data:')).length;$('mWidth').textContent=w+' px';$('mTarget').textContent=target+' px';$('mWrap').textContent=w<=target?'No':'Risk';$('mWrap').className=w<=target?'good':'warning';$('mImages').textContent=embedded?embedded+' local':'Hosted / none';$('mImages').className=embedded?'warning':'good';const ready=w<=target&&!embedded;$('mReady').textContent=ready?'Ready':'Needs attention';$('mReady').className=ready?'good':'warning';$('compatNote').textContent=embedded?'Host embedded images before direct Gmail install so recipients can load them reliably.':w>target?'Use Auto fit to reduce width and prevent wrapping.':'No obvious Gmail compatibility issues detected.'}
+fieldIds.forEach(id=>$(id)?.addEventListener('input',()=>draw()));$('previewMode').onchange=()=>{$('stage').className='stage '+($('previewMode').value==='light'?'':$('previewMode').value)};
 $('logoFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{state.logo=r.result;draw()};r.readAsDataURL(f)};
-$('fit').onclick=()=>{const target=Number($('target').value),sig=$('signature');$('scale').value=100;draw();requestAnimationFrame(()=>{const w=sig.getBoundingClientRect().width;if(w>target)$('scale').value=Math.max(50,Math.floor(target/w*100));draw()})};
-function inlineHtml(){
- const clone=$('signature').cloneNode(true);clone.querySelectorAll('*').forEach(el=>{const cs=getComputedStyle(el);el.setAttribute('style',Array.from(['font-family','font-size','font-weight','line-height','color','padding-left','margin-top','width','height','background-color','border','border-radius','text-decoration','display','gap','vertical-align','object-fit','transform']).map(k=>k+':'+cs.getPropertyValue(k)).join(';'))});
- const wrap=document.createElement('div');wrap.appendChild(clone);return wrap.innerHTML;
-}
+$('fit').onclick=()=>{const target=+$('target').value;$('scale').value=100;draw(false);requestAnimationFrame(()=>{const w=$('signature').getBoundingClientRect().width;if(w>target)$('scale').value=Math.max(45,Math.floor(target/w*100));draw()})};$('fitMobile').onclick=()=>{$('target').value='360';$('fit').click()};
+$('fullMode').onclick=()=>{state.mode='full';if(state.template==='reply')state.template='editorial';draw()};$('replyMode').onclick=()=>{state.mode='reply';state.template='reply';draw()};
+function inlineHtml(){const clone=$('signature').cloneNode(true);clone.querySelectorAll('*').forEach(el=>{const cs=getComputedStyle(el);const props=['font-family','font-size','font-weight','font-style','letter-spacing','line-height','color','padding','padding-left','margin','margin-top','width','height','background-color','border','border-radius','text-decoration','display','gap','vertical-align','object-fit','text-align','text-transform'];el.setAttribute('style',props.map(k=>k+':'+cs.getPropertyValue(k)).join(';'))});clone.querySelectorAll('a').forEach(a=>{a.setAttribute('target','_blank');a.setAttribute('rel','noopener noreferrer')});const wrap=document.createElement('div');wrap.appendChild(clone);return wrap.innerHTML}
 async function copyRich(){const html=inlineHtml(),text=$('signature').innerText;try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);$('mainStatus').textContent='Signature copied.'}catch{const r=document.createRange();r.selectNode($('signature'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();$('mainStatus').textContent='Signature copied.'}}
-$('copy').onclick=copyRich;$('gmail').onclick=async()=>{await copyRich();window.open('https://mail.google.com/mail/u/0/#settings/general','_blank','noopener,noreferrer');$('mainStatus').textContent='Copied. In Gmail: Settings → General → Signature → Create new → Paste.'};
 function dl(name,body,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([body],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-$('exportHtml').onclick=()=>dl('signature.html','<!doctype html><meta charset="utf-8">'+inlineHtml(),'text/html');$('exportJson').onclick=()=>dl('signature-project.json',JSON.stringify(data(),null,2),'application/json');
-const saved=JSON.parse(localStorage.getItem('signatureStudioV1')||'null');if(saved)load(saved);else draw();
-
+$('copy').onclick=copyRich;$('exportHtml').onclick=()=>dl('signature.html','<!doctype html><meta charset="utf-8">'+inlineHtml(),'text/html');$('exportJsonSide').onclick=()=>dl('signature-project.json',JSON.stringify(snapshot(),null,2),'application/json');
+$('importJson').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{restoreSnapshot(JSON.parse(r.result));$('cloudStatus').textContent='Project imported.'}catch{$('cloudStatus').textContent='Could not read project file.'}};r.readAsText(f)};
+$('reset').onclick=()=>{if(!confirm('Reset the current design?'))return;localStorage.removeItem('signatureStudioV1.1');location.reload()};
 const base=(C.supabaseUrl||'').replace(/\/$/,'');const key=C.supabasePublishableKey||'';let token='',user=null;
-async function api(path,opt={}){const h={'apikey':key,'Content-Type':'application/json',...(opt.headers||{})};if(token)h.Authorization='Bearer '+token;const r=await fetch(base+path,{...opt,headers:h});const t=await r.text();if(!r.ok)throw new Error((()=>{try{return JSON.parse(t).msg||JSON.parse(t).message||t}catch{return t}})());return t?JSON.parse(t):null}
+async function api(path,opt={}){const h={'apikey':key,'Content-Type':'application/json',...(opt.headers||{})};if(token)h.Authorization='Bearer '+token;const r=await fetch(base+path,{...opt,headers:h});const t=await r.text();if(!r.ok)throw new Error((()=>{try{const j=JSON.parse(t);return j.msg||j.message||j.error_description||t}catch{return t}})());return t?JSON.parse(t):null}
 async function auth(endpoint,email,password){return api('/auth/v1/'+endpoint,{method:'POST',body:JSON.stringify({email,password})})}
-async function restore(){if(!base||!key)return;$('cloudStatus').textContent='Cloud ready.';const raw=localStorage.getItem('ss_session');if(!raw)return;try{const s=JSON.parse(raw);token=s.access_token;const u=await api('/auth/v1/user');setUser(u)}catch{localStorage.removeItem('ss_session');token=''}}
+async function restoreSession(){if(!base||!key){$('cloudStatus').textContent='Cloud configuration unavailable.';return}const raw=localStorage.getItem('ss_session');if(!raw)return;try{const s=JSON.parse(raw);token=s.access_token;const u=await api('/auth/v1/user');setUser(u)}catch{localStorage.removeItem('ss_session');token=''}}
 function setUser(u){user=u;$('cloudGuest').style.display=u?'none':'block';$('cloudUser').style.display=u?'block':'none';$('who').textContent=u?'Signed in as '+u.email:''}
 $('signIn').onclick=async()=>{try{const s=await auth('token?grant_type=password',$('authEmail').value,$('authPassword').value);token=s.access_token;localStorage.setItem('ss_session',JSON.stringify(s));setUser(s.user);$('cloudStatus').textContent='Signed in.'}catch(e){$('cloudStatus').textContent=e.message}};
-$('signUp').onclick=async()=>{try{await auth('signup',$('authEmail').value,$('authPassword').value);$('cloudStatus').textContent='Account created. Check your email if confirmation is required.'}catch(e){$('cloudStatus').textContent=e.message}};
+$('signUp').onclick=async()=>{try{await auth('signup',$('authEmail').value,$('authPassword').value);$('cloudStatus').textContent='Account created. Check email if confirmation is enabled.'}catch(e){$('cloudStatus').textContent=e.message}};
 $('signOut').onclick=async()=>{try{await api('/auth/v1/logout',{method:'POST'})}catch{}token='';user=null;localStorage.removeItem('ss_session');setUser(null);$('cloudStatus').textContent='Signed out.'};
-$('saveCloud').onclick=async()=>{try{if(!user)throw new Error('Sign in first.');const id=state.projectId||crypto.randomUUID();const body={id,user_id:user.id,name:$('projectName').value||'Signature',data:data(),updated_at:new Date().toISOString()};await api('/rest/v1/signature_projects?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});state.projectId=id;$('cloudStatus').textContent='Saved to cloud.'}catch(e){$('cloudStatus').textContent=e.message}};
-$('loadCloud').onclick=async()=>{try{const list=await api('/rest/v1/signature_projects?select=id,name,data,updated_at&order=updated_at.desc');const box=$('projectsList');box.innerHTML='';list.forEach(p=>{const b=document.createElement('button');b.className='btn';b.style='width:100%;margin:5px 0;text-align:left';b.textContent=p.name+' · '+new Date(p.updated_at).toLocaleDateString();b.onclick=()=>{state.projectId=p.id;load(p.data);$('projectName').value=p.name;$('projectsModal').classList.remove('open')};box.appendChild(b)});if(!list.length)box.textContent='No saved projects yet.';$('projectsModal').classList.add('open')}catch(e){$('cloudStatus').textContent=e.message}};
-$('closeProjects').onclick=()=>$('projectsModal').classList.remove('open');restore();
+async function saveCloud(forceNew=false){try{if(!user)throw new Error('Sign in first.');const id=forceNew?crypto.randomUUID():(state.projectId||crypto.randomUUID());const body={id,user_id:user.id,name:$('projectName').value||'Signature',data:snapshot(),updated_at:new Date().toISOString()};await api('/rest/v1/signature_projects?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});state.projectId=id;$('cloudStatus').textContent=forceNew?'Saved as a new cloud project.':'Saved to cloud.'}catch(e){$('cloudStatus').textContent=e.message}}
+$('saveCloud').onclick=()=>saveCloud(false);$('saveAsCloud').onclick=()=>saveCloud(true);
+$('loadCloud').onclick=manageProjects;$('closeProjects').onclick=()=>$('projectsModal').classList.remove('open');
+async function manageProjects(){try{const list=await api('/rest/v1/signature_projects?select=id,name,data,updated_at&order=updated_at.desc');const box=$('projectsList');box.innerHTML='';list.forEach(p=>{const r=document.createElement('div');r.className='projectRow';const info=document.createElement('div');info.innerHTML='<strong>'+escapeHtml(p.name)+'</strong><div class="note">'+new Date(p.updated_at).toLocaleString()+'</div>';const open=document.createElement('button');open.textContent='Open';open.onclick=()=>{state.projectId=p.id;restoreSnapshot(p.data);$('projectName').value=p.name;$('projectsModal').classList.remove('open')};const dup=document.createElement('button');dup.textContent='Duplicate';dup.onclick=async()=>{state.projectId=null;restoreSnapshot(p.data);$('projectName').value=p.name+' Copy';await saveCloud(true);manageProjects()};const del=document.createElement('button');del.textContent='Delete';del.onclick=async()=>{if(!confirm('Delete this cloud project?'))return;await api('/rest/v1/signature_projects?id=eq.'+encodeURIComponent(p.id),{method:'DELETE'});if(state.projectId===p.id)state.projectId=null;manageProjects()};r.append(info,open,dup,del);box.appendChild(r)});if(!list.length)box.textContent='No saved projects yet.';$('projectsModal').classList.add('open')}catch(e){$('cloudStatus').textContent=e.message}}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function hostDataUrl(dataUrl,label){if(!user)throw new Error('Sign in to Signature Studio before hosting images.');const [meta,b64]=dataUrl.split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png',ext=mime.includes('svg')?'svg':mime.includes('jpeg')?'jpg':mime.includes('webp')?'webp':'png',bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)),path=user.id+'/'+Date.now()+'-'+label+'.'+ext,r=await fetch(base+'/storage/v1/object/signature-assets/'+path,{method:'POST',headers:{apikey:key,Authorization:'Bearer '+token,'Content-Type':mime,'x-upsert':'true'},body:bytes});if(!r.ok)throw new Error(await r.text());return base+'/storage/v1/object/public/signature-assets/'+path}
+async function hostEmbeddedImages(){let changed=0;if(state.logo.startsWith('data:')){state.logo=await hostDataUrl(state.logo,'logo');changed++}for(const id of Object.keys(state.socialIcons)){if(state.socialIcons[id]?.startsWith('data:')){state.socialIcons[id]=await hostDataUrl(state.socialIcons[id],'icon-'+id);changed++}}draw();$('cloudStatus').textContent=changed?changed+' image(s) hosted.':'No embedded images to host.';return changed}
+$('uploadAssets').onclick=async()=>{try{await hostEmbeddedImages()}catch(e){$('cloudStatus').textContent=e.message}};
+async function guidedInstall(){await copyRich();window.open('https://mail.google.com/mail/u/0/#settings/general','_blank','noopener,noreferrer');$('mainStatus').textContent='Copied. In Gmail Settings → General → Signature, create or select a signature and paste.'}
+$('guidedGmail').onclick=guidedInstall;$('gmailCardBtn').onclick=()=>{$('guidedGmail').click()};
+
+let googleToken='',gmailPrimary='';
+function updateGmailUI(){const enabled=!!C.enableDirectGmail&&!!C.googleClientId;$('directGmail').disabled=!enabled;$('gmailDirectInfo').textContent=enabled?'Direct installation is available. Signature Studio requests only Gmail settings access and installs to your primary send-as address.':'Direct installation code is ready, but the production Google OAuth client has not been connected yet. Guided Install remains available.'}
+async function requestGoogleToken(){if(!window.google?.accounts?.oauth2)throw new Error('Google Identity Services is still loading. Try again in a moment.');return new Promise((resolve,reject)=>{const client=google.accounts.oauth2.initTokenClient({client_id:C.googleClientId,scope:'https://www.googleapis.com/auth/gmail.settings.basic',prompt:'consent',callback:r=>{if(r.error)reject(new Error(r.error));else{googleToken=r.access_token;resolve(r.access_token)}}});client.requestAccessToken()})}
+async function gmailFetch(path,opt={}){const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+path,{...opt,headers:{Authorization:'Bearer '+googleToken,'Content-Type':'application/json',...(opt.headers||{})}});const t=await r.text();if(!r.ok)throw new Error((()=>{try{return JSON.parse(t).error?.message||t}catch{return t}})());return t?JSON.parse(t):null}
+async function directInstall(){try{$('gmailStatus').textContent='Preparing signature…';const embedded=(state.logo.startsWith('data:')?1:0)+Object.values(state.socialIcons).filter(x=>x&&x.startsWith('data:')).length;if(embedded){if(!user)throw new Error('Sign in to Signature Studio first so custom images can be hosted for Gmail.');await hostEmbeddedImages()}$('gmailStatus').textContent='Connecting to Google…';await requestGoogleToken();$('gmailStatus').textContent='Finding your primary Gmail address…';const aliases=await gmailFetch('settings/sendAs');const primary=(aliases.sendAs||[]).find(x=>x.isPrimary);if(!primary)throw new Error('Gmail did not return a primary send-as address.');gmailPrimary=primary.sendAsEmail;$('gmailStatus').textContent='Installing signature for '+gmailPrimary+'…';const html=inlineHtml();await gmailFetch('settings/sendAs/'+encodeURIComponent(gmailPrimary),{method:'PATCH',body:JSON.stringify({signature:html})});$('gmailStatus').textContent='Installed successfully for '+gmailPrimary+'. Send yourself a test email to verify rendering.';$('mainStatus').textContent='Gmail signature installed.'}catch(e){$('gmailStatus').textContent=e.message||String(e)}}
+$('directGmail').onclick=directInstall;
+
+buildTemplates();renderSocialEditors();const saved=JSON.parse(localStorage.getItem('signatureStudioV1.1')||'null');if(saved)restoreSnapshot(saved);else{draw(false);lastSnapshot=JSON.stringify(snapshot())}restoreSession();updateGmailUI();syncUndo();
 </script>
-</body></html>
+</body>
+</html>
