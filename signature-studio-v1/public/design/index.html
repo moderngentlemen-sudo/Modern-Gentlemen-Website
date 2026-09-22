@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Signature Studio — Design Edition</title>
+<meta name="description" content="A considered signature, made yours. 36 templates, refined typography, brand palettes, custom imagery and email-ready exports.">
+<link rel="icon" href="/design/media/mg-logo.png"><link rel="stylesheet" href="/design/design.css?v=1.2.0">
+<script src="/config.js"></script><script type="module" src="/design/app.mjs?v=1.2.0"></script>
+</head>
+<body>
+<header class="topbar">
+ <div class="brand"><img src="/design/media/mg-logo.png" alt="Modern Gentlemen"><div><strong>Signature Studio<span class="edition">DESIGN EDITION</span></strong><span>A considered signature, made yours.</span></div></div>
+ <div class="header-actions"><button data-action="projects">My signatures</button><button data-action="account" id="accountButton">Cloud account</button><button data-action="gallery">Templates · 36</button><button data-action="install" class="primary">Export & install <span aria-hidden="true">↗</span></button></div>
+</header>
+<div class="workspace">
+ <nav class="rail" aria-label="Customization panels">
+  <button data-panel="content" class="active"><span>Aa</span>Details</button>
+  <button data-panel="type"><span>T</span>Type</button>
+  <button data-panel="layout"><span>▤</span>Layout</button>
+  <button data-panel="color"><span>◐</span>Color</button>
+  <button data-panel="images"><span>▧</span>Images</button>
+  <button data-panel="social"><span>↗</span>Social</button>
+  <button data-panel="blocks"><span>⊞</span>Blocks</button>
+  <button data-panel="order"><span>☷</span>Order</button>
+ </nav>
+ <aside class="inspector"><div class="panel-heading"><span class="eyebrow">MAKE IT YOURS</span><h1 id="panelTitle">Your details</h1><p id="panelDescription"></p></div><div id="controls"></div><div class="inspector-footer"><span class="save-dot"></span><span id="saveStatus">Loading your studio…</span></div></aside>
+ <main class="main">
+  <div class="document-bar"><div><span class="eyebrow">SIGNATURE DESIGN</span><input id="projectName" aria-label="Project name" data-path="name" value="Modern Gentlemen · Primary"></div><div class="history"><button data-action="undo" id="undoButton" title="Undo" aria-label="Undo">↶</button><button data-action="redo" id="redoButton" title="Redo" aria-label="Redo">↷</button><button data-action="save-template" title="Save current design as a template">Save style</button></div></div>
+  <div class="preview-toolbar"><div class="segmented" id="variantPicker"><button data-action="full" class="active">Full signature</button><button data-action="reply">Reply</button></div><div class="preview-options"><select id="environment" aria-label="Preview environment"><option value="light">Light email</option><option value="dark">Dark canvas</option><option value="checker">Transparent canvas</option></select><select id="viewportWidth" aria-label="Preview viewport"><option value="desktop">Desktop</option><option value="mobile">Mobile · 360 px</option></select><select id="viewZoom" aria-label="Preview zoom"><option value="0.75">75%</option><option selected value="1">100%</option><option value="1.25">125%</option></select></div></div>
+  <section class="stage" id="stage" aria-label="Signature preview">
+   <div class="email-card" id="emailCard"><div class="email-chrome"><span class="avatar-dot">M</span><div><strong>New message</strong><span>Your next introduction starts here.</span></div><span class="window-dots">···</span></div><div class="email-body"><div class="email-copy">Thank you for your time.<br>I look forward to staying in touch.</div><div class="signature-scroll" id="signatureScroll"><div id="previewScale"><div id="signaturePreview"></div></div></div></div><div class="email-footer"><span>Live signature preview</span><span id="dimensionLabel"></span></div></div>
+  </section>
+  <div class="fitbar"><div><span class="eyebrow">FIT & FINISH</span><strong id="fitStatus">Measuring design…</strong></div><div class="fit-actions"><label>Target <input type="number" min="280" max="1000" step="10" data-path="design.targetWidth" id="targetInput" aria-label="Target width in pixels"> px</label><button data-action="autofit">Auto-fit design</button></div></div>
+  <div class="preview-note">Preview zoom changes only your workspace. Design scale changes the exported signature. Dark canvas is a viewing aid, not an email-client simulation.</div>
+  <div class="bottom-actions"><button data-action="export-html">Download HTML</button><button data-action="export-png">PNG · 2×</button><button data-action="export-json">Project backup</button><button data-action="cloud-save">Save to cloud</button></div>
+ </main>
+ <aside class="library"><div class="library-heading"><span class="eyebrow">THE COLLECTION</span><h2>Beyond the ordinary.</h2><p>36 starting points. Every detail, yours.</p><button class="primary full" data-action="gallery">Explore all templates <span>↗</span></button></div><div class="curated-title">SELECTED FOR MODERN GENTLEMEN</div><div id="curatedTemplates" class="curated-grid"></div><div class="preflight-card"><div class="mini-heading"><h3>Design check</h3><span id="checkBadge" class="badge"></span></div><div id="checks"></div><p class="micro">Table-based HTML and inline styles. Always send yourself a test; email clients may alter fonts, corners and colors.</p></div><div class="library-links"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/legacy">Previous editor</a></div></aside>
+</div>
+<dialog id="modal" aria-labelledby="modalTitle"><div class="modal-header"><div><span class="eyebrow" id="modalEyebrow">SIGNATURE STUDIO</span><h2 id="modalTitle"></h2></div><button data-action="close-modal" aria-label="Close dialog" class="close">×</button></div><div id="modalBody"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="measurement" aria-hidden="true"></div>
+<input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+<input id="projectInput" type="file" accept=".json,application/json" hidden>
+<input id="brandInput" type="file" accept=".json,application/json" hidden>
+<noscript><p>Signature Studio needs JavaScript to edit and export signatures.</p></noscript>
+</body>
+</html>

@@ -1,13 +1,1 @@
-{
-  "name": "modern-gentlemen-signature-studio",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "start": "node server.mjs",
-    "check": "node --check server.mjs"
-  },
-  "engines": {
-    "node": ">=20"
-  }
-}
+{"name":"signature-studio-design-edition","private":true,"version":"1.2.0","type":"module","scripts":{"start":"node server.mjs","check":"node --check server.mjs && node --check public/design/catalog.mjs && node --check public/design/engine.mjs && node --check public/design/media.mjs && node --check public/design/cloud.mjs && node --check public/design/app.mjs","test":"node --test tests/engine.test.mjs"},"engines":{"node":">=22"}}
