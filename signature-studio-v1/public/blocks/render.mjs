@@ -11,7 +11,7 @@ export function effective(node,doc,parent={}){const d=doc.design;return {font:no
 export function valueOf(n,doc){return n.props.bind?doc.identity[n.props.bind]||'':n.props.text??n.props.value??'';}
 export function renderBlocks(doc,{edit=false,images={},origin='https://example.com',fragment=null}={}){
  const d=doc.design,scale=d.scale/100,px=n=>Math.round(n*scale*100)/100;const style=o=>Object.entries(o).filter(([,v])=>v!==undefined&&v!==null&&v!=='').map(([k,v])=>k+':'+v).join(';');
- const table=(body,w='100%',s={})=>`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;${esc(style(s))}">${body}</table>`;
+ const table=(body,w='100%',s={},align=null)=>`<table${align?` align="${align}"`:''} role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;${esc(style(s))}">${body}</table>`;
  const a=(text,url,s={})=>url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="${esc(style({color:d.link,'text-decoration':d.linkUnderline?'underline':'none',...s}))}">${text}</a>`:text;
  const empty=label=>edit?`<div data-placeholder="true" style="height:28px;font:11px Arial;color:#888">${esc(label)}</div>`:'';
  const active=n=>n.visibility!=='hidden'&&(n.visibility==='both'||n.visibility===doc.variant);
@@ -20,7 +20,10 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
    const s=effective(n,doc,parent),attrs=edit?` data-bid="${n.id}" data-type="${n.type}" tabindex="0" aria-label="${esc(n.label)}"${!active(n)?' data-hidden="true"':''}`:'';
    const box={'vertical-align':s.valign||'top','text-align':s.align,'font-family':FONTS[s.font]?.value||FONTS.sans.value,'font-size':px(s.size)+'px','font-weight':s.weight,'line-height':s.lineHeight,color:s.color,'letter-spacing':px(s.tracking)+'px','white-space':s.nowrap==='normal'?'normal':s.nowrap==='nowrap'||d.nowrap?'nowrap':'normal',padding:px(n.style.padding||0)+'px','background-color':n.style.background,'border':n.style.border?`${px(n.style.border)}px solid ${n.style.borderColor||d.accent}`:undefined,'border-radius':n.style.radius?px(n.style.radius)+'px':undefined,'text-transform':s.casing==='none'?undefined:s.casing};
    for(const side of ['Top','Right','Bottom','Left']){const pad=n.style['padding'+side],stroke=n.style['border'+side];if(pad!==undefined)box['padding-'+side.toLowerCase()]=px(pad)+'px';if(stroke!==undefined)box['border-'+side.toLowerCase()]=px(stroke)+'px '+d.borderStyle+' '+(n.style.borderColor||d.accent);}
-   const body=content(n,Math.max(24,width-(n.style.paddingLeft??n.style.padding??0)-(n.style.paddingRight??n.style.padding??0)),s);
+   const available=Math.max(24,width-(n.style.paddingLeft??n.style.padding??0)-(n.style.paddingRight??n.style.padding??0));
+   const blockWidth=n.style.width===undefined?available:Math.min(available,n.style.width);
+   let body=content(n,blockWidth,s);
+   if(body&&n.style.width!==undefined)body=`<table${edit?' data-width-box="true"':''} align="${s.align}" role="presentation" cellpadding="0" cellspacing="0" border="0" width="${px(blockWidth)}" style="width:${px(blockWidth)}px;border-collapse:collapse"><tr><td style="text-align:${s.align}">${body}</td></tr></table>`;
    if(!body&&(!edit||n.type==='fragment'))return '';
    return `<tr><td${attrs} style="${esc(style(box))}">${body||empty(n.label+' · click to edit')}</td></tr>`;
   }).filter(Boolean);
@@ -50,7 +53,7 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
    return (p.label?`<span style="color:${d.secondary}">${esc(p.label)} </span>`:'')+a(esc(val),url);
   }
   if(n.type==='button'){
-   if(!p.text)return '';const app=p.appearance||'outline';return table(`<tr><td align="${s.align}" style="padding:${px(6)}px ${px(12)}px;${app==='filled'?`background-color:${d.ctaColor};`:''}${app!=='text'?`border:${px(1)}px solid ${d.accent};border-radius:${px(n.style.radius??d.ctaRadius)}px;`:''}">${a(esc(p.text),safeUrl(p.url),{color:app==='filled'?d.ctaText:s.color,'text-decoration':'none'})}</td></tr>`,'',{'margin':s.align==='center'?'0 auto':s.align==='right'?'0 0 0 auto':'0'});
+   if(!p.text)return '';const app=p.appearance||'outline';return table(`<tr><td align="${s.align}" style="padding:${px(6)}px ${px(12)}px;${app==='filled'?`background-color:${d.ctaColor};`:''}${app!=='text'?`border:${px(1)}px solid ${d.accent};border-radius:${px(n.style.radius??d.ctaRadius)}px;`:''}">${a(esc(p.text),safeUrl(p.url),{color:app==='filled'?d.ctaText:s.color,'text-decoration':'none'})}</td></tr>`,'',{'margin':s.align==='center'?'0 auto':s.align==='right'?'0 0 0 auto':'0'},s.align);
   }
   if(n.type==='image'||n.type==='qr'){
    const key=n.id,src=safeImage(images[key]||p.src||'',origin);if(!src)return empty(n.type==='qr'?'Enter a QR destination':'Add artwork in the inspector');
@@ -60,7 +63,7 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
   }
   if(n.type==='divider'){
    const thick=px(p.thickness||1),line=['solid','dashed','dotted'].includes(p.line)?p.line:'solid',ink=n.style.color||d.accent;
-   return p.orientation==='vertical'?table(`<tr><td height="${px(p.height||60)}" style="height:${px(p.height||60)}px;border-left:${thick}px ${line} ${ink};font-size:0">&nbsp;</td></tr>`,thick):table(`<tr><td style="border-top:${thick}px ${line} ${ink};font-size:0;line-height:0"></td></tr>`,(p.length||100)+'%');
+   return p.orientation==='vertical'?table(`<tr><td height="${px(p.height||60)}" style="height:${px(p.height||60)}px;border-left:${thick}px ${line} ${ink};font-size:0">&nbsp;</td></tr>`,thick,{},s.align):table(`<tr><td style="border-top:${thick}px ${line} ${ink};font-size:0;line-height:0"></td></tr>`,(p.length||100)+'%',{},s.align);
   }
   if(n.type==='spacer')return `<div style="width:${px(p.width||12)}px;height:${px(p.height??14)}px;line-height:0;font-size:0">&nbsp;</div>`;
   if(n.type==='social'){
@@ -70,7 +73,7 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
     let art=app==='text'?esc(item.label):app==='letter'?esc(item.label.slice(0,2)):'';
     if(!art){const src=safeImage(images[n.id+':'+item.i]||item.customIcon||`/design/media/${item.id}-${bg==='transparent'?'dark':'light'}.png`,origin);art=`<img alt="${esc(item.label)}" src="${esc(src)}" width="${px(size-6)}" height="${px(size-6)}" border="0" style="display:block;width:${px(size-6)}px;height:${px(size-6)}px;border:0">`;}
     return `<td style="padding:0 ${j===items.length-1?0:px(gap)}px 0 0">`+table(`<tr><td align="center" style="padding:${px(3)}px;color:${ink};background-color:${bg};border:${app==='outline'?px(1)+'px solid '+d.accent:'0'};border-radius:${px(app==='circle'||app==='outline'?size/2:app==='tile'?6:0)}px;font-size:${px(11)}px">${a(art,safeUrl(item.url),{color:ink})}</td></tr>`,'')+'</td>';
-   }).join('')+'</tr>','');
+   }).join('')+'</tr>','',{},s.align);
   }
   return '';
  }

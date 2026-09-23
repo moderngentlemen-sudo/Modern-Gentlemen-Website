@@ -5,7 +5,7 @@ Live navigation, OAuth, clipboard permissions and Supabase are not exercised.
 from pathlib import Path
 import re, json, base64, posixpath
 ROOT=Path(__file__).resolve().parents[1]/'public'
-MODULES=['design/catalog.mjs','design/engine.mjs','design/media.mjs','design/cloud.mjs','blocks/model.mjs','blocks/render.mjs','blocks/qr.mjs','blocks/media.mjs','blocks/inspector.mjs','blocks/app.mjs']
+MODULES=['design/catalog.mjs','design/engine.mjs','design/media.mjs','design/cloud.mjs','blocks/model.mjs','blocks/render.mjs','blocks/qr.mjs','blocks/media.mjs','blocks/inspector.mjs','blocks/alignment.mjs','blocks/canvas-tools.mjs','blocks/app.mjs']
 def boot(page,stored=None):
     assets={p.name:'data:image/png;base64,'+base64.b64encode(p.read_bytes()).decode() for p in (ROOT/'design/media').glob('*.png')}
     html=(ROOT/'blocks/index.html').read_text()
@@ -13,7 +13,7 @@ def boot(page,stored=None):
     html=re.sub(r'<link\b[^>]*>','',html)
     html=html.replace('src="/design/media/mg-logo.png"','src="'+assets['mg-logo.png']+'"')
     page.set_content(html)
-    page.add_style_tag(content=(ROOT/'blocks/blocks.css').read_text())
+    page.add_style_tag(content=(ROOT/'blocks/blocks.css').read_text()+'\n'+(ROOT/'blocks/canvas-tools.css').read_text())
     page.evaluate('''({stored,assets})=>{
       const data={...stored};Object.defineProperty(window,'localStorage',{value:{getItem:k=>data[k]??null,setItem:(k,v)=>data[k]=String(v),removeItem:k=>delete data[k],clear:()=>Object.keys(data).forEach(k=>delete data[k])}});
       window.__storage=data;window.__assets=assets;window.SIGNATURE_STUDIO_CONFIG={};
@@ -29,7 +29,7 @@ def boot(page,stored=None):
         code=re.sub(r'\bexport\s+','',code)
         def imports(m):
             dest=posixpath.normpath(posixpath.join(posixpath.dirname(name),m[2]))
-            return 'const {'+m[1]+'}=__modules['+json.dumps(dest)+'];'
+            return 'const {'+re.sub(r'\s+as\s+', ':', m[1])+'}=__modules['+json.dumps(dest)+'];'
         code=re.sub(r"import\s*\{([^}]+)\}\s*from\s*['\"]([^'\"]+)['\"];",imports,code)
         code=code.replace("location.origin","'https://signature-studio.test'")
         if name=='design/engine.mjs':

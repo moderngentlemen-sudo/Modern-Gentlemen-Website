@@ -4,7 +4,7 @@ import {renderBlocks,checks as blockChecks} from '../blocks/render.mjs';
 import {prepareBlocks} from '../blocks/media.mjs';
 import {walk,clone} from '../blocks/model.mjs';
 import {designProject} from './model.mjs';
-function projectFor(doc,node){
+function projectFor(doc,node,inherited={}){
  const p=designProject(doc),s=node.style;
  if(s.color){p.design.primary=s.color;p.design.secondary=s.color;p.design.link=s.color;}
  if(s.font)p.design.nameFont=p.design.bodyFont=s.font;
@@ -12,12 +12,12 @@ function projectFor(doc,node){
  if(s.weight)p.design.nameWeight=s.weight;
  if(s.tracking!==undefined)p.design.tracking=s.tracking;
  if(s.lineHeight)p.design.lineHeight=s.lineHeight;
- if(s.align)p.design.align=s.align;
+ if(s.align||inherited.align)p.design.align=s.align||inherited.align;
  if(s.nowrap&&s.nowrap!=='inherit')p.design.nowrap=s.nowrap==='nowrap';
  return p;
 }
 function fragment(node,doc,ctx){
- const p=projectFor(doc,node);let part=node.props.part;
+ const p=projectFor(doc,node,ctx.style);let part=node.props.part;
  if(node.props.role==='secondary-logo'&&!p.assets.portrait.src)return '';
  if(part==='portrait'&&!p.assets.portrait.src)part='logo';
  if(doc.variant==='reply'&&!['identity','identity-no-company','contact','name','title','company','pronouns'].includes(part))return '';
