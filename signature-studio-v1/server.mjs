@@ -15,7 +15,9 @@ const server=http.createServer(async(req,res)=>{
   try{pathname=decodeURIComponent(url.pathname);}catch{return send(400,'Malformed path');}
   if(pathname==='/healthz')return send(200,'ok');
   if(pathname==='/config.js')return send(200,config(),mime['.js']);
-  if(pathname==='/'||pathname==='/index.html')pathname='/design/index.html';
+  if(['/', '/index.html', '/design/index.html', '/blocks/index.html', '/studio', '/blocks', '/design'].includes(pathname))pathname='/studio/index.html';
+  if(pathname==='/design-classic')pathname='/design/index.html';
+  if(pathname==='/blocks-classic')pathname='/blocks/index.html';
   if(pathname==='/legacy')pathname='/index.html';
   const filePath=path.resolve(publicDir,'.'+pathname);
   if(!filePath.startsWith(publicDir+path.sep))return send(403,'Forbidden');
@@ -24,4 +26,4 @@ const server=http.createServer(async(req,res)=>{
   return send(200,await readFile(filePath),mime[ext]||'application/octet-stream',['.png','.jpg','.jpeg','.svg','.webp'].includes(ext)?'public, max-age=86400':'no-cache');
  }catch(error){return send(error.code==='ENOENT'?404:500,error.code==='ENOENT'?'Not found':'Unable to serve this request');}
 });
-server.listen(port,'0.0.0.0',()=>console.log(`Signature Studio Design Edition listening on ${port}`));
+server.listen(port,'0.0.0.0',()=>console.log(`Signature Studio Unified Workspace listening on ${port}`));

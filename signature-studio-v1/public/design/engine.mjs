@@ -74,14 +74,15 @@ export function renderSignature(project,context={}){
  const spacer=n=>tr(td('',{height:px(n)+'px','font-size':'0','line-height':'0'},`height="${px(n)}"`));
  const rule=()=>table(tr(td('',{'border-top':`${px(d.ruleWidth)}px ${d.borderStyle} ${d.accent}`,'font-size':0,'line-height':0})),d.ruleLength+'%');
  const visible=k=>p.visible[k]!==false&&i[k];
+ const textField=key=>context.edit?`<span data-u-bind="${key}">${esc(i[key])}</span>`:esc(i[key]);
  const idBlock=(omitCompany=false)=>{
   const lines=[];
-  if(visible('kicker'))lines.push(line(esc(i.kicker),Math.max(9,d.bodySize-2),d.secondary,{'letter-spacing':px(1.4)+'px','text-transform':'uppercase','padding-bottom':px(7)+'px'}));
-  if(visible('name'))lines.push(line(esc(i.name),d.nameSize,d.primary,{'font-family':nameFont,'font-weight':d.nameWeight,'line-height':'1.16','letter-spacing':px(d.tracking)+'px','text-transform':d.nameCase}));
-  const role=[visible('title')?esc(i.title):'',visible('pronouns')?esc(i.pronouns):''].filter(Boolean).join(' · ');
+  if(visible('kicker'))lines.push(line(textField('kicker'),Math.max(9,d.bodySize-2),d.secondary,{'letter-spacing':px(1.4)+'px','text-transform':'uppercase','padding-bottom':px(7)+'px'}));
+  if(visible('name'))lines.push(line(textField('name'),d.nameSize,d.primary,{'font-family':nameFont,'font-weight':d.nameWeight,'line-height':'1.16','letter-spacing':px(d.tracking)+'px','text-transform':d.nameCase}));
+  const role=[visible('title')?textField('title'):'',visible('pronouns')?textField('pronouns'):''].filter(Boolean).join(' · ');
   if(role)lines.push(line(role,d.roleSize,d.secondary,{'padding-top':px(6)+'px'}));
-  if(!omitCompany&&visible('company'))lines.push(line(esc(i.company),d.roleSize,d.primary,{'padding-top':px(2)+'px','font-weight':500}));
-  if(visible('department'))lines.push(line(esc(i.department),d.bodySize,d.secondary));return lines.join('');
+  if(!omitCompany&&visible('company'))lines.push(line(textField('company'),d.roleSize,d.primary,{'padding-top':px(2)+'px','font-weight':500}));
+  if(visible('department'))lines.push(line(textField('department'),d.bodySize,d.secondary));return lines.join('');
  };
  function image(slot,size,height=size){
   const a=p.assets[slot];if(!a?.src)return '';
@@ -94,7 +95,7 @@ export function renderSignature(project,context={}){
  const logo=()=>d.showLogo?image('logo',d.logoWidth):'';
  const portrait=()=>d.showPortrait?image('portrait',d.portraitWidth):'';
  const partner=()=>d.showPartner?image('partner',d.partnerWidth):'';
- const brandLabel=()=>visible('company')?line(esc(i.company),Math.max(10,d.bodySize),d.secondary,{'letter-spacing':px(2)+'px','text-transform':'uppercase'}):'';
+ const brandLabel=()=>visible('company')?line(textField('company'),Math.max(10,d.bodySize),d.secondary,{'letter-spacing':px(2)+'px','text-transform':'uppercase'}):'';
  function contact(){
   const fields=[['phone','T','Phone',safeUrl(i.phone,{phone:true})],['mobile','M','Mobile',safeUrl(i.mobile,{phone:true})],['email','E','Email',safeUrl(i.email,{email:true})],['website','W','Website',safeUrl(i.website)],['address','A','Address',''],['availability','','Availability','']].filter(([key])=>visible(key));
   const pieces=fields.map(([key,short,label,url])=>line((d.contactLabels==='none'?'':`<span style="color:${d.secondary}">${esc(d.contactLabels==='short'?short:label)}${short||d.contactLabels==='full'?': ':''}</span>`)+link(esc(key==='website'?i[key].replace(/^https?:\/\//,'').replace(/\/$/,''):i[key]),url)));
@@ -118,7 +119,7 @@ export function renderSignature(project,context={}){
  }
  function module(type){
   switch(type){
-   case 'tagline':return i.tagline?line(esc(i.tagline),d.tagSize,d.secondary,{'font-style':['byline','residence','invitation'].includes(d.layout)?'italic':'normal'}):'';
+   case 'tagline':return i.tagline?line(textField('tagline'),d.tagSize,d.secondary,{'font-style':['byline','residence','invitation'].includes(d.layout)?'italic':'normal'}):'';
    case 'contact':return contact();
    case 'social':return social();
    case 'cta':return cta();
@@ -129,6 +130,19 @@ export function renderSignature(project,context={}){
    case 'disclaimer':return c.disclaimer?line(esc(c.disclaimer).replace(/\n/g,'<br>'),d.footerSize,d.secondary,{'white-space':'normal','max-width':px(d.baseWidth-d.padding*2)+'px'}):'';
    default:return '';
   }
+ }
+ // Named fragments allow the unified canvas to move and edit template elements
+ // without embedding or exporting arbitrary HTML.
+ if(context.part){
+  if(context.part==='identity')return idBlock();
+  if(context.part==='identity-no-company')return idBlock(true);
+  if(context.part==='brand')return brandLabel();
+  if(['logo','portrait','partner'].includes(context.part))return image(context.part,d[context.part+'Width']);
+  if(['name','title','company','kicker','pronouns','department'].includes(context.part)){
+   const one={...p.visible};for(const key of ['name','title','company','kicker','pronouns','department'])p.visible[key]=key===context.part&&one[key]!==false;
+   return idBlock();
+  }
+  return module(context.part);
  }
  const enabled=type=>p.sections.some(s=>s.type===type&&s.enabled);
  const body=(exclude=[])=>table(p.sections.filter(s=>s.enabled&&!exclude.includes(s.type)&&((p.variant!=='reply'&&d.layout!=='inline')||s.type==='contact')).map(s=>{const m=module(s.type);return m&&m!=='<table></table>'?tr(td(m,{'padding-top':px(d.sectionGap)+'px'})):'';}).join(''),'100%');
@@ -167,7 +181,7 @@ export function renderSignature(project,context={}){
   case 'property':layout=stack(columns(portrait()||logo(),identity+(portrait()?stack(logo()):'')+body(['banner'])),enabled('banner')?module('banner'):'');break;
   case 'guest':layout=stack(columns(logo(),brandLabel()),idBlock(true)+body());break;
   case 'partners':layout=stack(marks(),rule(),table(tr(td(identity,{'padding-right':px(d.gap)+'px'}),td(enabled('contact')?contact():'')),'100%'),body(['contact']));break;
-  case 'inline':layout=stack(line((visible('name')?`<strong style="font-family:${esc(nameFont)};font-size:${px(d.nameSize)}px">${esc(i.name)}</strong>`:'')+(visible('title')?`<span style="color:${d.secondary}">${esc(d.separator+i.title)}</span>`:'')),body());break;
+  case 'inline':layout=stack(line((visible('name')?`<strong style="font-family:${esc(nameFont)};font-size:${px(d.nameSize)}px">${textField('name')}</strong>`:'')+(visible('title')?`<span style="color:${d.secondary}">${esc(d.separator+i.title)}</span>`:'')),body());break;
   case 'micromark':layout=columns(logo(),standard,true);break;
   case 'clean':layout=stack(columns(logo(),idBlock()),body());break;
   default:layout=columns(logo(),standard);

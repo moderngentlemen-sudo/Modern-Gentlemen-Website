@@ -1,11 +1,11 @@
 {
-  "name": "signature-studio-design-edition",
+  "name": "signature-studio-unified",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check public/design/catalog.mjs && node --check public/design/engine.mjs && node --check public/design/media.mjs && node --check public/design/cloud.mjs && node --check public/design/app.mjs && node --check public/blocks/app.mjs && node --check public/blocks/bridge.mjs && node --check public/blocks/inspector.mjs && node --check public/blocks/media.mjs && node --check public/blocks/model.mjs && node --check public/blocks/qr.mjs && node --check public/blocks/render.mjs",
+    "check": "node --check server.mjs && node --check public/design/catalog.mjs && node --check public/design/engine.mjs && node --check public/design/media.mjs && node --check public/design/cloud.mjs && node --check public/design/app.mjs && node --check public/blocks/app.mjs && node --check public/blocks/bridge.mjs && node --check public/blocks/inspector.mjs && node --check public/blocks/media.mjs && node --check public/blocks/model.mjs && node --check public/blocks/qr.mjs && node --check public/blocks/render.mjs && node --check public/studio/model.mjs && node --check public/studio/render.mjs && node --check public/studio/controls.mjs && node --check public/studio/app.mjs",
     "test": "node --test tests/*.test.mjs"
   },
   "engines": {

@@ -4,7 +4,7 @@ import {normalizeProject,clamp} from '../design/engine.mjs';
 export const clone=x=>structuredClone(x);
 export const uid=()=>globalThis.crypto.randomUUID();
 export const CONTAINERS=['section','columns','column','group','panel'];
-export const TYPES=[...CONTAINERS,'heading','text','contact','social','image','button','divider','spacer','qr','template'];
+export const TYPES=[...CONTAINERS,'heading','text','contact','social','image','button','divider','spacer','qr','template','fragment'];
 export const LIMITS={nodes:180,depth:9,columnDepth:2,bytes:18000000};
 export const LIBRARY=[
  ['identity','Identity group','Core','Aa','Name, title and company, connected to your profile.'],
@@ -83,18 +83,19 @@ export function normalize(input){
  if(JSON.stringify(input).length>LIMITS.bytes)throw new Error('Project exceeds the 18 MB limit. Resize its artwork.');
  const base=freshProject();const safe=normalizeProject({...base,identity:input.identity,design:input.design});
  const doc={schemaVersion:3,kind:'signature-blocks',name:String(input.name||'Untitled signature').slice(0,100),variant:input.variant==='reply'?'reply':'full',identity:safe.identity,design:safe.design,children:[],publishedAssets:{}};
+ if(input.designData){const source=normalizeProject({...input.designData,schemaVersion:2,identity:doc.identity,design:doc.design});doc.designData={};for(const key of ['templateId','visible','assets','socials','content','extras','sections'])doc.designData[key]=source[key];}
  const seen=new Set();let count=0;
- const ranges={padding:[0,48],gap:[0,40],size:[8,46],weight:[400,800],tracking:[-1,5],lineHeight:[1,2.5],border:[0,5],radius:[0,30],width:[24,900]};
+ const ranges={paddingTop:[0,48],paddingRight:[0,64],paddingBottom:[0,48],paddingLeft:[0,64],borderTop:[0,5],borderRight:[0,5],borderBottom:[0,5],borderLeft:[0,5],padding:[0,48],gap:[0,40],size:[8,46],weight:[400,800],tracking:[-1,5],lineHeight:[1,2.5],border:[0,5],radius:[0,30],width:[24,900]};
  function read(raw,depth=0,cd=0){
   if(!raw||!TYPES.includes(raw.type))throw new Error('This project has an unsupported block type.');
   if(++count>LIMITS.nodes||depth>LIMITS.depth)throw new Error('This layout is too large or deeply nested.');
   if(raw.type==='columns'&&++cd>LIMITS.columnDepth)throw new Error('Use no more than two nested column sections.');
   const id=typeof raw.id==='string'&&/^[\w-]{1,80}$/.test(raw.id)&&!seen.has(raw.id)?raw.id:uid();seen.add(id);
   const n={id,type:raw.type,label:String(raw.label||raw.type).slice(0,80),visibility:['both','full','reply','hidden'].includes(raw.visibility)?raw.visibility:'both',props:{},style:{},children:[]};const p=raw.props||{};
-  for(const k of ['text','value','label','alt','url','src','bind','kind','fit','shape','appearance','orientation','line','background'])if(typeof p[k]==='string')n.props[k]=p[k].slice(0,k==='src'?8000000:k==='text'?4000:2000);
+  for(const k of ['text','value','label','alt','url','src','bind','kind','fit','shape','appearance','orientation','line','background','part','slot','role'])if(typeof p[k]==='string')n.props[k]=p[k].slice(0,k==='src'?8000000:k==='text'?4000:2000);
   if(n.props.bind&&!Object.hasOwn(doc.identity,n.props.bind))delete n.props.bind;
   for(const [k,min,max,def] of [['width',24,820,92],['height',0,300,92],['zoom',50,300,100],['x',-100,100,0],['y',-100,100,0],['size',16,240,24],['gap',0,24,8],['length',10,100,100],['thickness',.5,5,1]])if(p[k]!==undefined)n.props[k]=clamp(p[k],min,max,def);
-  n.props.italic=p.italic===true;n.props.underline=p.underline===true;
+  n.props.managed=p.managed===true;n.props.italic=p.italic===true;n.props.underline=p.underline===true;
   if(n.type==='social')n.props.items=(Array.isArray(p.items)?p.items:[]).slice(0,16).map(s=>({id:NETWORKS.some(x=>x[0]===s.id)?s.id:'custom',label:String(s.label||s.id||'Link').slice(0,60),url:String(s.url||'').slice(0,2000),enabled:s.enabled!==false,customIcon:typeof s.customIcon==='string'?s.customIcon.slice(0,8000000):''}));
   for(const [k,[min,max]] of Object.entries(ranges))if(raw.style?.[k]!==undefined&&raw.style[k]!==null&&raw.style[k]!=='')n.style[k]=clamp(raw.style[k],min,max,min);
   for(const k of ['color','background','borderColor'])if(/^#[a-f\d]{6}$/i.test(raw.style?.[k])||raw.style?.[k]==='transparent')n.style[k]=raw.style[k];
@@ -102,8 +103,14 @@ export function normalize(input){
   if(CONTAINERS.includes(n.type))n.children=(Array.isArray(raw.children)?raw.children:[]).map(x=>read(x,depth+1,cd));
   if(n.type==='columns'){
    if(n.children.length<2||n.children.length>3||n.children.some(x=>x.type!=='column'))throw new Error('Columns must contain two or three column cells.');
-   const ratios=n.children.map((_,j)=>clamp(p.ratios?.[j],10,80,100/n.children.length)),sum=ratios.reduce((a,b)=>a+b,0);n.props.ratios=ratios.map(r=>100*r/sum);
+   const weights=n.children.map((_,j)=>clamp(p.ratios?.[j],1,100,100/n.children.length));
+   const ratios=weights.map(()=>null);let remaining=100,free=weights.map((_,j)=>j);
+   for(let step=0;step<4&&free.length;step++){const sum=free.reduce((a,j)=>a+weights[j],0),proposals=free.map(j=>[j,remaining*weights[j]/sum]),limited=proposals.filter(([,v])=>v<10||v>80);
+    if(!limited.length){for(const [j,v]of proposals)ratios[j]=v;break;}
+    for(const [j,v]of limited){ratios[j]=Math.min(80,Math.max(10,v));remaining-=ratios[j];free=free.filter(k=>k!==j);}}
+   n.props.ratios=ratios.map(v=>Math.round(v*1e6)/1e6);n.props.ratios[n.props.ratios.length-1]=Math.round((100-n.props.ratios.slice(0,-1).reduce((a,b)=>a+b,0))*1e6)/1e6;
   }else if(n.children.some(x=>x.type==='column'))throw new Error('Column cells must belong to a columns block.');
+  if(n.type==='fragment'&&!['identity','identity-no-company','brand','contact','social','cta','custom','announcement','banner','note','disclaimer','tagline','logo','portrait','partner','name','title','company','kicker','pronouns','department'].includes(n.props.part))throw new Error('Unknown signature element.');
   if(n.type==='template'){if(!p.project)throw new Error('The preserved template is missing.');n.props.project=normalizeProject(p.project);}
   return n;
  }

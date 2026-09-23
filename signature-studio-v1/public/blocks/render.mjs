@@ -9,7 +9,7 @@ export function rich(text){
 }
 export function effective(node,doc,parent={}){const d=doc.design;return {font:node.type==='heading'?d.nameFont:d.bodyFont,size:node.type==='heading'?d.nameSize:d.bodySize,color:d.primary,align:d.align,weight:node.type==='heading'?d.nameWeight:400,lineHeight:d.lineHeight,tracking:0,nowrap:'inherit',...parent,...(node.type==='heading'?{font:d.nameFont,size:d.nameSize,weight:d.nameWeight}:{}),...node.style};}
 export function valueOf(n,doc){return n.props.bind?doc.identity[n.props.bind]||'':n.props.text??n.props.value??'';}
-export function renderBlocks(doc,{edit=false,images={},origin='https://example.com'}={}){
+export function renderBlocks(doc,{edit=false,images={},origin='https://example.com',fragment=null}={}){
  const d=doc.design,scale=d.scale/100,px=n=>Math.round(n*scale*100)/100;const style=o=>Object.entries(o).filter(([,v])=>v!==undefined&&v!==null&&v!=='').map(([k,v])=>k+':'+v).join(';');
  const table=(body,w='100%',s={})=>`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;${esc(style(s))}">${body}</table>`;
  const a=(text,url,s={})=>url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="${esc(style({color:d.link,'text-decoration':d.linkUnderline?'underline':'none',...s}))}">${text}</a>`:text;
@@ -19,8 +19,9 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
   const usable=nodes.filter(n=>edit||active(n));const rows=usable.map(n=>{
    const s=effective(n,doc,parent),attrs=edit?` data-bid="${n.id}" data-type="${n.type}" tabindex="0" aria-label="${esc(n.label)}"${!active(n)?' data-hidden="true"':''}`:'';
    const box={'vertical-align':s.valign||'top','text-align':s.align,'font-family':FONTS[s.font]?.value||FONTS.sans.value,'font-size':px(s.size)+'px','font-weight':s.weight,'line-height':s.lineHeight,color:s.color,'letter-spacing':px(s.tracking)+'px','white-space':s.nowrap==='normal'?'normal':s.nowrap==='nowrap'||d.nowrap?'nowrap':'normal',padding:px(n.style.padding||0)+'px','background-color':n.style.background,'border':n.style.border?`${px(n.style.border)}px solid ${n.style.borderColor||d.accent}`:undefined,'border-radius':n.style.radius?px(n.style.radius)+'px':undefined,'text-transform':s.casing==='none'?undefined:s.casing};
-   const body=content(n,Math.max(24,width-2*(n.style.padding||0)),s);
-   if(!body&&!edit)return '';
+   for(const side of ['Top','Right','Bottom','Left']){const pad=n.style['padding'+side],stroke=n.style['border'+side];if(pad!==undefined)box['padding-'+side.toLowerCase()]=px(pad)+'px';if(stroke!==undefined)box['border-'+side.toLowerCase()]=px(stroke)+'px '+d.borderStyle+' '+(n.style.borderColor||d.accent);}
+   const body=content(n,Math.max(24,width-(n.style.paddingLeft??n.style.padding??0)-(n.style.paddingRight??n.style.padding??0)),s);
+   if(!body&&(!edit||n.type==='fragment'))return '';
    return `<tr><td${attrs} style="${esc(style(box))}">${body||empty(n.label+' · click to edit')}</td></tr>`;
   }).filter(Boolean);
   const gap=px(parent.gap??d.sectionGap),spacer=gap?`<tr><td height="${gap}" style="height:${gap}px;font-size:0;line-height:0" aria-hidden="true">&nbsp;</td></tr>`:'';
@@ -33,9 +34,12 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
    const gap=n.style.gap??d.gap,available=width-gap*(n.children.length-1);return table('<tr>'+n.children.map((col,j)=>{
     const cw=Math.max(20,available*p.ratios[j]/100),cs=effective(col,doc,inherited),att=edit?` data-bid="${col.id}" data-type="column"${!active(col)?' data-hidden="true"':''} tabindex="0" aria-label="${esc(col.label)}"`:'';
     const body=edit||active(col)?list(col.children,cw-2*(col.style.padding||0),{...inherited,...col.style}):'';
-    return `<td${att} width="${px(cw)}" style="width:${px(cw)}px;vertical-align:${cs.valign||'top'};padding:${px(col.style.padding||0)}px;background-color:${col.style.background||'transparent'}">${body}</td>`+(j<n.children.length-1?`<td width="${px(gap)}" style="width:${px(gap)}px;font-size:0">&nbsp;</td>`:'');
+    const colBox={width:px(cw)+'px','vertical-align':cs.valign||'top',padding:px(col.style.padding||0)+'px','background-color':col.style.background||'transparent'};
+    for(const side of ['Top','Right','Bottom','Left']){const pad=col.style['padding'+side],stroke=col.style['border'+side];if(pad!==undefined)colBox['padding-'+side.toLowerCase()]=px(pad)+'px';if(stroke!==undefined)colBox['border-'+side.toLowerCase()]=px(stroke)+'px '+d.borderStyle+' '+(col.style.borderColor||d.accent);}
+    return `<td${att} width="${px(cw)}" style="${esc(style(colBox))}">${body}</td>`+(j<n.children.length-1?`<td width="${px(gap)}" style="width:${px(gap)}px;font-size:0">&nbsp;</td>`:'');
    }).join('')+'</tr>');
   }
+  if(n.type==='fragment'&&fragment)return fragment(n,doc,{edit,images,origin,width,style:s});
   if(n.type==='template'){
    const im={};for(const [k,v]of Object.entries(images))if(k.startsWith(n.id+':'))im[k.slice(n.id.length+1)]=v;
    return renderSignature({...p.project,variant:doc.variant,design:{...p.project.design,scale:d.scale}},{images:im,origin});
