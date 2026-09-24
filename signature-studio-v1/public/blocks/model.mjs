@@ -71,7 +71,7 @@ export function makeBlock(kind,doc){
   default:throw new Error('Unknown block preset.');
  }
 }
-export function freshDocument(blank=false){const base=freshProject();const d={schemaVersion:3,kind:'signature-blocks',name:'Modern Gentlemen · Blocks',variant:'full',identity:clone(base.identity),design:clone(base.design),children:[],publishedAssets:{}};
+export function freshDocument(blank=false){const base=freshProject();const d={schemaVersion:3,kind:'signature-blocks',visibilityRulesVersion:2,name:'Modern Gentlemen · Blocks',variant:'full',identity:clone(base.identity),design:clone(base.design),children:[],publishedAssets:{}};
  d.design.baseWidth=540;d.design.targetWidth=540;
  if(!blank){const id=makeBlock('identity',d),tag=block('text',{bind:'tagline'},{size:12});d.children=[columns([[makeBlock('image',d)],[id,tag,makeBlock('contacts',d),makeBlock('social',d)]],[24,76])];}return d;}
 export function walk(nodes,fn,parent=null,depth=0){for(const n of nodes){fn(n,parent,depth);walk(n.children||[],fn,n,depth+1);}}
@@ -82,7 +82,8 @@ export function normalize(input){
  if(input?.schemaVersion!==3||input.kind!=='signature-blocks')throw new Error('Choose a Block Studio project. Older designs can be opened as preserved template blocks.');
  if(JSON.stringify(input).length>LIMITS.bytes)throw new Error('Project exceeds the 18 MB limit. Resize its artwork.');
  const base=freshProject();const safe=normalizeProject({...base,identity:input.identity,design:input.design});
- const doc={schemaVersion:3,kind:'signature-blocks',name:String(input.name||'Untitled signature').slice(0,100),variant:input.variant==='reply'?'reply':'full',identity:safe.identity,design:safe.design,children:[],publishedAssets:{}};
+ const visibilityRulesVersion=input.visibilityRulesVersion===2?2:1;
+ const doc={schemaVersion:3,kind:'signature-blocks',visibilityRulesVersion:2,name:String(input.name||'Untitled signature').slice(0,100),variant:input.variant==='reply'?'reply':'full',identity:safe.identity,design:safe.design,children:[],publishedAssets:{}};
  if(input.designData){const source=normalizeProject({...input.designData,schemaVersion:2,identity:doc.identity,design:doc.design});doc.designData={};for(const key of ['templateId','visible','assets','socials','content','extras','sections'])doc.designData[key]=source[key];}
  const seen=new Set();let count=0;
  const ranges={paddingTop:[0,48],paddingRight:[0,64],paddingBottom:[0,48],paddingLeft:[0,64],borderTop:[0,5],borderRight:[0,5],borderBottom:[0,5],borderLeft:[0,5],padding:[0,48],gap:[0,40],size:[8,46],weight:[400,800],tracking:[-1,5],lineHeight:[1,2.5],border:[0,5],radius:[0,30],width:[24,900]};
@@ -92,7 +93,7 @@ export function normalize(input){
   if(raw.type==='columns'&&++cd>LIMITS.columnDepth)throw new Error('Use no more than two nested column sections.');
   const id=typeof raw.id==='string'&&/^[\w-]{1,80}$/.test(raw.id)&&!seen.has(raw.id)?raw.id:uid();seen.add(id);
   const n={id,type:raw.type,label:String(raw.label||raw.type).slice(0,80),visibility:['both','full','reply','hidden'].includes(raw.visibility)?raw.visibility:'both',props:{},style:{},children:[]};const p=raw.props||{};
-  for(const k of ['text','value','label','alt','url','src','bind','kind','fit','shape','appearance','orientation','line','background','part','slot','role'])if(typeof p[k]==='string')n.props[k]=p[k].slice(0,k==='src'?8000000:k==='text'?4000:2000);
+  for(const k of ['text','value','label','alt','url','src','bind','kind','fit','shape','appearance','orientation','line','background','part','slot','role','visibilityBeforeHide'])if(typeof p[k]==='string')n.props[k]=p[k].slice(0,k==='src'?8000000:k==='text'?4000:2000);
   if(n.props.bind&&!Object.hasOwn(doc.identity,n.props.bind))delete n.props.bind;
   for(const [k,min,max,def] of [['width',24,820,92],['height',0,300,92],['zoom',50,300,100],['x',-100,100,0],['y',-100,100,0],['size',16,240,24],['gap',0,24,8],['length',10,100,100],['thickness',.5,5,1]])if(p[k]!==undefined)n.props[k]=clamp(p[k],min,max,def);
   n.props.managed=p.managed===true;n.props.italic=p.italic===true;n.props.underline=p.underline===true;
@@ -115,6 +116,12 @@ export function normalize(input){
   return n;
  }
  doc.children=(Array.isArray(input.children)?input.children:[]).map(n=>read(n));
+ if(visibilityRulesVersion<2){
+  const replyCore=new Set(['identity','identity-no-company','contact','name','title','company','pronouns']);
+  walk(doc.children,n=>{
+   if(n.type==='fragment'&&n.props.managed===true&&!replyCore.has(n.props.part)&&n.visibility==='both')n.visibility='full';
+  });
+ }
  if(doc.children.some(n=>n.type==='column'))throw new Error('Column cells cannot be placed at the root.');
  for(const [k,v] of Object.entries(input.publishedAssets||{}).slice(0,300))if(/^[a-f\d]{64}$/.test(k)&&typeof v==='string'&&/^https:\/\//.test(v))doc.publishedAssets[k]=v;
  return doc;

@@ -5,7 +5,7 @@ Live navigation, OAuth, clipboard permissions and Supabase are not exercised.
 from pathlib import Path
 import re, json, base64, posixpath
 ROOT=Path(__file__).resolve().parents[1]/'public'
-MODULES=['design/catalog.mjs','design/engine.mjs','design/media.mjs','design/cloud.mjs','blocks/model.mjs','blocks/render.mjs','blocks/qr.mjs','blocks/media.mjs','blocks/inspector.mjs','studio/model.mjs','studio/render.mjs','studio/controls.mjs','studio/app.mjs','blocks/alignment.mjs','blocks/canvas-tools.mjs','blocks/app.mjs']
+MODULES=['design/catalog.mjs','design/engine.mjs','design/media.mjs','design/cloud.mjs','blocks/model.mjs','shared/signature-rules.mjs','blocks/render.mjs','blocks/qr.mjs','blocks/media.mjs','blocks/inspector.mjs','studio/model.mjs','studio/render.mjs','studio/controls.mjs','studio/app.mjs','blocks/alignment.mjs','blocks/canvas-tools.mjs','blocks/app.mjs']
 def boot(page,stored=None):
     assets={p.name:'data:image/png;base64,'+base64.b64encode(p.read_bytes()).decode() for p in (ROOT/'design/media').glob('*.png')}
     html=(ROOT/'studio/index.html').read_text()
@@ -31,7 +31,7 @@ def boot(page,stored=None):
             dest=posixpath.normpath(posixpath.join(posixpath.dirname(name),m[2]))
             return 'const {'+re.sub(r'\s+as\s+', ':', m[1])+'}=__modules['+json.dumps(dest)+'];'
         code=re.sub(r"import\s*\{([^}]+)\}\s*from\s*['\"]([^'\"]+)['\"];",imports,code)
-        code=code.replace("await import('../blocks/app.mjs');",'')
+        code=re.sub(r"await\s+import\(['\"]\.\./blocks/app\.mjs(?:\?[^'\"]*)?['\"]\);?",'',code)
         code=code.replace("location.origin","'https://signature-studio.test'")
         if name=='design/engine.mjs':
             code=code.replace("if(s.startsWith('/design/media/'))return new URL(s,origin).href;", "if(s.startsWith('/design/media/'))return window.__assets[s.split('/').pop()]||'';")

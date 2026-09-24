@@ -9,7 +9,12 @@ export function designProject(doc){
 function keepData(doc,p){
  doc.designData={};for(const k of ['templateId','visible','assets','socials','content','extras','sections'])doc.designData[k]=clone(p[k]);
 }
-function fragment(part,label=part){return block('fragment',{part,managed:true},{},[],label);}
+const REPLY_CORE_PARTS=new Set(['identity','identity-no-company','contact','name','title','company','pronouns']);
+function fragment(part,label=part){
+ const n=block('fragment',{part,managed:true},{},[],label);
+ if(!REPLY_CORE_PARTS.has(part))n.visibility='full';
+ return n;
+}
 function container(type,label,kids,style={}){return block(type,{managed:true},style,kids.filter(Boolean),label);}
 function stack(label,kids,style={}){return container('group',label,kids,style);}
 function cols(label,left,right,ratios=[25,75],style={}){return block('columns',{ratios,managed:true},style,[container('column','Left column',left),container('column','Right column',right)],label);}
