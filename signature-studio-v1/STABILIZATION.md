@@ -30,3 +30,8 @@ The browser harnesses are offline production-module tests. They do not substitut
 ## Production policy
 
 Do not deploy this branch to the production Signature Studio service until the regression suite is green and the remaining live smoke tests are recorded.
+
+
+## Preview deployment
+
+The stabilization build may be loaded on an isolated Railway preview service for acceptance testing. The production `signature-studio-v1` service remains unchanged until explicit merge/deploy authorization.
