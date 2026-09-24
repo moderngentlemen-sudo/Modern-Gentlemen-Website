@@ -2,6 +2,7 @@
 import {FONTS} from '../design/catalog.mjs';
 import {esc,safeUrl,safeImage,renderSignature,contrast} from '../design/engine.mjs';
 import {walk} from './model.mjs';
+import {nodeActive} from '../shared/signature-rules.mjs';
 export function rich(text){
  const pattern=/(\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\[([^\]\n]+)\]\(([^)\s]+)\))/g;let out='',at=0,m;
  while((m=pattern.exec(text))){out+=esc(text.slice(at,m.index));if(m[2])out+='<strong>'+esc(m[2])+'</strong>';else if(m[3])out+='<em>'+esc(m[3])+'</em>';else {const u=safeUrl(m[5]);out+=u?`<a href="${esc(u)}" style="color:inherit">${esc(m[4])}</a>`:esc(m[4]);}at=pattern.lastIndex;}
@@ -14,7 +15,7 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
  const table=(body,w='100%',s={},align=null)=>`<table${align?` align="${align}"`:''} role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;${esc(style(s))}">${body}</table>`;
  const a=(text,url,s={})=>url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="${esc(style({color:d.link,'text-decoration':d.linkUnderline?'underline':'none',...s}))}">${text}</a>`:text;
  const empty=label=>edit?`<div data-placeholder="true" style="height:28px;font:11px Arial;color:#888">${esc(label)}</div>`:'';
- const active=n=>n.visibility!=='hidden'&&(n.visibility==='both'||n.visibility===doc.variant);
+ const active=n=>nodeActive(doc,n,doc.variant);
  function list(nodes,width,parent={}){
   const usable=nodes.filter(n=>edit||active(n));const rows=usable.map(n=>{
    const s=effective(n,doc,parent),attrs=edit?` data-bid="${n.id}" data-type="${n.type}" tabindex="0" aria-label="${esc(n.label)}"${!active(n)?' data-hidden="true"':''}`:'';
