@@ -20,7 +20,6 @@ function fragment(node,doc,ctx){
  const p=projectFor(doc,node,ctx.style);let part=node.props.part;
  if(node.props.role==='secondary-logo'&&!p.assets.portrait.src)return '';
  if(part==='portrait'&&!p.assets.portrait.src)part='logo';
- if(doc.variant==='reply'&&!['identity','identity-no-company','contact','name','title','company','pronouns'].includes(part))return '';
  if(['logo','portrait','partner'].includes(part)&&!p.design['show'+part[0].toUpperCase()+part.slice(1)])return '';
  if(p.sections.some(s=>s.type===part&&!s.enabled))return '';
  const images={};for(const [key,value] of Object.entries(ctx.images))if(key.startsWith('studio:'))images[key.slice(7)]=value;
