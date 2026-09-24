@@ -33,10 +33,30 @@ export function globalControls(doc,which){
  }
  if(panel==='layout'){
   const layouts=[...new Map(TEMPLATES.map(t=>[t.layout,[t.layout,t.name]])).values()];
-  html=section('Structure',D('layout','Composition','select',layouts)+D('align','Alignment','select',[['left','Left'],['center','Center'],['right','Right']])+D('contactLayout','Contact arrangement','select',[['stacked','Stacked lines'],['inline','Single row'],['columns','Two columns']])+D('contactLabels','Contact labels','select',[['none','None'],['short','T / E / W'],['full','Phone / Email / Website']])+D('separator','Inline separator','select',[[' · ','Middle dot'],[' | ','Vertical bar'],[' / ','Slash'],[' — ','Em dash']]))+
+  html=section('Structure',D('layout','Composition','select',layouts)+D('align','Alignment','select',[['left','Left'],['center','Center'],['right','Right']])+D('contactLayout','Contact arrangement','select',[['stacked','Stacked lines'],['inline','Single row'],['columns','Two columns']])+D('contactLabels','Contact labels','select',[['none','None'],['short','T / E / W'],['full','Phone / Email / Website']])+D('separator','Inline separator','select',[['','None'],[' · ','Middle dot'],[' | ','Vertical bar'],[' / ','Slash'],[' — ','Em dash']]))+
   section('Density','<div class="pill-row"><button data-u-action="density" data-value="compact">Compact</button><button data-u-action="density" data-value="balanced">Balanced</button><button data-u-action="density" data-value="airy">Airy</button></div>'+D('padding','Outer padding · px','range',[0,50])+D('gap','Column gap · px','range',[4,64])+D('sectionGap','Section spacing · px','range',[2,36])+D('contactGap','Contact line gap · px','range',[0,20]))+
   section('Fit & scale',D('baseWidth','Design width · px','range',[240,900,10])+D('scale','Export scale · %','range',[30,150,.1])+D('targetWidth','Fit target · px','range',[280,1000,10])+check('design.nowrap','Keep individual text lines unbroken')+'<div class="mini-actions"><button data-u-action="autofit">Auto-fit</button><button data-u-action="mobile-fit">Fit to 360 px</button></div><p class="micro">No-wrap can overflow at large sizes. Auto-fit scales real HTML dimensions, not just the preview.</p>')+
   section('Frames & rules',D('border','Frame stroke · px','range',[0,5,.5])+D('borderStyle','Line style','select',['solid','dashed','dotted'])+D('radius','Frame corner radius · px','range',[0,30])+D('ruleWidth','Rule stroke · px','range',[.5,5,.5])+D('ruleLength','Rule length · %','range',[15,100]));
+ }
+ if(panel==='visibility'){
+  const show=(path,label)=>check(path,label);
+  const sectionRows=p.sections.map((s,index)=>`<div class="order-row"><input type="checkbox" data-u-path="sections.${index}.enabled" aria-label="Show ${SECTION_LABELS[s.type]}" ${s.enabled?'checked':''}><span>${SECTION_LABELS[s.type]}</span><div class="mini-actions"><button data-u-action="move-section" data-index="${index}" data-dir="-1" aria-label="Move ${SECTION_LABELS[s.type]} up" ${index===0?'disabled':''}>↑</button><button data-u-action="move-section" data-index="${index}" data-dir="1" aria-label="Move ${SECTION_LABELS[s.type]} down" ${index===p.sections.length-1?'disabled':''}>↓</button></div></div>`).join('');
+  html=section('Identity elements',
+    '<div class="mini-actions"><button data-u-action="visibility-preset" data-group="identity" data-value="show">Show all</button><button data-u-action="visibility-preset" data-group="identity" data-value="hide">Hide all</button></div>'+
+    [['name','Full name'],['title','Title / role'],['company','Company'],['kicker','Eyebrow / overline'],['pronouns','Pronouns'],['department','Department / team']].map(([k,l])=>show('visible.'+k,l)).join('')
+  )+
+  section('Contact elements',
+    '<div class="mini-actions"><button data-u-action="visibility-preset" data-group="contact" data-value="show">Show all</button><button data-u-action="visibility-preset" data-group="contact" data-value="hide">Hide all</button></div>'+
+    [['email','Email'],['phone','Phone'],['mobile','Mobile'],['website','Website'],['address','Address'],['availability','Availability / timezone']].map(([k,l])=>show('visible.'+k,l)).join('')
+  )+
+  section('Artwork',
+    '<div class="mini-actions"><button data-u-action="visibility-preset" data-group="artwork" data-value="show">Show all</button><button data-u-action="visibility-preset" data-group="artwork" data-value="hide">Hide all</button></div>'+
+    show('design.showLogo','Primary logo')+show('design.showPortrait','Portrait / headshot')+show('design.showPartner','Partner logo')
+  )+
+  section('Signature sections',
+    '<div class="mini-actions"><button data-u-action="visibility-preset" data-group="sections" data-value="show">Show all</button><button data-u-action="visibility-preset" data-group="sections" data-value="hide">Hide all</button></div>'+sectionRows+
+    '<p class="micro">Empty sections do not add spacing. Select any block on the canvas for Full & reply, Full only, Reply only, or Hidden visibility.</p>'
+  );
  }
  if(panel==='color')html=section('Curated palettes',`<div class="palette-grid">${PALETTES.map((a,index)=>`<button class="palette" data-u-action="palette" data-index="${index}"><span class="palette-swatches">${a.slice(1).map(h=>`<i style="background:${h}"></i>`).join('')}</span>${a[0]}</button>`).join('')}</div>`)+section('Your palette',two(D('primary','Primary text','color'),D('secondary','Secondary text','color'))+two(D('link','Links','color'),D('accent','Rules & icons','color'))+two(D('tint','Panel tint','color'),D('background','Background','color'))+check('design.transparent','Transparent signature background'))+section('Reusable brand kit','<div class="mini-actions"><button data-u-action="export-brand">Export brand kit</button><button data-u-action="import-brand">Import brand kit</button><button data-u-action="save-template">Save as template</button></div><p class="micro">Brand kits contain your palette and font pairing. Templates additionally preserve layout and spacing. Saved styles stay in this browser.</p>');
  if(panel==='images'){

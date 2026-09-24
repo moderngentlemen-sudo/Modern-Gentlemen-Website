@@ -53,7 +53,7 @@ export function normalizeProject(input){
  for(const k of ['nameFont','bodyFont'])if(!FONTS[p.design[k]])p.design[k]=BASE_DESIGN[k];
  if(!TEMPLATES.some(t=>t.layout===p.design.layout))p.design.layout='horizontal';
  for(const key of ['nowrap','transparent','linkUnderline','showLogo','showPortrait','showPartner'])p.design[key]=p.design[key]===true;
- p.design.separator=[' · ',' | ',' / ',' — '].includes(p.design.separator)?p.design.separator:' · ';
+ p.design.separator=['',' · ',' | ',' / ',' — '].includes(p.design.separator)?p.design.separator:' · ';
  for(const a of Object.values(p.assets)){
   a.src=typeof a.src==='string'?a.src:'';if(a.src.length>8500000)throw new Error('An image is too large. Please use an image under 5 MB.');
   a.alt=String(a.alt||'').slice(0,200);a.link=String(a.link||'').slice(0,2000);a.zoom=clamp(a.zoom,50,300,100);a.x=clamp(a.x,-100,100,0);a.y=clamp(a.y,-100,100,0);a.fit=a.fit==='cover'?'cover':'contain';

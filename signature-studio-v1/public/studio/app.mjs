@@ -13,7 +13,7 @@ let migrationIssue='';try{migrateStorage(localStorage);}catch{migrationIssue='Br
 let api,activePanel='templates',stylePanel='type',contentPanel='content',query='',filter='All',keepBrand=true,pendingAsset=null;
 let favorites=read('signature-studio.favorites.v2',[]),styles=read('signature-studio.styles.v2',[]);
 if(!Array.isArray(favorites))favorites=[];if(!Array.isArray(styles))styles=[];
-const titles={templates:['A place to begin.','Apply a template to this signature. All its elements stay editable.'],blocks:['Build on your design.','Drag a block onto the canvas, or click + to add it.'],content:['Your introduction.','One profile. Connected everywhere in this signature.'],style:['Set the tone.','Whole-signature styling. Individual elements can override it.'],images:['An image, considered.','Brand artwork shared by the template and canvas.'],social:['Stay connected.','Your channels, linked to the social elements on the canvas.'],layers:['Everything in its place.','Select, move and organize every element in your signature.']};
+const titles={templates:['A place to begin.','Apply a template to this signature. All its elements stay editable.'],blocks:['Build on your design.','Drag a block onto the canvas, or click + to add it.'],content:['Your introduction.','One profile. Connected everywhere in this signature.'],style:['Set the tone.','Whole-signature styling. Individual elements can override it.'],images:['An image, considered.','Brand artwork shared by the template and canvas.'],social:['Stay connected.','Your channels, linked to the social elements on the canvas.'],visibility:['Choose what appears.','Control profile fields, artwork, sections, and per-block Full/Reply visibility.'],layers:['Everything in its place.','Select, move and organize every element in your signature.']};
 function get(doc,path){const [root,...rest]=path.split('.');return rest.reduce((v,k)=>v?.[k],['design','identity'].includes(root)?doc[root]:doc.designData?.[root]);}
 function set(obj,path,value){const keys=path.split('.');if(keys.some(k=>['__proto__','constructor','prototype'].includes(k)))throw new Error('Invalid field.');for(const k of keys.slice(0,-1)){if(!obj[k]||typeof obj[k]!=='object')obj[k]={};obj=obj[k];}obj[keys.at(-1)]=value;}
 function sync(doc){
@@ -44,6 +44,7 @@ function showPanel(panel){
  if(panel==='templates')templateCards();
  else if(panel==='style')$('unifiedControls').innerHTML=`<div class="style-tabs">${[['type','Type'],['layout','Layout'],['color','Color']].map(([id,name])=>`<button data-u-action="style-tab" data-panel="${id}" class="${id===stylePanel?'active':''}">${name}</button>`).join('')}</div>`+globalControls(api.getDocument(),stylePanel);
  else if(panel==='content')$('unifiedControls').innerHTML=`<div class="style-tabs">${[['content','Profile'],['blocks','Links & notes']].map(([id,name])=>`<button data-u-action="content-tab" data-panel="${id}" class="${id===contentPanel?'active':''}">${name}</button>`).join('')}</div>`+globalControls(api.getDocument(),contentPanel);
+ else if(panel==='visibility')$('unifiedControls').innerHTML=globalControls(api.getDocument(),'visibility');
  else if(!['blocks','layers'].includes(panel))$('unifiedControls').innerHTML=globalControls(api.getDocument(),panel);
  if(panel==='layers')api.renderTree();
 }
@@ -103,6 +104,7 @@ const handlers={
  'add-extra':()=>{api.mutate(d=>{if(d.designData.extras.length>=12)throw new Error('Use at most 12 custom fields.');d.designData.extras.push({label:'',value:'',url:'',enabled:true});ensurePart(d,'custom');});if(activePanel==='content')showPanel(activePanel);},
  'remove-extra':b=>{api.mutate(d=>d.designData.extras.splice(+b.dataset.index,1));if(activePanel==='content')showPanel(activePanel);},
  'move-section':b=>{api.mutate(d=>{const a=d.designData.sections,i=+b.dataset.index,j=i+(+b.dataset.dir);if(j>=0&&j<a.length)[a[i],a[j]]=[a[j],a[i]];});},
+ 'visibility-preset':b=>{const group=b.dataset.group,on=b.dataset.value==='show';api.mutate(d=>{if(group==='identity')for(const k of ['name','title','company','kicker','pronouns','department'])d.designData.visible[k]=on;if(group==='contact')for(const k of ['email','phone','mobile','website','address','availability'])d.designData.visible[k]=on;if(group==='artwork')Object.assign(d.design,{showLogo:on,showPortrait:on,showPartner:on});if(group==='sections')for(const s of d.designData.sections)s.enabled=on;});showPanel('visibility');},
  'ungroup-fragment':separate,deselect:()=>{api.select(null);api.refresh();},
 };
 document.addEventListener('click',async e=>{
