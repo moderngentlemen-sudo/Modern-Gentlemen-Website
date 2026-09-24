@@ -5,7 +5,7 @@ Live navigation, OAuth, clipboard permissions and Supabase are not exercised.
 from pathlib import Path
 import re, json, base64, posixpath
 ROOT=Path(__file__).resolve().parents[1]/'public'
-MODULES=['design/catalog.mjs','design/engine.mjs','design/media.mjs','design/cloud.mjs','blocks/model.mjs','blocks/render.mjs','blocks/qr.mjs','blocks/media.mjs','blocks/inspector.mjs','blocks/alignment.mjs','blocks/canvas-tools.mjs','blocks/app.mjs']
+MODULES=['design/catalog.mjs','design/engine.mjs','design/media.mjs','design/cloud.mjs','blocks/model.mjs','shared/signature-rules.mjs','blocks/render.mjs','blocks/qr.mjs','blocks/media.mjs','blocks/inspector.mjs','blocks/alignment.mjs','blocks/canvas-tools.mjs','blocks/app.mjs']
 def boot(page,stored=None):
     assets={p.name:'data:image/png;base64,'+base64.b64encode(p.read_bytes()).decode() for p in (ROOT/'design/media').glob('*.png')}
     html=(ROOT/'blocks/index.html').read_text()
