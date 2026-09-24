@@ -51,6 +51,15 @@ test('explicit Full and Reply visibility is authoritative in the unified rendere
  assert.match(renderUnified(documentForVariant(d,'reply')),/instagram\.com\/example/);
 });
 
+
+test('legacy unified projects migrate prior implicit reply suppression to explicit Full-only once',()=>{
+ const p=freshProject();const legacy=fromDesign(p);delete legacy.visibilityRulesVersion;
+ let tagline=null;walk(legacy.children,n=>{if(n.type==='fragment'&&n.props.part==='tagline')tagline=n;});assert.ok(tagline);tagline.visibility='both';
+ const migrated=normalize(legacy);walk(migrated.children,n=>{if(n.type==='fragment'&&n.props.part==='tagline')tagline=n;});
+ assert.equal(migrated.visibilityRulesVersion,2);assert.equal(tagline.visibility,'full');
+ tagline.visibility='both';const saved=normalize(migrated);walk(saved.children,n=>{if(n.type==='fragment'&&n.props.part==='tagline')tagline=n;});assert.equal(tagline.visibility,'both');
+});
+
 test('None inline separator survives normalization and retains readable spacing',()=>{
  const p=freshProject();p.design.contactLayout='inline';p.design.separator='';p.identity.phone='111';p.identity.email='me@example.com';p.visible.phone=true;p.visible.email=true;
  const normalized=normalizeProject(p);assert.equal(normalized.design.separator,'');const html=renderSignature(normalized);
