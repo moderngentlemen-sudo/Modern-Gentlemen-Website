@@ -92,7 +92,7 @@ export function normalize(input){
   if(raw.type==='columns'&&++cd>LIMITS.columnDepth)throw new Error('Use no more than two nested column sections.');
   const id=typeof raw.id==='string'&&/^[\w-]{1,80}$/.test(raw.id)&&!seen.has(raw.id)?raw.id:uid();seen.add(id);
   const n={id,type:raw.type,label:String(raw.label||raw.type).slice(0,80),visibility:['both','full','reply','hidden'].includes(raw.visibility)?raw.visibility:'both',props:{},style:{},children:[]};const p=raw.props||{};
-  for(const k of ['text','value','label','alt','url','src','bind','kind','fit','shape','appearance','orientation','line','background','part','slot','role'])if(typeof p[k]==='string')n.props[k]=p[k].slice(0,k==='src'?8000000:k==='text'?4000:2000);
+  for(const k of ['text','value','label','alt','url','src','bind','kind','fit','shape','appearance','orientation','line','background','part','slot','role','visibilityBeforeHide'])if(typeof p[k]==='string')n.props[k]=p[k].slice(0,k==='src'?8000000:k==='text'?4000:2000);
   if(n.props.bind&&!Object.hasOwn(doc.identity,n.props.bind))delete n.props.bind;
   for(const [k,min,max,def] of [['width',24,820,92],['height',0,300,92],['zoom',50,300,100],['x',-100,100,0],['y',-100,100,0],['size',16,240,24],['gap',0,24,8],['length',10,100,100],['thickness',.5,5,1]])if(p[k]!==undefined)n.props[k]=clamp(p[k],min,max,def);
   n.props.managed=p.managed===true;n.props.italic=p.italic===true;n.props.underline=p.underline===true;
