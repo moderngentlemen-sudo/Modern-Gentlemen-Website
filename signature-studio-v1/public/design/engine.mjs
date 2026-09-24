@@ -99,7 +99,7 @@ export function renderSignature(project,context={}){
  function contact(){
   const fields=[['phone','T','Phone',safeUrl(i.phone,{phone:true})],['mobile','M','Mobile',safeUrl(i.mobile,{phone:true})],['email','E','Email',safeUrl(i.email,{email:true})],['website','W','Website',safeUrl(i.website)],['address','A','Address',''],['availability','','Availability','']].filter(([key])=>visible(key));
   const pieces=fields.map(([key,short,label,url])=>line((d.contactLabels==='none'?'':`<span style="color:${d.secondary}">${esc(d.contactLabels==='short'?short:label)}${short||d.contactLabels==='full'?': ':''}</span>`)+link(esc(key==='website'?i[key].replace(/^https?:\/\//,'').replace(/\/$/,''):i[key]),url)));
-  if(d.contactLayout==='inline'||d.layout==='inline')return line(fields.map(([key,,label,url])=>link(esc(key==='website'?i[key].replace(/^https?:\/\//,'').replace(/\/$/,''):i[key]),url)).join(`<span style="color:${d.secondary}">${esc(d.separator)}</span>`));
+  if(d.contactLayout==='inline'||d.layout==='inline'){const separator=d.separator?`<span style="color:${d.secondary}">${esc(d.separator)}</span>`:'<span aria-hidden="true">&nbsp;&nbsp;</span>';return line(fields.map(([key,,label,url])=>link(esc(key==='website'?i[key].replace(/^https?:\/\//,'').replace(/\/$/,''):i[key]),url)).join(separator));}
   if(d.contactLayout==='columns')return table(pieces.reduce((acc,v,k)=>{if(k%2===0)acc.push(tr(td(v,{'padding-bottom':px(d.contactGap)+'px','padding-right':px(18)+'px'}),td(pieces[k+1]||'',{'padding-bottom':px(d.contactGap)+'px'})));return acc;},[]).join(''));
   return table(pieces.map(v=>tr(td(v,{'padding-bottom':px(d.contactGap)+'px'}))).join(''));
  }
