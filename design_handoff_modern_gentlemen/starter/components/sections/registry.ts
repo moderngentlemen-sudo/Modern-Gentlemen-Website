@@ -1,4 +1,4 @@
-import { editorialCollectionRegistry } from "./EditorialCollection";
+import { editorialCollectionRegistry } from "./EditorialCollectionRegistry";
 import { StudioCanvas, StudioElement } from "./StudioCanvas";
 import { WidgetStudio } from "./WidgetStudio";
 import { GridLayout } from "./GridLayout";

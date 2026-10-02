@@ -32,6 +32,12 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   publishing journeys, with responsive/a11y checks and retained review screenshots.
   Existing article preview coverage automatically includes the new 30 choices.
   Hosted release gates and deployment are tracked in the PR; not yet released.
+- Hosted CI #418 passed the seeded production build, unit and database gates.
+  Its new journey exposed a Next server/client boundary issue: the interactive
+  module exported the registry object, leaving the public server registry empty.
+  Moved that small factory into a neutral module with direct client component
+  references. The gallery count now has a distinct accessible name so the test
+  does not also match the admin toast status. Hosted journeys are rerun on the fix.
 - Cost: one shared collection renderer, metadata/manifest factories, gallery,
   article presentation variants and 90 optimized reference images (~14.4 MiB).
   No database migration, new package, hosting change or production content edit.

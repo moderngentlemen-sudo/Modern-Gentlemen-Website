@@ -50,13 +50,14 @@ test.describe("MG 90 collection", () => {
     const slug = `e2e-mg90-page-${stamp}`;
     const chosen = EDITORIAL_COLLECTION.find((c) => c.id === "34")!;
     await page.goto("/admin/editorial-collection");
-    await expect(page.getByRole("status")).toHaveText("90 designs");
+    const count = page.getByRole("status", { name: "Collection results" });
+    await expect(count).toHaveText("90 designs");
     await page.getByLabel("Format", { exact: true }).selectOption("article");
-    await expect(page.getByRole("status")).toHaveText("30 designs");
+    await expect(count).toHaveText("30 designs");
     await page.getByLabel("Format", { exact: true }).selectOption("section");
-    await expect(page.getByRole("status")).toHaveText("60 designs");
+    await expect(count).toHaveText("60 designs");
     await page.getByRole("searchbox", { name: "Search the collection" }).fill(chosen.name);
-    await expect(page.getByRole("status")).toHaveText("1 designs");
+    await expect(count).toHaveText("1 design");
     await page.getByRole("button", { name: new RegExp(`${chosen.name}.*Explore design`) }).click();
     const dialog = page.getByRole("dialog", { name: chosen.name });
     await expect(dialog.getByRole("img")).toBeVisible();

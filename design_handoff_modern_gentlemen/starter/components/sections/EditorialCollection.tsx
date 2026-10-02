@@ -1,14 +1,8 @@
 "use client";
 
-import { useId, useState, type ComponentType, type CSSProperties } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import {
-  EDITORIAL_COLLECTION,
-  collectionType,
-  editorialConcept,
-  type EditorialConceptId,
-  type EditorialCollectionType,
-} from "@/lib/domain/editorialCollection";
+import { editorialConcept, type EditorialConceptId } from "@/lib/domain/editorialCollection";
 import { studyHref } from "@/lib/blocks/sectionStudies";
 import { MediaImage } from "../ui/MediaImage";
 import { RichTextContent } from "../ui/RichTextContent";
@@ -460,12 +454,3 @@ export function ArticleCollectionBody({
     </div>
   );
 }
-
-export const editorialCollectionRegistry = Object.fromEntries(
-  EDITORIAL_COLLECTION.map((c) => [
-    collectionType(c.id),
-    function CollectionBlock(props: CollectionProps) {
-      return <EditorialCollection id={c.id} {...props} />;
-    },
-  ])
-) as Record<EditorialCollectionType, ComponentType<CollectionProps>>;

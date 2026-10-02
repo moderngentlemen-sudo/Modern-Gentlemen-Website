@@ -102,8 +102,8 @@ export function EditorialCollectionGallery({
           </select>
         </label>
       </div>
-      <p role="status" className={styles.count}>
-        {matches.length} designs
+      <p role="status" aria-label="Collection results" className={styles.count}>
+        {matches.length} {matches.length === 1 ? "design" : "designs"}
       </p>
       <div className={styles.grid}>
         {matches.slice(0, limit).map((c) => (
