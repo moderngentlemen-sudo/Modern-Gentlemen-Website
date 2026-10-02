@@ -360,6 +360,12 @@ export function DesignStudioShell({
           </div>
         )}
       </div>
+      <p className="px-4 py-3 text-sm">
+        <Link className="underline" href="/admin/editorial-collection">
+          Explore the MG 90 editorial collection
+        </Link>{" "}
+        · Create editable pages and article templates from the approved designs.
+      </p>
       <iframe
         inert={busy}
         onLoad={() =>

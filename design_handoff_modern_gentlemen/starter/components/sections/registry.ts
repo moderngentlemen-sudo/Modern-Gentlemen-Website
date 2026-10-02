@@ -1,3 +1,4 @@
+import { editorialCollectionRegistry } from "./EditorialCollection";
 import { StudioCanvas, StudioElement } from "./StudioCanvas";
 import { WidgetStudio } from "./WidgetStudio";
 import { GridLayout } from "./GridLayout";
@@ -68,6 +69,7 @@ import { NativeForm } from "../elements/NativeForm";
  * the ~125 modules so nothing is lost.
  */
 export const registry = {
+  ...editorialCollectionRegistry,
   ...signatureSectionRegistry,
   studioCanvas: StudioCanvas,
   studioElement: StudioElement,

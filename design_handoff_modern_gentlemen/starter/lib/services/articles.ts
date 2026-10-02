@@ -1,3 +1,5 @@
+import { collectionDraft } from "@/lib/blocks/editorialCollection";
+import type { Json } from "@/lib/db/database.types";
 /**
  * Article service — the editorial metadata that sits outside the block tree.
  *
@@ -50,12 +52,26 @@ export async function createArticle(input: {
   title: string;
   slug: string;
   template?: string;
+  collectionId?: string;
 }): Promise<{ id: string }> {
   const user = await requirePermission("article.write");
   const db = await createClient();
 
   try {
-    return await repo.createArticle(db, { ...input, createdBy: user.id });
+    return await repo.createArticle(db, {
+      ...input,
+      ...(input.collectionId
+        ? {
+            draftData: collectionDraft(
+              input.collectionId,
+              "article",
+              input.title,
+              input.slug
+            ) as Json,
+          }
+        : {}),
+      createdBy: user.id,
+    });
   } catch (error) {
     if (error instanceof RepositoryError && error.code === "23505") {
       throw new Error(`The slug "${input.slug}" is already in use by another article.`);

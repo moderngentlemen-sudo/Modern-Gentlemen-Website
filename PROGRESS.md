@@ -8,6 +8,36 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-02 — Complete and wire the 90-design editorial collection
+
+- Completed the requested additional 30 section mockups and 30 article mockups,
+  preserving the original 30: 60 native section designs and 30 complete article
+  templates. All 90 reference images are in the searchable admin collection.
+- Added `/admin/editorial-collection`, with reference/live desktop/mobile previews
+  and permission-aware draft creation. Section choices create a page; article
+  choices atomically save the paired presentation and body structure. Existing
+  page/category/article/template builders share the new manifest/renderer entries.
+  Original/Canvas pickers, article settings, Appearance Studio and native Studio
+  have discoverable entry points. See MG_90_COLLECTION.md for the numbered catalog.
+- Native fields cover copy, chapters, photography, captions, related destinations,
+  facts, disclosures, media and theme. Interactive indexes, material selection,
+  disclosures, chapter navigation and newsletter signup use actual controls.
+  Preview illustrations stay outside saved/published documents.
+- All 3,852 unit/component checks passed. Browser review covered all 90 native
+  layouts at 1440px/390px and both themes. It caught inherited low-contrast article
+  captions and a mobile notebook specificity conflict; both were corrected.
+  Format, lint and typecheck pass; final affected-layout browser checks report
+  no page errors, contrast violations or horizontal overflow.
+- Added isolated authenticated page/article creation, editing, persistence and
+  publishing journeys, with responsive/a11y checks and retained review screenshots.
+  Existing article preview coverage automatically includes the new 30 choices.
+  Hosted release gates and deployment are tracked in the PR; not yet released.
+- Cost: one shared collection renderer, metadata/manifest factories, gallery,
+  article presentation variants and 90 optimized reference images (~14.4 MiB).
+  No database migration, new package, hosting change or production content edit.
+  The earlier 24-section collection and its pending CI selector correction are
+  retained in the same additive branch.
+
 ### 2026-10-02 — Add the approved 24 signature sections to the website
 
 - User approved adding the previously reviewed collection to the website. Applied
@@ -27,6 +57,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   and deployment status are tracked in the PR; see MG_SIGNATURE_COLLECTION.md.
 - Cost: an additive collection and one browser journey; no dependency, database,
   hosting configuration, existing component restyle or published-content edit.
+- CI #417 passed the seeded production build, integration, 119 existing E2E,
+  16 visual (four existing skips), 29 accessibility and 14 performance checks.
+  The new journey stopped at its page-creation selector: getByLabel with exact
+  text included the hidden required marker. Switched those two controls to
+  their accessible textbox role names and bounded individual actions to 15s.
+  Run the new journey immediately after build, with its evidence preserved
+  before later suites clear test-results; the full remaining gates still run.
+  The correction changes no application code. Release rerun pending.
 
 ### 2026-09-09 — Match native Studio sizing to the original builder
 

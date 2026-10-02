@@ -29,6 +29,7 @@ test.describe("MG signature collection", () => {
     page,
   }, info) => {
     test.setTimeout(240_000);
+    page.setDefaultTimeout(15_000);
     created = false;
     const stamp = Date.now().toString(36);
     title = `E2E signature collection ${stamp}`;
@@ -42,8 +43,9 @@ test.describe("MG signature collection", () => {
     await page.goto("/admin/pages");
     await page.getByRole("button", { name: "New page", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "New page" });
-    await dialog.getByLabel("Title", { exact: true }).fill(title);
-    await dialog.getByLabel("Slug", { exact: true }).fill(slug);
+    // Required markers are aria-hidden; role names exclude them, label text does not.
+    await dialog.getByRole("textbox", { name: "Title", exact: true }).fill(title);
+    await dialog.getByRole("textbox", { name: "Slug", exact: true }).fill(slug);
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
     created = true;
@@ -84,6 +86,7 @@ test.describe("MG signature collection", () => {
 
     const publicContext = await page.context().browser()!.newContext({ reducedMotion: "reduce" });
     const publicPage = await publicContext.newPage();
+    publicPage.setDefaultTimeout(15_000);
     const errors: string[] = [];
     publicPage.on("pageerror", (error) => errors.push(error.message));
     try {

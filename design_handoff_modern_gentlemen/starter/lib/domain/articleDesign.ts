@@ -1,8 +1,10 @@
+import { collectionArticlePresets } from "./editorialCollection";
 import { z } from "zod";
 import { mediaOverlaySchema } from "./mediaOverlay";
 
 /** New collections are presentation choices, separate from legacy template names. */
 export const ARTICLE_DESIGN_PRESETS = [
+  ...collectionArticlePresets,
   {
     id: "immersive",
     name: "Immersive Original",

@@ -1,4 +1,5 @@
 "use client";
+import { collectionPreview } from "./collectionPreview";
 
 import { type ComponentType } from "react";
 
@@ -112,6 +113,7 @@ export function BlockPreview({ type }: { type: string }) {
                   {...normalizeBlock(newBlockNode(type))}
                   {...studyPreview(type)}
                   {...signaturePreview(type)}
+                  {...collectionPreview(type)}
                 />
               )}
             </BlockErrorBoundary>

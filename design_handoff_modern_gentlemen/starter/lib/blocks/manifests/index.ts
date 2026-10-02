@@ -1,3 +1,4 @@
+import { editorialCollectionManifests } from "./editorialCollection";
 import { studioCanvas, studioElement } from "./studioCanvas";
 import { widgetStudio } from "./widgetStudio";
 import { gridLayout } from "./gridLayout";
@@ -65,6 +66,7 @@ import { timeline } from "./timeline";
 import { twoUpCategory } from "./twoUpCategory";
 
 export const blockManifests = {
+  ...editorialCollectionManifests,
   ...signatureSectionManifests,
   studioCanvas,
   studioElement,

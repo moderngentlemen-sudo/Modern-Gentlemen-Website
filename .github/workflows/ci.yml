@@ -289,6 +289,38 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run build
 
+      - name: MG 90 collection browser tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e -- tests/e2e/mg90Collection.spec.ts
+
+      - name: Preserve MG 90 collection review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mg90-collection-review
+          path: ${{ env.APP_DIR }}/test-results/mg90Collection-*/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Signature collection browser tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e -- tests/e2e/signatureSections.spec.ts
+
+      - name: Preserve signature collection review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signature-collection-review
+          path: ${{ env.APP_DIR }}/test-results/signatureSections-*/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Appearance Studio browser tests
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
@@ -328,7 +360,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run test:e2e -- --grep-invert "Appearance Studio|Editorial collection"
+        run: npm run test:e2e -- --grep-invert "Appearance Studio|Editorial collection|MG signature collection"
 
       # Later Playwright suites clear test-results and replace the HTML report.
       - name: Preserve Studio publishing failure details
