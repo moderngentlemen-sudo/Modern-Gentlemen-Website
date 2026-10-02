@@ -1,6 +1,7 @@
 import { StudioCanvas, StudioElement } from "./StudioCanvas";
 import { WidgetStudio } from "./WidgetStudio";
 import { GridLayout } from "./GridLayout";
+import { signatureSectionRegistry } from "./MGSignatureSections";
 import type { ComponentType } from "react";
 import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks/manifests";
 import type { BlockCategory } from "@/lib/blocks/types";
@@ -67,6 +68,7 @@ import { NativeForm } from "../elements/NativeForm";
  * the ~125 modules so nothing is lost.
  */
 export const registry = {
+  ...signatureSectionRegistry,
   studioCanvas: StudioCanvas,
   studioElement: StudioElement,
   ...sectionStudyRegistry,

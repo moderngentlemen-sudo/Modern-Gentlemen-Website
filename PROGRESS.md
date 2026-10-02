@@ -8,6 +8,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-02 — Add the approved 24 signature sections to the website
+
+- User approved adding the previously reviewed collection to the website. Applied
+  only its new section files and manifest/renderer/picker registrations to live
+  main at 7ea2a002; no replacement of newer work or production content records.
+- All 24 entries are available to Original/Canvas page, category, article and
+  template editors by searching "Signature collection" in Add a section. Copy,
+  media, credits, links, theme, spacing and focal point remain editable. Picker
+  illustration is never inserted into saved documents. Native HTML Studio's
+  separate coordinate-template library is unchanged.
+- Local format/lint/typecheck pass. 2,943 unit checks passed in the sandbox;
+  the remaining four subprocess preflight checks passed outside it. No test or
+  runtime change was needed for that environment restriction.
+- Added an isolated authenticated browser journey for all 24 insertions, edits
+  in both builders, save/reopen, publish, anonymous output, responsive overflow,
+  light/dark accessibility and keyboard disclosures. Full hosted release checks
+  and deployment status are tracked in the PR; see MG_SIGNATURE_COLLECTION.md.
+- Cost: an additive collection and one browser journey; no dependency, database,
+  hosting configuration, existing component restyle or published-content edit.
+
 ### 2026-09-09 — Match native Studio sizing to the original builder
 
 - User reports that published Studio pages look enlarged and asks to match the
