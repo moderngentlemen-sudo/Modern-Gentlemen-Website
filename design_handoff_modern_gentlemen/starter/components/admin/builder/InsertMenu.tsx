@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type PointerEventHandler } from "react";
 import { useDndContext, useDraggable } from "@dnd-kit/core";
 
@@ -136,6 +137,9 @@ export function InsertMenu({
   return (
     <div className="flex h-full flex-col">
       <div className={clsx("border-b px-3 py-3", HAIRLINE)}>
+        <Link href="/admin/editorial-collection" className="mb-3 block text-xs underline">
+          Explore the MG 90 collection ↗
+        </Link>
         <TextInput label="Add a section" value={query} onChange={setQuery} placeholder="Search…" />
       </div>
 

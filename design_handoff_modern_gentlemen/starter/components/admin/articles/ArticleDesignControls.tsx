@@ -4,6 +4,8 @@ import {
   articleDesignById,
   type ArticleDesign,
 } from "@/lib/domain/articleDesign";
+import Image from "next/image";
+import { editorialConcept } from "@/lib/domain/editorialCollection";
 import { Select } from "../ui/Select";
 import { NumberInput } from "../ui/NumberInput";
 import { ColorInput } from "../ui/Input";
@@ -38,8 +40,20 @@ export function ArticleDesignControls({
         onChange={(value) => set({ preset: value as ArticleDesign["preset"] })}
       />
       {preset && <p className="text-xs leading-relaxed text-mg-fg/60">{preset.description}</p>}
+      {preset && "concept" in preset && (
+        <p className="text-xs leading-relaxed">
+          For the matching reading structure, open Compose sections and add{" "}
+          <strong>MG {preset.concept} · Article body</strong>.{" "}
+          <a className="underline" href={`/admin/editorial-collection?concept=${preset.concept}`}>
+            View the reference and live layout
+          </a>
+          .
+        </p>
+      )}
       <details>
-        <summary className="cursor-pointer py-2 text-xs">Browse all 29 designs</summary>
+        <summary className="cursor-pointer py-2 text-xs">
+          Browse all {ARTICLE_DESIGN_PRESETS.length} designs
+        </summary>
         <div className={styles.gallery}>
           {ARTICLE_DESIGN_PRESETS.map((p, i) => (
             <button
@@ -48,13 +62,23 @@ export function ArticleDesignControls({
               aria-pressed={p.id === design.preset}
               onClick={() => set({ preset: p.id })}
             >
-              <span className={styles.miniature} data-layout={p.layout} aria-hidden>
-                <i />
-                <b />
-                <em />
-              </span>
+              {"concept" in p ? (
+                <Image
+                  src={editorialConcept(p.concept)!.reference}
+                  alt=""
+                  width={320}
+                  height={480}
+                  className={styles.reference}
+                />
+              ) : (
+                <span className={styles.miniature} data-layout={p.layout} aria-hidden>
+                  <i />
+                  <b />
+                  <em />
+                </span>
+              )}
               <span>
-                {String(i + 1).padStart(2, "0")} · {p.name}
+                {"concept" in p ? p.name : `${String(i + 1 - 30).padStart(2, "0")} · ${p.name}`}
               </span>
             </button>
           ))}

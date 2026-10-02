@@ -103,7 +103,9 @@ export function EditorialArticle({
   return (
     <div className={styles.frame}>
       <article
-        className={`${styles.root} ${styles[preset.layout]}`}
+        className={`${styles.root} ${"concept" in preset ? styles.collection : styles[preset.layout]}`}
+        data-collection-hero={"hero" in preset ? preset.hero : undefined}
+        data-collection-article={"concept" in preset ? preset.concept : undefined}
         style={vars}
         data-custom-height={!!design.heroHeight}
         data-custom-size={!!design.titleSize}

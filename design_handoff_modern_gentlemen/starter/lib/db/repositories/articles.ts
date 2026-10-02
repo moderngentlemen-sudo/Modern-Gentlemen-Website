@@ -148,7 +148,7 @@ export async function listArticles(
 
 export async function createArticle(
   db: Db,
-  input: { slug: string; title: string; template?: string; createdBy: string }
+  input: { slug: string; title: string; template?: string; createdBy: string; draftData?: Json }
 ): Promise<{ id: string }> {
   return unwrap(
     "createArticle",
@@ -160,7 +160,7 @@ export async function createArticle(
         // The column defaults to 'Feature'; naming it explicitly keeps the
         // create dialog and the database from disagreeing about the default.
         template: input.template ?? "Feature",
-        draft_data: EMPTY_ARTICLE_PAYLOAD,
+        draft_data: input.draftData ?? EMPTY_ARTICLE_PAYLOAD,
         created_by: input.createdBy,
         updated_by: input.createdBy,
       })

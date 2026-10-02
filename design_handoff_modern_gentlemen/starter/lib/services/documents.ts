@@ -1,3 +1,4 @@
+import { collectionDraft } from "@/lib/blocks/editorialCollection";
 import { articleDesignSchema } from "@/lib/domain/articleDesign";
 import { convertStudio, STUDIO_SOURCE_KEY } from "@/lib/blocks/studioPublishing";
 import { isDeepStrictEqual } from "node:util";
@@ -315,6 +316,7 @@ export async function createPage(input: {
   title: string;
   templateId?: string;
   comingSoon?: ComingSoonId;
+  collectionId?: string;
 }) {
   const user = await requirePermission("page.write");
   const db = await createClient();
@@ -323,9 +325,11 @@ export async function createPage(input: {
     slug: input.slug,
     title: input.title,
     templateId: input.templateId ?? null,
-    draftData: input.comingSoon
-      ? { sections: comingSoonSections(input.comingSoon) as Json, seo: {} }
-      : pageRepo.EMPTY_PAGE_PAYLOAD,
+    draftData: input.collectionId
+      ? (collectionDraft(input.collectionId, "page", input.title, input.slug) as Json)
+      : input.comingSoon
+        ? { sections: comingSoonSections(input.comingSoon) as Json, seo: {} }
+        : pageRepo.EMPTY_PAGE_PAYLOAD,
     createdBy: user.id,
   });
   if (input.comingSoon === "21") {

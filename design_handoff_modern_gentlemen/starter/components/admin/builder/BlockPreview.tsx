@@ -1,4 +1,5 @@
 "use client";
+import { collectionPreview } from "./collectionPreview";
 
 import { type ComponentType } from "react";
 
@@ -12,6 +13,7 @@ import { manifestFor } from "@/lib/blocks/manifests";
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { newBlockNode } from "./node";
 import { studyPreview } from "./studyPreview";
+import { signaturePreview } from "./signaturePreview";
 
 /**
  * What a section looks like, before it is added.
@@ -107,7 +109,12 @@ export function BlockPreview({ type }: { type: string }) {
                   </div>
                 </Component>
               ) : (
-                <Component {...normalizeBlock(newBlockNode(type))} {...studyPreview(type)} />
+                <Component
+                  {...normalizeBlock(newBlockNode(type))}
+                  {...studyPreview(type)}
+                  {...signaturePreview(type)}
+                  {...collectionPreview(type)}
+                />
               )}
             </BlockErrorBoundary>
           </CartProvider>

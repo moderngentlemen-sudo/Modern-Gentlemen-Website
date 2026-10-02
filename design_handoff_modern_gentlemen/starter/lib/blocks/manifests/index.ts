@@ -1,6 +1,8 @@
+import { editorialCollectionManifests } from "./editorialCollection";
 import { studioCanvas, studioElement } from "./studioCanvas";
 import { widgetStudio } from "./widgetStudio";
 import { gridLayout } from "./gridLayout";
+import { signatureSectionManifests } from "./mgSignatureSections";
 /**
  * The manifest set — one entry per block in `components/sections/registry.ts`.
  *
@@ -64,6 +66,8 @@ import { timeline } from "./timeline";
 import { twoUpCategory } from "./twoUpCategory";
 
 export const blockManifests = {
+  ...editorialCollectionManifests,
+  ...signatureSectionManifests,
   studioCanvas,
   studioElement,
   ...sectionStudyManifests,

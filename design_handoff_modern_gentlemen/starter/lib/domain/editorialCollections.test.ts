@@ -55,14 +55,16 @@ describe("approved editorial collections", () => {
       }
   });
   it("preserves all 29 article presets and inheritance while rejecting unsupported settings", () => {
-    expect(ARTICLE_DESIGN_PRESETS).toHaveLength(29);
+    expect(ARTICLE_DESIGN_PRESETS.filter((p) => !("concept" in p))).toHaveLength(29);
     const css = readFileSync("components/article/EditorialArticle.module.css", "utf8");
     for (const preset of ARTICLE_DESIGN_PRESETS) {
       const settings = { ...DEFAULT_THEME_SETTINGS, articles: { preset: preset.id } };
       expect(parseThemeSettings(themeSettingsSchema.parse(settings)).articles).toEqual(
         settings.articles
       );
-      expect(css).toContain(`.v${preset.layout.slice(1)}`);
+      expect(css).toContain(
+        "concept" in preset ? ".root.collection" : `.v${preset.layout.slice(1)}`
+      );
     }
     expect(
       resolveArticleDesign(

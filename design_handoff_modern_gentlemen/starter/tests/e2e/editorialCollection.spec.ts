@@ -221,10 +221,10 @@ test.describe("Editorial collection", () => {
     ).violations;
     expect(violations).toEqual([]);
   });
-  test("previews all 29 article designs and saves a per-article override through the editor", async ({
+  test("previews all article designs and saves a per-article override through the editor", async ({
     page,
   }, info) => {
-    test.setTimeout(240000);
+    test.setTimeout(360000);
     await page.setViewportSize({ width: 1600, height: 1100 });
     await signIn(page);
     await page.goto("/admin/customizer");
