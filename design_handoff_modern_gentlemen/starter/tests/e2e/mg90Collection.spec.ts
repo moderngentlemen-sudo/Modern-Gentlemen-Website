@@ -52,9 +52,9 @@ test.describe("MG 90 collection", () => {
     await page.goto("/admin/editorial-collection");
     const count = page.getByRole("status", { name: "Collection results" });
     await expect(count).toHaveText("90 designs");
-    await page.getByLabel("Format", { exact: true }).selectOption("article");
+    await page.getByRole("combobox", { name: "Format", exact: true }).selectOption("article");
     await expect(count).toHaveText("30 designs");
-    await page.getByLabel("Format", { exact: true }).selectOption("section");
+    await page.getByRole("combobox", { name: "Format", exact: true }).selectOption("section");
     await expect(count).toHaveText("60 designs");
     await page.getByRole("searchbox", { name: "Search the collection" }).fill(chosen.name);
     await expect(count).toHaveText("1 design");

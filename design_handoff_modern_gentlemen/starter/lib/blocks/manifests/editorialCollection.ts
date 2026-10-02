@@ -12,7 +12,7 @@ const entries = field.list({
   itemLabel: "chapter",
   max: 24,
   of: {
-    title: field.text({ label: "Heading", required: true }),
+    title: field.text({ label: "Story / chapter heading", required: true }),
     text: field.richText({
       label: "Copy",
       help: "Paragraphs, links, lists and emphasis are supported.",

@@ -38,6 +38,12 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   Moved that small factory into a neutral module with direct client component
   references. The gallery count now has a distinct accessible name so the test
   does not also match the admin toast status. Hosted journeys are rerun on the fix.
+- CI #419 confirms the complete article creation/publishing journey now passes,
+  including anonymous body rendering, mobile output and axe. The page journey's
+  Format selector matched raw wrapping-label text (including all options) rather
+  than the accessible combobox name; changed it to the role/name selector. Nested
+  chapter title controls now have their own descriptive label instead of sharing
+  the section heading label, improving both editor clarity and selector precision.
 - Cost: one shared collection renderer, metadata/manifest factories, gallery,
   article presentation variants and 90 optimized reference images (~14.4 MiB).
   No database migration, new package, hosting change or production content edit.
