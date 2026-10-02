@@ -44,6 +44,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   than the accessible combobox name; changed it to the role/name selector. Nested
   chapter title controls now have their own descriptive label instead of sharing
   the section heading label, improving both editor clarity and selector precision.
+- CI #420 passed both new MG 90 publishing journeys, including all 60 sections
+  saved/reopened in both builders and anonymous page/article rendering. Build,
+  unit, integration, visual, accessibility and performance gates also passed.
+  The earlier signature journey's broad "Saved" text selector matched its own
+  authored introduction before the save status appeared; scope it to the editor
+  header. This test-only correction preserves the saved-content assertions.
+  Remaining Appearance Studio, article presentation and full E2E gates rerun.
 - Cost: one shared collection renderer, metadata/manifest factories, gallery,
   article presentation variants and 90 optimized reference images (~14.4 MiB).
   No database migration, new package, hosting change or production content edit.

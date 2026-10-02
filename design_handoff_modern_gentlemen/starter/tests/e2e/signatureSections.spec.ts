@@ -68,7 +68,11 @@ test.describe("MG signature collection", () => {
       .getByRole("textbox", { name: "Introduction", exact: true })
       .fill("Saved through the Canvas builder.");
     await page.keyboard.press("ControlOrMeta+s");
-    await expect(page.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
+    // Authored copy also begins with "Saved"; inspect the editor's actual save status.
+    const editorHeader = page
+      .locator("header")
+      .filter({ has: page.getByRole("heading", { name: title, exact: true }) });
+    await expect(editorHeader.getByText(/^Saved /)).toBeVisible({ timeout: 15_000 });
     await page.reload();
     await expect(blocks).toHaveCount(24);
     await cover.getByRole("heading", { name: "An authored cover story" }).click();
