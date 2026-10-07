@@ -50,6 +50,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   violations on all 14 in both themes and widths. Text over the moving reel is
   "incomplete" for axe (it cannot measure contrast on video); scrims carry it,
   as on the homepage hero.
+- CI's `comingSoon.spec.ts` caught CS33 overflowing: the bleeding seconds figure
+  was clipped visually but still counted in the section's `scrollWidth`. It now
+  sits in its own `overflow: hidden` layer. Reproduced and verified locally with
+  the spec's fixture content: no overflow and zero axe violations for all 14.
 - Not yet done: no live page has been created (that is a content decision for
   the owner), and `test:a11y`/`test:perf` were not rerun because no public route
   changed. The e2e `comingSoon.spec.ts` fixture iterates all designs, so it
