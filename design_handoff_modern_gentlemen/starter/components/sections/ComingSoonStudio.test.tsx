@@ -11,11 +11,13 @@ import { validateDocumentPayload } from "@/lib/services/documents";
 import { collectMediaReferences } from "@/lib/blocks/media";
 import type { Json } from "@/lib/db/database.types";
 import { ComingSoonStudio } from "./ComingSoonStudio";
+import { isReelDesign } from "@/lib/blocks/comingSoonReel";
 
 afterEach(cleanup);
 
 describe("Coming-soon page designs", () => {
-  it.each(COMING_SOON_DESIGNS.filter(([id]) => id !== "21"))(
+  // CS21 and the sizzle-reel designs (CS22–CS35) have their own suites.
+  it.each(COMING_SOON_DESIGNS.filter(([id]) => id !== "21" && !isReelDesign(id)))(
     "CS%s renders editable content and defaults to its intended tone",
     (variant, _, tone) => {
       const { container } = render(
@@ -48,6 +50,7 @@ describe("Coming-soon page designs", () => {
     "CS%s creates valid independent drafts and preserves assigned page content",
     (variant) => {
       const sections = comingSoonSections(variant);
+      const starterTitle = sections[0].settings!.title;
       expect(validateDocumentPayload("page", { sections } as Json).issues).toEqual([]);
       const areas = comingSoonTemplateAreas(variant);
       expect(validateDocumentPayload("template", { areas } as Json).issues).toEqual([]);
@@ -58,9 +61,11 @@ describe("Coming-soon page designs", () => {
       expect(applyTemplate(areas.main, pageContent).some((node) => node._key === "authored")).toBe(
         true
       );
-      if (variant !== "21") expect(collectMediaReferences(sections)).toEqual([]);
+      // CS21 seeds its photograph, the reel designs their /public video; the rest seed no media.
+      if (variant !== "21" && !isReelDesign(variant))
+        expect(collectMediaReferences(sections)).toEqual([]);
       sections[0].settings!.title = "Changed";
-      expect(comingSoonSections(variant)[0].settings!.title).toBe("Coming soon");
+      expect(comingSoonSections(variant)[0].settings!.title).toBe(starterTitle);
     }
   );
   it("rejects an unknown starter rather than creating an empty or wrong draft", () => {

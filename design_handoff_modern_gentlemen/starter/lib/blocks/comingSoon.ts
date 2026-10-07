@@ -1,4 +1,5 @@
 import { AFTER_HOURS_PHOTO } from "./afterHours";
+import { REEL_DESIGNS, REEL_STARTERS, isReelDesign } from "./comingSoonReel";
 import type { BlockTree } from "./types";
 
 /** Stable labels shared by page creation, template creation and the live studio. */
@@ -24,6 +25,7 @@ export const COMING_SOON_DESIGNS = [
   ["19", "The Portrait", "dark"],
   ["20", "The Invitation", "dark"],
   ["21", "After Hours — Refined Countdown", "dark"],
+  ...REEL_DESIGNS,
 ] as const;
 export type ComingSoonId = (typeof COMING_SOON_DESIGNS)[number][0];
 export const COMING_SOON_IDS = COMING_SOON_DESIGNS.map(([id]) => id) as [
@@ -31,10 +33,36 @@ export const COMING_SOON_IDS = COMING_SOON_DESIGNS.map(([id]) => id) as [
   ...ComingSoonId[],
 ];
 
+const REEL_SOCIAL_STARTERS = [
+  { network: "instagram", label: "Instagram", href: "https://instagram.com" },
+  { network: "x", label: "X", href: "https://x.com" },
+  { network: "youtube", label: "YouTube", href: "https://youtube.com" },
+  { network: "linkedin", label: "LinkedIn", href: "https://linkedin.com" },
+];
+
 /** Fresh data on every call. Only the chosen design is saved; no launch date or photo is invented. */
 export function comingSoonSections(variant: ComingSoonId): BlockTree {
   if (!COMING_SOON_DESIGNS.some(([id]) => id === variant))
     throw new Error("Unknown coming-soon design");
+  if (isReelDesign(variant)) {
+    const { brand = "Modern Gentlemen", details, caption, ...copy } = REEL_STARTERS[variant];
+    return [
+      {
+        _key: "comingsoon",
+        _type: "comingSoonStudio",
+        settings: {
+          variant,
+          brand,
+          ...copy,
+          ...(details ? { details: details.map((item) => ({ ...item })) } : {}),
+          ...(caption ? { reel: { caption } } : {}),
+          showSignup: true,
+          // The same destinations the site footer links to today; replace them with the brand's profiles.
+          socialLinks: REEL_SOCIAL_STARTERS.map((link) => ({ ...link })),
+        },
+      },
+    ];
+  }
   return [
     {
       _key: "comingsoon",

@@ -1,5 +1,7 @@
 import type { AfterHoursConfig } from "@/lib/blocks/afterHours";
 import { AfterHoursLanding } from "./AfterHoursLanding";
+import { ReelLanding } from "./ReelLanding";
+import { isReelDesign, type ReelConfig } from "@/lib/blocks/comingSoonReel";
 import Link from "next/link";
 import { COMING_SOON_DESIGNS } from "@/lib/blocks/comingSoon";
 import { studyHref } from "@/lib/blocks/sectionStudies";
@@ -10,6 +12,7 @@ import styles from "./ComingSoonStudio.module.css";
 export interface ComingSoonProps {
   variant?: string;
   afterHours?: AfterHoursConfig;
+  reel?: ReelConfig;
   socialLinks?: { network: string; label: string; href: string }[];
   brand?: string;
   eyebrow?: string;
@@ -31,6 +34,7 @@ export interface ComingSoonProps {
 export function ComingSoonStudio({
   variant = "01",
   afterHours,
+  reel,
   socialLinks,
   brand = "Modern Gentlemen",
   eyebrow,
@@ -60,6 +64,22 @@ export function ComingSoonStudio({
         showSignup={showSignup}
         config={afterHours}
         socialLinks={socialLinks}
+      />
+    );
+  if (isReelDesign(variant))
+    return (
+      <ReelLanding
+        variant={variant}
+        brand={brand}
+        eyebrow={eyebrow}
+        title={title}
+        intro={intro}
+        signature={signature}
+        details={details}
+        showSignup={showSignup}
+        buttonLabel={buttonLabel}
+        socialLinks={socialLinks}
+        config={reel}
       />
     );
   const design = COMING_SOON_DESIGNS.find(([id]) => id === variant) ?? COMING_SOON_DESIGNS[0];

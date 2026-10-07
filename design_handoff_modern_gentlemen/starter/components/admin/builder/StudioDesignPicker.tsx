@@ -4,7 +4,8 @@ import { AFTER_HOURS_PHOTO } from "@/lib/blocks/afterHours";
 import { useState } from "react";
 import { Select } from "@/components/admin/ui/Select";
 import { Button } from "@/components/admin/ui/Button";
-import { COMING_SOON_DESIGNS } from "@/lib/blocks/comingSoon";
+import { COMING_SOON_DESIGNS, comingSoonSections } from "@/lib/blocks/comingSoon";
+import { isReelDesign } from "@/lib/blocks/comingSoonReel";
 import { SECTION_STUDIES } from "@/lib/blocks/sectionStudies";
 import { ComingSoonStudio, type ComingSoonProps } from "@/components/sections/ComingSoonStudio";
 import { MGDesignStudio, type SectionStudyProps } from "@/components/sections/SectionStudies";
@@ -51,7 +52,9 @@ export function StudioDesignPicker({
           <p className="text-[12px] text-mg-fg/70">
             {kind === "comingSoon" && value === "21"
               ? "New CS21 pages start with your existing After Hours photograph. You can replace it in the builder. Set a launch date to display the countdown."
-              : "Illustrative preview. Preview images are examples only. Choosing a design does not insert these images."}
+              : kind === "comingSoon" && isReelDesign(value)
+                ? "New pages start with the Modern Gentlemen sizzle reel, starter copy and email signup. Set the launch date and your social profiles in the builder; the preview counts down to a sample date."
+                : "Illustrative preview. Preview images are examples only. Choosing a design does not insert these images."}
           </p>
           <div
             className="pointer-events-none relative w-full overflow-hidden border border-mg-bd/20"
@@ -77,6 +80,18 @@ export function StudioDesignPicker({
 }
 
 export function comingSoonPreview(variant: string): ComingSoonProps {
+  if (isReelDesign(variant)) {
+    const settings = comingSoonSections(variant)[0].settings as ComingSoonProps;
+    return {
+      ...settings,
+      reel: {
+        standalone: false,
+        countdown: {
+          target: new Date(Date.now() + 54 * 86_400_000).toISOString().slice(0, 19) + "Z",
+        },
+      },
+    };
+  }
   if (variant === "21")
     return {
       variant,

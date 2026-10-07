@@ -2,13 +2,14 @@ import { afterHoursFields } from "../afterHours";
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
 import { COMING_SOON_DESIGNS } from "../comingSoon";
+import { reelFields } from "../comingSoonReel";
 
 export const comingSoonStudio = defineBlock({
   type: "comingSoonStudio",
   label: "Coming soon studio",
   category: "hero",
   description:
-    "CS01–CS21 coming-soon page designs, including the refined After Hours countdown. Switch composition without replacing your copy or media. Signup is optional and uses the newsletter connection.",
+    "CS01–CS35 coming-soon page designs: the editorial set, the refined After Hours countdown and fourteen sizzle-reel designs with a live countdown. Switch composition without replacing your copy or media. Signup is optional and uses the newsletter connection.",
   onlyIn: ["page", "template"],
   fields: {
     variant: field.select({
@@ -20,15 +21,16 @@ export const comingSoonStudio = defineBlock({
       })),
     }),
     afterHours: afterHoursFields,
+    reel: reelFields,
     socialLinks: field.list({
-      label: "After Hours social destinations",
+      label: "Social destinations (CS21–CS35)",
       itemLabel: "social link",
       max: 8,
       of: {
         network: field.select({
           label: "Network",
           default: "instagram",
-          options: ["instagram", "linkedin", "x", "youtube"].map((value) => ({
+          options: ["instagram", "linkedin", "x", "youtube", "tiktok"].map((value) => ({
             value,
             label: value,
           })),

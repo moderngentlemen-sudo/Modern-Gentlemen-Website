@@ -1,0 +1,1402 @@
+/*
+ * CS22–CS35, the sizzle-reel coming-soon designs.
+ *
+ * Phones get one shared reading order (logo row, message, countdown, signup,
+ * socials) over the reel. From 681px each design is laid out as it was drawn
+ * in the mockup gallery: absolutely positioned in container units, so the
+ * composition scales with the window exactly as the 16:10 mockups did.
+ */
+.page {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: inline-size;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 22px 32px;
+  background: var(--mg-bg);
+  color: var(--mg-fg);
+  font-family: var(--font-heading, sans-serif);
+  line-height: 1.4;
+}
+.page[data-tone="dark"],
+.page[data-tone="accent"] {
+  background: #0d0d0d;
+}
+.page h1,
+.page p,
+.page figure,
+.page dl,
+.page dd {
+  margin: 0;
+}
+.page h1 {
+  font-size: 44px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+/* ---------- layers ---------- */
+.video,
+.plateVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: -2;
+  background: #0d0d0d;
+}
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ---------- shared atoms ---------- */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  flex: none;
+}
+.logo i {
+  display: block;
+  width: 6px;
+  height: 13px;
+  background: var(--mg-accent);
+}
+.logo svg {
+  display: block;
+  width: 36px;
+  height: 18px;
+}
+.mono {
+  font-family: var(--font-label, monospace);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.eye {
+  font-family: var(--font-editorial, serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mg-accent-serif);
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+.page h1.eye {
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+.lede {
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 60ch;
+  text-wrap: pretty;
+  color: rgb(var(--mg-fg-rgb) / 0.84);
+}
+.cd {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.unitWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: inherit;
+}
+.unit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.num,
+.sep {
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.sep {
+  opacity: 0.6;
+}
+.label {
+  font-family: var(--font-label, monospace);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.inline {
+  font-family: var(--font-label, monospace);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.launched {
+  font-family: var(--font-editorial, serif);
+  font-style: italic;
+  font-size: 28px;
+  line-height: 1.1;
+}
+.signup {
+  width: min(100%, 420px);
+}
+.signup form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgb(var(--mg-fg-rgb) / 0.55);
+  transition: border-color 0.2s;
+}
+.signup form:focus-within {
+  border-color: var(--mg-accent-ink);
+}
+.signup input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  padding: 12px 0;
+  outline: none;
+}
+.signup input::placeholder {
+  color: rgb(var(--mg-fg-rgb) / 0.7);
+}
+.signup button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font-family: var(--font-label, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 12px 0;
+  white-space: nowrap;
+}
+.signup button:hover {
+  color: var(--mg-accent-ink);
+}
+.signup button:disabled {
+  cursor: progress;
+}
+.done {
+  font-family: var(--font-editorial, serif);
+  font-style: italic;
+  font-size: 20px;
+  padding: 10px 0;
+}
+.alert {
+  margin-top: 8px !important;
+  font-size: 14px;
+}
+.social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.social a {
+  color: inherit;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  opacity: 0.9;
+  transition:
+    color 0.2s,
+    opacity 0.2s;
+}
+.social a:hover {
+  opacity: 1;
+  color: var(--mg-accent-ink);
+}
+.social svg {
+  width: 20px;
+  height: 20px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.page :focus-visible {
+  outline: 2px solid var(--mg-accent-ink);
+  outline-offset: 2px;
+}
+.dd {
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  font-size: 64px;
+}
+.hms {
+  font-family: var(--font-label, monospace);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- phone reading order ---------- */
+.center,
+.body,
+.bottom,
+.panel,
+.band,
+.quote,
+.col,
+.under {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.top + .center,
+.top + .body,
+.top + .bottom,
+.top + .quote,
+.shade + .center {
+  margin-top: auto;
+}
+.foot {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.end {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* light designs follow the site theme */
+.page[data-tone="light"] .eye {
+  color: var(--mg-accent-ink);
+}
+.page[data-tone="light"] .lede {
+  color: var(--mg-muted);
+}
+
+/* 22 Red Clock */
+.page[data-reel="22"] .shade {
+  background: rgba(8, 8, 9, 0.66);
+}
+.page[data-reel="22"] .center {
+  align-items: center;
+  text-align: center;
+}
+.page[data-reel="22"] .cd {
+  gap: 6px;
+}
+.page[data-reel="22"] .unit {
+  align-items: center;
+}
+.page[data-reel="22"] .num,
+.page[data-reel="22"] .sep {
+  font-size: 13vw;
+}
+.page[data-reel="22"] .unitWrap:last-child .num {
+  color: var(--mg-accent-ink);
+}
+
+/* 23 Monochrome */
+.page[data-reel="23"] .video {
+  filter: grayscale(1) contrast(1.12);
+}
+.page[data-reel="23"] .shade {
+  background: radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.86) 72%);
+}
+.page[data-reel="23"] .top {
+  justify-content: center;
+}
+.page[data-reel="23"] .center {
+  align-items: center;
+  text-align: center;
+  margin-top: auto;
+}
+.soon {
+  font-family: var(--font-editorial, serif) !important;
+  font-style: italic;
+  font-weight: 400 !important;
+  font-size: 30vw !important;
+  line-height: 0.8 !important;
+  letter-spacing: -0.02em !important;
+}
+.page[data-reel="23"] .inline {
+  border-top: 1px solid rgb(var(--mg-fg-rgb) / 0.35);
+  padding-top: 14px;
+}
+
+/* 24 Through the Window */
+.page[data-reel="24"] .top {
+  order: 0;
+}
+.split {
+  order: 1;
+  font-size: 56px !important;
+}
+.split em {
+  font-family: var(--font-editorial, serif);
+  font-weight: 400;
+  color: var(--mg-accent-ink);
+}
+.page[data-reel="24"] .video {
+  order: 2;
+  position: relative;
+  inset: auto;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  z-index: 0;
+}
+.page[data-reel="24"] .under {
+  order: 3;
+}
+.page[data-reel="24"] .lede {
+  order: 4;
+}
+.page[data-reel="24"] .foot {
+  order: 5;
+}
+
+/* 25 The Dial */
+.page[data-reel="25"] .shade {
+  background: rgba(8, 8, 9, 0.62);
+}
+.dial {
+  position: relative;
+  width: min(72vw, 300px);
+  aspect-ratio: 1;
+  align-self: center;
+}
+.dial svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ticks {
+  stroke: rgb(var(--mg-fg-rgb) / 0.5);
+  stroke-width: 1.6;
+  fill: none;
+}
+.ring {
+  stroke: rgb(var(--mg-fg-rgb) / 0.16);
+  stroke-width: 1;
+  fill: none;
+}
+.prog {
+  stroke: var(--mg-accent-ink);
+  stroke-width: 2.4;
+  fill: none;
+  transition: stroke-dashoffset 0.9s linear;
+}
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+}
+
+/* 26 The Line */
+.page[data-reel="26"] .shade {
+  background: rgba(8, 8, 9, 0.74);
+}
+.page[data-reel="26"] .center {
+  align-items: center;
+  text-align: center;
+}
+.line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.line h1 {
+  font-family: Futura, "Century Gothic", "Trebuchet MS", sans-serif !important;
+  font-size: 17px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.24em !important;
+  text-transform: uppercase;
+  line-height: 1.2 !important;
+}
+
+/* 27 Frosted Panel */
+.panel {
+  margin: auto -22px -32px;
+  padding: 28px 22px 32px;
+  background: rgba(13, 13, 13, 0.55);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.page[data-reel="27"] .cd {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+}
+.page[data-reel="27"] .unitWrap {
+  border-top: 1px solid rgb(var(--mg-fg-rgb) / 0.3);
+  padding-top: 10px;
+}
+.cap {
+  display: none;
+}
+
+/* 28 Knockout */
+.knock {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  background: #f4f4f4;
+  color: #000;
+  mix-blend-mode: screen;
+}
+:global(html:not([data-mgtheme="light"])) .knock {
+  background: #0d0d0d;
+  color: #fff;
+  mix-blend-mode: multiply;
+}
+.knock h1 {
+  font-size: 27vw !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.07em !important;
+  line-height: 1 !important;
+  text-transform: uppercase;
+  margin-top: -18vh !important;
+}
+
+/* 29 Red Band */
+.page[data-reel="29"] .video {
+  bottom: auto;
+  height: 52svh;
+}
+.page[data-reel="29"] .shade {
+  background: linear-gradient(180deg, rgba(8, 8, 9, 0.5), transparent 30%);
+}
+.band {
+  margin: auto -22px -32px;
+  padding: 28px 22px 32px;
+  background: var(--mg-accent);
+  color: #fff;
+}
+.band .eye {
+  color: #fff;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.band .label {
+  opacity: 0.95;
+}
+.band .signup form {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+.band .signup input::placeholder {
+  color: rgba(255, 255, 255, 0.88);
+}
+.band .signup button:hover,
+.band .social a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* 30 Monogram */
+.mono30 {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  background: #0d0d0d;
+  color: #fff;
+  mix-blend-mode: multiply;
+}
+.mono30 svg {
+  width: 88vw;
+  height: 44vw;
+  margin-top: -14vh;
+}
+
+/* 31 The Seal */
+.page[data-reel="31"] .shade {
+  background: rgba(8, 8, 9, 0.6);
+}
+.page[data-reel="31"] .center {
+  align-items: center;
+  text-align: center;
+}
+.page[data-reel="31"] .unit {
+  align-items: center;
+}
+.seal {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  display: grid;
+  place-items: center;
+}
+.sealRing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  animation: spin 30s linear infinite;
+}
+.sealRing text {
+  font-family: var(--font-label, monospace);
+  font-size: 9.6px;
+  letter-spacing: 3.2px;
+  text-transform: uppercase;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 32 Pull Quote */
+.page[data-reel="32"] .shade {
+  background: linear-gradient(0deg, rgba(8, 8, 9, 0.9), rgba(8, 8, 9, 0.55));
+}
+.qm {
+  font-family: var(--font-editorial, serif);
+  font-size: 96px;
+  line-height: 0.6;
+  color: var(--mg-accent-serif);
+  display: block;
+  height: 40px;
+}
+.quote h1 {
+  font-family: var(--font-editorial, serif);
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.quote h1 em {
+  color: var(--mg-accent-serif);
+}
+.quote figcaption {
+  margin-top: 16px;
+  opacity: 0.8;
+}
+
+/* 33 Big Seconds */
+.page[data-reel="33"] .shade {
+  background: rgba(8, 8, 9, 0.62);
+}
+.ghostClip {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ghost {
+  position: absolute;
+  right: -6vw;
+  top: 30%;
+  font-size: 70vw;
+  font-weight: 600;
+  letter-spacing: -0.07em;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(244, 244, 244, 0.4);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.ghostLabel {
+  display: none;
+}
+
+/* 34 Clock Hands */
+.page[data-reel="34"] .shade {
+  background: rgba(8, 8, 9, 0.5);
+}
+.hands {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.handH,
+.handM,
+.handS {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: 0 50%;
+  background: var(--mg-fg);
+}
+.handH {
+  width: 26vw;
+  height: 4px;
+  margin-top: -2px;
+}
+.handM {
+  width: 40vw;
+  height: 2px;
+  margin-top: -1px;
+}
+.handS {
+  width: 44vw;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--mg-accent-ink);
+}
+.hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: #0d0d0d;
+  border: 1px solid rgb(var(--mg-fg-rgb) / 0.25);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.hubInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.hub .dd {
+  font-size: 44px;
+}
+.hub .hms {
+  font-size: 11px;
+}
+.hub .launched {
+  font-size: 18px;
+  padding: 12px;
+}
+.page[data-reel="34"] .body {
+  margin-top: 0;
+}
+.page[data-reel="34"] .foot {
+  margin-top: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+.launchTime {
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 35 The Auction */
+.page[data-reel="35"] .col {
+  order: 1;
+}
+.plate {
+  order: 2;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  outline: 1px solid rgb(var(--mg-fg-rgb) / 0.4);
+  outline-offset: 8px;
+  margin: 8px 8px 48px;
+  width: calc(100% - 16px);
+}
+.plateVideo {
+  z-index: 0;
+}
+.fig {
+  position: absolute;
+  top: calc(100% + 16px);
+  left: -8px;
+  font-family: var(--font-editorial, serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--mg-muted);
+}
+.lot h1 {
+  font-family: var(--font-editorial, serif);
+  font-weight: 400;
+  font-size: 72px;
+  line-height: 0.9;
+}
+.lot .mono {
+  color: var(--mg-accent-ink);
+  margin-bottom: 10px !important;
+}
+.name {
+  font-weight: 600;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.desc {
+  font-family: var(--font-editorial, serif);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--mg-muted);
+}
+.est {
+  border-top: 1px solid rgb(var(--mg-fg-rgb) / 0.3);
+  border-bottom: 1px solid rgb(var(--mg-fg-rgb) / 0.3);
+  padding: 10px 0;
+  display: grid;
+  gap: 6px;
+}
+.est div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 16px;
+}
+.est dd {
+  font-weight: 500;
+}
+.colFoot .social {
+  flex-wrap: nowrap;
+}
+.colFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.page[data-reel="35"] .colFoot .mono {
+  color: var(--mg-muted);
+}
+
+/* ======================================================================
+ * Desktop: the mockup compositions, in container units.
+ * 1cqw is 1% of the page width, so 14.4px at 1440 wide.
+ * ==================================================================== */
+@media (min-width: 681px) {
+  .page {
+    display: block;
+    padding: 0;
+    min-height: max(100svh, 62.5vw);
+  }
+  .top {
+    position: absolute;
+    top: 3cqw;
+    left: 3.75cqw;
+    right: 3.75cqw;
+    gap: 2cqw;
+  }
+  .foot {
+    position: absolute;
+    bottom: 2.6cqw;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .logo {
+    gap: 1cqw;
+  }
+  .logo i {
+    width: 0.75cqw;
+    height: 1.5cqw;
+  }
+  .logo svg {
+    width: 4.2cqw;
+    height: 2.1cqw;
+  }
+  .mono {
+    font-size: max(11px, 0.86cqw);
+  }
+  .eye,
+  .page h1.eye {
+    font-size: max(18px, 1.9cqw);
+  }
+  .lede {
+    font-size: max(16px, 1.3cqw);
+    max-width: 38cqw;
+  }
+  .cd {
+    gap: 2.4cqw;
+  }
+  .unit {
+    gap: 0.5cqw;
+  }
+  .num,
+  .sep {
+    font-size: 3.6cqw;
+  }
+  .label {
+    font-size: max(10px, 0.72cqw);
+  }
+  .inline {
+    font-size: max(11px, 0.9cqw);
+  }
+  .launched {
+    font-size: max(24px, 2.4cqw);
+  }
+  .signup {
+    width: 34cqw;
+    max-width: 100%;
+  }
+  .signup form {
+    gap: 1.2cqw;
+  }
+  .signup input {
+    font-size: max(16px, 1.25cqw);
+    padding: 0.8cqw 0;
+  }
+  .signup button {
+    font-size: max(11px, 0.82cqw);
+    padding: 0.8cqw 0;
+  }
+  .social {
+    gap: 0.6cqw;
+    flex-wrap: nowrap;
+  }
+  .social a {
+    width: max(36px, 2.8cqw);
+    height: max(36px, 2.8cqw);
+  }
+  .social svg {
+    width: max(18px, 1.55cqw);
+    height: max(18px, 1.55cqw);
+  }
+  .center,
+  .body,
+  .bottom,
+  .quote,
+  .under {
+    margin-top: 0 !important;
+  }
+  .page h1 {
+    font-size: 6cqw;
+  }
+
+  /* 22 Red Clock */
+  .page[data-reel="22"] .center {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    gap: 2cqw;
+  }
+  .page[data-reel="22"] .cd {
+    gap: 1.4cqw;
+  }
+  .page[data-reel="22"] .num,
+  .page[data-reel="22"] .sep {
+    font-size: 11cqw;
+    letter-spacing: -0.05em;
+  }
+  .page[data-reel="22"] .eye {
+    font-size: max(18px, 1.9cqw);
+  }
+  .page[data-reel="22"] .lede {
+    max-width: 44cqw;
+  }
+
+  /* 23 Monochrome */
+  .page[data-reel="23"] .center {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    gap: 1.8cqw;
+  }
+  .soon {
+    font-size: 19cqw !important;
+  }
+  .page[data-reel="23"] .inline {
+    padding-top: 1.4cqw;
+  }
+  .page[data-reel="23"] .signup {
+    width: 30cqw;
+  }
+
+  /* 24 Through the Window */
+  .page[data-reel="24"] .video {
+    position: absolute;
+    left: 32%;
+    width: 36%;
+    top: 17%;
+    height: 52%;
+    aspect-ratio: auto;
+  }
+  .split {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    font-size: 7.4cqw !important;
+    letter-spacing: -0.04em !important;
+    line-height: 1 !important;
+  }
+  .split span,
+  .split em {
+    position: absolute;
+    top: 36%;
+  }
+  .split span {
+    right: 70%;
+  }
+  .split em {
+    left: 70%;
+  }
+  .page[data-reel="24"] .under {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 73%;
+    align-items: center;
+    gap: 1.6cqw;
+    text-align: center;
+  }
+  .page[data-reel="24"] .num {
+    font-size: 2.4cqw;
+  }
+  .page[data-reel="24"] .unit {
+    align-items: center;
+  }
+  .page[data-reel="24"] .signup {
+    width: 32cqw;
+  }
+  .page[data-reel="24"] .lede {
+    position: absolute;
+    left: 3.75cqw;
+    bottom: 3cqw;
+    max-width: 22cqw;
+    font-size: max(16px, 1.05cqw);
+  }
+  .page[data-reel="24"] .foot {
+    left: auto;
+    right: 3cqw;
+    bottom: 2.4cqw;
+    transform: none;
+  }
+
+  /* 25 The Dial */
+  .page[data-reel="25"] .shade {
+    background: linear-gradient(
+      90deg,
+      rgba(8, 8, 9, 0.85),
+      rgba(8, 8, 9, 0.5) 50%,
+      rgba(8, 8, 9, 0.68)
+    );
+  }
+  .page[data-reel="25"] .body {
+    position: absolute;
+    left: 3.75cqw;
+    top: 24%;
+    width: 42cqw;
+    gap: 1.8cqw;
+  }
+  .page[data-reel="25"] h1 {
+    font-size: 5.6cqw;
+  }
+  .dial {
+    position: absolute;
+    right: 6cqw;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 34cqw;
+  }
+  .face {
+    gap: 0.6cqw;
+  }
+  .dd {
+    font-size: 9cqw;
+  }
+  .hms {
+    font-size: max(12px, 1.15cqw);
+  }
+  .page[data-reel="25"] .foot {
+    left: 2.9cqw;
+    transform: none;
+  }
+
+  /* 26 The Line */
+  .page[data-reel="26"] .center {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    gap: 2.2cqw;
+  }
+  .line {
+    gap: 1.6cqw;
+  }
+  .line h1 {
+    font-size: max(16px, 1.7cqw) !important;
+  }
+  .line .logo svg {
+    width: 3.4cqw;
+    height: 1.7cqw;
+  }
+  .page[data-reel="26"] .signup {
+    width: 26cqw;
+  }
+  .page[data-reel="26"] .lede {
+    max-width: 34cqw;
+  }
+
+  /* 27 Frosted Panel */
+  .panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 37cqw;
+    margin: 0;
+    padding: 3cqw 3.2cqw;
+    gap: 1.8cqw;
+    background: rgba(13, 13, 13, 0.5);
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .panel .logo {
+    margin-bottom: auto;
+  }
+  .panel h1 {
+    font-size: 4.6cqw !important;
+  }
+  .page[data-reel="27"] .cd {
+    gap: 1.4cqw 2cqw;
+  }
+  .page[data-reel="27"] .unitWrap {
+    padding-top: 0.9cqw;
+  }
+  .page[data-reel="27"] .num {
+    font-size: 3.2cqw;
+  }
+  .panel .signup {
+    width: 100%;
+  }
+  .panel .social {
+    margin-left: -0.8cqw;
+  }
+  .cap {
+    display: block;
+    position: absolute;
+    left: 3.75cqw;
+    bottom: 3cqw;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  }
+
+  /* 28 Knockout */
+  .knock h1 {
+    font-size: 29cqw !important;
+    margin-top: -6cqw !important;
+  }
+  .page[data-reel="28"] .bottom,
+  .page[data-reel="30"] .bottom {
+    position: absolute;
+    left: 3.75cqw;
+    right: 3.75cqw;
+    bottom: 3.2cqw;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 3cqw;
+  }
+  .page[data-reel="28"] .lede {
+    font-size: max(16px, 1.1cqw);
+    max-width: 30cqw;
+    margin-top: 0.4cqw;
+  }
+  .page[data-reel="28"] .eye {
+    font-size: max(16px, 1.5cqw);
+  }
+  .page[data-reel="28"] .num,
+  .page[data-reel="30"] .num {
+    font-size: 2.6cqw;
+  }
+  .page[data-reel="28"] .signup,
+  .page[data-reel="30"] .signup {
+    justify-self: end;
+    width: 28cqw;
+  }
+
+  /* 29 Red Band */
+  .page[data-reel="29"] .video {
+    height: 62%;
+  }
+  .band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 38%;
+    margin: 0;
+    padding: 0 3.75cqw;
+    display: grid;
+    grid-template-columns: 1.15fr auto 1fr;
+    align-items: center;
+    gap: 3cqw;
+  }
+  .band h1 {
+    font-size: 3.8cqw !important;
+  }
+  .band .eye {
+    font-size: max(16px, 1.5cqw);
+    margin-bottom: 0.8cqw;
+  }
+  .end {
+    align-items: flex-end;
+    gap: 1.4cqw;
+  }
+  .band .signup {
+    width: 28cqw;
+  }
+
+  /* 30 Monogram */
+  .mono30 svg {
+    width: 74cqw;
+    height: 37cqw;
+    margin-top: -5cqw;
+  }
+  .page[data-reel="30"] h1 {
+    font-size: 3cqw;
+  }
+  .page[data-reel="30"] .eye {
+    font-size: max(16px, 1.5cqw);
+    margin-bottom: 0.6cqw;
+  }
+
+  /* 31 The Seal */
+  .page[data-reel="31"] .center {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    gap: 1.8cqw;
+  }
+  .seal {
+    width: 20cqw;
+    height: 20cqw;
+  }
+  .seal .logo svg {
+    width: 6cqw;
+    height: 3cqw;
+  }
+  .seal .logo i {
+    width: 1cqw;
+    height: 2.2cqw;
+  }
+  .page[data-reel="31"] .cd {
+    gap: 1.4cqw;
+  }
+  .page[data-reel="31"] .num {
+    font-size: 3cqw;
+  }
+  .page[data-reel="31"] .signup {
+    width: 30cqw;
+  }
+
+  /* 32 Pull Quote */
+  .page[data-reel="32"] .shade {
+    background: linear-gradient(90deg, rgba(8, 8, 9, 0.88), rgba(8, 8, 9, 0.45) 70%);
+  }
+  .quote {
+    position: absolute;
+    left: 3.75cqw;
+    top: 15%;
+    width: 62cqw;
+    gap: 0;
+  }
+  .qm {
+    font-size: 16cqw;
+    height: 7cqw;
+  }
+  .quote h1 {
+    font-size: 4.8cqw;
+  }
+  .quote figcaption {
+    margin-top: 2cqw;
+  }
+  .page[data-reel="32"] .bottom {
+    position: absolute;
+    left: 3.75cqw;
+    right: 3.75cqw;
+    bottom: 3.4cqw;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 3cqw;
+  }
+  .page[data-reel="32"] .num {
+    font-size: 2.4cqw;
+  }
+
+  /* 33 Big Seconds */
+  .ghost {
+    right: -2cqw;
+    top: 50%;
+    transform: translateY(-52%);
+    font-size: 50cqw;
+  }
+  .page[data-reel="33"] .body {
+    position: absolute;
+    left: 3.75cqw;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44cqw;
+    gap: 1.8cqw;
+  }
+  .page[data-reel="33"] .num {
+    font-size: 2.6cqw;
+  }
+  .ghostLabel {
+    display: block;
+    position: absolute;
+    right: 3.75cqw;
+    bottom: 3.4cqw;
+    opacity: 0.7;
+  }
+
+  /* 34 Clock Hands */
+  .handH {
+    width: 24cqw;
+    height: 0.5cqw;
+    margin-top: -0.25cqw;
+  }
+  .handM {
+    width: 40cqw;
+    height: 0.25cqw;
+    margin-top: -0.125cqw;
+  }
+  .handS {
+    width: 46cqw;
+  }
+  .hub {
+    width: 17cqw;
+    height: 17cqw;
+  }
+  .hubInner {
+    gap: 0.5cqw;
+  }
+  .hub .dd {
+    font-size: 5cqw;
+  }
+  .hub .hms {
+    font-size: max(11px, 0.95cqw);
+  }
+  .hub .launched {
+    font-size: max(16px, 1.6cqw);
+  }
+  .page[data-reel="34"] .body {
+    position: absolute;
+    left: 3.75cqw;
+    top: 9cqw;
+    gap: 1cqw;
+    width: 34cqw;
+  }
+  .page[data-reel="34"] h1 {
+    font-size: 5.6cqw;
+  }
+  .page[data-reel="34"] .foot {
+    left: 3.75cqw;
+    right: 3.75cqw;
+    bottom: 3.4cqw;
+    transform: none;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .page[data-reel="34"] .signup {
+    width: 28cqw;
+  }
+  .launchTime {
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.6cqw;
+  }
+
+  /* 35 The Auction */
+  .plate {
+    position: absolute;
+    left: 52%;
+    width: 40%;
+    top: 12%;
+    height: 66%;
+    margin: 0;
+    aspect-ratio: auto;
+    outline-offset: 1cqw;
+  }
+  .fig {
+    top: calc(100% + 2cqw);
+    left: 0;
+    font-size: max(16px, 1.3cqw);
+  }
+  .col {
+    position: absolute;
+    left: 3.75cqw;
+    top: 3cqw;
+    bottom: 3cqw;
+    width: 42cqw;
+    gap: 1.2cqw;
+  }
+  .lot {
+    margin-top: auto;
+  }
+  .lot h1 {
+    font-size: 8cqw;
+  }
+  .lot .mono {
+    margin-bottom: 1cqw !important;
+  }
+  .name {
+    font-size: max(16px, 1.8cqw);
+  }
+  .desc {
+    font-size: max(17px, 1.6cqw);
+  }
+  .est {
+    padding: 1cqw 0;
+  }
+  .est div {
+    font-size: max(16px, 1.15cqw);
+  }
+  .page[data-reel="35"] .num {
+    font-size: 2.4cqw;
+  }
+  .page[data-reel="35"] .signup {
+    width: 100%;
+  }
+  .colFoot {
+    margin-top: auto;
+  }
+  .colFoot .social {
+    margin-left: -0.8cqw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sealRing {
+    animation: none;
+  }
+  .prog {
+    transition: none;
+  }
+}

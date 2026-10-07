@@ -165,7 +165,7 @@ export function AfterHoursLanding({
               >
                 {social.style !== "text" && <SocialIcon network={link.network} />}
                 {(social.style !== "icons" ||
-                  !["instagram", "linkedin", "x", "youtube"].includes(link.network)) && (
+                  !["instagram", "linkedin", "x", "youtube", "tiktok"].includes(link.network)) && (
                   <span>{link.label || link.network}</span>
                 )}
               </a>
@@ -338,6 +338,20 @@ export function SocialIcon({ network }: { network: string }) {
       >
         <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
         <path d="m10 9 5 3-5 3Z" fill="currentColor" />
+      </svg>
+    );
+  if (network === "tiktok")
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.4 2.6 2.2 4.4 5 4.6" />
       </svg>
     );
   return null;

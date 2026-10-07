@@ -8,6 +8,57 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-07 — Fourteen sizzle-reel coming-soon designs (CS22–CS35)
+
+- The owner reviewed 56 live mockups and chose 14 (gallery numbers 3, 5, 7, 9,
+  14, 17, 18, 19, 27, 31, 32, 39, 54, 55). They are now **CS22–CS35** in Coming
+  Soon Studio: Red Clock, Monochrome, Through the Window, The Dial, The Line,
+  Frosted Panel, Knockout, Red Band, Monogram, The Seal, Pull Quote, Big Seconds,
+  Clock Hands and The Auction. Pick one when creating a page or template, or
+  switch an existing Coming Soon block to it; copy carries across.
+- One renderer, `components/sections/ReelLanding.tsx`, dispatched from
+  `ComingSoonStudio` by `isReelDesign()`. Data lives in
+  `lib/blocks/comingSoonReel.ts` (designs, starter copy, defaults and the new
+  `reel` field group). Desktop (≥681px) reproduces each mockup in container
+  units, so the composition scales with the window as the 16:10 mockups did;
+  phones share one stacked reading order with per-design accents.
+- Editable: headline, eyebrow, supporting copy, sign-off, masthead, details
+  (The Auction's estimate rows), button label, signup on/off, email placeholder,
+  social links (TikTok added to the network list and to `SocialIcon`), and under
+  "Sizzle reel designs": background video, still image, video caption,
+  standalone page, launch date with timezone, the four unit labels and the
+  at-launch message. Each design's arrangement is fixed by the design.
+- ⚠️ **No launch date is invented.** Starters seed no `countdown.target`; until
+  an editor sets a valid ISO date with timezone, the countdown shows dashes in
+  place of digits, so the layout holds without lying about a date.
+- The default reel is `/public/media/coming-soon-reel.mp4` (26 s, 1280×720,
+  3.0 MB, no audio) plus `coming-soon-reel.jpg`. Nine Mixkit free-licence clips
+  (35576, 33029, 17370, 3652, 151, 4446, 28888, 51549, 35540), crossfaded.
+  It never autoplays under `prefers-reduced-motion`; the still is shown instead.
+  Because it is a /public file, media reconciliation correctly records nothing.
+- Starters seed the same four social destinations the live footer currently
+  links to (network home pages, since `theme_settings` holds no real profiles).
+  Replace them with the brand's profiles in the builder.
+- Standalone pages hide the site chrome through a new
+  `data-coming-soon-standalone` attribute, added beside After Hours' selectors in
+  `globals.css` (desktop hide and the mobile canvas rule).
+- Gates: format, lint, typecheck, all 3,890 unit tests and `npm run build` pass.
+  New `ReelLanding.test.tsx` covers every design's starter, countdown ticking and
+  launch message, dashes without a date, editor overrides, reduced motion, unsafe
+  social links, TikTok, newsletter submission, London clock and auction details.
+  Browser review of all 14 at 1440px and 390px; axe (WCAG 2.2 AA) reported zero
+  violations on all 14 in both themes and widths. Text over the moving reel is
+  "incomplete" for axe (it cannot measure contrast on video); scrims carry it,
+  as on the homepage hero.
+- CI's `comingSoon.spec.ts` caught CS33 overflowing: the bleeding seconds figure
+  was clipped visually but still counted in the section's `scrollWidth`. It now
+  sits in its own `overflow: hidden` layer. Reproduced and verified locally with
+  the spec's fixture content: no overflow and zero axe violations for all 14.
+- Not yet done: no live page has been created (that is a content decision for
+  the owner), and `test:a11y`/`test:perf` were not rerun because no public route
+  changed. The e2e `comingSoon.spec.ts` fixture iterates all designs, so it
+  covers CS22–CS35 when run against the local stack.
+
 ### 2026-10-02 — Complete and wire the 90-design editorial collection
 
 - Completed the requested additional 30 section mockups and 30 article mockups,
