@@ -400,8 +400,9 @@ export function ReelLanding({
         <>
           {reel()}
           <div className={styles.shade} />
-          <span className={styles.ghost} aria-hidden="true">
-            {values[3]}
+          {/* The figure bleeds off the edge; its own clip keeps it out of the page's scroll width. */}
+          <span className={styles.ghostClip} aria-hidden="true">
+            <span className={styles.ghost}>{values[3]}</span>
           </span>
           <div className={styles.top}>
             {logo}

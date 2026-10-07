@@ -616,11 +616,17 @@
 .page[data-reel="33"] .shade {
   background: rgba(8, 8, 9, 0.62);
 }
+.ghostClip {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
 .ghost {
   position: absolute;
   right: -6vw;
   top: 30%;
-  z-index: -1;
   font-size: 70vw;
   font-weight: 600;
   letter-spacing: -0.07em;
