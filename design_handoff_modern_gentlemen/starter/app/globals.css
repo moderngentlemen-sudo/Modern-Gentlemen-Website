@@ -193,6 +193,7 @@ body > [data-site-main] {
   html:has([data-site-chrome="footer"][data-default-footer="true"]):not(
       :has(
         [data-site-main] [data-after-hours-standalone="true"],
+        [data-site-main] [data-coming-soon-standalone="true"],
         [data-page-presentation="public"][data-page-mobile-footer="hidden"]
       )
     ) {
@@ -579,10 +580,12 @@ a:hover {
 }
 
 /* After Hours standalone pages: never match editor canvases or ordinary pages. */
-body:has([data-site-main] [data-after-hours-standalone="true"]) [data-site-chrome] {
+body:has([data-site-main] [data-after-hours-standalone="true"]) [data-site-chrome],
+body:has([data-site-main] [data-coming-soon-standalone="true"]) [data-site-chrome] {
   display: none !important;
 }
-[data-site-main]:has([data-after-hours-standalone="true"]) {
+[data-site-main]:has([data-after-hours-standalone="true"]),
+[data-site-main]:has([data-coming-soon-standalone="true"]) {
   padding-top: 0 !important;
 }
 
