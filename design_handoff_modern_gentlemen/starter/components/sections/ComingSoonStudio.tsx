@@ -1,7 +1,11 @@
 import type { AfterHoursConfig } from "@/lib/blocks/afterHours";
 import { AfterHoursLanding } from "./AfterHoursLanding";
 import { ReelLanding } from "./ReelLanding";
-import { isReelDesign, type ReelConfig } from "@/lib/blocks/comingSoonReel";
+import {
+  isReelDesign,
+  reelConfigWithLaunchDate,
+  type ReelConfig,
+} from "@/lib/blocks/comingSoonReel";
 import Link from "next/link";
 import { COMING_SOON_DESIGNS } from "@/lib/blocks/comingSoon";
 import { studyHref } from "@/lib/blocks/sectionStudies";
@@ -79,7 +83,7 @@ export function ComingSoonStudio({
         showSignup={showSignup}
         buttonLabel={buttonLabel}
         socialLinks={socialLinks}
-        config={reel}
+        config={reelConfigWithLaunchDate(reel, afterHours?.countdown?.target)}
       />
     );
   const design = COMING_SOON_DESIGNS.find(([id]) => id === variant) ?? COMING_SOON_DESIGNS[0];

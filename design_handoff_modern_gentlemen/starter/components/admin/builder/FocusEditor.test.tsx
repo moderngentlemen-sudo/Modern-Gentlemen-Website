@@ -184,6 +184,17 @@ describe("Focus layout", () => {
     expect(store.getState().selectedKey).toBeNull();
   });
 
+  it("lets the inspector scroll, docked or floating, however long the block's fields", () => {
+    const heading = newBlockNode("nativeHeading");
+    const { container } = renderFocus([heading]);
+    act(() => store.getState().select(heading._key));
+    const floating = container.querySelector("[data-floating-inspector]")!;
+    expect(screen.getByText("Inspector body").parentElement?.className).toMatch(/overflow-y-auto/);
+    expect(floating.contains(screen.getByText("Inspector body"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Dock" }));
+    expect(screen.getByText("Inspector body").parentElement?.className).toMatch(/overflow-y-auto/);
+  });
+
   it("counts issues on the rail and lists them in Health", () => {
     const heading = newBlockNode("nativeHeading");
     renderFocus([heading]);

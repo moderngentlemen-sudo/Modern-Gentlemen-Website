@@ -8,6 +8,32 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Coming Soon pages were not editable in Focus (branch `claude/coming-soon-focus`)
+
+- Reported by the owner on "Coming Soon January 2027" (CS22 Red Clock). Two
+  causes, both reproduced in the browser with that page's exact stored block.
+- ⚠️ **The floating inspector could not scroll.** Its body was
+  `min-h-0 flex-1 overflow-hidden`; the card has a `max-height` but no
+  `height`, so `PropertiesPanel`'s own `h-full` scroller cannot resolve and
+  grows to its content (11,600px for Coming Soon Studio), and the wrapper
+  clipped it at one screenful. Coming Soon's design picker, copy, countdown and
+  social fields all sit below ~700px of generic section-background controls,
+  so the block looked uneditable. Every long block was affected. Both the
+  floating and docked inspector bodies now scroll themselves
+  (`overflow-y-auto overscroll-contain`). jsdom cannot see this; a unit test
+  pins the class and the browser check is the real proof.
+- **Two launch-date fields with the same label.** The inspector shows the CS21
+  After Hours "Live countdown" group (first) and the reel group's "Launch
+  countdown" (much later), both labelled "Launch date & time with timezone".
+  The owner set the first; reel designs read only `reel.countdown.target`, so
+  the countdown stayed at dashes. `reelConfigWithLaunchDate`
+  (`lib/blocks/comingSoonReel.ts`, pure) now falls back to the After Hours date
+  when the reel's own is empty or invalid. No date is ever invented: an
+  invalid fallback leaves the dashes. No data migration was needed; the live
+  page counts down as soon as this deploys.
+- Tests: `comingSoonReel.test.ts` (3), a ComingSoonStudio case, a Focus
+  inspector case. 3,959 unit tests pass.
+
 ### 2026-10-08 — Publish menu with scheduling (PR #124)
 
 - **Scheduling existed in the database since `0010`/`0016` and in

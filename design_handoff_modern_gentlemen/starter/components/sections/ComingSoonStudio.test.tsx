@@ -82,3 +82,17 @@ describe("Coming-soon page designs", () => {
     expect(screen.getByRole("link", { name: /Editorial/ }).getAttribute("href")).toBe("/articles");
   });
 });
+
+describe("Reel designs and the After Hours launch date", () => {
+  it("counts down to the After Hours date when the reel's own is empty", () => {
+    render(
+      <ComingSoonStudio
+        variant="22"
+        title="Coming soon"
+        reel={{ countdown: { target: "" } }}
+        afterHours={{ countdown: { target: "2099-01-15T18:00:00-05:00" } } as never}
+      />
+    );
+    expect(document.body.textContent).not.toMatch(/––/);
+  });
+});

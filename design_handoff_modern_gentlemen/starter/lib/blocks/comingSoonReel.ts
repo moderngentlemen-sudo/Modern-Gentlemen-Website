@@ -1,3 +1,4 @@
+import { countdownParts } from "./afterHours";
 import { field } from "./fields";
 
 /**
@@ -186,3 +187,26 @@ export const REEL_STARTERS: Record<
     buttonLabel: "Register to bid",
   },
 };
+
+/**
+ * The reel config with one fallback: when the reel's own launch date is empty
+ * or invalid, use the After Hours (CS21) launch date if that one is valid.
+ *
+ * Both groups sit in the same inspector and both have a field called "Launch
+ * date & time with timezone"; the After Hours one comes first. An editor who
+ * set that one on a reel design saw dashes and reasonably concluded the date
+ * could not be edited. Only the date falls back: labels and the launch message
+ * have reel defaults of their own, and an empty reel date is never a choice
+ * anyone makes on purpose, since it means "show dashes".
+ */
+export function reelConfigWithLaunchDate(
+  reel: ReelConfig | undefined,
+  afterHoursTarget: unknown
+): ReelConfig {
+  const config = reel ?? {};
+  const own = config.countdown?.target ?? "";
+  if (countdownParts(own, 0) !== null) return config;
+  if (typeof afterHoursTarget !== "string" || countdownParts(afterHoursTarget, 0) === null)
+    return config;
+  return { ...config, countdown: { ...config.countdown, target: afterHoursTarget } };
+}
