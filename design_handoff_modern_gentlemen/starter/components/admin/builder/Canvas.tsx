@@ -102,6 +102,8 @@ export function Canvas({
   const tree = useBuilder(useShallow((s) => s.tree));
   const device = useBuilder((s) => s.device);
   const selectedKeys = useBuilder((s) => s.selectedKeys);
+  // Focus has its own floating selection bar with the same actions and more.
+  const { mode } = useEditorExperience();
   const duplicateSelected = useBuilder((s) => s.duplicateSelected);
   const removeSelected = useBuilder((s) => s.removeSelected);
   const canvasZoom = useBuilder((s) => s.canvasZoom);
@@ -331,7 +333,7 @@ export function Canvas({
             Snap 5%
           </Button>
         </div>
-        {selectedKeys.length > 1 && (
+        {selectedKeys.length > 1 && mode !== "focus" && (
           <div className="sticky top-0 z-40 flex items-center justify-between border-b border-mg-bd/15 bg-mg-bg/95 px-6 py-2 backdrop-blur">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
               {selectedKeys.length} elements selected

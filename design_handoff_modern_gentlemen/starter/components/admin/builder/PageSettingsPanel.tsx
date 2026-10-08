@@ -17,6 +17,7 @@ import { TemplateOverrideControl } from "@/components/admin/TemplateOverrideCont
 import type { BuilderServerActions } from "./Builder";
 import type { ComponentProps } from "react";
 import { useBuilder } from "./StoreContext";
+import { SharePreviews } from "./SharePreviews";
 
 export function PageSettingsPanel({
   identityAction,
@@ -136,18 +137,15 @@ export function PageSettingsPanel({
           checked={settings.noIndex ?? false}
           onChange={(noIndex) => update({ noIndex })}
         />
-        <div className="border border-mg-bd/20 p-3 text-sm" aria-label="Search preview">
-          <p className="text-xs">Search preview · {publicPathForPage(doc.slug)}</p>
-          <p className="font-semibold">{pageTitle(settings.seoTitle || doc.title)}</p>
-          <p>{settings.description || "Add a meta description."}</p>
-        </div>
-        <div className="border border-mg-bd/20 p-3 text-sm" aria-label="Social preview">
-          <p className="text-xs">Social preview</p>
-          <p className="font-semibold">
-            {settings.socialTitle || pageTitle(settings.seoTitle || doc.title)}
-          </p>
-          <p>{settings.socialDescription || settings.description || "Add a social description."}</p>
-        </div>
+        <SharePreviews
+          title={pageTitle(settings.seoTitle || doc.title)}
+          description={settings.description ?? ""}
+          socialTitle={settings.socialTitle || pageTitle(settings.seoTitle || doc.title)}
+          socialDescription={settings.socialDescription || settings.description || ""}
+          socialImage={settings.socialImage ?? ""}
+          path={publicPathForPage(doc.slug)}
+          noIndex={settings.noIndex ?? false}
+        />
       </PanelSection>
       <PanelSection title="Page background">
         <TextInput

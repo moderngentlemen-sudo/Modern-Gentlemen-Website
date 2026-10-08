@@ -11,7 +11,26 @@ import { TextInput } from "@/components/admin/ui/Input";
 import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 
 import { libraryDragId } from "./dnd";
-import { BlockPreview, PREVIEW_HEIGHT } from "./BlockPreview";
+import { BlockPreview, PREVIEW_HEIGHT, TreePreview } from "./BlockPreview";
+import { usePatterns } from "./PatternsContext";
+
+/** What the editor is currently browsing in the library, for an on-canvas insertion hint. */
+export type BrowseItem =
+  | { kind: "block"; type: string }
+  | { kind: "pattern"; id: string }
+  | { kind: "widget"; type: string; variant: string };
+type PreviewState = ({ kind: "block"; type: string } | { kind: "pattern"; id: string }) & {
+  top: number;
+  left: number;
+};
+
+export function anchor(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  return {
+    top: Math.max(8, Math.min(rect.top, window.innerHeight - PREVIEW_HEIGHT - 8)),
+    left: rect.right + 8,
+  };
+}
 
 /**
  * The section picker.
@@ -56,8 +75,11 @@ export function InsertMenu({
   patterns = [],
   onInsertPattern,
   catalog = blockCatalog,
+  onBrowse,
 }: {
   onInsert: (type: string) => void;
+  /** Told what is hovered or focused, and null when browsing stops. */
+  onBrowse?: (item: BrowseItem | null) => void;
   patterns?: PatternEntry[];
   onInsertPattern?: (id: string) => void;
   /**
@@ -67,7 +89,18 @@ export function InsertMenu({
   catalog?: BlockCatalogEntry[];
 }) {
   const [query, setQuery] = useState("");
-  const [preview, setPreview] = useState<{ type: string; top: number; left: number } | null>(null);
+  const [preview, setPreviewState] = useState<PreviewState | null>(null);
+  const patternBlocks = usePatterns();
+  const setPreview = (next: PreviewState | null) => {
+    setPreviewState(next);
+    onBrowse?.(
+      next
+        ? next.kind === "block"
+          ? { kind: "block", type: next.type }
+          : { kind: "pattern", id: next.id }
+        : null
+    );
+  };
 
   /**
    * A drag hides the preview and keeps it hidden.
@@ -171,6 +204,22 @@ export function InsertMenu({
                     <button
                       type="button"
                       onClick={() => onInsertPattern(pattern.id)}
+                      onMouseEnter={(event) =>
+                        setPreview({
+                          kind: "pattern",
+                          id: pattern.id,
+                          ...anchor(event.currentTarget),
+                        })
+                      }
+                      onMouseLeave={() => setPreview(null)}
+                      onFocus={(event) =>
+                        setPreview({
+                          kind: "pattern",
+                          id: pattern.id,
+                          ...anchor(event.currentTarget),
+                        })
+                      }
+                      onBlur={() => setPreview(null)}
                       className={clsx(
                         "block w-full px-3 py-2 text-left transition-colors hover:bg-mg-fg/5",
                         FOCUS_RING
@@ -217,7 +266,14 @@ export function InsertMenu({
           className="pointer-events-none fixed z-50"
           style={{ top: showing.top, left: showing.left }}
         >
-          <BlockPreview type={showing.type} />
+          {showing.kind === "block" ? (
+            <BlockPreview type={showing.type} />
+          ) : (
+            <TreePreview
+              id={showing.id}
+              blocks={patternBlocks.find((pattern) => pattern.id === showing.id)?.blocks ?? []}
+            />
+          )}
         </div>
       )}
     </div>
@@ -249,7 +305,7 @@ function LibraryItem({
 }: {
   block: BlockCatalogEntry;
   onInsert: (type: string) => void;
-  onPreview: (preview: { type: string; top: number; left: number } | null) => void;
+  onPreview: (preview: PreviewState | null) => void;
 }) {
   const { setNodeRef, listeners, isDragging } = useDraggable({ id: libraryDragId(block.type) });
 
@@ -263,12 +319,7 @@ function LibraryItem({
    * clamped so an entry near the bottom does not preview off-screen.
    */
   function show(element: HTMLElement) {
-    const rect = element.getBoundingClientRect();
-    onPreview({
-      type: block.type,
-      top: Math.max(8, Math.min(rect.top, window.innerHeight - PREVIEW_HEIGHT - 8)),
-      left: rect.right + 8,
-    });
+    onPreview({ kind: "block", type: block.type, ...anchor(element) });
   }
 
   return (

@@ -8,6 +8,176 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Publish menu with scheduling (PR #124)
+
+- **Scheduling existed in the database since `0010`/`0016` and in
+  `scheduleAction` on pages and articles, but nothing in any editor called
+  it.** `PublishMenu.tsx` is the first UI for it, in `PublishBar`, so all three
+  editor layouts get it. The Publish button is split: the main half opens the
+  existing confirm dialog (which still owns issue handling); the caret offers
+  Publish now, Schedule… / Change schedule…, Cancel schedule and Unpublish.
+- Schedule dialog: quick picks (in an hour on the quarter hour, tomorrow 9:00,
+  Monday 9:00; `schedule.ts`, pure, `now` injected), a `datetime-local` in the
+  editor's zone (named in the label), a plain-English "Publishes …" line, an
+  optional history note, and refusal while Health has blocking issues (the
+  server's `assertPublishable` would refuse anyway). Says honestly that a run
+  can be late by an hour or more — the decisions log records GitHub's cron gap.
+- **Cancel = `unpublish_document`.** The runner (`run_due_publishes`) fires only
+  rows still `status = 'scheduled'`, so returning to draft cancels by
+  construction; no new RPC or migration. `scheduled_for` is left set on the row
+  and is inert. Scheduling is offered only when the document is not
+  `published`: `schedule_document` sets `status = 'scheduled'`, which on a live
+  page would take it off the public site until the runner fired.
+- `BuilderDocument.scheduledFor` (optional) is seeded from `scheduled_for` on
+  the page and article builder routes; the bar shows "Publishes Tue 14 Oct,
+  09:00" beside the status pill. `BuilderServerActions` gains optional
+  `schedule` and `unpublish`, passed only with `page.publish` /
+  `article.publish`.
+- ⚠️ **The menu and its dialogs render through a portal.** The bar is a sticky
+  `z-20` header and the Canvas toolbar is `z-40` in another branch, so anything
+  rendered inside the bar is painted under that toolbar regardless of its own
+  z-index — found in the browser, invisible to jsdom.
+- Tests: `schedule.test.ts` (4), `PublishMenu.test.tsx` (6); E2E journey
+  schedules a fixture page, reloads, cancels. 3,950 unit tests, build green.
+- ⚠️ **First CI run of the Focus E2E file failed twice, both test bugs.** The
+  fixture gave `nativeText` a `text` setting; its field is `content`, so the
+  page carried two validation issues and the Schedule button was (correctly)
+  disabled. And the widget-preview step hovered `button:nth(2)` in the Insert
+  pane, which is the "Sections & patterns" tab, not a widget. Widget buttons
+  now carry `data-widget-item` and the spec targets that. Neither could be seen
+  in the session container: `test:e2e` needs the CI's local Supabase stack.
+- The second CI run left one real failure: the floating inspector **covered a
+  full-width block** (the known limitation from phase 1). Fixed in the editor,
+  not the test: `placeInspector` (pure, exported, unit-tested) tries beside the
+  block, then below it, then above it (sized to the space, ≥ 240px), and only
+  then the canvas edge; the E2E now asserts the card and block do not overlap.
+  ⚠️ **Fixing it exposed an older bug:** every position was measured against
+  the editor root, but the card is absolutely positioned inside the row *below*
+  the publish bar, so it always sat one bar-height (~59px) too low and its foot
+  ran off the window. Placement and header-drag now measure against the card's
+  `offsetParent`.
+- Third CI fix: after an insert, the new block below the heading is selected
+  and its "Move freely" handle straddles the boundary over the heading's
+  centre, so the spec's centred click on the heading hit the handle. The spec
+  now clicks near the heading's top-left. The overlap is pre-existing canvas
+  behaviour, left as is. **CI then went fully green on `bcdf55d`** (lint/unit,
+  integration, E2E + visual + a11y + perf), all three Focus journeys included.
+  `footerViewport.spec` failed once and passed on retry in the run before; it
+  is unrelated to this PR.
+
+### 2026-10-08 — Focus phase 3: search/social previews and "Side by side" (PR #124)
+
+- **Search and social previews** — `SharePreviews.tsx` replaces the two plain
+  text boxes in Page settings (all three editor layouts get it). A results-page
+  mock (brand, host and path as breadcrumbs, title cut at ~60 characters,
+  `metaDescription` at 160) with length meters (title 30–60, description
+  70–160; guides shown as a meter, never enforced), a no-index warning, and a
+  shared-link card with Large image / Compact styles using the social image.
+  Labelled "approximate" in the UI on purpose: every network lays this out
+  differently and changes it without notice. Host comes from
+  `NEXT_PUBLIC_SITE_URL`. Same fallbacks as before (social title → SEO title →
+  page title; social description → meta description).
+- **Side by side** — `arrange.ts` `wrapInColumns` (pure) puts 2–4 selected
+  sibling blocks into one new Columns row, one block per column in page order
+  (ratio 1-1 / 1-1-1 / 1-1-1-1), at the first block's position. Store action
+  `wrapSelectionInColumns` goes through `replaceWith`, so it is one undo step.
+  `cannotWrapInColumns` gives the refusal reason (not siblings, locked, already
+  columns, a container whose slot does not allow `columns`), shown as the
+  disabled button's tooltip in the selection bar. Also in the command bar.
+- Tests: `SharePreviews.test.tsx` (5), `arrange.test.ts` (3), Focus tests 35.
+  Gates: format, lint, typecheck, 3,940 unit tests. Browser check on a
+  temporary route (removed): previews render, Side by side wraps into a row, no
+  page errors.
+
+### 2026-10-08 — Focus phase 2: command bar, History, selection bar, suggestions, device compare (branch `claude/focus-editor`)
+
+- **Command bar (Ctrl/⌘K, or the rail's search icon)** — `FocusTools.tsx`
+  `CommandBar`. Searches every block on the page by label and a piece of its copy
+  (`blockCommands`, `history.ts` `blockSnippet`), every catalogue block and saved
+  pattern (`Builder.tsx` passes `commands`), edit actions, devices, zoom, rulers,
+  panes, dock/float and layout switching. Highlighting previews like the panes:
+  an insert command draws the canvas insertion marker, a block is outlined.
+  `rankCommands` (pure): every word must match; label prefix ranks first. The
+  preview effect is keyed by command id because the host rebuilds its command
+  objects every render — keyed by object it would loop through the store.
+- **History pane** (rail clock icon) — every undo step in words, newest first
+  (`describeStep`: "Added Heading", "Moved Text", "Hid Image", "Edited 3
+  blocks", "Changed page settings"). Click any step to travel there; it calls
+  undo/redo N times, so later steps stay as redo until the next edit. Hover
+  outlines the block a step touched. "Name this point" labels a checkpoint
+  (WeakMap keyed by the immutable tree, so names vanish with the history entry —
+  session only, nothing is saved). ⚠️ `diffBlockTrees` compares content only
+  (normalize drops `locked`/`visibility`/`design`/`visual`), so `describeStep`
+  checks those separately; without that a lock read as "Changed page settings".
+- **Selection bar** — two or more blocks selected shows a floating bar at the
+  bottom of the canvas: Duplicate, Hide/Show, Match spacing (copies the active
+  block's space before/after to all), Lock/Unlock, Delete, Clear. Each is one
+  existing group store action, so one undo step that skips locked blocks. The
+  full group inspector still lives in the inspector.
+- **Health suggestions** — `advisories.ts` `adviseTree` (pure) adds
+  non-blocking advice under the validation issues: shown on no device (fix: show
+  on all), hidden (fix: show), image with a source but no alt text (Edit), second
+  H1 / skipped heading level (fix: set level), empty grid/columns (fix: remove).
+  The rail badge still counts blocking issues only.
+- **Compare devices** (rail icon, or the command bar) — `CompareDevices` waits
+  for autosave to settle (`!dirty` and not saving; a save error stops it with a
+  message), mints one preview link through the existing `createPreview`
+  callback, and frames it at 1440/820/390 in scaled iframes. Real iframes on
+  purpose: media queries and device visibility only behave truthfully at a real
+  width. Offered only when `canPreview`.
+- Tests: `history.test.ts` (9), `advisories.test.ts` (5), `FocusEditor.test.tsx`
+  now 33 (command bar, history travel and naming, selection bar, suggestions,
+  compare). E2E `focusEditor.spec.ts` gains a second journey (command insert,
+  history travel, selection lock, compare frames).
+- Gates: format, lint, typecheck, 3,931 unit tests, `npm run build`. Browser
+  walkthrough on a temporary local route (removed): command insert with marker,
+  go-to by copy, History, Health suggestions, selection bar, three compare
+  frames, no page errors.
+- **Still to do**: page search and social previews, publish menu (schedule,
+  preview link), overlap/contrast checks, equal-columns/align arrange actions,
+  then retire Canvas Preview and Design Studio after owner sign-off. In Focus
+  the Canvas's own "N elements selected" strip is hidden (`mode !== "focus"`);
+  the selection bar replaces it. Original and Canvas Preview keep the strip.
+
+### 2026-10-08 — Focus: the unified editor, phase 1 (branch `claude/focus-editor`)
+
+- The owner reviewed eight live editor concepts and chose **Focus** (canvas-first),
+  asking for hover previews while browsing and for one unified, more capable
+  builder. Phase 1 makes Focus the **default editor layout**; Original and Canvas
+  Preview remain selectable from the rail's "Editor layout" button until the owner
+  signs off. All three share one store, autosave, drag and drop, renderers and
+  publishing; switching never converts or saves anything.
+- `EditorExperience` now has `mode: "focus" | "original" | "canvas"` (`modern` is
+  true for Focus and Canvas, so Focus inherits every Canvas Preview capability:
+  hover font/colour previews, gradients, grid handles, free positioning). The
+  choice is per browser in localStorage `mg-editor-experience`, read after mount.
+- `FocusEditor.tsx`: dark 60px rail (Insert, Layers, Page settings, Health with an
+  issue badge, Editor layout, Shortcuts); one pane at a time beside the canvas
+  (pushes, never covers it); "Pin" reopens that pane next visit; the inspector
+  floats beside the selected block (right, else left, else canvas edge; follows
+  scroll; drag its header to move) or docks right (remembered).
+- **Hover previews everywhere in the Insert pane**: sections (existing), saved
+  patterns (new `TreePreview` renders every block of the pattern), and widgets
+  (new hover/focus popover; the inline Preview button stays). While browsing, a
+  red **insertion marker** on the canvas shows exactly where a click would insert
+  (`insertionTarget` mirrors the insert handlers, which are now one shared
+  `onInsertBlock`/`onInsertPattern` in `Builder.tsx`). Keyboard focus previews too.
+- Keys: `/` opens Insert with search focused, `?` opens the shortcut sheet, Esc
+  deselects then closes a pane. All ignored while typing.
+- Tests: `FocusEditor.test.tsx` (17) covers placement targets, panes, keys,
+  marker, floating/docked inspector, Health, mode persistence and the pattern and
+  widget previews. New E2E `focusEditor.spec.ts`. ⚠️ The **e2e Playwright project
+  pins `mg-editor-experience=original`** via storageState so the 14 existing
+  builder journeys keep their Original selectors; the Focus journey opts in.
+- Gates: format, lint, typecheck, 3,907 unit tests, `npm run build` pass. Browser
+  walkthrough of the real Builder on a temporary local route (removed): previews,
+  marker, inspector float/dock, layers, shortcuts, no page errors.
+- **Next phases** (from the approved concept set): named history panel, compare
+  devices side by side, multi-select arrange bar (align/match/equal columns),
+  page search and social previews, publish menu (schedule, preview link), health
+  checks beyond validation (overlap, contrast, gaps) with one-click fixes, command
+  bar, then retire Canvas Preview and Design Studio after owner sign-off.
+
 ### 2026-10-07 — Fourteen sizzle-reel coming-soon designs (CS22–CS35)
 
 - The owner reviewed 56 live mockups and chose 14 (gallery numbers 3, 5, 7, 9,

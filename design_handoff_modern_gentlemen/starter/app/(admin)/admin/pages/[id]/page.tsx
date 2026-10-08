@@ -14,9 +14,11 @@ import {
   createPreviewAction,
   publishAction,
   saveDraftAction,
+  scheduleAction,
   savePageIdentityAction,
   setPageTemplateOverrideAction,
   snapshotAction,
+  unpublishAction,
 } from "./actions";
 import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
 
@@ -68,6 +70,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
           slug: page.slug,
           status: page.status,
           version: page.version,
+          scheduledFor: page.scheduled_for,
           treeKey,
           rest,
         },
@@ -83,6 +86,9 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
         publish: publishAction,
         snapshot: snapshotAction,
         createPreview: createPreviewAction,
+        ...(user.permissions.has("page.publish")
+          ? { schedule: scheduleAction, unpublish: unpublishAction }
+          : {}),
         ...(user.permissions.has("pattern.write")
           ? { createPatternFromSelection: createPatternFromSelectionAction }
           : {}),

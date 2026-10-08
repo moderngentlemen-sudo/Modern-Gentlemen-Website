@@ -55,6 +55,7 @@ import type { DocumentStatus, DocumentType } from "@/lib/domain/documents";
 import { moveIndex } from "./dnd";
 import { insertAfter, insertAt, locate, moveByKey, moveInto, removeByKey } from "./tree";
 import { cloneJson, cloneWithNewKeys, keysOf, newBlockNode } from "./node";
+import { wrapInColumns } from "./arrange";
 
 enableMapSet();
 
@@ -82,6 +83,8 @@ export interface BuilderDocument {
   slug: string;
   status: DocumentStatus;
   version: number;
+  /** When a `scheduled` page or article will publish itself, as an ISO instant. */
+  scheduledFor?: string | null;
   /**
    * Where in the payload the tree being edited lives — a *path*, not a key.
    *
@@ -202,6 +205,8 @@ export interface BuilderActions {
   remove: (key: string) => void;
   duplicateSelected: () => void;
   removeSelected: () => void;
+  /** Puts two to four selected sibling blocks side by side in one new Columns row. */
+  wrapSelectionInColumns: () => void;
   move: (activeKey: string, overKey: string) => void;
   /** The drop-into-a-gap case: a position rather than another block. */
   moveTo: (activeKey: string, parentKey: string | null, index: number) => void;
@@ -616,6 +621,13 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         const alive = new Set(keysOf(next));
         const selectedKeys = get().selectedKeys.filter((entry) => alive.has(entry));
         set({ selectedKey: selectedKeys.at(-1) ?? null, selectedKeys });
+      },
+
+      wrapSelectionInColumns: () => {
+        const result = wrapInColumns(get().tree, get().selectedKeys);
+        if (!result.key) return;
+        replaceWith(result.tree);
+        set({ selectedKey: result.key, selectedKeys: [result.key] });
       },
 
       duplicateSelected: () => {
