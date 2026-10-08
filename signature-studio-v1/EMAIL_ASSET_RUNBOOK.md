@@ -79,6 +79,10 @@ are baked into PNG derivatives. Safe uploaded SVG is rasterized; active content
 or external-resource references are rejected. A final-byte SHA-256 hash determines
 `signature-assets/<owner>/<hash>.png`. Uploads are create-only with immutable
 cache control. An existing-object collision must verify the exact public bytes.
+If a cached canonical owner/hash URL returns an anonymous HTTP 404, the pipeline
+may recreate it once with exact-snapshot publication consent and a create-only
+write, then verify it again. Network outages, access denial, server errors and
+mismatched bytes never authorize a recreation or overwrite.
 Old `publishedAssets` entries are retained as untrusted cache hints; new
 `emailAssetMetadata` records hash, owner, host, MIME, dimensions, size and check time.
 

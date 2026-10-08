@@ -25,7 +25,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   `signature-studio-v1/STABILIZATION.md` and `EMAIL_ASSET_RUNBOOK.md`. Real Gmail
   recipient testing, deployment authorization and rollback execution remain
   outstanding. The handoff's full definition of done is not yet satisfied.
-- Final local validation: 23 syntax checks, 294 Node tests, 41 unified, 40 block,
+- Final local validation: 23 syntax checks, 298 Node tests, 41 unified, 40 block,
   34 alignment and 3 simulated designer OAuth browser cases passed. Hosting,
   clipboard and OAuth fixtures are explicitly distinguished from real email.
 - Cost: source/render/export stabilization and regression coverage; no backend

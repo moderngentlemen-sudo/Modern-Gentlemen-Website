@@ -109,7 +109,7 @@ test('existing final-byte object is reused only with current owner and public ve
  await assert.rejects(()=>prepareEmailAssets({publishedAssets:{[hash]:url(hash).replace('owner-1','owner-2')}},['full'],deps),e=>e.code==='CONSENT_REQUIRED');
 });
 test('stored publication strings are hints and do not bypass failed public verification',async()=>{
- const hash=await digestImageBytes(blob()),{deps,uploads}=fixture({fetch:async()=>response(blob(),{status:404})});
+ const hash=await digestImageBytes(blob()),{deps,uploads}=fixture({fetch:async()=>response(blob(),{status:503})});
  await assert.rejects(()=>prepareEmailAssets({publishedAssets:{[hash]:url(hash)}},['full'],deps),e=>e.code==='VERIFY_UNAVAILABLE');assert.equal(uploads.length,0);
 });
 test('a host upload success without verified public availability cannot yield ready HTML',async()=>{
@@ -156,4 +156,29 @@ test('image replacement only edits the actual src attribute, never src-looking a
 test('malformed image quoting cannot bypass final validation by appearing to contain zero images',()=>{
  const target=policy.staticUrls[0];
  for(const html of [`<img alt="Photo src="${target}" src="${data}">`,`<img src="${target}>`,`<img alt=x" src="${target}">`])assert.throws(()=>assertEmailSafeMarkup(html,{...policy,verifiedUrls:new Set([target])}),/Malformed/);
+});
+
+test('confirmed missing cached object requires consent then one owner-scoped recreation and verification',async()=>{
+ const hash=await digestImageBytes(blob()),{deps,uploads,cloud}=fixture({consent:false});let restored=false,gets=0;
+ const existingUpload=cloud.uploadBlob;cloud.uploadBlob=async(...args)=>{const result=await existingUpload(...args);restored=true;return result;};
+ deps.fetch=async address=>{assert.equal(address,url(hash));gets++;return response(blob(),{status:restored?200:404});};
+ const snapshot={assets:{logo:{src:data}},publishedAssets:{[hash]:url(hash)}};const original=structuredClone(snapshot);
+ await assert.rejects(()=>prepareEmailAssets(snapshot,['full'],deps),error=>error.code==='CONSENT_REQUIRED');assert.equal(uploads.length,0);
+ const result=await prepareEmailAssets(snapshot,['full'],{...deps,consent:true});
+ assert.equal(uploads.length,1);assert.equal(uploads[0],hash);assert.equal(gets,3);assert.equal(result.publishedAssets[hash],url(hash));assert.equal(result.inventory[0].status,'Ready');assert.deepEqual(snapshot,original);
+});
+test('cached network outages, access denial and corrupt objects never trigger recreation',async()=>{
+ const hash=await digestImageBytes(blob());
+ for(const failure of ['network',401,403,429,500,503,'corrupt']){
+  const {deps,uploads}=fixture({fetch:async()=>{if(failure==='network')throw new TypeError('Network unavailable');return failure==='corrupt'?response(otherBlob()):response(blob(),{status:failure});}});
+  await assert.rejects(()=>prepareEmailAssets({publishedAssets:{[hash]:url(hash)}},['full'],deps),error=>failure==='corrupt'?error.code==='IMAGE_INVALID':error.code==='VERIFY_UNAVAILABLE');assert.equal(uploads.length,0,String(failure));
+ }
+});
+test('missing cache recovery is bounded to one create-only attempt and does not mark an unavailable result ready',async()=>{
+ const hash=await digestImageBytes(blob()),{deps,uploads}=fixture({fetch:async()=>response(blob(),{status:404})});
+ await assert.rejects(()=>prepareEmailAssets({publishedAssets:{[hash]:url(hash)}},['full'],deps),error=>error.code==='VERIFY_UNAVAILABLE'&&error.httpStatus===404);assert.equal(uploads.length,1);
+});
+test('missing cache recovery rechecks the snapshot before any create-only request',async()=>{
+ const hash=await digestImageBytes(blob());let current=true;const {deps,uploads}=fixture({isCurrent:()=>current,fetch:async()=>{current=false;return response(blob(),{status:404});}});
+ await assert.rejects(()=>prepareEmailAssets({publishedAssets:{[hash]:url(hash)}},['full'],deps),error=>error.code==='STALE_EXPORT');assert.equal(uploads.length,0);
 });

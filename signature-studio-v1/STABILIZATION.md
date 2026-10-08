@@ -52,7 +52,7 @@ Free-plan pausing and long-term retention remain operational release concerns.
 
 ## Acceptance status
 
-Final local gates: **23 syntax checks, 294/294 Node tests, 41/41 unified browser
+Final local gates: **23 syntax checks, 298/298 Node tests, 41/41 unified browser
 groups, 40/40 block browser groups, 34/34 alignment groups and 3/3 simulated
 designer OAuth cases passed**. No Node tests were skipped. The previous 224-test
 baseline was freshly rerun, not reused from historical documentation.

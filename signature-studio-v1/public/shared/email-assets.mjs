@@ -106,7 +106,8 @@ export async function downloadImageBlob(url,{fetch:fetcher=globalThis.fetch,limi
  try{
   return await Promise.race([timeout,(async()=>{
   const response=await fetcher(url,{method:'GET',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer',cache:'no-store',signal:controller.signal,headers:{Accept:'image/png,image/jpeg,image/webp'+(allowSvg?',image/svg+xml':'')}});
-  if(!response.ok||response.redirected||response.type==='opaque')fail('VERIFY_UNAVAILABLE','The image host is unavailable. Retry or re-upload the image.');
+  if(response.redirected||response.type==='opaque')fail('VERIFY_UNAVAILABLE','The image host is unavailable. Retry or re-upload the image.');
+  if(!response.ok){const error=new EmailAssetError('VERIFY_UNAVAILABLE','The image host is unavailable. Retry or re-upload the image.');error.httpStatus=response.status;throw error;}
   if(Number(response.headers.get('content-length'))>limits.maxBytes)fail('IMAGE_INVALID','The image exceeds 5 MB.');
   const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();if(!MIME.has(mime)&&!(allowSvg&&mime==='image/svg+xml'))fail('IMAGE_INVALID','The image host did not return supported image data.');
   reader=response.body?.getReader();if(!reader)fail('VERIFY_UNAVAILABLE','This browser cannot verify image downloads.');
@@ -164,13 +165,24 @@ export async function prepareEmailAssets(snapshot,variants,dependencies){
    const expected=storageURL(cloud,ownerId,hash),stored=snapshot.emailAssetMetadata?.[hash];
    const metadataURL=stored?.hash===hash&&stored.ownerId===ownerId&&stored.hostingIdentity===hostingOrigin+'/signature-assets'?stored.url:null;
    const previous=snapshot.publishedAssets?.[hash]===expected?expected:metadataURL;
-   if(previous===expected)asset.url=previous;
-   else{
+   let verified;
+   if(previous===expected){
+    asset.url=previous;
+    try{verified=await verifyPublicImage(asset.url,{...options,expectedHash:hash});guard();}
+    catch(error){
+     guard();
+     // A confirmed missing owned object may be recreated, once, from the retained bytes.
+     // Outages, access failures and corrupt collisions must never trigger replacement.
+     if(error.code!=='VERIFY_UNAVAILABLE'||error.httpStatus!==404)throw error;
+     asset.url=null;
+    }
+   }
+   if(!asset.url){
     if(!consent)fail('CONSENT_REQUIRED','Preparing images makes the artwork in these variants public to anyone with its URL. Previously sent emails may continue to use it.');
     guard();asset.url=await cloud.uploadBlob(blob,{hash,mime:'image/png',extension:'png',ownerId,isCurrent,decodeImage:dependencies.decodeImage});guard();
     if(asset.url!==expected)fail('IMAGE_UNVERIFIED','The image was published to an unexpected owner or host.');
    }
-   const verified=await verifyPublicImage(asset.url,{...options,expectedHash:hash});guard();
+   verified=verified||await verifyPublicImage(asset.url,{...options,expectedHash:hash});guard();
    byHash.set(hash,asset.url);verifiedUrls.add(asset.url);publishedAssets[hash]=asset.url;publicationMetadata[hash]={...details,hash,url:asset.url,ownerId,hostingIdentity:cloud.base+'/signature-assets',verifiedAt:verified.verifiedAt};
    for(const row of asset.rows)Object.assign(row,verified,{status:'Ready'});emit();
   }
