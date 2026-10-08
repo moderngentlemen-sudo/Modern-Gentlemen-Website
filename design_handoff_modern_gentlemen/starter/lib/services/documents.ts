@@ -3,7 +3,7 @@ import { articleDesignSchema } from "@/lib/domain/articleDesign";
 import { convertStudio, STUDIO_SOURCE_KEY } from "@/lib/blocks/studioPublishing";
 import { isDeepStrictEqual } from "node:util";
 import { pageSettingsSchema, pageSettingsMedia } from "@/lib/domain/pageSettings";
-import { comingSoonSections, type ComingSoonId } from "@/lib/blocks/comingSoon";
+import { comingSoonPageSections, type ComingSoonId } from "@/lib/blocks/comingSoon";
 /**
  * Document service — reading and saving drafts.
  *
@@ -328,7 +328,7 @@ export async function createPage(input: {
     draftData: input.collectionId
       ? (collectionDraft(input.collectionId, "page", input.title, input.slug) as Json)
       : input.comingSoon
-        ? { sections: comingSoonSections(input.comingSoon) as Json, seo: {} }
+        ? { sections: comingSoonPageSections(input.comingSoon) as Json, seo: {} }
         : pageRepo.EMPTY_PAGE_PAYLOAD,
     createdBy: user.id,
   });

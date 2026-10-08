@@ -2,6 +2,15 @@ import { editorialCollectionRegistry } from "./EditorialCollectionRegistry";
 import { StudioCanvas, StudioElement } from "./StudioCanvas";
 import { WidgetStudio } from "./WidgetStudio";
 import { GridLayout } from "./GridLayout";
+import { StageLayout } from "./StageLayout";
+import {
+  LaunchCountdown,
+  LaunchKnockout,
+  LaunchLogo,
+  LaunchShape,
+  LaunchSignup,
+  LaunchSocial,
+} from "../elements/LaunchElements";
 import { signatureSectionRegistry } from "./MGSignatureSections";
 import type { ComponentType } from "react";
 import { blockManifests, blockTypes, type ManifestBlockType } from "@/lib/blocks/manifests";
@@ -106,6 +115,7 @@ export const registry = {
   layoutContainer: LayoutContainer,
   widgetStudio: WidgetStudio,
   gridLayout: GridLayout,
+  stageLayout: StageLayout,
   stack: Stack,
   nativeHeading: NativeHeading,
   nativeText: NativeText,
@@ -118,6 +128,12 @@ export const registry = {
   nativeButton: NativeButton,
   nativeDivider: NativeDivider,
   nativeSpacer: NativeSpacer,
+  nativeCountdown: LaunchCountdown,
+  nativeSignup: LaunchSignup,
+  nativeSocial: LaunchSocial,
+  nativeLogo: LaunchLogo,
+  nativeKnockout: LaunchKnockout,
+  nativeShape: LaunchShape,
   patternRef: PatternRef,
   documentContent: DocumentContent,
   documentContentGap: DocumentContentGap,

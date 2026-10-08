@@ -1,6 +1,9 @@
 "use client";
 
 import { GridPlacementEditor } from "./GridControls";
+import { StagePlacementEditor } from "./StageControls";
+import { stageFromComingSoon } from "@/lib/blocks/stageStarters";
+import { Button } from "@/components/admin/ui/Button";
 import { locate } from "./tree";
 import { useCallback, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -262,6 +265,15 @@ function BlockProperties({
     const at = locate(s.tree, node._key);
     return !!at?.parentKey && findBlock(s.tree, at.parentKey)?._type === "gridLayout";
   });
+  const stageMode = useBuilder((s) => {
+    const at = locate(s.tree, node._key);
+    const parent = at?.parentKey ? findBlock(s.tree, at.parentKey) : undefined;
+    if (parent?._type !== "stageLayout") return null;
+    return (parent.settings as { mobileLayout?: string } | undefined)?.mobileLayout === "free"
+      ? "free"
+      : "stack";
+  });
+  const stageIndex = useBuilder((s) => locate(s.tree, node._key)?.index ?? 0);
   const experience = useEditorExperience();
   const key = node._key;
   const locked = node.locked === true;
@@ -364,15 +376,7 @@ function BlockProperties({
       )}
 
       {inGrid && <GridPlacementEditor node={node} />}
-      {experience.modern && <SectionBackgroundEditor node={node} />}
-      {experience.modern && (
-        <GradientEditor
-          disabled={locked}
-          value={node.design?.gradient}
-          onChange={(gradient) => setDesign(key, { gradient })}
-          onPreview={(value) => experience.preview(["$gradient"], value)}
-        />
-      )}
+      {node._type === "comingSoonStudio" && <MakeEditable node={node} />}
       <PanelSection title="Content" issueCount={issues.filter((i) => i.path !== "").length}>
         {Object.entries(manifest.fields).map(([name, field]) =>
           name === "variant" && ["mgDesignStudio", "comingSoonStudio"].includes(node._type) ? (
@@ -390,6 +394,31 @@ function BlockProperties({
           )
         )}
       </PanelSection>
+
+      {stageMode !== null && (
+        <StagePlacementEditor node={node} index={stageIndex} mobileFree={stageMode === "free"} />
+      )}
+
+      {/*
+        The block's own settings come first: they are what an editor opens the
+        panel for. Universal background and gradient controls follow, folded,
+        because they apply to every block and were burying the content of long
+        ones (a Coming Soon block's copy sat 700px down).
+      */}
+      {experience.modern && (
+        <PanelSection
+          title="Background & gradient"
+          defaultOpen={Boolean(node.design?.background || node.design?.gradient)}
+        >
+          <SectionBackgroundEditor node={node} />
+          <GradientEditor
+            disabled={locked}
+            value={node.design?.gradient}
+            onChange={(gradient) => setDesign(key, { gradient })}
+            onPreview={(value) => experience.preview(["$gradient"], value)}
+          />
+        </PanelSection>
+      )}
 
       <PanelSection title="Spacing" defaultOpen={false}>
         <Select
@@ -942,6 +971,36 @@ function BindableField({
           {issuesFor(ctx.issues, path)[0]?.message}
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * Offered on a sizzle-reel Coming Soon block: rebuilds it as a Stage whose
+ * every element can be dragged, scaled and restyled, keeping the editor's copy,
+ * links, video and launch date. One undo step.
+ */
+function MakeEditable({ node }: { node: BlockNode }) {
+  const replaceBlock = useBuilder((s) => s.replaceBlock);
+  const tree = stageFromComingSoon((node.settings ?? {}) as Record<string, unknown>);
+  if (!tree) return null;
+  return (
+    <div className="border-b border-mg-bd/15 bg-mg-accent/5 px-4 py-3" data-make-editable="">
+      <p className="text-[13px] font-medium">Make every element editable</p>
+      <p className={HELP_TEXT}>
+        Rebuilds this design as a free layout: drag, resize and scale the headline, countdown,
+        signup, logo and links, restyle each one, and add new elements. Your copy, links, video and
+        launch date carry over. You can undo this.
+      </p>
+      <Button
+        size="sm"
+        variant="solid"
+        className="mt-2"
+        disabled={node.locked}
+        onClick={() => replaceBlock(node._key, tree)}
+      >
+        Convert to editable layout
+      </Button>
     </div>
   );
 }

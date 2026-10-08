@@ -1,0 +1,356 @@
+/* Launch elements. Sizes are design px; a Stage zooms them with the screen. */
+.countdown {
+  /* A container (a phone-width Stage) can cap the numerals without shrinking the labels. */
+  --cd-s: min(var(--cd-size), var(--cd-max, 100000px));
+  display: flex;
+  flex-direction: column;
+  color: var(--cd-color, currentColor);
+  font-variant-numeric: tabular-nums;
+}
+.countdown[data-align="left"] {
+  align-items: flex-start;
+  text-align: left;
+}
+.countdown[data-align="center"] {
+  align-items: center;
+  text-align: center;
+}
+.countdown[data-align="right"] {
+  align-items: flex-end;
+  text-align: right;
+}
+.row {
+  display: flex;
+  align-items: flex-start;
+  /* Wide enough that the unit labels under small numerals never touch. */
+  gap: var(--cd-gap, calc(var(--cd-s) * 0.18 + var(--cd-label-size) * 2));
+}
+.unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 1.2em;
+}
+.num {
+  font-family: var(--cd-font);
+  font-size: var(--cd-s);
+  line-height: 0.95;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+.label {
+  font-family: var(--cd-label-font);
+  font-size: var(--cd-label-size);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  margin-top: calc(var(--cd-label-size) * 1.2);
+  /* Full strength: at 10px these labels need 4.5:1, which a red band only just gives. */
+  color: var(--cd-label-color, currentColor);
+}
+.sep {
+  font-family: var(--cd-font);
+  font-size: var(--cd-s);
+  line-height: 0.95;
+  font-weight: 300;
+  opacity: 0.8;
+}
+.accent .num {
+  color: var(--cd-accent);
+}
+.inline {
+  font-family: var(--cd-label-font);
+  font-size: var(--cd-s);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--cd-s) * 0.3) calc(var(--cd-s) * 0.5);
+  width: 100%;
+}
+.grid .unit {
+  align-items: flex-start;
+  border-top: 1px solid currentColor;
+  padding-top: calc(var(--cd-s) * 0.2);
+}
+.dial,
+.clock {
+  position: relative;
+  width: calc(var(--cd-s) * 3.6);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.dial svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.dialCore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--cd-s) * 0.08);
+}
+.clockSmall {
+  font-family: var(--cd-label-font);
+  font-size: var(--cd-label-size);
+  letter-spacing: 0.2em;
+}
+.clock {
+  width: calc(var(--cd-s) * 1.9);
+  border-radius: 50%;
+  background: rgb(13 13 13 / 0.92);
+  color: #f4f4f4;
+  z-index: 0;
+}
+.hands {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.hands span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 2px;
+  transform-origin: 0 50%;
+  background: #f4f4f4;
+}
+.hands .h {
+  width: 140%;
+}
+.hands .m {
+  width: 260%;
+  height: 3px;
+}
+.hands .s {
+  width: 300%;
+  height: 1px;
+  background: var(--cd-accent);
+}
+.single {
+  font-family: var(--cd-font);
+  font-size: var(--cd-s);
+  line-height: 0.85;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+}
+.single[data-outline="true"] {
+  color: transparent;
+  /* Not currentColor: the fill is transparent, so currentColor would be too. */
+  -webkit-text-stroke: max(1px, calc(var(--cd-s) * 0.003)) var(--cd-color, var(--mg-fg));
+}
+.message {
+  font-family: var(--cd-font);
+  font-size: calc(var(--cd-s) * 0.5);
+  margin: 0;
+}
+
+/* Signup */
+.signup {
+  width: 100%;
+  color: var(--su-color, currentColor);
+}
+.signup form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.signup input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 0;
+  border: 0;
+  outline-offset: 4px;
+}
+.signup input::placeholder {
+  color: currentColor;
+  opacity: 0.72;
+}
+.signup button {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 10px 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.signup[data-style="underline"] form {
+  border-bottom: 1px solid currentColor;
+}
+.signup[data-style="boxed"] form {
+  border: 1px solid currentColor;
+  padding-left: 14px;
+  gap: 0;
+}
+.signup[data-style="pill"] form {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 4px 4px 4px 20px;
+}
+.signup[data-style="boxed"] button,
+.signup[data-style="pill"] button {
+  background: var(--su-accent, #c8102e);
+  color: #fff;
+  padding: 14px 20px;
+}
+.signup[data-style="pill"] button {
+  border-radius: 999px;
+}
+.signupNote,
+.signupStatus {
+  margin: 10px 0 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Social */
+.social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  color: var(--so-color, currentColor);
+}
+.social a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.social svg {
+  width: var(--so-size, 22px);
+  height: var(--so-size, 22px);
+}
+.social a:hover,
+.social a:focus-visible {
+  opacity: 0.75;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  color: var(--lg-color, currentColor);
+}
+.logo a,
+.logo > span {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--lg-size) * 0.3);
+  color: inherit;
+  height: var(--lg-size);
+}
+.logo svg {
+  height: 100%;
+  width: auto;
+}
+.bar {
+  display: block;
+  width: calc(var(--lg-size) * 0.22);
+  height: 78%;
+  background: var(--lg-accent, #c8102e);
+}
+.seal {
+  position: relative;
+  width: var(--lg-size);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.seal > svg:first-child {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-label);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  fill: currentColor;
+  animation: sealTurn 40s linear infinite;
+}
+.seal .bar {
+  width: calc(var(--lg-size) * 0.035);
+  height: 72%;
+}
+.seal .sealMark {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--lg-size) * 0.04);
+  height: 22%;
+}
+@keyframes sealTurn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seal > svg:first-child {
+    animation: none;
+  }
+}
+
+/* Knockout */
+.knockout {
+  margin: 0;
+  font-family: var(--ko-font);
+  font-size: min(var(--ko-size), var(--ko-max, 100000px));
+  font-weight: var(--ko-weight, 700);
+  letter-spacing: var(--ko-tracking, -0.04em);
+  line-height: 0.82;
+  background: var(--ko-panel);
+  color: var(--ko-ink);
+}
+.knockout[data-cover="true"] {
+  box-shadow: 0 0 0 400vmax var(--ko-panel);
+}
+/* Shape */
+.shape {
+  width: 100%;
+  height: var(--sh-height);
+  background: var(--sh-fill);
+  opacity: var(--sh-opacity);
+  border-radius: var(--sh-radius);
+}
+.shape[data-blur="true"] {
+  -webkit-backdrop-filter: blur(var(--sh-blur));
+  backdrop-filter: blur(var(--sh-blur));
+}
+.shape[data-shape="circle"],
+.shape[data-shape="ring"] {
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.shape[data-shape="ring"] {
+  background: transparent;
+  border: var(--sh-stroke) solid var(--sh-fill);
+}
+.shape[data-shape="line"] {
+  height: var(--sh-stroke);
+}

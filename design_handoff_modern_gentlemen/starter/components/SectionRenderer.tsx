@@ -1,4 +1,5 @@
 import { GridCell } from "./sections/GridLayout";
+import { StageCell } from "./sections/StageLayout";
 import { Fragment, type ComponentType, type ReactNode } from "react";
 import { registry, type BlockType } from "./sections/registry";
 import { MissingBlock } from "./sections/MissingBlock";
@@ -71,7 +72,19 @@ export function SectionRenderer({
               <BlockDesignFrame design={block.design}>
                 <VisualElementFrame blockKey={block._key} visual={block.visual}>
                   <Component {...normalizeBlock(block)}>
-                    {block._type === "gridLayout" ? (
+                    {block._type === "stageLayout" ? (
+                      children.map((child, index) => (
+                        <BlockVisibilityFrame
+                          key={child._key}
+                          blockKey={child._key}
+                          visibility={child.visibility}
+                        >
+                          <StageCell stage={child.visual?.stage} index={index}>
+                            <SectionRenderer sections={[child]} documentContent={documentContent} />
+                          </StageCell>
+                        </BlockVisibilityFrame>
+                      ))
+                    ) : block._type === "gridLayout" ? (
                       children.map((child) => (
                         <BlockVisibilityFrame
                           key={child._key}

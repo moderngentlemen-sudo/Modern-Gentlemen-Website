@@ -1,6 +1,7 @@
 import { AFTER_HOURS_PHOTO } from "./afterHours";
 import { REEL_DESIGNS, REEL_STARTERS, isReelDesign } from "./comingSoonReel";
 import type { BlockTree } from "./types";
+import { stageStarter } from "./stageStarters";
 
 /** Stable labels shared by page creation, template creation and the live studio. */
 export const COMING_SOON_DESIGNS = [
@@ -83,6 +84,24 @@ export function comingSoonTemplateAreas(variant: ComingSoonId): Record<string, B
   return {
     main: [
       ...comingSoonSections(variant),
+      { _key: "pagecontent", _type: "documentContent", settings: {} },
+    ],
+  };
+}
+
+/**
+ * What a new page or template gets when it is created from a coming-soon
+ * design. CS22–CS35 now start as an editable Stage (every element separate,
+ * draggable and scalable; see `stageStarters.ts`). CS01–CS21 keep the original
+ * single block, unchanged.
+ */
+export function comingSoonPageSections(variant: ComingSoonId): BlockTree {
+  return isReelDesign(variant) ? stageStarter(variant) : comingSoonSections(variant);
+}
+export function comingSoonPageTemplateAreas(variant: ComingSoonId): Record<string, BlockTree> {
+  return {
+    main: [
+      ...comingSoonPageSections(variant),
       { _key: "pagecontent", _type: "documentContent", settings: {} },
     ],
   };

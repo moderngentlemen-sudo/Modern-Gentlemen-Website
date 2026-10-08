@@ -1,0 +1,182 @@
+/*
+ * The Stage. See lib/blocks/stage.ts for the placement model.
+ *
+ * The section is the inline-size container every element measures against;
+ * the layer inside it carries the height, so phones can switch it to a
+ * flowing column without querying the section's own width.
+ */
+.stage {
+  position: relative;
+  container-type: inline-size;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  background: var(--stage-color, #0d0d0d);
+  color: var(--mg-fg);
+}
+
+.media,
+.poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--stage-focus-x, 50%) var(--stage-focus-y, 50%);
+  z-index: -2;
+  filter: grayscale(var(--stage-mono, 0%));
+}
+.posterBox {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+.posterBox img {
+  object-position: var(--stage-focus-x, 50%) var(--stage-focus-y, 50%);
+  filter: grayscale(var(--stage-mono, 0%));
+}
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgb(0 0 0 / var(--stage-scrim, 0.35));
+}
+.shade[data-shade="vignette"] {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 0.4)),
+    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 1.6)) 78%
+  );
+}
+.shade[data-shade="bottom"] {
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 0.3)),
+    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 1.8))
+  );
+}
+.shade[data-shade="left"] {
+  background: linear-gradient(
+    90deg,
+    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 1.8)),
+    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 0.3))
+  );
+}
+.shade[data-shade="none"] {
+  display: none;
+}
+
+.layer {
+  position: relative;
+  width: 100%;
+}
+.layer[data-height="screen"] {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+.layer[data-height="16x9"] {
+  aspect-ratio: 16 / 9;
+}
+.layer[data-height="16x10"] {
+  aspect-ratio: 16 / 10;
+}
+.layer[data-height="4x3"] {
+  aspect-ratio: 4 / 3;
+}
+.layer[data-height="21x9"] {
+  aspect-ratio: 21 / 9;
+}
+.layer[data-height="half"] {
+  min-height: 60vh;
+  min-height: 60svh;
+}
+
+/*
+ * One element. Desktop placement, then tablet and phone below.
+ *
+ * ⚠️ Every device scales against the same 1440px design width. Tablet and
+ * free-placed phones fall back to the desktop placement, so they must zoom by
+ * the same rule or an inherited element is drawn at the wrong size for its box
+ * (an 820px design width made a desktop countdown overflow a tablet).
+ */
+.cell {
+  --stage-design: 1440px;
+  position: absolute;
+  left: var(--sd-x, 30%);
+  top: var(--sd-y, 30%);
+  width: var(--sd-w, 40%);
+  z-index: var(--sd-z, 1);
+  min-width: 0;
+}
+.inner {
+  zoom: calc(tan(atan2(100cqw, var(--stage-design))) * var(--sd-s, 1));
+}
+
+@container (max-width: 1024px) {
+  .cell {
+    left: var(--st-x, var(--sd-x, 30%));
+    top: var(--st-y, var(--sd-y, 30%));
+    width: var(--st-w, var(--sd-w, 40%));
+    z-index: var(--st-z, var(--sd-z, 1));
+  }
+  .inner {
+    zoom: calc(tan(atan2(100cqw, var(--stage-design))) * var(--st-s, var(--sd-s, 1)));
+  }
+}
+
+@container (max-width: 680px) {
+  .cell {
+    left: var(--sm-x, var(--st-x, var(--sd-x, 30%)));
+    top: var(--sm-y, var(--st-y, var(--sd-y, 30%)));
+    width: var(--sm-w, var(--st-w, var(--sd-w, 40%)));
+    z-index: var(--sm-z, var(--st-z, var(--sd-z, 1)));
+  }
+  .inner {
+    zoom: calc(tan(atan2(100cqw, var(--stage-design))) * var(--sm-s, var(--st-s, var(--sd-s, 1))));
+  }
+  /* Stack mode: the reliable phone layout, in reading order. */
+  .layer[data-mobile="stack"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: var(--stage-stack-justify, center);
+    gap: var(--stage-stack-gap, 24px);
+    padding: var(--stage-stack-pad, 32px) 24px;
+    text-align: center;
+  }
+  .layer[data-mobile="stack"] > .cell {
+    --cd-max: 12cqw;
+    --cd-gap: 2.4cqw;
+    --ko-max: 26cqw;
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    z-index: auto;
+  }
+  /* Stacked: natural size times the element's phone scale, not the stage ratio. */
+  .layer[data-mobile="stack"] > .cell > .inner {
+    zoom: var(--sm-s, 1);
+  }
+}
+
+/* Dark text on a light stage, in either site theme. */
+.stage[data-stage-tone="dark"] {
+  --mg-fg: #141414;
+  --mg-fg-rgb: 20 20 20;
+  --mg-bd: #141414;
+  --mg-bd-rgb: 20 20 20;
+}
+
+/*
+ * Knockout text blends with the stage background. The blend has to sit on the
+ * placed element itself: each one is a stacking context (it has a z-index),
+ * and a blend inside one would only mix with that element's own contents.
+ */
+.cell:has([data-knockout="screen"]) {
+  mix-blend-mode: screen;
+}
+.cell:has([data-knockout="multiply"]) {
+  mix-blend-mode: multiply;
+}

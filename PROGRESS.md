@@ -8,6 +8,69 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Coming Soon remade as editable Stage layouts (branch `claude/coming-soon-composable`)
+
+- The owner asked for the CS22–CS35 coming-soon pages to be fully editable in
+  the builder: every element draggable, editable and scalable, the important
+  settings at the top of the inspector, and the ability to add new elements.
+  The old `comingSoonStudio` reel designs were one monolithic block; the 14
+  designs are now **compositions of ordinary blocks** on a new container.
+- **`stageLayout`** (`components/sections/StageLayout.tsx`, manifest
+  `lib/blocks/manifests/stageLayout.ts`) is a full-bleed video/photo/colour
+  stage whose children are placed freely. Placement lives in
+  `visual.stage` (`lib/blocks/stage.ts`, pure, Zod-strict): per device
+  `{x, y, w (% of stage), scale, z}`. Tablet falls back to desktop; phones
+  **stack in reading order** unless the stage's `mobileLayout` is `free`.
+- ⚠️ **Scaling is pure CSS and the design width is 1440 on every device.** The
+  stage is `container-type: inline-size`; each cell's inner wrapper uses
+  `zoom: calc(tan(atan2(100cqw, var(--stage-design))) * scale)`. `zoom`, not
+  `transform`, so the layout box matches what is drawn (selection frames and
+  snapping measure real boxes). An 820 tablet design width was tried and made
+  countdowns overflow. On phones in stack mode the zoom is the phone scale and
+  `--cd-max`, `--cd-gap` and `--ko-max` cap countdown and knockout sizes.
+- ⚠️ **Knockout text blends on the stage cell, not the element.** The cell has a
+  z-index, so it is a stacking context; a `mix-blend-mode` inside it blends
+  with nothing. The rule is `.cell:has([data-knockout])` in
+  `StageLayout.module.css` (a CSS-modules `:global` rule was not "pure").
+- **Six new elements** (`lib/blocks/manifests/launchElements.ts`,
+  `components/elements/`): Countdown (numerals, one line, grid, dial, clock
+  face, one giant unit), Email signup (uses the site newsletter connection),
+  Social links, Logo (wordmark, monogram, seal), Knockout text, Shape. Each
+  manifest lists what the element says first, then how it looks, then detail.
+  The countdown shows dashes until a valid date is set — never invents one.
+- **Canvas editing** (`components/admin/builder/StageControls.tsx`): drag
+  anywhere on the element to move, corner handles scale from the opposite
+  corner, side handles change width, snapping guides to stage centre and
+  peers, arrow / Shift+arrow nudges (0.5% / 5%; a run of presses is one undo
+  step and reads the live placement at keypress time), Bring forward / Send
+  backward. Commits once on release via `setStagePlacement`. The inspector's
+  **Position on the stage** panel takes exact values, centres and resets.
+- **Inspector order:** Content now comes first for every block; section
+  background and gradient moved into a collapsed panel after it.
+- **Starters** (`lib/blocks/stageStarters.ts`): the 14 designs, measured at
+  1440×900, are offered as detachable **"Coming soon layouts"** in the
+  pattern library. New Coming Soon pages/templates are created as stages
+  (`comingSoonPageSections`). Decorative shapes are hidden on phones.
+- **Existing pages are untouched.** A `comingSoonStudio` block on a reel
+  design shows **Convert to editable layout** in its inspector;
+  `stageFromComingSoon` carries its copy, links, video and launch date (with
+  the After Hours fallback) and adds no starter copy the page never had. It is
+  one undo step. The legacy block and its picker still render and edit.
+- Inserting from the command bar while a stage (or a grid) is selected inserts
+  inside it.
+- Verified: axe — zero violations on all 14 layouts at 1440 and 390, both
+  themes (label opacity removed to clear 4.14 on the red band). Browser walk
+  on the owner's "Coming Soon January 2027" block: convert → 5 elements,
+  drag, corner scale and insert all worked with no page errors. Gates: format,
+  lint, typecheck, 4,065 unit tests, build, `test:a11y` (29) all pass.
+- Not done: no E2E spec drives a stage drag against the database yet.
+- PR #127. The first CI run failed two E2E specs that this change broke
+  on purpose: the insert rail now leads with the built-in Coming soon
+  layouts (so "first entry" became a pattern; the Focus spec now targets a
+  section via `data-library-block`), and the gradient control sits in the
+  collapsed "Background & gradient" group (the grid spec opens it). All
+  four CI jobs green on `d2c90ac`.
+
 ### 2026-10-08 — Coming Soon pages were not editable in Focus (branch `claude/coming-soon-focus`)
 
 - Reported by the owner on "Coming Soon January 2027" (CS22 Red Clock). Two

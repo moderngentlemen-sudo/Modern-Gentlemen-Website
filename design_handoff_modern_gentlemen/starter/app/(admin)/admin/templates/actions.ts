@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { COMING_SOON_IDS, comingSoonTemplateAreas } from "@/lib/blocks/comingSoon";
+import { COMING_SOON_IDS, comingSoonPageTemplateAreas } from "@/lib/blocks/comingSoon";
 import { z } from "zod";
 
 import {
@@ -57,7 +57,9 @@ export async function createTemplateAction(input: unknown): Promise<ActionResult
       name: parsed.data.name,
       key: parsed.data.key,
       kind: parsed.data.kind,
-      ...(parsed.data.comingSoon ? { areas: comingSoonTemplateAreas(parsed.data.comingSoon) } : {}),
+      ...(parsed.data.comingSoon
+        ? { areas: comingSoonPageTemplateAreas(parsed.data.comingSoon) }
+        : {}),
     });
     revalidatePath("/admin/templates");
     return ok({ id: template.id });

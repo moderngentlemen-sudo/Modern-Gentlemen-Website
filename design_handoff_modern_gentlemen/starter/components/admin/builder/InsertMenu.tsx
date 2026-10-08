@@ -326,6 +326,7 @@ function LibraryItem({
     <button
       ref={setNodeRef}
       type="button"
+      data-library-block={block.type}
       onClick={() => onInsert(block.type)}
       onPointerDown={onPointerDown}
       onMouseEnter={(event) => show(event.currentTarget)}

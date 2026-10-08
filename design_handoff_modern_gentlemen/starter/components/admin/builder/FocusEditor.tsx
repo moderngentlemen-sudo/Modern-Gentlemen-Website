@@ -84,7 +84,10 @@ export function insertionTarget(
   if (selected && !selected.locked) {
     const slot = manifestFor(selected._type)?.slot;
     const type = item.kind === "pattern" ? null : item.type;
-    const intoGrid = item.kind === "block" && selected._type === "gridLayout";
+    // Grids and stages take a new element inside them; a stage places it freely.
+    const intoGrid =
+      item.kind === "block" &&
+      (selected._type === "gridLayout" || selected._type === "stageLayout");
     const intoSlot =
       item.kind === "widget" && slot && type && (!slot.allow || slot.allow.includes(type));
     if (intoGrid || intoSlot) return { kind: "inside", key: selected._key };

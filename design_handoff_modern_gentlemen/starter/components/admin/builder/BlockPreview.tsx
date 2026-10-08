@@ -6,6 +6,7 @@ import { type ComponentType } from "react";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
+import { StageCell } from "@/components/sections/StageLayout";
 import { registry } from "@/components/sections/registry";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
@@ -169,9 +170,15 @@ function PreviewNode({ node }: { node: BlockNode }) {
     <BlockErrorBoundary type={node._type}>
       {manifestFor(node._type)?.slot ? (
         <Component {...props}>
-          {(node.children ?? []).map((child, index) => (
-            <PreviewNode key={child._key ?? index} node={child} />
-          ))}
+          {(node.children ?? []).map((child, index) =>
+            node._type === "stageLayout" ? (
+              <StageCell key={child._key ?? index} stage={child.visual?.stage} index={index}>
+                <PreviewNode node={child} />
+              </StageCell>
+            ) : (
+              <PreviewNode key={child._key ?? index} node={child} />
+            )
+          )}
         </Component>
       ) : (
         <Component {...props} />
