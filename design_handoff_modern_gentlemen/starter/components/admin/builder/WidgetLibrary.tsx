@@ -10,12 +10,47 @@ import { manifestFor } from "@/lib/blocks/manifests";
 import { locate } from "./tree";
 import { BlockPreview } from "./BlockPreview";
 import { WidgetStudio } from "@/components/sections/WidgetStudio";
-export function WidgetLibrary() {
+import { anchor, type BrowseItem } from "./InsertMenu";
+import { PREVIEW_HEIGHT, PREVIEW_WIDTH } from "./BlockPreview";
+
+const SAMPLE = {
+  title: "Sample preview",
+  target: "2099-01-01T00:00:00Z",
+  text: "Preview content",
+  value: "01",
+  progress: 50,
+  padding: 8,
+  size: 24,
+  mobileSize: 24,
+  items: [
+    { title: "First", text: "First panel", href: "https://example.com" },
+    { title: "Second", text: "Second panel" },
+  ],
+};
+
+function WidgetSample({ type, variant }: { type: string; variant: string }) {
+  return type === "widgetStudio" ? (
+    <WidgetStudio variant={variant} {...SAMPLE} />
+  ) : (
+    <BlockPreview type={type} />
+  );
+}
+export function WidgetLibrary({ onBrowse }: { onBrowse?: (item: BrowseItem | null) => void } = {}) {
   const [query, setQuery] = useState(""),
     [preview, setPreview] = useState<string | null>(null);
   const tree = useBuilder((s) => s.tree),
     selected = useBuilder((s) => s.selectedKey),
     insert = useBuilder((s) => s.insertMany);
+  const [hovered, setHoveredState] = useState<{
+    type: string;
+    variant: string;
+    top: number;
+    left: number;
+  } | null>(null);
+  const setHovered = (next: typeof hovered) => {
+    setHoveredState(next);
+    onBrowse?.(next ? { kind: "widget", type: next.type, variant: next.variant } : null);
+  };
   const entries = [
     ...WIDGET_DESIGNS.map((w) => ({
       type: "widgetStudio",
@@ -58,6 +93,14 @@ export function WidgetLibrary() {
             <button
               type="button"
               onClick={() => add(w.type, w.variant)}
+              onMouseEnter={(event) =>
+                setHovered({ type: w.type, variant: w.variant, ...anchor(event.currentTarget) })
+              }
+              onMouseLeave={() => setHovered(null)}
+              onFocus={(event) =>
+                setHovered({ type: w.type, variant: w.variant, ...anchor(event.currentTarget) })
+              }
+              onBlur={() => setHovered(null)}
               className="w-full text-left"
             >
               <span className="block text-sm font-medium">{w.label}</span>
@@ -76,30 +119,28 @@ export function WidgetLibrary() {
             }
             {preview === `${w.type}-${w.variant}` && (
               <div className="mt-3 overflow-hidden" inert aria-hidden="true">
-                {w.type === "widgetStudio" ? (
-                  <WidgetStudio
-                    variant={w.variant}
-                    title="Sample preview"
-                    target="2099-01-01T00:00:00Z"
-                    text="Preview content"
-                    value="01"
-                    progress={50}
-                    padding={8}
-                    size={24}
-                    mobileSize={24}
-                    items={[
-                      { title: "First", text: "First panel", href: "https://example.com" },
-                      { title: "Second", text: "Second panel" },
-                    ]}
-                  />
-                ) : (
-                  <BlockPreview type={w.type} />
-                )}
+                <WidgetSample type={w.type} variant={w.variant} />
               </div>
             )}
           </div>
         ))}
       </div>
+      {hovered && (
+        <div
+          className="pointer-events-none fixed z-50 overflow-hidden border border-mg-fg/15 bg-mg-bg p-4 shadow-2xl"
+          style={{
+            top: hovered.top,
+            left: hovered.left,
+            width: PREVIEW_WIDTH,
+            maxHeight: PREVIEW_HEIGHT,
+          }}
+          aria-hidden
+          data-widget-preview={`${hovered.type}-${hovered.variant}`}
+          inert
+        >
+          <WidgetSample type={hovered.type} variant={hovered.variant} />
+        </div>
+      )}
     </div>
   );
 }

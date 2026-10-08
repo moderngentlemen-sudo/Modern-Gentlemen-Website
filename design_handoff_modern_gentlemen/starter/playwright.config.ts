@@ -57,7 +57,21 @@ export default defineConfig({
     {
       name: "e2e",
       testDir: "./tests/e2e",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // The builder now opens in Focus by default. Journeys written against
+        // the Original layout's rail and inspector keep running there; the
+        // Focus journey (focusEditor.spec.ts) selects Focus for itself.
+        storageState: {
+          cookies: [],
+          origins: [
+            {
+              origin: new URL(baseURL).origin,
+              localStorage: [{ name: "mg-editor-experience", value: "original" }],
+            },
+          ],
+        },
+      },
     },
     {
       name: "visual",

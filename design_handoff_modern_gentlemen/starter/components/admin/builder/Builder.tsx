@@ -27,7 +27,8 @@ import { findBlock } from "@/lib/blocks/traverse";
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
 import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
-import { EditorExperience, EditorExperienceSwitch } from "./EditorExperience";
+import { EditorExperience, EditorExperienceSwitch, useEditorExperience } from "./EditorExperience";
+import { FocusLayout } from "./FocusEditor";
 import { Canvas } from "./Canvas";
 import { WidgetLibrary } from "./WidgetLibrary";
 import { InsertMenu } from "./InsertMenu";
@@ -252,6 +253,7 @@ function BuilderLayout({
   const moveTo = useBuilder((s) => s.moveTo);
   const selectedKey = useBuilder((s) => s.selectedKey);
   const tree = useBuilder((s) => s.tree);
+  const { mode } = useEditorExperience();
 
   /**
    * The library entry in flight, if any, and the insertion point under the
@@ -458,6 +460,121 @@ function BuilderLayout({
     if (nearest) move(active.key, nearest.key);
   }
 
+  /**
+   * One insertion path for every layout. Insert after whatever is selected, so a
+   * page builds top to bottom; inside a selected grid; `locate` rather than a
+   * root index, so a selection inside a container adds beside it.
+   */
+  function onInsertBlock(type: string) {
+    const selected = selectedKey ? findBlock(tree, selectedKey) : null;
+    if (selected?._type === "gridLayout" && !selected.locked) {
+      insert(type, undefined, selected._key);
+      return;
+    }
+    const at = selectedKey ? locate(tree, selectedKey) : null;
+    insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
+  }
+
+  function onInsertPattern(patternId: string) {
+    const pattern = patterns.find((entry) => entry.id === patternId);
+    if (!pattern) return;
+
+    // Same placement rule as a section: after the selection.
+    const at = selectedKey ? locate(tree, selectedKey) : null;
+    const index = at ? at.index + 1 : undefined;
+    const parentKey = at?.parentKey ?? null;
+
+    /**
+     * **The pattern's own `sync_mode` decides which of these two very different
+     * things "insert" means**, and the editor is not asked. A synced pattern
+     * stores a pointer, so editing it later updates every page using it; a
+     * detachable one copies its blocks in and forgets where they came from.
+     * Deciding per-insertion instead would make that promise true of some
+     * usages of a pattern and false of others.
+     */
+    if (pattern.syncMode === "synced") {
+      insertPatternRef(pattern.id, index, parentKey);
+    } else {
+      insertMany(pattern.blocks, index, parentKey);
+    }
+  }
+
+  if (mode === "focus") {
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => {
+          setLibraryType(null);
+          setDrop(null);
+        }}
+      >
+        <FocusLayout
+          isPage={documentType === "page"}
+          topBar={
+            <PublishBar
+              callbacks={callbacks}
+              canPublish={canPublish}
+              canPreview={canPreview}
+              templateOverride={templateOverride}
+              previewContexts={previewContexts}
+            />
+          }
+          canvas={
+            <>
+              <AreaSwitcher />
+              <Canvas libraryDragType={libraryType} drop={drop} />
+            </>
+          }
+          insertPane={(onBrowse) => (
+            <InsertMenu
+              catalog={catalog}
+              onInsert={onInsertBlock}
+              patterns={patterns}
+              onInsertPattern={onInsertPattern}
+              onBrowse={onBrowse}
+            />
+          )}
+          widgetsPane={(onBrowse) => <WidgetLibrary onBrowse={onBrowse} />}
+          layersPane={<Navigator />}
+          pagePane={
+            documentType === "page" ? (
+              <PageSettingsPanel
+                identityAction={identityAction}
+                templateOverride={
+                  templateOverride
+                    ? {
+                        noun: "page",
+                        id: documentId,
+                        state: templateOverride.state,
+                        action: templateOverride.action,
+                      }
+                    : undefined
+                }
+              />
+            ) : null
+          }
+          inspector={<PropertiesPanel styleClasses={styleClasses} tokenAliases={tokenAliases} />}
+          inspectorFooter={
+            callbacks.createPatternFromSelection ? (
+              <SaveSelectionAsPattern action={callbacks.createPatternFromSelection} />
+            ) : undefined
+          }
+        />
+        <DragOverlay dropAnimation={null}>
+          {libraryType && (
+            <div className="border border-mg-accent bg-mg-surface px-3 py-2 text-[13px] font-medium shadow-lg">
+              {manifestFor(libraryType)?.label ?? libraryType}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col">
       <PublishBar
@@ -505,49 +622,9 @@ function BuilderLayout({
               {leftPanel === "add" ? (
                 <InsertMenu
                   catalog={catalog}
-                  onInsert={(type) => {
-                    // Insert after whatever is selected, so building a page reads
-                    // top-to-bottom rather than always appending to the end — and
-                    // `locate`, not a root `findIndex`, so clicking with a block
-                    // inside a container selected adds the next one beside it
-                    // rather than silently at the end of the page.
-                    const selected = selectedKey ? findBlock(tree, selectedKey) : null;
-                    if (selected?._type === "gridLayout" && !selected.locked) {
-                      insert(type, undefined, selected._key);
-                      return;
-                    }
-                    const at = selectedKey ? locate(tree, selectedKey) : null;
-                    insert(type, at ? at.index + 1 : undefined, at?.parentKey ?? null);
-                  }}
+                  onInsert={onInsertBlock}
                   patterns={patterns}
-                  onInsertPattern={(patternId) => {
-                    const pattern = patterns.find((entry) => entry.id === patternId);
-                    if (!pattern) return;
-
-                    // Same placement rule as a section: after the selection, so a
-                    // pattern lands where the editor is working rather than at the
-                    // end of the page.
-                    const at = selectedKey ? locate(tree, selectedKey) : null;
-                    const index = at ? at.index + 1 : undefined;
-                    const parentKey = at?.parentKey ?? null;
-
-                    /**
-                     * **The pattern's own `sync_mode` decides which of these two
-                     * very different things "insert" means**, and the editor is not
-                     * asked. A synced pattern stores a pointer, so editing it later
-                     * updates every page using it; a detachable one copies its
-                     * blocks in and forgets where they came from.
-                     *
-                     * Deciding per-insertion instead would make that promise true
-                     * of some usages of a pattern and false of others, which is
-                     * precisely the thing nobody could reason about afterwards.
-                     */
-                    if (pattern.syncMode === "synced") {
-                      insertPatternRef(pattern.id, index, parentKey);
-                    } else {
-                      insertMany(pattern.blocks, index, parentKey);
-                    }
-                  }}
+                  onInsertPattern={onInsertPattern}
                 />
               ) : leftPanel === "widgets" ? (
                 <WidgetLibrary />

@@ -40,7 +40,7 @@ it("keeps original mode and document history intact while previewing and switchi
         tree: [node],
       }}
     >
-      <EditorExperience>
+      <EditorExperience initialMode="original">
         <Harness />
       </EditorExperience>
     </BuilderStoreProvider>

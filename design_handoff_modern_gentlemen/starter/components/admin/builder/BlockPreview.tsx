@@ -9,6 +9,7 @@ import { products as DEMO_PRODUCTS } from "@/lib/demo/catalog";
 import { registry } from "@/components/sections/registry";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
+import type { BlockNode, BlockTree } from "@/lib/blocks/types";
 
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { newBlockNode } from "./node";
@@ -121,5 +122,60 @@ export function BlockPreview({ type }: { type: string }) {
         </CatalogProvider>
       </div>
     </div>
+  );
+}
+
+/**
+ * A saved pattern, before it is inserted: every block it holds, in order,
+ * rendered with the real components at desktop width and scaled like a single
+ * section preview. Nested children render inside their container, exactly as
+ * the canvas would show them. A synced reference inside a pattern has no blocks
+ * of its own here, so it is skipped rather than guessed at.
+ */
+export function TreePreview({ blocks, id }: { blocks: BlockTree; id: string }) {
+  return (
+    <div
+      aria-hidden
+      data-pattern-preview={id}
+      className="pointer-events-none relative overflow-hidden border border-mg-fg/15 bg-mg-bg shadow-2xl"
+      style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }}
+    >
+      <div
+        style={{ width: RENDER_WIDTH, transform: `scale(${SCALE})`, transformOrigin: "top left" }}
+      >
+        <CatalogProvider products={DEMO_PRODUCTS}>
+          <CartProvider>
+            {blocks.map((node, index) => (
+              <PreviewNode key={node._key ?? index} node={node} />
+            ))}
+          </CartProvider>
+        </CatalogProvider>
+      </div>
+      {blocks.length > 1 && (
+        <span className="absolute bottom-0 right-0 bg-mg-fg px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mg-bg">
+          {blocks.length} blocks
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PreviewNode({ node }: { node: BlockNode }) {
+  const Component = registry[node._type as keyof typeof registry] as
+    ComponentType<Record<string, unknown>> | undefined;
+  if (!Component) return null;
+  const props = normalizeBlock(node);
+  return (
+    <BlockErrorBoundary type={node._type}>
+      {manifestFor(node._type)?.slot ? (
+        <Component {...props}>
+          {(node.children ?? []).map((child, index) => (
+            <PreviewNode key={child._key ?? index} node={child} />
+          ))}
+        </Component>
+      ) : (
+        <Component {...props} />
+      )}
+    </BlockErrorBoundary>
   );
 }

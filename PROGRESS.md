@@ -8,6 +8,45 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Focus: the unified editor, phase 1 (branch `claude/focus-editor`)
+
+- The owner reviewed eight live editor concepts and chose **Focus** (canvas-first),
+  asking for hover previews while browsing and for one unified, more capable
+  builder. Phase 1 makes Focus the **default editor layout**; Original and Canvas
+  Preview remain selectable from the rail's "Editor layout" button until the owner
+  signs off. All three share one store, autosave, drag and drop, renderers and
+  publishing; switching never converts or saves anything.
+- `EditorExperience` now has `mode: "focus" | "original" | "canvas"` (`modern` is
+  true for Focus and Canvas, so Focus inherits every Canvas Preview capability:
+  hover font/colour previews, gradients, grid handles, free positioning). The
+  choice is per browser in localStorage `mg-editor-experience`, read after mount.
+- `FocusEditor.tsx`: dark 60px rail (Insert, Layers, Page settings, Health with an
+  issue badge, Editor layout, Shortcuts); one pane at a time beside the canvas
+  (pushes, never covers it); "Pin" reopens that pane next visit; the inspector
+  floats beside the selected block (right, else left, else canvas edge; follows
+  scroll; drag its header to move) or docks right (remembered).
+- **Hover previews everywhere in the Insert pane**: sections (existing), saved
+  patterns (new `TreePreview` renders every block of the pattern), and widgets
+  (new hover/focus popover; the inline Preview button stays). While browsing, a
+  red **insertion marker** on the canvas shows exactly where a click would insert
+  (`insertionTarget` mirrors the insert handlers, which are now one shared
+  `onInsertBlock`/`onInsertPattern` in `Builder.tsx`). Keyboard focus previews too.
+- Keys: `/` opens Insert with search focused, `?` opens the shortcut sheet, Esc
+  deselects then closes a pane. All ignored while typing.
+- Tests: `FocusEditor.test.tsx` (17) covers placement targets, panes, keys,
+  marker, floating/docked inspector, Health, mode persistence and the pattern and
+  widget previews. New E2E `focusEditor.spec.ts`. ⚠️ The **e2e Playwright project
+  pins `mg-editor-experience=original`** via storageState so the 14 existing
+  builder journeys keep their Original selectors; the Focus journey opts in.
+- Gates: format, lint, typecheck, 3,907 unit tests, `npm run build` pass. Browser
+  walkthrough of the real Builder on a temporary local route (removed): previews,
+  marker, inspector float/dock, layers, shortcuts, no page errors.
+- **Next phases** (from the approved concept set): named history panel, compare
+  devices side by side, multi-select arrange bar (align/match/equal columns),
+  page search and social previews, publish menu (schedule, preview link), health
+  checks beyond validation (overlap, contrast, gaps) with one-click fixes, command
+  bar, then retire Canvas Preview and Design Studio after owner sign-off.
+
 ### 2026-10-07 — Fourteen sizzle-reel coming-soon designs (CS22–CS35)
 
 - The owner reviewed 56 live mockups and chose 14 (gallery numbers 3, 5, 7, 9,
