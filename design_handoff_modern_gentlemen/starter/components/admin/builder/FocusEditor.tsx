@@ -691,12 +691,70 @@ function InspectorHeader({
   );
 }
 
+function frameOf(el: HTMLElement | null): HTMLElement | null {
+  return el?.offsetParent instanceof HTMLElement ? el.offsetParent : null;
+}
+
+type Box = Pick<DOMRect, "left" | "right" | "top" | "bottom" | "width" | "height">;
+export interface InspectorPlacement {
+  left: number;
+  top: number;
+  /** Set when the card sits above or below the block and must fit the space there. */
+  maxHeight?: number;
+}
+const MIN_STACKED = 240;
+
+/**
+ * Where the floating inspector goes, relative to the editor root: beside the
+ * block (right, else left) when the canvas has room; otherwise below it, else
+ * above it, sized to the space there; and only when none of those fit, against
+ * the canvas's right edge. Full-width blocks are the reason for the middle
+ * steps: with no room beside them, the edge fallback used to cover the very
+ * block being edited.
+ */
+export function placeInspector(r: Box, m: Box, b: Box | null, height: number): InspectorPlacement {
+  const minTop = m.top - r.top + 8;
+  const maxTop = Math.max(minTop, r.height - height - 8);
+  const edge = m.right - r.left - CARD - 16;
+  if (!b) return { left: edge, top: minTop };
+
+  const right = b.right - r.left + 16;
+  const leftSide = b.left - r.left - CARD - 16;
+  const beside =
+    right + CARD <= m.right - r.left - 8
+      ? right
+      : leftSide >= m.left - r.left + 8
+        ? leftSide
+        : null;
+  if (beside !== null)
+    return { left: beside, top: Math.min(Math.max(b.top - r.top, minTop), maxTop) };
+
+  // Never taller than the usual cap, so a block scrolled far away cannot stretch it.
+  const cap = r.height - 96;
+  const below = Math.min(r.height - (b.bottom - r.top) - 12 - 8, cap);
+  if (below >= MIN_STACKED)
+    return {
+      left: edge,
+      // The card is capped to `below`, so it fits; the clamp only matters
+      // for a block scrolled up out of view.
+      top: Math.max(b.bottom - r.top + 12, minTop),
+      maxHeight: below,
+    };
+  const above = Math.min(b.top - r.top - 12 - minTop, cap);
+  if (above >= MIN_STACKED)
+    return {
+      left: edge,
+      top: Math.min(Math.max(minTop, b.top - r.top - 12 - Math.min(height, above)), maxTop),
+      maxHeight: above,
+    };
+  return { left: edge, top: Math.min(Math.max(b.top - r.top, minTop), maxTop) };
+}
+
 /**
  * The inspector, floating beside the selected block.
  *
- * Placed to the block's right when there is room, else its left, else against
- * the canvas's right edge; vertically aligned with the block and clamped to the
- * window. It follows the block through scrolling and layout changes. Dragging
+ * Placed by `placeInspector`: beside the block when there is room, else below
+ * or above it, else against the canvas's right edge; clamped to the window. It follows the block through scrolling and layout changes. Dragging
  * its header moves it anywhere; the position resets for the next selection
  * (the component is keyed by selection).
  */
@@ -720,33 +778,29 @@ function FloatingInspector({
   children: ReactNode;
 }) {
   const card = useRef<HTMLElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [pos, setPos] = useState<InspectorPlacement | null>(null);
   const [manual, setManual] = useState<{ left: number; top: number } | null>(null);
   const tree = useBuilder((s) => s.tree);
   const device = useBuilder((s) => s.device);
 
   const place = useCallback(() => {
-    const rootEl = root.current;
+    // Measured against the card's own containing block, not the editor root:
+    // the card is absolutely positioned inside the row below the publish bar,
+    // so root-relative numbers put it a bar's height too low.
+    const rootEl = frameOf(card.current) ?? root.current;
     const mainEl = main.current;
     const block = mainEl?.querySelector<HTMLElement>(
       `[data-block-key="${CSS.escape(selectedKey)}"]`
     );
     if (!rootEl || !mainEl) return;
-    const r = rootEl.getBoundingClientRect();
-    const m = mainEl.getBoundingClientRect();
-    const height = card.current?.offsetHeight ?? 420;
-    const minTop = m.top - r.top + 8;
-    const maxTop = Math.max(minTop, r.height - height - 8);
-    if (!block) {
-      setPos({ left: m.right - r.left - CARD - 16, top: minTop });
-      return;
-    }
-    const b = block.getBoundingClientRect();
-    let left = b.right - r.left + 16;
-    if (left + CARD > m.right - r.left - 8) left = b.left - r.left - CARD - 16;
-    if (left < m.left - r.left + 8) left = m.right - r.left - CARD - 16;
-    const top = Math.min(Math.max(b.top - r.top, minTop), maxTop);
-    setPos({ left, top });
+    setPos(
+      placeInspector(
+        rootEl.getBoundingClientRect(),
+        mainEl.getBoundingClientRect(),
+        block?.getBoundingClientRect() ?? null,
+        card.current?.offsetHeight ?? 420
+      )
+    );
   }, [root, main, selectedKey]);
 
   useLayoutEffect(() => {
@@ -773,8 +827,9 @@ function FloatingInspector({
   }, [main, place]);
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || !root.current || !card.current) return;
-    const r = root.current.getBoundingClientRect();
+    const frame = frameOf(card.current) ?? root.current;
+    if (event.button !== 0 || !frame || !card.current) return;
+    const r = frame.getBoundingClientRect();
     const c = card.current.getBoundingClientRect();
     const dx = event.clientX - c.left;
     const dy = event.clientY - c.top;
@@ -803,7 +858,7 @@ function FloatingInspector({
       )}
       style={{
         width: CARD,
-        maxHeight: "calc(100% - 96px)",
+        maxHeight: pos?.maxHeight && !manual ? pos.maxHeight : "calc(100% - 96px)",
         left: at?.left ?? -9999,
         top: at?.top ?? 0,
         visibility: at ? "visible" : "hidden",

@@ -4,7 +4,7 @@ import { DndContext } from "@dnd-kit/core";
 
 import { BuilderStoreProvider, useBuilderStore } from "./StoreContext";
 import { EDITOR_MODE_KEY, EditorExperience, useEditorExperience } from "./EditorExperience";
-import { FocusLayout, insertionTarget } from "./FocusEditor";
+import { FocusLayout, insertionTarget, placeInspector } from "./FocusEditor";
 import { CompareDevices, rankCommands, type FocusCommand } from "./FocusTools";
 import { InsertMenu, type BrowseItem } from "./InsertMenu";
 import { WidgetLibrary } from "./WidgetLibrary";
@@ -470,5 +470,60 @@ describe("Side by side", () => {
     expect(store.getState().selectedKey).toBe(tree[0]._key);
     act(() => store.getState().undo());
     expect(store.getState().tree.map((n) => n._key)).toEqual([a._key, b._key]);
+  });
+});
+
+describe("placeInspector", () => {
+  const box = (left: number, top: number, width: number, height: number) => ({
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+  });
+  const root = box(0, 0, 1440, 900);
+  const main = box(60, 60, 1380, 840);
+  const overlaps = (
+    p: { left: number; top: number; maxHeight?: number },
+    b: ReturnType<typeof box>,
+    h: number
+  ) => {
+    const height = Math.min(h, p.maxHeight ?? h);
+    return !(
+      p.left >= b.right ||
+      p.left + 340 <= b.left ||
+      p.top >= b.bottom ||
+      p.top + height <= b.top
+    );
+  };
+
+  it("sits beside a narrow block", () => {
+    const block = box(100, 200, 600, 80);
+    const at = placeInspector(root, main, block, 500);
+    expect(at.left).toBe(block.right + 16);
+    expect(at.maxHeight).toBeUndefined();
+  });
+
+  it("drops below a full-width block instead of covering it", () => {
+    const block = box(84, 130, 1316, 60);
+    const at = placeInspector(root, main, block, 700);
+    expect(at.top).toBe(block.bottom + 12);
+    expect(overlaps(at, block, 700)).toBe(false);
+  });
+
+  it("goes above a full-width block near the bottom of the window", () => {
+    const block = box(84, 760, 1316, 100);
+    const at = placeInspector(root, main, block, 400);
+    expect(overlaps(at, block, 400)).toBe(false);
+    expect(at.top).toBeGreaterThanOrEqual(main.top);
+  });
+
+  it("stays on screen when the block has scrolled away", () => {
+    for (const block of [box(84, -2000, 1316, 300), box(84, 4000, 1316, 300)]) {
+      const at = placeInspector(root, main, block, 600);
+      expect(at.top).toBeGreaterThanOrEqual(main.top);
+      expect(at.top).toBeLessThanOrEqual(root.height - 8);
+    }
   });
 });

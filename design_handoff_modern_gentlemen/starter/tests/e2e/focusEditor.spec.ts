@@ -79,7 +79,13 @@ test.describe("Focus editor", () => {
     await expect(floating).toBeVisible();
     const block = (await page.locator('[data-block-key="head"]').boundingBox())!;
     const card = (await floating.boundingBox())!;
-    expect(card.x > block.x + block.width - 1 || card.x + card.width < block.x + 1).toBe(true);
+    // Beside the block when there is room, else above or below it: never on top of it.
+    const apart =
+      card.x >= block.x + block.width - 1 ||
+      card.x + card.width <= block.x + 1 ||
+      card.y >= block.y + block.height - 1 ||
+      card.y + card.height <= block.y + 1;
+    expect(apart).toBe(true);
 
     await pane.getByRole("button", { name: "Sections & patterns" }).click();
     await entry.hover();

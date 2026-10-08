@@ -46,6 +46,16 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   pane, which is the "Sections & patterns" tab, not a widget. Widget buttons
   now carry `data-widget-item` and the spec targets that. Neither could be seen
   in the session container: `test:e2e` needs the CI's local Supabase stack.
+- The second CI run left one real failure: the floating inspector **covered a
+  full-width block** (the known limitation from phase 1). Fixed in the editor,
+  not the test: `placeInspector` (pure, exported, unit-tested) tries beside the
+  block, then below it, then above it (sized to the space, ≥ 240px), and only
+  then the canvas edge; the E2E now asserts the card and block do not overlap.
+  ⚠️ **Fixing it exposed an older bug:** every position was measured against
+  the editor root, but the card is absolutely positioned inside the row *below*
+  the publish bar, so it always sat one bar-height (~59px) too low and its foot
+  ran off the window. Placement and header-drag now measure against the card's
+  `offsetParent`.
 
 ### 2026-10-08 — Focus phase 3: search/social previews and "Side by side" (PR #124)
 
