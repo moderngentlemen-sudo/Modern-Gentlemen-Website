@@ -69,7 +69,7 @@ The owner directed a clean build from the specification, not a port of the origi
   * step-by-step Gmail paste instructions;
   * signature defaults, including per send-as address;
   * a verification checklist and troubleshooting.
-* Cloudflare Worker and R2 host (`worker/`) with magic-byte checks, a size limit, hash-must-match-key, immutable caching, CORS, and no remote fetching.
+* Image host built into the app's own Node server (`server/index.mjs`, Railway volume), with magic-byte checks, a size limit, hash-must-match-key, atomic writes, immutable caching, a key-protected `.tar` backup, and no remote fetching. (It originally targeted a Cloudflare Worker + R2; replaced at the owner's request, see D22.)
 * A local test host and a clearly labelled test-build mode.
 
 **Projects**
@@ -104,7 +104,7 @@ The owner directed a clean build from the specification, not a port of the origi
 | `tsc -b` typecheck | Passed |
 | Production build | Passed (≈187 KB gzipped main bundle) |
 
-**Not yet performed:** live Gmail, Outlook and Apple Mail acceptance. This needs a deployed Worker and real accounts; the protocol is in [`GMAIL_ACCEPTANCE.md`](GMAIL_ACCEPTANCE.md). The end-to-end tests use a local *test* host on `localhost` and are **not** live integrations.
+**Not yet performed:** live Gmail, Outlook and Apple Mail acceptance. This needs the Railway deployment and real accounts; the protocol is in [`GMAIL_ACCEPTANCE.md`](GMAIL_ACCEPTANCE.md). The end-to-end tests use a local *test* host on `localhost` and are **not** live integrations.
 
 ## Bugs found and fixed during testing
 
@@ -125,11 +125,8 @@ The owner directed a clean build from the specification, not a port of the origi
 
 ## Deferred, needing approval
 
-Cloud accounts and sync with optimistic concurrency (D16), legacy importer (D17), OAuth `sendAs` install (D14), browser extension, billing and plans (D21), AI features (D20), and deployment of the image Worker to a Modern Gentlemen domain (D10).
+Cloud accounts and sync with optimistic concurrency (D16), legacy importer (D17), OAuth `sendAs` install (D14), browser extension, billing and plans (D21), AI features (D20), and a custom Modern Gentlemen domain for the Railway service (D22).
 
 ## Deployment
 
-1. `npm ci && npm run build`, then deploy `dist/` to any static host (Cloudflare Pages recommended).
-2. Deploy `worker/` (see `worker/README.md`). Set `ALLOWED_ORIGINS` to the app's origin and a custom domain for the images.
-3. Optionally build with `VITE_ASSET_HOST=https://img.your-domain.com`.
-4. Run the manual acceptance protocol and record the results.
+Signature Studio deploys as a Railway service with root directory `signature-studio`, a volume, and the `UPLOAD_KEY` variable. See the "Deploy (Railway)" section in `signature-studio/README.md`. Then run the manual acceptance protocol and record the results.

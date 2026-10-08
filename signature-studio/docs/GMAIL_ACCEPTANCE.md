@@ -4,7 +4,7 @@ Automated tests prove that the app generates valid, email-safe HTML, refuses to 
 
 ## Preconditions
 
-* The image Worker is deployed on a public HTTPS domain, and its address and upload key are set in Settings.
+* Signature Studio is deployed on Railway (public HTTPS address), and the upload key is set in Settings.
 * A production build is used (**not** `VITE_TEST_HOST=1`).
 * Test accounts are available: one Gmail account (web), one Outlook (desktop or web) recipient, and one Apple Mail recipient (macOS or iOS).
 
@@ -27,7 +27,7 @@ Automated tests prove that the app generates valid, email-safe HTML, refuses to 
 
 | # | Date | Tester | Client / version | Result | Notes / evidence |
 |---|---|---|---|---|---|
-| 1–10 | — | — | — | **Not yet performed** | Requires a deployed Worker and real accounts |
+| 1–10 | — | — | — | **Not yet performed** | Requires the Railway deployment and real accounts |
 
 ## Automated evidence already collected (development environment)
 

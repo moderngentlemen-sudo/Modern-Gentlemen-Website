@@ -8,21 +8,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-### 2026-10-08 — Signature Studio deploys automatically as one Cloudflare Worker
+### 2026-10-08 — Signature Studio runs on Railway (app + image host in one server)
 
-- `signature-studio/wrangler.toml` deploys the app (static assets from `dist/`)
-  and the image host (`worker/src/index.ts`, R2 bucket `signature-studio-images`)
-  as **one Worker**. Requests that are not a built file (that is, `/s/<hash>.<ext>`)
-  run the Worker code. The app is built with `VITE_ASSET_HOST=same-origin`, so it
-  publishes images to its own address.
-- `.github/workflows/signature-studio-deploy.yml` deploys on pushes to `main`
-  under `signature-studio/` (or on manual dispatch). It needs the repository secrets
-  `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `SIGNATURE_UPLOAD_KEY`, and
-  fails fast with a message naming any that are missing.
+- **No Cloudflare.** `signature-studio/server/index.mjs` is a dependency-free Node
+  server. It serves the built app and stores/serves signature images on a
+  **Railway volume** (found via `RAILWAY_VOLUME_MOUNT_PATH`). Uploads are PUT
+  `/s/<sha256>.<png|jpg|gif>` with `Authorization: Bearer $UPLOAD_KEY`; reads are
+  public and immutable. `/admin/backup.tar` downloads every image (key required);
+  the app's Settings has a button for it. `/healthz` is the health check.
+- `signature-studio/railway.json` + `nixpacks.toml` mirror the website's setup.
+  Railway service: Root Directory `signature-studio`, a volume attached,
+  variable `UPLOAD_KEY`; optional `PUBLIC_URL` once a custom domain exists.
+- The app is built with `VITE_ASSET_HOST=same-origin`, so it publishes images to
+  its own address.
 - Fixed: the Settings dialog discarded the upload key when the address field was
   left empty.
-- The earlier Cloudflare Pages project (`signature-studio.pages.dev`) is not used
-  and sits behind a Cloudflare Access login. It can be deleted.
+- The Cloudflare Worker (`signature-studio/worker/`) and the local test host
+  (`scripts/dev-host.mjs`) are removed. `npm run dev:host` and the e2e suite now run
+  the real server. Decision D22 in `signature-studio/docs/DECISIONS.md`.
+- ⚠️ Never delete the Railway volume or the service's domain: sent signatures
+  link to images there.
 
 ### 2026-10-08 — Signature Studio 2.0 added as a standalone app (branch `claude/signature-studio-2-remake-jmzvj4`)
 

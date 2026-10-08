@@ -454,11 +454,43 @@ export function SettingsDialog() {
       />
       <TextInput label="Upload key" type="password" value={token} onChange={setToken} hint="Stored only in this browser" />
       <p className="hint">
-        Signature Studio's image host is a small Cloudflare Worker with R2 storage (see <code>worker/README.md</code>). Images are stored at permanent,
+        Signature Studio's own server stores your signature images (see <code>signature-studio/README.md</code>). Images are stored at permanent,
         content-addressed links and are verified by downloading them anonymously before your signature is marked ready.
       </p>
+      <BackupButton endpoint={endpoint.trim() || envDefault || ""} token={token.trim()} />
       <Toggle label="I consent to publishing signature images publicly" checked={consent} onChange={(v) => updatePrefs({ publishConsent: v })} />
     </Modal>
+  );
+}
+
+/** Download every published image as one .tar archive (needs the upload key). */
+function BackupButton({ endpoint, token }: { endpoint: string; token: string }) {
+  const toast = useEditor((s) => s.toast);
+  const [busy, setBusy] = useState(false);
+  if (!endpoint) return null;
+  return (
+    <div className="field">
+      <button
+        className="btn small"
+        disabled={busy || !token}
+        title={token ? undefined : "Enter the upload key first"}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const res = await fetch(`${endpoint.replace(/\/$/, "")}/admin/backup.tar`, { headers: { Authorization: `Bearer ${token}` }, credentials: "omit" });
+            if (res.status === 401) throw new Error("The upload key was not accepted.");
+            if (!res.ok) throw new Error(`The image host answered ${res.status}.`);
+            downloadFile(`signature-images-${new Date().toISOString().slice(0, 10)}.tar`, await res.blob());
+          } catch (err) {
+            toast(err instanceof Error ? err.message : "Backup failed.", "error");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <Download size={13} /> {busy ? "Preparing backup…" : "Download backup of published images"}
+      </button>
+    </div>
   );
 }
 
