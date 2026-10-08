@@ -162,6 +162,8 @@ test.describe("grid canvas and widget studio", () => {
     await expect(handle).toBeVisible();
     await page.getByRole("button", { name: "Canvas builder · Preview", exact: true }).click();
     await expect(page.getByRole("button", { name: "Resize grid e", exact: true })).toBeVisible();
+    // Background and gradient sit in a collapsed group below the block's content.
+    await page.getByRole("button", { name: "Background & gradient", exact: true }).click();
     await page.getByLabel("Gradient direction", { exact: true }).focus();
     await page.keyboard.press("ArrowRight");
     await expect(page.locator('[data-block-key="heading"] [style*="linear-gradient"]')).toHaveCount(

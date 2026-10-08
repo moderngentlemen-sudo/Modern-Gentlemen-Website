@@ -59,7 +59,8 @@ test.describe("Focus editor", () => {
     // shows where it would land (the end of the page, with nothing selected).
     await rail.getByRole("button", { name: "Insert", exact: true }).click();
     const pane = page.locator('[data-focus-pane="insert"]');
-    const entry = pane.locator("li button").first();
+    // A section entry, not a pattern: built-in layouts lead the rail.
+    const entry = pane.locator("[data-library-block]").first();
     await entry.hover();
     await expect(page.locator("[data-block-preview]")).toBeVisible();
     await expect(page.locator("[data-insertion-marker]")).toContainText("end of the page");
