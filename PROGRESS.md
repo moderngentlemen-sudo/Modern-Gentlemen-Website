@@ -56,6 +56,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   the publish bar, so it always sat one bar-height (~59px) too low and its foot
   ran off the window. Placement and header-drag now measure against the card's
   `offsetParent`.
+- Third CI fix: after an insert, the new block below the heading is selected
+  and its "Move freely" handle straddles the boundary over the heading's
+  centre, so the spec's centred click on the heading hit the handle. The spec
+  now clicks near the heading's top-left. The overlap is pre-existing canvas
+  behaviour, left as is. **CI then went fully green on `bcdf55d`** (lint/unit,
+  integration, E2E + visual + a11y + perf), all three Focus journeys included.
+  `footerViewport.spec` failed once and passed on retry in the run before; it
+  is unrelated to this PR.
 
 ### 2026-10-08 — Focus phase 3: search/social previews and "Side by side" (PR #124)
 
