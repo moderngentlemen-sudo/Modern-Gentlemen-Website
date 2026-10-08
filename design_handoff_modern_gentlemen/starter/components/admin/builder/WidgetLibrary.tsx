@@ -92,6 +92,7 @@ export function WidgetLibrary({ onBrowse }: { onBrowse?: (item: BrowseItem | nul
           <div key={`${w.type}-${w.variant}`} className="border-b border-mg-bd/20 p-3">
             <button
               type="button"
+              data-widget-item={`${w.type}-${w.variant}`}
               onClick={() => add(w.type, w.variant)}
               onMouseEnter={(event) =>
                 setHovered({ type: w.type, variant: w.variant, ...anchor(event.currentTarget) })

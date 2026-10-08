@@ -39,6 +39,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   z-index — found in the browser, invisible to jsdom.
 - Tests: `schedule.test.ts` (4), `PublishMenu.test.tsx` (6); E2E journey
   schedules a fixture page, reloads, cancels. 3,950 unit tests, build green.
+- ⚠️ **First CI run of the Focus E2E file failed twice, both test bugs.** The
+  fixture gave `nativeText` a `text` setting; its field is `content`, so the
+  page carried two validation issues and the Schedule button was (correctly)
+  disabled. And the widget-preview step hovered `button:nth(2)` in the Insert
+  pane, which is the "Sections & patterns" tab, not a widget. Widget buttons
+  now carry `data-widget-item` and the spec targets that. Neither could be seen
+  in the session container: `test:e2e` needs the CI's local Supabase stack.
 
 ### 2026-10-08 — Focus phase 3: search/social previews and "Side by side" (PR #124)
 

@@ -17,7 +17,7 @@ test.describe("Focus editor", () => {
   test.beforeEach(async ({ page }) => {
     const sections = [
       { _key: "head", _type: "nativeHeading", settings: { text: "Focus heading" } },
-      { _key: "body", _type: "nativeText", settings: { text: "Focus body copy." } },
+      { _key: "body", _type: "nativeText", settings: { content: "Focus body copy." } },
     ];
     const { data, error } = await createClient(url!, key!, { auth: { persistSession: false } })
       .from("pages")
@@ -66,7 +66,7 @@ test.describe("Focus editor", () => {
 
     // Widgets preview on hover too.
     await pane.getByRole("button", { name: "Widgets & elements" }).click();
-    await pane.locator("button").filter({ hasText: /./ }).nth(2).hover();
+    await pane.locator("[data-widget-item]").first().hover();
     await expect(page.locator("[data-widget-preview]")).toBeVisible();
 
     // Select the heading: the inspector floats beside it, and the marker now
