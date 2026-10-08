@@ -8,6 +8,56 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Focus phase 2: command bar, History, selection bar, suggestions, device compare (branch `claude/focus-editor`)
+
+- **Command bar (Ctrl/⌘K, or the rail's search icon)** — `FocusTools.tsx`
+  `CommandBar`. Searches every block on the page by label and a piece of its copy
+  (`blockCommands`, `history.ts` `blockSnippet`), every catalogue block and saved
+  pattern (`Builder.tsx` passes `commands`), edit actions, devices, zoom, rulers,
+  panes, dock/float and layout switching. Highlighting previews like the panes:
+  an insert command draws the canvas insertion marker, a block is outlined.
+  `rankCommands` (pure): every word must match; label prefix ranks first. The
+  preview effect is keyed by command id because the host rebuilds its command
+  objects every render — keyed by object it would loop through the store.
+- **History pane** (rail clock icon) — every undo step in words, newest first
+  (`describeStep`: "Added Heading", "Moved Text", "Hid Image", "Edited 3
+  blocks", "Changed page settings"). Click any step to travel there; it calls
+  undo/redo N times, so later steps stay as redo until the next edit. Hover
+  outlines the block a step touched. "Name this point" labels a checkpoint
+  (WeakMap keyed by the immutable tree, so names vanish with the history entry —
+  session only, nothing is saved). ⚠️ `diffBlockTrees` compares content only
+  (normalize drops `locked`/`visibility`/`design`/`visual`), so `describeStep`
+  checks those separately; without that a lock read as "Changed page settings".
+- **Selection bar** — two or more blocks selected shows a floating bar at the
+  bottom of the canvas: Duplicate, Hide/Show, Match spacing (copies the active
+  block's space before/after to all), Lock/Unlock, Delete, Clear. Each is one
+  existing group store action, so one undo step that skips locked blocks. The
+  full group inspector still lives in the inspector.
+- **Health suggestions** — `advisories.ts` `adviseTree` (pure) adds
+  non-blocking advice under the validation issues: shown on no device (fix: show
+  on all), hidden (fix: show), image with a source but no alt text (Edit), second
+  H1 / skipped heading level (fix: set level), empty grid/columns (fix: remove).
+  The rail badge still counts blocking issues only.
+- **Compare devices** (rail icon, or the command bar) — `CompareDevices` waits
+  for autosave to settle (`!dirty` and not saving; a save error stops it with a
+  message), mints one preview link through the existing `createPreview`
+  callback, and frames it at 1440/820/390 in scaled iframes. Real iframes on
+  purpose: media queries and device visibility only behave truthfully at a real
+  width. Offered only when `canPreview`.
+- Tests: `history.test.ts` (9), `advisories.test.ts` (5), `FocusEditor.test.tsx`
+  now 33 (command bar, history travel and naming, selection bar, suggestions,
+  compare). E2E `focusEditor.spec.ts` gains a second journey (command insert,
+  history travel, selection lock, compare frames).
+- Gates: format, lint, typecheck, 3,931 unit tests, `npm run build`. Browser
+  walkthrough on a temporary local route (removed): command insert with marker,
+  go-to by copy, History, Health suggestions, selection bar, three compare
+  frames, no page errors.
+- **Still to do**: page search and social previews, publish menu (schedule,
+  preview link), overlap/contrast checks, equal-columns/align arrange actions,
+  then retire Canvas Preview and Design Studio after owner sign-off. In Focus
+  the Canvas's own "N elements selected" strip is hidden (`mode !== "focus"`);
+  the selection bar replaces it. Original and Canvas Preview keep the strip.
+
 ### 2026-10-08 — Focus: the unified editor, phase 1 (branch `claude/focus-editor`)
 
 - The owner reviewed eight live editor concepts and chose **Focus** (canvas-first),

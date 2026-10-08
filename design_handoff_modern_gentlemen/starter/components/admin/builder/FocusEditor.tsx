@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -17,9 +18,19 @@ import { manifestFor } from "@/lib/blocks/manifests";
 import { findBlock } from "@/lib/blocks/traverse";
 import type { BlockTree } from "@/lib/blocks/types";
 
-import { EditorExperienceSwitch } from "./EditorExperience";
+import { adviseTree, type Advice } from "./advisories";
+import { EditorExperienceSwitch, useEditorExperience } from "./EditorExperience";
+import {
+  CommandBar,
+  CompareDevices,
+  HistoryPane,
+  SelectionBar,
+  blockCommands,
+  type FocusCommand,
+  type MintPreview,
+} from "./FocusTools";
 import type { BrowseItem } from "./InsertMenu";
-import { useBuilder } from "./StoreContext";
+import { useBuilder, useBuilderStore } from "./StoreContext";
 import { locate } from "./tree";
 
 /**
@@ -39,7 +50,8 @@ import { locate } from "./tree";
  * store's hover). Nothing is inserted or saved until a click.
  */
 
-export type FocusPane = "insert" | "layers" | "page" | "health";
+export type FocusPane = "insert" | "layers" | "page" | "health" | "history";
+const PANES: readonly FocusPane[] = ["insert", "layers", "page", "health", "history"];
 const INSPECTOR_KEY = "mg-focus-inspector";
 const PANE_PIN_KEY = "mg-focus-pane-pinned";
 const RAIL = 60;
@@ -92,6 +104,8 @@ export function FocusLayout({
   inspector,
   inspectorFooter,
   isPage,
+  commands = [],
+  mintPreview,
 }: {
   topBar: ReactNode;
   canvas: ReactNode;
@@ -102,6 +116,10 @@ export function FocusLayout({
   inspector: ReactNode;
   inspectorFooter?: ReactNode;
   isPage: boolean;
+  /** Extra command-bar entries from the host, e.g. one "Insert …" per catalogue block. */
+  commands?: FocusCommand[];
+  /** Mints a draft preview link; enables Compare devices when present. */
+  mintPreview?: MintPreview;
 }) {
   const [pane, setPane] = useState<FocusPane | null>(null);
   const [insertTab, setInsertTab] = useState<"sections" | "widgets">("sections");
@@ -110,6 +128,8 @@ export function FocusLayout({
   const [browsing, setBrowsing] = useState<BrowseItem | null>(null);
   const [showKeys, setShowKeys] = useState(false);
   const [showLayout, setShowLayout] = useState(false);
+  const [showCommands, setShowCommands] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const railRef = useRef<HTMLElement>(null);
@@ -117,9 +137,9 @@ export function FocusLayout({
   useEffect(() => {
     setDocked(readPref(INSPECTOR_KEY) === "dock");
     const saved = readPref(PANE_PIN_KEY);
-    if (saved === "insert" || saved === "layers" || saved === "page" || saved === "health") {
+    if (PANES.includes(saved as FocusPane)) {
       setPinned(true);
-      setPane(saved);
+      setPane(saved as FocusPane);
     }
   }, []);
 
@@ -150,7 +170,14 @@ export function FocusLayout({
       const typing =
         !!target &&
         (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setShowCommands((open) => !open);
+        return;
+      }
       if (event.key === "Escape") {
+        if (showCommands) return setShowCommands(false);
+        if (comparing) return setComparing(false);
         if (showKeys) return setShowKeys(false);
         if (showLayout) return setShowLayout(false);
         if (pane && !pinned && !selectedKey) {
@@ -174,7 +201,153 @@ export function FocusLayout({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [pane, pinned, selectedKey, showKeys, showLayout]);
+  }, [pane, pinned, selectedKey, showKeys, showLayout, showCommands, comparing]);
+
+  const store = useBuilderStore();
+  const { setMode } = useEditorExperience();
+  const allCommands = useMemo<FocusCommand[]>(() => {
+    const state = () => store.getState();
+    const scrollTo = (key: string) =>
+      mainRef.current
+        ?.querySelector(`[data-block-key="${CSS.escape(key)}"]`)
+        ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    const edit: FocusCommand[] = [
+      { id: "undo", label: "Undo", group: "Edit", hint: "Ctrl/⌘ Z", run: () => state().undo() },
+      { id: "redo", label: "Redo", group: "Edit", hint: "Ctrl/⌘ ⇧ Z", run: () => state().redo() },
+      {
+        id: "select-all",
+        label: "Select all blocks",
+        group: "Edit",
+        hint: "Ctrl/⌘ A",
+        run: () => state().selectAll(),
+      },
+      {
+        id: "duplicate",
+        label: "Duplicate selection",
+        group: "Edit",
+        hint: "Ctrl/⌘ D",
+        keywords: "copy clone",
+        run: () => state().duplicateSelected(),
+      },
+      {
+        id: "delete",
+        label: "Delete selection",
+        group: "Edit",
+        hint: "Del",
+        keywords: "remove",
+        run: () => state().removeSelected(),
+      },
+      {
+        id: "lock",
+        label: "Lock or unlock selection",
+        group: "Edit",
+        run: () => {
+          const s = state();
+          const nodes = s.selectedKeys.map((key) => findBlock(s.tree, key));
+          s.setSelectedLocked(!nodes.every((node) => node?.locked));
+        },
+      },
+      {
+        id: "deselect",
+        label: "Clear selection",
+        group: "Edit",
+        hint: "Esc",
+        run: () => state().select(null),
+      },
+    ];
+    const view: FocusCommand[] = [
+      ...(["desktop", "tablet", "mobile"] as const).map((device) => ({
+        id: `device:${device}`,
+        label: `Preview on ${device}`,
+        group: "View",
+        keywords: "device breakpoint responsive",
+        run: () => state().setDevice(device),
+      })),
+      {
+        id: "zoom-in",
+        label: "Zoom in",
+        group: "View",
+        run: () => state().setCanvasZoom(state().canvasZoom + 0.1),
+      },
+      {
+        id: "zoom-out",
+        label: "Zoom out",
+        group: "View",
+        run: () => state().setCanvasZoom(state().canvasZoom - 0.1),
+      },
+      {
+        id: "zoom-reset",
+        label: "Zoom to 100%",
+        group: "View",
+        run: () => state().setCanvasZoom(1),
+      },
+      { id: "rulers", label: "Toggle rulers", group: "View", run: () => state().toggleRulers() },
+      ...(mintPreview
+        ? [
+            {
+              id: "compare",
+              label: "Compare devices side by side",
+              group: "View",
+              keywords: "responsive desktop tablet mobile phone preview",
+              run: () => setComparing(true),
+            },
+          ]
+        : []),
+      {
+        id: "inspector",
+        label: docked ? "Float the inspector" : "Dock the inspector",
+        group: "View",
+        run: () => {
+          setDocked(!docked);
+          writePref(INSPECTOR_KEY, docked ? "float" : "dock");
+        },
+      },
+    ];
+    const panes: FocusCommand[] = PANES.filter((id) => id !== "page" || isPage).map((id) => ({
+      id: `pane:${id}`,
+      label: `Open ${paneTitle(id)}`,
+      group: "Panes",
+      hint: id === "insert" ? "/" : undefined,
+      run: () => {
+        setPane(id);
+        setBrowsing(null);
+      },
+    }));
+    const help: FocusCommand[] = [
+      {
+        id: "shortcuts",
+        label: "Keyboard shortcuts",
+        group: "Help",
+        hint: "?",
+        run: () => setShowKeys(true),
+      },
+      {
+        id: "layout:original",
+        label: "Switch to the Original builder",
+        group: "Help",
+        keywords: "editor layout classic",
+        run: () => setMode("original"),
+      },
+      {
+        id: "layout:canvas",
+        label: "Switch to the Canvas builder",
+        group: "Help",
+        keywords: "editor layout",
+        run: () => setMode("canvas"),
+      },
+    ];
+    return [
+      ...edit,
+      ...view,
+      ...panes,
+      ...blockCommands(tree, (key) => {
+        state().select(key);
+        scrollTo(key);
+      }),
+      ...commands,
+      ...help,
+    ];
+  }, [store, setMode, docked, isPage, tree, commands, mintPreview]);
 
   const railButton = (id: FocusPane, label: string, icon: ReactNode, badge?: number) => (
     <button
@@ -210,6 +383,19 @@ export function FocusLayout({
           style={{ width: RAIL }}
         >
           <span aria-hidden className="mb-3 block h-[14px] w-[6px] bg-mg-accent" />
+          <button
+            type="button"
+            aria-label="Command bar"
+            aria-expanded={showCommands}
+            title="Search and run anything (Ctrl/⌘ K)"
+            onClick={() => setShowCommands(true)}
+            className={clsx(
+              "mb-2 grid h-11 w-11 place-items-center text-[#f4f4f4]/75 hover:bg-white/10 hover:text-white",
+              FOCUS_RING
+            )}
+          >
+            <Icon d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4" />
+          </button>
           {railButton("insert", "Insert", <Icon d="M12 5v14M5 12h14" />)}
           {railButton(
             "layers",
@@ -223,6 +409,25 @@ export function FocusLayout({
             "Health",
             <Icon d="M3 12h4l2-5 4 10 2-5h6" />,
             issues.length || undefined
+          )}
+          {railButton(
+            "history",
+            "History",
+            <Icon d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4M12 8v4l3 2" />
+          )}
+          {mintPreview && (
+            <button
+              type="button"
+              aria-label="Compare devices"
+              title="Compare desktop, tablet and phone side by side"
+              onClick={() => setComparing(true)}
+              className={clsx(
+                "grid h-11 w-11 place-items-center text-[#f4f4f4]/75 hover:bg-white/10 hover:text-white",
+                FOCUS_RING
+              )}
+            >
+              <Icon d="M2 5h13v10H2zM6 19h5M17 8h5v11h-5z" />
+            </button>
           )}
           <span className="flex-1" />
           <button
@@ -321,6 +526,7 @@ export function FocusLayout({
               {pane === "layers" && layersPane}
               {pane === "page" && pagePane}
               {pane === "health" && <HealthPane />}
+              {pane === "history" && <HistoryPane />}
             </div>
           </aside>
         )}
@@ -332,6 +538,7 @@ export function FocusLayout({
         >
           {canvas}
           <InsertionMarker main={mainRef} item={browsing} />
+          <SelectionBar />
         </main>
 
         {docked && selectedNode && (
@@ -388,12 +595,28 @@ export function FocusLayout({
         </div>
       )}
       {showKeys && <ShortcutSheet onClose={() => setShowKeys(false)} />}
+      {comparing && mintPreview && (
+        <CompareDevices mintPreview={mintPreview} onClose={() => setComparing(false)} />
+      )}
+      {showCommands && (
+        <CommandBar
+          commands={allCommands}
+          onBrowse={setBrowsing}
+          onClose={() => setShowCommands(false)}
+        />
+      )}
     </div>
   );
 }
 
 function paneTitle(pane: FocusPane) {
-  return { insert: "Insert", layers: "Layers", page: "Page settings", health: "Health" }[pane];
+  return {
+    insert: "Insert",
+    layers: "Layers",
+    page: "Page settings",
+    health: "Health",
+    history: "History",
+  }[pane];
 }
 
 function Icon({ d }: { d: string }) {
@@ -670,71 +893,142 @@ function InsertionMarker({
   );
 }
 
-/** Every validation issue, grouped by block. Click one to select it on the canvas. */
+/**
+ * Every validation issue, grouped by block, then non-blocking suggestions with
+ * one-click fixes. Hover an entry to outline its block, click it to edit.
+ */
 function HealthPane() {
   const issues = useBuilder(useShallow((s) => [...s.issues, ...s.serverIssues]));
+  const tree = useBuilder((s) => s.tree);
+  const advice = useMemo(() => adviseTree(tree), [tree]);
   const select = useBuilder((s) => s.select);
   const hover = useBuilder((s) => s.hover);
-  if (issues.length === 0)
-    return (
-      <div className="p-4 text-[13px]">
-        <p className="flex items-center gap-2 font-medium">
-          <span aria-hidden className="h-2 w-2 rounded-full bg-[#2f9e5b]" />
-          No issues
-        </p>
-        <p className="mt-2 text-mg-fg/70">
-          Every block passes its checks. This list updates as you edit, and publishing stays blocked
-          while anything is listed here.
-        </p>
-      </div>
-    );
+  const store = useBuilderStore();
+
+  const reveal = (key: string) => {
+    select(key);
+    document
+      .querySelector(`[data-block-key="${CSS.escape(key)}"]`)
+      ?.scrollIntoView?.({ block: "center" });
+  };
+  const hoverProps = (key: string) => ({
+    onMouseEnter: () => hover(key),
+    onMouseLeave: () => hover(null),
+    onFocus: () => hover(key),
+    onBlur: () => hover(null),
+  });
+  function applyFix(item: Advice) {
+    const state = store.getState();
+    const fix = item.fix;
+    if (!fix) return;
+    if (fix.kind === "showOnAllDevices") state.setVisibility(item.key, { devices: undefined });
+    else if (fix.kind === "unhide") state.setVisibility(item.key, { hidden: false });
+    else if (fix.kind === "setHeadingLevel") state.setSetting(item.key, ["level"], fix.level);
+    else if (fix.kind === "remove") state.remove(item.key);
+    hover(null);
+  }
+
   const byBlock = new Map<string, typeof issues>();
   for (const issue of issues) byBlock.set(issue.key, [...(byBlock.get(issue.key) ?? []), issue]);
   return (
     <div className="h-full overflow-y-auto p-3">
-      <p className="mb-2 text-[12px] text-mg-fg/70">
-        {issues.length} {issues.length === 1 ? "issue" : "issues"} to fix before publishing. Hover
-        to find the block, click to edit it.
-      </p>
-      <ul className="space-y-2">
-        {[...byBlock.entries()].map(([key, list]) => (
-          <li key={key}>
-            <button
-              type="button"
-              onMouseEnter={() => hover(key)}
-              onMouseLeave={() => hover(null)}
-              onFocus={() => hover(key)}
-              onBlur={() => hover(null)}
-              onClick={() => {
-                select(key);
-                document
-                  .querySelector(`[data-block-key="${CSS.escape(key)}"]`)
-                  ?.scrollIntoView?.({ block: "center" });
-              }}
-              className={clsx(
-                "w-full border p-3 text-left text-[12px] hover:bg-mg-fg/5",
-                HAIRLINE,
-                FOCUS_RING
-              )}
-            >
-              <span className="flex items-center gap-2 font-medium">
-                <span aria-hidden className="h-2 w-2 rounded-full bg-mg-accent" />
-                {manifestFor(list[0].type)?.label ?? list[0].type}
-              </span>
-              <span className="mt-1 block text-mg-fg/70">
-                {list
-                  .map((issue) => (issue.path ? `${issue.path}: ${issue.message}` : issue.message))
-                  .join("; ")}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {issues.length === 0 ? (
+        <div className="text-[13px]">
+          <p className="flex items-center gap-2 font-medium">
+            <span aria-hidden className="h-2 w-2 rounded-full bg-[#2f9e5b]" />
+            No issues
+          </p>
+          <p className="mt-2 text-mg-fg/70">
+            Every block passes its checks. This list updates as you edit, and publishing stays
+            blocked while anything is listed here.
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="mb-2 text-[12px] text-mg-fg/70">
+            {issues.length} {issues.length === 1 ? "issue" : "issues"} to fix before publishing.
+            Hover to find the block, click to edit it.
+          </p>
+          <ul className="space-y-2">
+            {[...byBlock.entries()].map(([key, list]) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  {...hoverProps(key)}
+                  onClick={() => reveal(key)}
+                  className={clsx(
+                    "w-full border p-3 text-left text-[12px] hover:bg-mg-fg/5",
+                    HAIRLINE,
+                    FOCUS_RING
+                  )}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <span aria-hidden className="h-2 w-2 rounded-full bg-mg-accent" />
+                    {manifestFor(list[0].type)?.label ?? list[0].type}
+                  </span>
+                  <span className="mt-1 block text-mg-fg/70">
+                    {list
+                      .map((issue) =>
+                        issue.path ? `${issue.path}: ${issue.message}` : issue.message
+                      )
+                      .join("; ")}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {advice.length > 0 && (
+        <section aria-label="Suggestions" className="mt-5">
+          <h3 className={clsx(LABEL_SM, "mb-2")}>Suggestions · {advice.length}</h3>
+          <p className="mb-2 text-[12px] text-mg-fg/70">
+            Worth a second look. None of these blocks publishing.
+          </p>
+          <ul className="space-y-2">
+            {advice.map((item) => (
+              <li
+                key={item.id}
+                className={clsx("border p-3 text-[12px]", HAIRLINE)}
+                {...hoverProps(item.key)}
+              >
+                <p className="flex items-start gap-2">
+                  <span aria-hidden className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#c98a1b]" />
+                  <span>{item.message}</span>
+                </p>
+                <div className="mt-2 flex gap-2 pl-4">
+                  {item.fix && (
+                    <button
+                      type="button"
+                      onClick={() => applyFix(item)}
+                      className={clsx(
+                        "border border-mg-fg/60 px-2 py-1 text-[11px] font-medium",
+                        FOCUS_RING
+                      )}
+                    >
+                      {item.fix.label}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => reveal(item.key)}
+                    className={clsx("border px-2 py-1 text-[11px]", HAIRLINE, FOCUS_RING)}
+                  >
+                    Edit
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
 const SHORTCUTS: [string, string][] = [
+  ["Search and run anything", "Ctrl/⌘ K"],
   ["Open Insert and search", "/"],
   ["Undo", "Ctrl/⌘ Z"],
   ["Redo", "Ctrl/⌘ Shift Z or Y"],

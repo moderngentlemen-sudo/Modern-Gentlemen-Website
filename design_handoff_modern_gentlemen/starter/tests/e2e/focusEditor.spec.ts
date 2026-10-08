@@ -112,4 +112,43 @@ test.describe("Focus editor", () => {
     await page.getByRole("button", { name: "Original builder", exact: true }).click();
     await expect(rail).toHaveCount(0);
   });
+  test("command bar, history travel, selection bar and device compare", async ({ page }) => {
+    await page.goto(`/admin/pages/${id}`);
+    const rail = page.getByRole("navigation", { name: "Editor tools" });
+    await expect(rail).toBeVisible();
+
+    // Ctrl/⌘K inserts with the same on-canvas preview as the pane.
+    await page.keyboard.press("ControlOrMeta+k");
+    const search = page.getByRole("combobox", { name: "Search commands" });
+    await search.fill("insert divider");
+    await expect(page.locator("[data-insertion-marker]")).toBeVisible();
+    const before = await page.locator("[data-block-key]").count();
+    await search.press("Enter");
+    await expect(page.locator("[data-block-key]")).toHaveCount(before + 1);
+
+    // History names the step and travels back to the start.
+    await rail.getByRole("button", { name: "History", exact: true }).click();
+    const history = page.getByRole("list", { name: "Edit history" });
+    await expect(history).toContainText("Added Divider");
+    await history.getByText("Where this session began").click();
+    await expect(page.locator("[data-block-key]")).toHaveCount(before);
+    await history.getByText("Added Divider").click();
+    await expect(page.locator("[data-block-key]")).toHaveCount(before + 1);
+
+    // Two blocks selected: the selection bar acts on both in one step.
+    await page.locator('[data-block-key="head"]').getByRole("heading").click();
+    await page.locator('[data-block-key="body"]').click({ modifiers: ["Shift"] });
+    const bar = page.getByRole("toolbar", { name: "2 blocks selected" });
+    await expect(bar).toBeVisible();
+    await bar.getByRole("button", { name: "Lock" }).click();
+    await expect(bar.getByRole("button", { name: "Unlock" })).toBeVisible();
+
+    // Compare devices frames a real preview link at three widths.
+    await rail.getByRole("button", { name: "Compare devices" }).click();
+    await expect(page.locator("[data-compare-frame]")).toHaveCount(3);
+    await expect(page.locator('[data-compare-frame="mobile"]')).toHaveAttribute(
+      "src",
+      /\/preview\//
+    );
+  });
 });

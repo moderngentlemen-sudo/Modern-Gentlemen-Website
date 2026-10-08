@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DndContext } from "@dnd-kit/core";
 
 import { BuilderStoreProvider, useBuilderStore } from "./StoreContext";
 import { EDITOR_MODE_KEY, EditorExperience, useEditorExperience } from "./EditorExperience";
 import { FocusLayout, insertionTarget } from "./FocusEditor";
+import { CompareDevices, rankCommands, type FocusCommand } from "./FocusTools";
 import { InsertMenu, type BrowseItem } from "./InsertMenu";
 import { WidgetLibrary } from "./WidgetLibrary";
 import { PatternsProvider } from "./PatternsContext";
@@ -34,13 +35,14 @@ function Grab() {
   return null;
 }
 
-function renderFocus(tree: BlockTree, extra?: { browse?: BrowseItem }) {
+function renderFocus(tree: BlockTree, extra?: { browse?: BrowseItem; commands?: FocusCommand[] }) {
   return render(
     <BuilderStoreProvider init={{ doc, tree }}>
       <EditorExperience initialMode="focus">
         <Grab />
         <FocusLayout
           isPage
+          commands={extra?.commands}
           topBar={<div>Publish bar</div>}
           canvas={
             <div>
@@ -292,5 +294,159 @@ describe("Hover previews while browsing", () => {
     expect(onBrowse.mock.calls.at(-1)?.[0]).toMatchObject({ kind: "widget" });
     fireEvent.blur(first);
     expect(container.querySelector("[data-widget-preview]")).toBeNull();
+  });
+});
+
+describe("Command bar", () => {
+  const command = (label: string, group = "Edit"): FocusCommand => ({
+    id: label,
+    label,
+    group,
+    run: () => {},
+  });
+
+  it("ranks label prefixes first and needs every word to match", () => {
+    const list = [command("Zoom to 100%", "View"), command("Open Insert"), command("Insert Text")];
+    expect(rankCommands(list, "ins").map((c) => c.label)).toEqual(["Insert Text", "Open Insert"]);
+    expect(rankCommands(list, "insert text").map((c) => c.label)).toEqual(["Insert Text"]);
+    expect(rankCommands(list, "")).toHaveLength(3);
+  });
+
+  it("opens on Ctrl/⌘K and runs the highlighted command on Enter", () => {
+    renderFocus([newBlockNode("nativeHeading")]);
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const input = screen.getByRole("combobox", { name: "Search commands" });
+    fireEvent.change(input, { target: { value: "preview mobile" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(store.getState().device).toBe("mobile");
+    expect(screen.queryByRole("dialog", { name: "Command bar" })).toBeNull();
+  });
+
+  it("previews while highlighting: outlines a block, marks an insertion point", () => {
+    const heading = newBlockNode("nativeHeading");
+    const insert: FocusCommand = {
+      id: "insert:text",
+      label: "Insert Text",
+      group: "Insert",
+      browse: { kind: "block", type: "nativeText" },
+      run: () => {},
+    };
+    const { container } = renderFocus([heading], { commands: [insert] });
+    fireEvent.click(screen.getByRole("button", { name: "Command bar" }));
+    const input = screen.getByRole("combobox", { name: "Search commands" });
+    fireEvent.change(input, { target: { value: "heading" } });
+    expect(store.getState().hoveredKey).toBe(heading._key);
+    fireEvent.change(input, { target: { value: "insert text" } });
+    expect(container.querySelector("[data-insertion-marker]")).toBeTruthy();
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(container.querySelector("[data-insertion-marker]")).toBeNull();
+    expect(store.getState().hoveredKey).toBeNull();
+  });
+
+  it("goes to a block by a piece of its copy", () => {
+    const text = { ...newBlockNode("nativeText"), settings: { content: "Autumn tailoring" } };
+    renderFocus([newBlockNode("nativeHeading"), text]);
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    const input = screen.getByRole("combobox", { name: "Search commands" });
+    fireEvent.change(input, { target: { value: "autumn" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(store.getState().selectedKey).toBe(text._key);
+  });
+});
+
+describe("History pane", () => {
+  it("lists steps in words and travels back and forward", () => {
+    renderFocus([]);
+    act(() => store.getState().insert("nativeHeading"));
+    act(() => store.getState().insert("nativeText"));
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+    const list = screen.getByRole("list", { name: "Edit history" });
+    expect(within(list).getByText("Added Text")).toBeTruthy();
+    fireEvent.click(within(list).getByText("Where this session began"));
+    expect(store.getState().tree).toHaveLength(0);
+    expect(store.getState().future).toHaveLength(2);
+    fireEvent.click(within(list).getByText("Added Text"));
+    expect(store.getState().tree).toHaveLength(2);
+  });
+
+  it("names a checkpoint", () => {
+    renderFocus([]);
+    act(() => store.getState().insert("nativeHeading"));
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+    fireEvent.click(screen.getByRole("button", { name: "Name this point" }));
+    fireEvent.change(screen.getByLabelText("Checkpoint name"), {
+      target: { value: "First draft" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getByText(/First draft/)).toBeTruthy();
+  });
+});
+
+describe("Selection bar", () => {
+  it("appears for two or more blocks and acts on all of them in one step", () => {
+    const a = newBlockNode("nativeHeading");
+    const b = newBlockNode("nativeText");
+    renderFocus([a, b]);
+    expect(screen.queryByRole("toolbar")).toBeNull();
+    act(() => {
+      store.getState().select(a._key);
+      store.getState().select(b._key, true);
+    });
+    const bar = screen.getByRole("toolbar", { name: "2 blocks selected" });
+    const before = store.getState().past.length;
+    fireEvent.click(within(bar).getByRole("button", { name: "Hide" }));
+    expect(store.getState().tree.every((node) => node.visibility?.hidden)).toBe(true);
+    expect(store.getState().past.length).toBe(before + 1);
+    fireEvent.click(within(bar).getByRole("button", { name: "Lock" }));
+    expect(store.getState().tree.every((node) => node.locked)).toBe(true);
+    fireEvent.click(within(bar).getByRole("button", { name: "Clear" }));
+    expect(screen.queryByRole("toolbar")).toBeNull();
+  });
+});
+
+describe("Health suggestions", () => {
+  it("lists non-blocking advice and applies its one-click fix", () => {
+    const text = { ...newBlockNode("nativeText"), visibility: { devices: [] } };
+    renderFocus([text]);
+    fireEvent.click(screen.getByRole("button", { name: "Health" }));
+    const section = screen.getByRole("region", { name: "Suggestions" });
+    fireEvent.click(within(section).getByRole("button", { name: "Show on all devices" }));
+    expect(store.getState().tree[0].visibility?.devices).toBeUndefined();
+    expect(screen.queryByRole("region", { name: "Suggestions" })).toBeNull();
+  });
+});
+
+describe("Compare devices", () => {
+  it("waits for autosave, then frames one preview link at three widths", async () => {
+    const mint = vi.fn(async () => ({ ok: true, data: { path: "/preview/abc" } }));
+    render(
+      <BuilderStoreProvider init={{ doc, tree: [] }}>
+        <Grab />
+        <CompareDevices mintPreview={mint} onClose={() => {}} />
+      </BuilderStoreProvider>
+    );
+    await waitFor(() => expect(mint).toHaveBeenCalledTimes(1));
+    const frames = await screen.findAllByTitle(/preview$/);
+    expect(frames.map((f) => f.getAttribute("src"))).toEqual([
+      "/preview/abc",
+      "/preview/abc",
+      "/preview/abc",
+    ]);
+
+    act(() => store.getState().insert("nativeHeading"));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(screen.getByRole("status").textContent).toMatch(/Saving/);
+    expect(mint).toHaveBeenCalledTimes(1);
+    act(() => {
+      const state = store.getState();
+      state.markSaving();
+      state.markSaved(state.tree, state.doc.rest);
+    });
+    await waitFor(() => expect(mint).toHaveBeenCalledTimes(2));
+  });
+
+  it("is offered on the rail only when previews can be minted", () => {
+    renderFocus([]);
+    expect(screen.queryByRole("button", { name: "Compare devices" })).toBeNull();
   });
 });

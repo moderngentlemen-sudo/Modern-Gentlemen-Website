@@ -29,6 +29,7 @@ import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
 import { EditorExperience, EditorExperienceSwitch, useEditorExperience } from "./EditorExperience";
 import { FocusLayout } from "./FocusEditor";
+import type { FocusCommand } from "./FocusTools";
 import { Canvas } from "./Canvas";
 import { WidgetLibrary } from "./WidgetLibrary";
 import { InsertMenu } from "./InsertMenu";
@@ -246,6 +247,11 @@ function BuilderLayout({
   // Memoised for referential stability: `blockCatalogFor` builds a new array
   // each call, and the rail's grouping memo takes the catalogue as a dependency.
   const catalog = useMemo(() => blockCatalogFor(documentType), [documentType]);
+  // Focus's Compare devices mints one link and frames it at three widths.
+  const mintPreview = useCallback(
+    (device: "desktop" | "tablet" | "mobile") => callbacks.createPreview(device),
+    [callbacks]
+  );
   const insert = useBuilder((s) => s.insert);
   const insertMany = useBuilder((s) => s.insertMany);
   const insertPatternRef = useBuilder((s) => s.insertPatternRef);
@@ -500,6 +506,26 @@ function BuilderLayout({
   }
 
   if (mode === "focus") {
+    // The command bar can insert anything the Insert pane can, with the same
+    // on-canvas insertion preview while an entry is highlighted.
+    const insertCommands: FocusCommand[] = [
+      ...catalog.map((entry) => ({
+        id: `insert:${entry.type}`,
+        label: `Insert ${entry.label}`,
+        group: "Insert",
+        keywords: `${entry.type} add section block`,
+        browse: { kind: "block" as const, type: entry.type },
+        run: () => onInsertBlock(entry.type),
+      })),
+      ...patterns.map((pattern) => ({
+        id: `pattern:${pattern.id}`,
+        label: `Insert pattern: ${pattern.name}`,
+        group: "Insert",
+        keywords: `pattern saved ${pattern.description ?? ""}`,
+        browse: { kind: "pattern" as const, id: pattern.id },
+        run: () => onInsertPattern(pattern.id),
+      })),
+    ];
     return (
       <DndContext
         sensors={sensors}
@@ -514,6 +540,8 @@ function BuilderLayout({
       >
         <FocusLayout
           isPage={documentType === "page"}
+          commands={insertCommands}
+          mintPreview={canPreview ? mintPreview : undefined}
           topBar={
             <PublishBar
               callbacks={callbacks}
