@@ -59,8 +59,19 @@ export class HttpAssetHost implements AssetHost {
   }
 }
 
+/**
+ * The build-time default host. `same-origin` means the app and its image host
+ * are the same Cloudflare Worker (see signature-studio/wrangler.toml), so
+ * images are published to the address the app is served from.
+ */
+export function defaultHostEndpoint(): string | undefined {
+  const env = import.meta.env.VITE_ASSET_HOST as string | undefined;
+  if (env === "same-origin") return typeof location !== "undefined" ? location.origin : undefined;
+  return env || undefined;
+}
+
 export function hostFromConfig(config: HostConfig | undefined): AssetHost | null {
-  const endpoint = config?.endpoint?.trim() || (import.meta.env.VITE_ASSET_HOST as string | undefined);
+  const endpoint = config?.endpoint?.trim() || defaultHostEndpoint();
   if (!endpoint) return null;
   try {
     return new HttpAssetHost({ endpoint, token: config?.token });

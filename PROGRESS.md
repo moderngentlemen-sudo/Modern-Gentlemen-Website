@@ -8,6 +8,22 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Signature Studio deploys automatically as one Cloudflare Worker
+
+- `signature-studio/wrangler.toml` deploys the app (static assets from `dist/`)
+  and the image host (`worker/src/index.ts`, R2 bucket `signature-studio-images`)
+  as **one Worker**. Requests that are not a built file (that is, `/s/<hash>.<ext>`)
+  run the Worker code. The app is built with `VITE_ASSET_HOST=same-origin`, so it
+  publishes images to its own address.
+- `.github/workflows/signature-studio-deploy.yml` deploys on pushes to `main`
+  under `signature-studio/` (or on manual dispatch). It needs the repository secrets
+  `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `SIGNATURE_UPLOAD_KEY`, and
+  fails fast with a message naming any that are missing.
+- Fixed: the Settings dialog discarded the upload key when the address field was
+  left empty.
+- The earlier Cloudflare Pages project (`signature-studio.pages.dev`) is not used
+  and sits behind a Cloudflare Access login. It can be deleted.
+
 ### 2026-10-08 — Signature Studio 2.0 added as a standalone app (branch `claude/signature-studio-2-remake-jmzvj4`)
 
 - **New top-level folder `signature-studio/`**: an email-signature design studio

@@ -24,7 +24,7 @@ import { TEMPLATE_MAP } from "../../templates/templates";
 import { applyTemplate, summarizeApply } from "../../templates/apply";
 import { pushRecent, updatePrefs, usePrefs } from "../../state/prefs";
 import type { Variant } from "../../model/types";
-import { hostFromConfig } from "../../publish/host";
+import { defaultHostEndpoint, hostFromConfig } from "../../publish/host";
 
 const close = () => useEditor.getState().openDialog(null);
 
@@ -414,7 +414,7 @@ export function SettingsDialog() {
       setToken(host?.token ?? "");
     }
   }, [open, host]);
-  const envDefault = import.meta.env.VITE_ASSET_HOST as string | undefined;
+  const envDefault = defaultHostEndpoint();
   const active = hostFromConfig(host);
   return (
     <Modal
@@ -430,7 +430,8 @@ export function SettingsDialog() {
           <button
             className="btn primary"
             onClick={() => {
-              updatePrefs({ host: endpoint.trim() ? { endpoint: endpoint.trim(), token: token.trim() || undefined } : undefined });
+              // Keep the key even when the address is left empty (the build default is used).
+              updatePrefs({ host: endpoint.trim() || token.trim() ? { endpoint: endpoint.trim(), token: token.trim() || undefined } : undefined });
               close();
             }}
           >

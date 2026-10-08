@@ -22,6 +22,22 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
+### Deploy (automatic)
+
+`.github/workflows/signature-studio-deploy.yml` builds the app and deploys it to Cloudflare as **one Worker** that serves both the app and the signature images (`wrangler.toml`). The images are stored in R2. Because the app and the images share one address, no CORS configuration or separate image domain is needed.
+
+One-time setup: add three repository secrets (**Settings → Secrets and variables → Actions**):
+
+| Secret | What it is |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with **Workers Scripts: Edit** and **Workers R2 Storage: Edit** |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+| `SIGNATURE_UPLOAD_KEY` | A long random password |
+
+R2 must be enabled once in the Cloudflare dashboard. After that, every push to `main` that touches `signature-studio/` deploys automatically, or you can trigger it from **Actions → Signature Studio deploy → Run workflow**. The run summary shows the live address.
+
+In the app, open **Settings** once, paste the upload key, and leave the address empty.
+
 ### Image hosting
 
 A signature that contains images can be installed only after those images are published to a public host:
