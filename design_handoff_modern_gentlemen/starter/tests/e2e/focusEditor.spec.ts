@@ -94,11 +94,13 @@ test.describe("Focus editor", () => {
     await entry.click();
     await expect(page.locator("[data-block-key]")).toHaveCount(before + 1);
 
-    // Dock the inspector; the choice survives a reload.
+    // Dock the inspector; the choice survives a reload. Clicks land near the
+    // heading's top-left: the block just inserted below it is selected, and its
+    // "Move freely" handle straddles the boundary over the heading's centre.
     await page
       .locator('[data-block-key="head"]')
       .getByRole("heading", { name: "Focus heading" })
-      .click();
+      .click({ position: { x: 12, y: 12 } });
     await page.getByRole("button", { name: "Dock", exact: true }).click();
     await expect(page.locator("[data-floating-inspector]")).toHaveCount(0);
     await expect(page.getByRole("complementary", { name: "Inspector" })).toBeVisible();
@@ -106,7 +108,7 @@ test.describe("Focus editor", () => {
     await page
       .locator('[data-block-key="head"]')
       .getByRole("heading", { name: "Focus heading" })
-      .click();
+      .click({ position: { x: 12, y: 12 } });
     await expect(page.getByRole("button", { name: "Float", exact: true })).toBeVisible();
 
     // Shortcut sheet and layout switch are reachable from the rail.
