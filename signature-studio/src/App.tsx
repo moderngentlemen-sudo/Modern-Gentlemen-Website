@@ -1,84 +1,45 @@
 import { useEffect, useState } from "react";
-import { useEditor } from "./state/store";
-import { Canvas } from "./editor/Canvas";
-import { Inspector } from "./editor/Inspector";
-import { DragGhost, Rail, StatusBar, Toasts, TopBar, useMobileSheetSync } from "./editor/Shell";
-import { Onboarding } from "./editor/Onboarding";
-import { InstallDialog } from "./editor/dialogs/InstallDialog";
-import { ImageDialog } from "./editor/dialogs/ImageDialog";
-import { ApplyTemplateDialog, ExportDialog, ProjectsDialog, SettingsDialog, ShortcutsDialog, VersionsDialog } from "./editor/dialogs/ProjectDialogs";
-import { useShortcuts } from "./editor/shortcuts";
-import { loadPrefs } from "./state/prefs";
-import { loadLibrary } from "./editor/library";
-import { openProject, startAutosave } from "./state/projects";
-import { localProjects } from "./storage/db";
+import { hydrateSources } from "./store/assets";
+import { loadAll, useStudio } from "./store/editor";
+import { Home } from "./screens/Home";
+import { Editor } from "./screens/Editor";
+import { DigitalCard } from "./screens/DigitalCard";
+import { InstallDialog } from "./dialogs/InstallDialog";
+import { SettingsDialog } from "./dialogs/SettingsDialog";
+import { CropDialog } from "./dialogs/CropDialog";
+import { Toasts } from "./ui/kit";
 
-type Boot = "loading" | "onboarding" | "ready" | "error";
+const cardToken = new URLSearchParams(location.search).get("card");
 
-export default function App() {
-  const [boot, setBoot] = useState<Boot>("loading");
-  const preview = useEditor((s) => s.preview);
-  const sheet = useEditor((s) => s.mobileSheet);
-  useShortcuts();
-  useMobileSheetSync();
+function Studio() {
+  const [ready, setReady] = useState(false);
+  const view = useStudio((s) => s.view);
+  const doc = useStudio((s) => s.doc);
+  const docs = useStudio((s) => s.docs);
 
   useEffect(() => {
-    let stop: (() => void) | undefined;
-    (async () => {
-      try {
-        const [prefs] = await Promise.all([loadPrefs(), loadLibrary()]);
-        useEditor.getState().set({ mode: prefs.mode, leftPanel: prefs.mode === "advanced" ? "add" : "templates" });
-        let opened = false;
-        if (prefs.lastProjectId) opened = await openProject(prefs.lastProjectId);
-        if (!opened) {
-          const list = await localProjects.list();
-          if (list.length) opened = await openProject(list[0].id);
-        }
-        stop = startAutosave();
-        setBoot(opened ? "ready" : "onboarding");
-        if (opened) setTimeout(() => window.dispatchEvent(new Event("ss:fit")), 60);
-      } catch (err) {
-        console.error(err);
-        setBoot("error");
-      }
-    })();
-    return () => stop?.();
+    void loadAll().finally(() => setReady(true));
   }, []);
 
-  if (boot === "loading")
-    return (
-      <div className="empty" style={{ paddingTop: "30vh" }}>
-        Loading your studio…
-      </div>
-    );
-  if (boot === "error")
-    return (
-      <div className="empty" style={{ paddingTop: "25vh" }}>
-        <strong>This browser blocked local storage.</strong>
-        Signature Studio saves your work in the browser. Please allow site data (or leave private browsing) and reload.
-      </div>
-    );
-  if (boot === "onboarding") return <Onboarding onDone={() => setBoot("ready")} />;
+  // Make uploaded images available to previews (object URLs from IndexedDB).
+  useEffect(() => {
+    const ids = new Set<string>();
+    for (const d of doc ? [doc, ...docs] : docs) for (const id of Object.keys(d.assets)) ids.add(id);
+    if (ids.size) void hydrateSources([...ids]);
+  }, [doc?.assets, docs]);
 
+  if (!ready) return null;
   return (
-    <div className={`app${preview ? " preview-mode" : ""}`}>
-      <TopBar />
-      <Rail />
-      <Canvas />
-      <aside className={`inspector${sheet === "right" ? " open" : ""}`} aria-label="Properties">
-        <Inspector />
-      </aside>
-      <StatusBar />
+    <>
+      {view === "editor" && doc ? <Editor /> : <Home />}
       <InstallDialog />
-      <ImageDialog />
-      <ApplyTemplateDialog />
-      <ExportDialog />
-      <ProjectsDialog />
-      <VersionsDialog />
       <SettingsDialog />
-      <ShortcutsDialog />
+      <CropDialog />
       <Toasts />
-      <DragGhost />
-    </div>
+    </>
   );
+}
+
+export function App() {
+  return cardToken ? <DigitalCard token={cardToken} /> : <Studio />;
 }

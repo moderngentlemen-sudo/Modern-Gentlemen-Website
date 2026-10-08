@@ -38,7 +38,7 @@ export function validateEmailHtml(html: string, opts: { allowTestHost?: boolean 
     else if (src.startsWith("blob:")) problems.push({ level: "error", message: "An image points to a temporary blob: URL." });
     else if (!isAcceptableImageUrl(src, opts.allowTestHost ?? false))
       problems.push({ level: "error", message: `An image is not hosted at a public HTTPS address (${src.slice(0, 60) || "empty"}).` });
-    if (!img.getAttribute("alt")) problems.push({ level: "warning", message: "An image has no alternative text." });
+    if (!img.hasAttribute("alt")) problems.push({ level: "warning", message: "An image has no alternative text." });
     if (!img.getAttribute("width") || !img.getAttribute("height")) problems.push({ level: "warning", message: "An image has no explicit width/height." });
   });
   doc.body.querySelectorAll("a").forEach((a) => {

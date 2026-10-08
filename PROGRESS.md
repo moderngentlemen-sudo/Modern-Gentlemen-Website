@@ -8,6 +8,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Signature Studio 3: new builder, Canva → Gmail import
+
+- **Rebuilt from scratch** at the owner's request (2.0 "felt too similar"; the
+  original handoff is set aside). `signature-studio/src` is a new form-driven
+  builder: 48 templates (24 business sectors, 24 artistic styles, 14 layouts),
+  Details / Images / Social / Design / Add-ons / Canva panels, live mock-email
+  preview (desktop/phone, dark, inbox fonts), separate reply version.
+- **Canva:** a Canva PNG/JPG export (a whole signature or a business card) is
+  trimmed of Canva's empty page margin, sized for 2× sharpness, given clickable
+  areas, and sent to Gmail as a sliced image table with linked cells —
+  pixel-exact. See `signature-studio/docs/CANVA.md`. A direct Canva Connect API
+  import needs a Canva developer app and a backend; deferred (D25).
+- **Digital business card** page at `?card=…` (data in the link, no server):
+  flip animation, Save Contact vCard, QR in the signature.
+- Hosting, the image Worker and the install pipeline (publish → verify → copy)
+  are unchanged. v3 uses new IndexedDB stores; 2.0 drafts are not migrated.
+- Gates run in `signature-studio/`: `tsc -b`, `npm test` (11), `npm run e2e`
+  (3, incl. Canva upload → trim → hotspot → publish to test host → clipboard
+  HTML), `npm run build`.
+
 ### 2026-10-08 — Signature Studio stays on Cloudflare; Railway version reserved
 
 - **Live setup (owner's Cloudflare account):** the app is the Pages project

@@ -1,57 +1,55 @@
 import qrcode from "qrcode-generator";
-import { ICON_PATHS } from "../model/iconPaths";
-import { PLATFORM_MAP } from "../model/social";
-import type { SocialIconStyle, SocialPlatform } from "../model/types";
+import { GLYPH_PATHS, ICON_PATHS } from "../core/iconPaths";
+import type { IconShape } from "../core/types";
 import { esc } from "../lib/escape";
 
-/**
- * SVG for a social icon in a given style. Used directly (as a data URL) on
- * the editor canvas, and rasterised to PNG by the publish pipeline.
- */
-export function socialIconSvg(platform: SocialPlatform, style: Exclude<SocialIconStyle, "text">, size: number, color: string, background: string): string {
+/** Social icon as SVG in one of the icon shapes. */
+export function socialSvg(platform: string, shape: IconShape, size: number, color: string): string {
   const path = ICON_PATHS[platform] ?? ICON_PATHS.custom;
-  const s = size;
-  const open = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">`;
-  const glyph = (scale: number) => {
-    const offset = (24 - 24 * scale) / 2;
-    return `<path transform="translate(${offset} ${offset}) scale(${scale})" fill="${esc(color)}" d="${path}"/>`;
+  const open = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">`;
+  const glyph = (scale: number, fill: string) => {
+    const o = (24 - 24 * scale) / 2;
+    return `<path transform="translate(${o} ${o}) scale(${scale})" fill="${esc(fill)}" d="${path}"/>`;
   };
-  switch (style) {
-    case "bare":
-      return `${open}${glyph(1)}</svg>`;
-    case "circle":
-      return `${open}<circle cx="12" cy="12" r="12" fill="${esc(background)}"/>${glyph(0.5)}</svg>`;
+  switch (shape) {
+    case "plain":
+      return `${open}${glyph(0.92, color)}</svg>`;
     case "outline":
-      return `${open}<circle cx="12" cy="12" r="11.1" fill="none" stroke="${esc(color)}" stroke-width="1.3"/>${glyph(0.48)}</svg>`;
-    case "tile":
-      return `${open}<rect width="24" height="24" rx="5" fill="${esc(background)}"/>${glyph(0.54)}</svg>`;
-    case "letter": {
-      const letter = PLATFORM_MAP[platform]?.letter ?? "•";
-      return `${open}<circle cx="12" cy="12" r="12" fill="${esc(background)}"/><text x="12" y="12" dy=".36em" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="${letter.length > 1 ? 9 : 11}" fill="${esc(color)}">${esc(letter)}</text></svg>`;
-    }
+      return `${open}<circle cx="12" cy="12" r="11.1" fill="none" stroke="${esc(color)}" stroke-width="1.4"/>${glyph(0.48, color)}</svg>`;
+    case "circle":
+      return `${open}<circle cx="12" cy="12" r="12" fill="${esc(color)}"/>${glyph(0.52, "#ffffff")}</svg>`;
+    case "rounded":
+      return `${open}<rect width="24" height="24" rx="6" fill="${esc(color)}"/>${glyph(0.54, "#ffffff")}</svg>`;
+    case "square":
+      return `${open}<rect width="24" height="24" fill="${esc(color)}"/>${glyph(0.54, "#ffffff")}</svg>`;
   }
 }
 
-export interface QrMatrix {
-  count: number;
-  dark: (r: number, c: number) => boolean;
+/** Small contact/add-on glyph (phone, email, star…). */
+export function glyphSvg(name: string, size: number, color: string, background?: string): string {
+  const path = GLYPH_PATHS[name] ?? GLYPH_PATHS.website;
+  const bg = background ? `<rect width="24" height="24" rx="12" fill="${esc(background)}"/>` : "";
+  const scale = background ? 0.6 : 1;
+  const o = (24 - 24 * scale) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">${bg}<path transform="translate(${o} ${o}) scale(${scale})" fill="${esc(color)}" d="${path}"/></svg>`;
 }
 
-export function qrMatrix(value: string): QrMatrix {
+/** App store badge (text-based, brand-neutral). */
+export function badgeSvg(store: "apple" | "google", height: number): string {
+  const w = Math.round(height * 3.1);
+  const [small, big] = store === "apple" ? ["Download on the", "App Store"] : ["GET IT ON", "Google Play"];
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${height}" viewBox="0 0 124 40"><rect width="124" height="40" rx="7" fill="#000"/><rect x=".5" y=".5" width="123" height="39" rx="6.5" fill="none" stroke="#a6a6a6"/><text x="62" y="16" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#fff">${small}</text><text x="62" y="31" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#fff">${big}</text></svg>`;
+}
+
+export function qrSvg(value: string, size: number, color: string): string {
   const qr = qrcode(0, "M");
   qr.addData(value || " ");
   qr.make();
-  return { count: qr.getModuleCount(), dark: (r, c) => qr.isDark(r, c) };
-}
-
-/** QR code as an SVG with a 2-module quiet zone. */
-export function qrSvg(value: string, size: number, color: string, background: string): string {
-  const m = qrMatrix(value);
-  const quiet = 2;
-  const n = m.count + quiet * 2;
+  const count = qr.getModuleCount();
+  const n = count + 4;
   let d = "";
-  for (let r = 0; r < m.count; r++) for (let c = 0; c < m.count; c++) if (m.dark(r, c)) d += `M${c + quiet} ${r + quiet}h1v1h-1z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><rect width="${n}" height="${n}" fill="${esc(background)}"/><path fill="${esc(color)}" d="${d}"/></svg>`;
+  for (let r = 0; r < count; r++) for (let c = 0; c < count; c++) if (qr.isDark(r, c)) d += `M${c + 2} ${r + 2}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><rect width="${n}" height="${n}" fill="#fff"/><path fill="${esc(color)}" d="${d}"/></svg>`;
 }
 
 export function svgDataUrl(svg: string): string {

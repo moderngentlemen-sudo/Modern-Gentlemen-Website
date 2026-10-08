@@ -1,12 +1,11 @@
 /**
- * Produce the exact image bytes a recipient will download: crop, zoom,
- * shape, corner radius and tint are baked into a 2× PNG/JPEG so the result
- * looks identical in Gmail, Outlook and Apple Mail.
+ * Turn an image request into the exact PNG/JPEG a recipient downloads, at 2×.
  */
-import { BUILTINS } from "../model/builtins";
-import type { ImageRequest } from "../render/email";
-import { qrSvg, socialIconSvg, svgDataUrl } from "../render/icons";
-import { sourceUrl } from "../state/assets";
+import type { ImageRequest } from "../render/render";
+import { estimateScriptWidth, SCRIPT_FONT } from "../render/render";
+import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "../render/icons";
+import { GLYPH_PATHS } from "../core/iconPaths";
+import { sourceUrl } from "../store/assets";
 
 export const DENSITY = 2;
 
@@ -14,81 +13,120 @@ export interface Derivative {
   blob: Blob;
   mime: "image/png" | "image/jpeg";
   ext: "png" | "jpg";
-  width: number;
-  height: number;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+function load(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("The source image could not be loaded."));
+    img.onerror = () => reject(new Error("The source image could not be loaded. Try re-uploading it."));
     img.src = src;
   });
 }
 
 function canvas(w: number, h: number) {
   const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
+  c.width = Math.max(1, Math.round(w));
+  c.height = Math.max(1, Math.round(h));
   const ctx = c.getContext("2d")!;
   ctx.imageSmoothingQuality = "high";
   return { c, ctx };
 }
 
-function toBlob(c: HTMLCanvasElement, mime: Derivative["mime"]): Promise<Blob> {
+function encode(c: HTMLCanvasElement, jpeg: boolean): Promise<Derivative> {
+  const mime = jpeg ? "image/jpeg" : "image/png";
   return new Promise((resolve, reject) =>
-    c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't encode the image."))), mime, mime === "image/jpeg" ? 0.9 : undefined),
+    c.toBlob(
+      (b) => (b ? resolve({ blob: b, mime, ext: jpeg ? "jpg" : "png" }) : reject(new Error("Couldn't encode the image."))),
+      mime,
+      jpeg ? 0.9 : undefined,
+    ),
   );
 }
 
-function clipShape(ctx: CanvasRenderingContext2D, w: number, h: number, shape: string, radius: number) {
-  ctx.beginPath();
-  if (shape === "circle") ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
-  else if (shape === "rounded") ctx.roundRect(0, 0, w, h, radius);
-  else ctx.rect(0, 0, w, h);
-  ctx.clip();
+function asset(id: string): string {
+  const src = sourceUrl(id);
+  if (!src) throw new Error("The original image is missing from this browser. Re-upload it.");
+  return src;
 }
 
-export async function deriveImage(req: ImageRequest, mimeOf: (assetId: string) => string | undefined): Promise<Derivative> {
-  if (req.kind === "asset" || (req.kind === "icon" && req.assetId)) {
-    const assetId = req.assetId!;
-    const src = BUILTINS[assetId]?.url ?? sourceUrl(assetId);
-    if (!src) throw new Error("The original image is missing from this browser. Re-upload it.");
-    const img = await loadImage(src);
-    const isIcon = req.kind === "icon";
-    const w = (isIcon ? req.size : req.width) * DENSITY;
-    const h = (isIcon ? req.size : req.height) * DENSITY;
-    const { c, ctx } = canvas(w, h);
-    const shape = isIcon ? "circle" : req.shape;
-    clipShape(ctx, w, h, shape, (isIcon ? 0 : req.radius) * DENSITY);
-    const nat = { w: img.naturalWidth || BUILTINS[assetId]?.width || w, h: img.naturalHeight || BUILTINS[assetId]?.height || h };
-    if (req.kind === "asset") {
-      // crop rect is in the asset's recorded natural size; rescale if the
-      // decoded image differs (e.g. SVG intrinsic size).
-      const meta = BUILTINS[assetId];
-      const kx = meta ? nat.w / meta.width : 1;
-      const ky = meta ? nat.h / meta.height : 1;
-      ctx.drawImage(img, req.crop.sx * kx, req.crop.sy * ky, req.crop.sw * kx, req.crop.sh * ky, 0, 0, w, h);
-      if (req.tint) {
-        ctx.globalCompositeOperation = "source-in";
-        ctx.fillStyle = req.tint;
-        ctx.fillRect(0, 0, w, h);
-      }
-    } else {
-      const side = Math.min(nat.w, nat.h);
-      ctx.drawImage(img, (nat.w - side) / 2, (nat.h - side) / 2, side, side, 0, 0, w, h);
+async function svg(markup: string, w: number, h: number, crisp = false): Promise<Derivative> {
+  const img = await load(svgDataUrl(markup));
+  const { c, ctx } = canvas(w * DENSITY, h * DENSITY);
+  if (crisp) ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return encode(c, false);
+}
+
+export async function derive(req: ImageRequest, mimeOf: (assetId: string) => string | undefined): Promise<Derivative> {
+  switch (req.kind) {
+    case "crop": {
+      const img = await load(asset(req.assetId));
+      const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
+      ctx.beginPath();
+      if (req.shape === "circle") ctx.ellipse(c.width / 2, c.height / 2, c.width / 2, c.height / 2, 0, 0, Math.PI * 2);
+      else if (req.shape === "rounded") ctx.roundRect(0, 0, c.width, c.height, req.radius * DENSITY);
+      else ctx.rect(0, 0, c.width, c.height);
+      ctx.clip();
+      ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, 0, 0, c.width, c.height);
+      return encode(c, req.shape === "square" && mimeOf(req.assetId) === "image/jpeg");
     }
-    const photo = req.kind === "asset" && req.shape === "rect" && !req.tint && mimeOf(assetId) === "image/jpeg";
-    const mime = photo ? "image/jpeg" : "image/png";
-    return { blob: await toBlob(c, mime), mime, ext: photo ? "jpg" : "png", width: w / DENSITY, height: h / DENSITY };
+    case "slice": {
+      // Draw the whole card (with rounded corners) then cut the slice out, so
+      // corners and edges line up perfectly between slices.
+      const img = await load(asset(req.assetId));
+      const full = canvas(req.cardW * DENSITY, req.cardH * DENSITY);
+      full.ctx.beginPath();
+      full.ctx.roundRect(0, 0, full.c.width, full.c.height, req.radius * DENSITY);
+      full.ctx.clip();
+      full.ctx.drawImage(img, 0, 0, full.c.width, full.c.height);
+      const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
+      ctx.drawImage(full.c, req.x * DENSITY, req.y * DENSITY, c.width, c.height, 0, 0, c.width, c.height);
+      // Photographic designs (JPEG exports) stay JPEG; PNG keeps text and transparency crisp.
+      return encode(c, req.radius === 0 && mimeOf(req.assetId) === "image/jpeg");
+    }
+    case "video": {
+      const img = await load(asset(req.assetId));
+      const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
+      ctx.beginPath();
+      ctx.roundRect(0, 0, c.width, c.height, 8 * DENSITY);
+      ctx.clip();
+      ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, 0, 0, c.width, c.height);
+      ctx.fillStyle = "rgba(0,0,0,.18)";
+      ctx.fillRect(0, 0, c.width, c.height);
+      const play = await load(svgDataUrl(glyphSvg("play", 44, "#ffffff")));
+      const s = 44 * DENSITY;
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(play, (c.width - s) / 2, (c.height - s) / 2, s, s);
+      return encode(c, true);
+    }
+    case "social":
+      return svg(socialSvg(req.platform, req.shape as never, req.size * DENSITY, req.color), req.size, req.size);
+    case "glyph":
+      if (!GLYPH_PATHS[req.name]) throw new Error(`Unknown icon ${req.name}`);
+      return svg(glyphSvg(req.name, req.size * DENSITY, req.color, req.bg), req.size, req.size);
+    case "badge": {
+      const w = Math.round(req.height * 3.1);
+      return svg(badgeSvg(req.store, req.height * DENSITY), w, req.height);
+    }
+    case "qr":
+      return svg(qrSvg(req.value, req.size * DENSITY, req.color), req.size, req.size, true);
+    case "script": {
+      await document.fonts.load(`${req.size * DENSITY}px "${SCRIPT_FONT}"`);
+      const w = estimateScriptWidth(req.text, req.size);
+      const h = Math.round(req.size * 1.35);
+      const { c, ctx } = canvas(w * DENSITY, h * DENSITY);
+      let size = req.size * DENSITY;
+      ctx.font = `${size}px "${SCRIPT_FONT}", cursive`;
+      while (ctx.measureText(req.text).width > c.width - 4 && size > 8) {
+        size -= 2;
+        ctx.font = `${size}px "${SCRIPT_FONT}", cursive`;
+      }
+      ctx.fillStyle = req.color;
+      ctx.textBaseline = "middle";
+      ctx.fillText(req.text, 2, c.height / 2);
+      return encode(c, false);
+    }
   }
-  const size = req.size * DENSITY;
-  const svg = req.kind === "icon" ? socialIconSvg(req.platform, req.style, size, req.color, req.background) : qrSvg(req.value, size, req.color, req.background);
-  const img = await loadImage(svgDataUrl(svg));
-  const { c, ctx } = canvas(size, size);
-  if (req.kind === "qr") ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, 0, 0, size, size);
-  return { blob: await toBlob(c, "image/png"), mime: "image/png", ext: "png", width: req.size, height: req.size };
 }
