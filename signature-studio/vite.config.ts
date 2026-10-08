@@ -7,6 +7,6 @@ export default defineConfig({
   build: { assetsInlineLimit: 0 },
   test: {
     environment: "jsdom",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "server/**/*.test.mjs"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 } as never);

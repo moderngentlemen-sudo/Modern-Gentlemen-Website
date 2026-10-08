@@ -8,26 +8,23 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-### 2026-10-08 — Signature Studio runs on Railway (app + image host in one server)
+### 2026-10-08 — Signature Studio stays on Cloudflare; Railway version reserved
 
-- **No Cloudflare.** `signature-studio/server/index.mjs` is a dependency-free Node
-  server. It serves the built app and stores/serves signature images on a
-  **Railway volume** (found via `RAILWAY_VOLUME_MOUNT_PATH`). Uploads are PUT
-  `/s/<sha256>.<png|jpg|gif>` with `Authorization: Bearer $UPLOAD_KEY`; reads are
-  public and immutable. `/admin/backup.tar` downloads every image (key required);
-  the app's Settings has a button for it. `/healthz` is the health check.
-- `signature-studio/railway.json` + `nixpacks.toml` mirror the website's setup.
-  Railway service: Root Directory `signature-studio`, a volume attached,
-  variable `UPLOAD_KEY`; optional `PUBLIC_URL` once a custom domain exists.
-- The app is built with `VITE_ASSET_HOST=same-origin`, so it publishes images to
-  its own address.
-- Fixed: the Settings dialog discarded the upload key when the address field was
-  left empty.
-- The Cloudflare Worker (`signature-studio/worker/`) and the local test host
-  (`scripts/dev-host.mjs`) are removed. `npm run dev:host` and the e2e suite now run
-  the real server. Decision D22 in `signature-studio/docs/DECISIONS.md`.
-- ⚠️ Never delete the Railway volume or the service's domain: sent signatures
-  link to images there.
+- **Live setup (owner's Cloudflare account):** the app is the Pages project
+  `modern-gentlemen-website` (root `signature-studio`), at
+  `https://modern-gentlemen-website.pages.dev`. Images are served by the Worker
+  `signature-studio-images` (R2), built with `VITE_ASSET_HOST` set to its
+  workers.dev address. The Worker's `ALLOWED_ORIGINS` must list the **permanent**
+  pages.dev address. A separate Pages project, `signature-studio`, sits behind a
+  Cloudflare Access login and is unused.
+- This change: the Settings dialog no longer discards the upload key when the
+  address field is empty, and the image Worker gains `GET /admin/backup.tar`
+  (key required), with a **Download backup of published images** button in
+  Settings. The dashboard copy `worker/dashboard-worker.js` is regenerated; the
+  deployed Worker needs its code re-pasted to get backups.
+- **Railway alternative reserved** on branch `claude/signature-studio-railway`:
+  one Node server for the app and images on a volume. Not merged. See D22 in
+  `signature-studio/docs/DECISIONS.md`.
 
 ### 2026-10-08 — Signature Studio 2.0 added as a standalone app (branch `claude/signature-studio-2-remake-jmzvj4`)
 

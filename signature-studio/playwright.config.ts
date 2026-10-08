@@ -23,7 +23,7 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: "node server/index.mjs",
+      command: "node scripts/dev-host.mjs",
       port: 8787,
       env: { UPLOAD_KEY: "dev-key" },
       reuseExistingServer: true,

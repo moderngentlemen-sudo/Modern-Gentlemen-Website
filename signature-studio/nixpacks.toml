@@ -1,5 +1,0 @@
-# Railway / Nixpacks build config for Signature Studio (service root: signature-studio/).
-# Pins Node 22. Build & start commands are defined in railway.json.
-
-[phases.setup]
-nixPkgs = ["nodejs_22"]

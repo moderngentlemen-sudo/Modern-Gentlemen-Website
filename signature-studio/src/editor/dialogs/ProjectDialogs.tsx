@@ -24,7 +24,7 @@ import { TEMPLATE_MAP } from "../../templates/templates";
 import { applyTemplate, summarizeApply } from "../../templates/apply";
 import { pushRecent, updatePrefs, usePrefs } from "../../state/prefs";
 import type { Variant } from "../../model/types";
-import { defaultHostEndpoint, hostFromConfig } from "../../publish/host";
+import { hostFromConfig } from "../../publish/host";
 
 const close = () => useEditor.getState().openDialog(null);
 
@@ -414,7 +414,7 @@ export function SettingsDialog() {
       setToken(host?.token ?? "");
     }
   }, [open, host]);
-  const envDefault = defaultHostEndpoint();
+  const envDefault = import.meta.env.VITE_ASSET_HOST as string | undefined;
   const active = hostFromConfig(host);
   return (
     <Modal
@@ -454,7 +454,7 @@ export function SettingsDialog() {
       />
       <TextInput label="Upload key" type="password" value={token} onChange={setToken} hint="Stored only in this browser" />
       <p className="hint">
-        Signature Studio's own server stores your signature images (see <code>signature-studio/README.md</code>). Images are stored at permanent,
+        Signature Studio's image host is a small Cloudflare Worker with R2 storage (see <code>worker/README.md</code>). Images are stored at permanent,
         content-addressed links and are verified by downloading them anonymously before your signature is marked ready.
       </p>
       <BackupButton endpoint={endpoint.trim() || envDefault || ""} token={token.trim()} />
@@ -479,10 +479,18 @@ function BackupButton({ endpoint, token }: { endpoint: string; token: string }) 
           try {
             const res = await fetch(`${endpoint.replace(/\/$/, "")}/admin/backup.tar`, { headers: { Authorization: `Bearer ${token}` }, credentials: "omit" });
             if (res.status === 401) throw new Error("The upload key was not accepted.");
+            if (res.status === 404) throw new Error("This image host doesn't support backups yet. Update its code (see worker/README.md).");
             if (!res.ok) throw new Error(`The image host answered ${res.status}.`);
             downloadFile(`signature-images-${new Date().toISOString().slice(0, 10)}.tar`, await res.blob());
           } catch (err) {
-            toast(err instanceof Error ? err.message : "Backup failed.", "error");
+            toast(
+              err instanceof TypeError
+                ? "Couldn't reach the image host from this address. Check its ALLOWED_ORIGINS setting."
+                : err instanceof Error
+                  ? err.message
+                  : "Backup failed.",
+              "error",
+            );
           } finally {
             setBusy(false);
           }
