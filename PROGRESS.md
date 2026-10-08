@@ -8,6 +8,20 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Signature Studio 2.0 added as a standalone app (branch `claude/signature-studio-2-remake-jmzvj4`)
+
+- **New top-level folder `signature-studio/`**: an email-signature design studio
+  (Vite + React + TypeScript), separate from the Next.js site. It does **not**
+  touch `design_handoff_modern_gentlemen/starter/`, its database or Railway.
+  Read `signature-studio/README.md` and `signature-studio/docs/` (proposal,
+  decisions, implementation report, Gmail acceptance protocol).
+- It has its own CI workflow, `.github/workflows/signature-studio.yml`, which is
+  path-filtered to `signature-studio/**` and runs typecheck, unit tests, build
+  and Playwright e2e.
+- Images in installed signatures are meant for a Cloudflare R2 Worker
+  (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
+  Gmail acceptance has not been performed.
+
 ### 2026-10-08 — Coming Soon remade as editable Stage layouts (branch `claude/coming-soon-composable`)
 
 - The owner asked for the CS22–CS35 coming-soon pages to be fully editable in
