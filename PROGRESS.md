@@ -64,6 +64,12 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   drag, corner scale and insert all worked with no page errors. Gates: format,
   lint, typecheck, 4,065 unit tests, build, `test:a11y` (29) all pass.
 - Not done: no E2E spec drives a stage drag against the database yet.
+- PR #127. The first CI run failed two E2E specs that this change broke
+  on purpose: the insert rail now leads with the built-in Coming soon
+  layouts (so "first entry" became a pattern; the Focus spec now targets a
+  section via `data-library-block`), and the gradient control sits in the
+  collapsed "Background & gradient" group (the grid spec opens it). All
+  four CI jobs green on `d2c90ac`.
 
 ### 2026-10-08 — Coming Soon pages were not editable in Focus (branch `claude/coming-soon-focus`)
 
