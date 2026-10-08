@@ -36,3 +36,15 @@ Alternatively, set `VITE_ASSET_HOST` at build time so the address is pre-filled.
 ## Before accounts exist
 
 The upload key is a single shared secret for one workspace, such as Modern Gentlemen's own deployment. Once accounts exist (Phase 5), uploads will require a signed-in session token instead and the shared key will be retired.
+
+## Deploy without a terminal (for example, from an iPad)
+
+Everything above can also be done in the Cloudflare dashboard:
+
+1. **R2 → Create bucket** named `signature-studio-images`.
+2. **Workers & Pages → Create → Worker**, then **Edit code**. Replace the code with [`dashboard-worker.js`](dashboard-worker.js) and click **Deploy**.
+3. In the Worker's **Settings → Bindings**, add an **R2 bucket** binding with variable name `IMAGES` and bucket `signature-studio-images`.
+4. In **Settings → Variables and Secrets**, add:
+   * `UPLOAD_KEY` as a **Secret**, set to a long random value;
+   * `ALLOWED_ORIGINS` as **Text**, set to the app's address(es), comma-separated.
+5. In **Settings → Domains & Routes**, add a custom domain such as `img.your-domain.com`.
