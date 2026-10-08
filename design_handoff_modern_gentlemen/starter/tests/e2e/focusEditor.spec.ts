@@ -151,4 +151,22 @@ test.describe("Focus editor", () => {
       /\/preview\//
     );
   });
+  test("schedules a draft from the publish menu and cancels it again", async ({ page }) => {
+    await page.goto(`/admin/pages/${id}`);
+    await page.getByRole("button", { name: "More publishing options" }).click();
+    await page.getByRole("menuitem", { name: /Schedule/ }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "Tomorrow, 9:00" }).click();
+    await dialog.getByRole("button", { name: "Schedule", exact: true }).click();
+    await expect(page.getByText(/^Publishes /)).toBeVisible();
+
+    // The schedule survives a reload: it is the row's status, not page state.
+    await page.reload();
+    await expect(page.getByText(/^Publishes /)).toBeVisible();
+
+    await page.getByRole("button", { name: "More publishing options" }).click();
+    await page.getByRole("menuitem", { name: "Cancel schedule" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Cancel schedule" }).click();
+    await expect(page.getByText(/^Publishes /)).toHaveCount(0);
+  });
 });
