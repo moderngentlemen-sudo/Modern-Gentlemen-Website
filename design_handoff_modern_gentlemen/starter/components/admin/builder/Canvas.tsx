@@ -42,8 +42,11 @@ import { useBuilder } from "./StoreContext";
 import { usePattern } from "./PatternsContext";
 import { gapDropId, parseDragId, type DropLocation } from "./dnd";
 import { GridControls } from "./GridControls";
+import { StageControls } from "./StageControls";
+import { stageCellClass, stageInnerClass } from "@/components/sections/StageLayout";
+import { stageVariables, type StagePlacement } from "@/lib/blocks/stage";
 import { gridPlacement, gridPosition, type GridPlacement } from "@/lib/blocks/grid";
-import { subtreeContains } from "./tree";
+import { locate, subtreeContains } from "./tree";
 
 /** Widths the device switcher previews at. */
 const DEVICE_WIDTH = {
@@ -738,6 +741,20 @@ function SortableBlock({
     (s) => parentKey !== null && findBlock(s.tree, parentKey)?._type === "gridLayout"
   );
   const [gridPreview, setGridPreview] = useState<GridPlacement | null>(null);
+  /**
+   * A Stage child is placed by `visual.stage`, not by order: "free" or "stack"
+   * says which phone mode its stage uses, and `null` means it is not on a stage.
+   */
+  const stageMode = useBuilder((s) => {
+    const parent = parentKey !== null ? findBlock(s.tree, parentKey) : undefined;
+    if (parent?._type !== "stageLayout") return null;
+    return (parent.settings as { mobileLayout?: string } | undefined)?.mobileLayout === "free"
+      ? "free"
+      : "stack";
+  });
+  const inStage = stageMode !== null;
+  const stageIndex = useBuilder((s) => (inStage ? (locate(s.tree, node._key)?.index ?? 0) : 0));
+  const [stagePreview, setStagePreview] = useState<StagePlacement | null>(null);
   const selectedKeys = useBuilder((s) => s.selectedKeys);
   const select = useBuilder((s) => s.select);
   const duplicate = useBuilder((s) => s.duplicate);
@@ -835,12 +852,19 @@ function SortableBlock({
     <div
       ref={setNodeRef}
       data-block-key={node._key}
+      data-stage-frame={inStage ? "" : undefined}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
         ...(inGrid ? gridPosition(gridPreview ?? gridPlacement(node.visual?.grid, device)) : {}),
+        ...(inStage
+          ? stageVariables(
+              stagePreview ? { ...node.visual?.stage, [device]: stagePreview } : node.visual?.stage,
+              { index: stageIndex }
+            )
+          : {}),
       }}
-      className={clsx("group relative", isDragging && "opacity-60")}
+      className={clsx("group", inStage ? stageCellClass : "relative", isDragging && "opacity-60")}
       /*
         ⚠️ `stopPropagation` is what makes the INNERMOST block win.
 
@@ -894,7 +918,8 @@ function SortableBlock({
             section has no such links to kill.
           */
           !slot && !isRef && "[&_a]:pointer-events-none [&_button]:pointer-events-none",
-          (hidden || hiddenOnDevice) && "opacity-40"
+          (hidden || hiddenOnDevice) && "opacity-40",
+          inStage && stageInnerClass
         )}
         data-preview-hidden={hidden || hiddenOnDevice || undefined}
       >
@@ -970,10 +995,20 @@ function SortableBlock({
       />
 
       {selected && inGrid && !locked && <GridControls node={node} onPreview={setGridPreview} />}
-      {modern && selected && selectedKeys.length === 1 && !locked && !inGrid && (
+      {inStage && (
+        <StageControls
+          node={node}
+          index={stageIndex}
+          mobileFree={stageMode === "free"}
+          selected={selected && selectedKeys.length === 1}
+          label={label}
+          onPreview={setStagePreview}
+        />
+      )}
+      {modern && selected && selectedKeys.length === 1 && !locked && !inGrid && !inStage && (
         <FreeCanvasControls node={node} onPreview={setFreePreview} />
       )}
-      {!modern && selected && selectedKeys.length === 1 && !locked && !inGrid && (
+      {!modern && selected && selectedKeys.length === 1 && !locked && !inGrid && !inStage && (
         <>
           <div
             aria-hidden="true"

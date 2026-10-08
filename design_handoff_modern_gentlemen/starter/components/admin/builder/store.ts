@@ -1,4 +1,5 @@
 import { gridPlacementSchema, type GridPlacement, type GridDevice } from "@/lib/blocks/grid";
+import { stagePlacementSchema, type StageDevice, type StagePlacement } from "@/lib/blocks/stage";
 /**
  * The builder's editing state.
  *
@@ -201,6 +202,8 @@ export interface BuilderActions {
    * relationship to the pattern afterwards.
    */
   detachPatternRef: (key: string, blocks: BlockTree) => void;
+  /** Swaps one block for others in its place, as one undo step. Refused on a locked block. */
+  replaceBlock: (key: string, blocks: BlockTree) => void;
   duplicate: (key: string) => void;
   remove: (key: string) => void;
   duplicateSelected: () => void;
@@ -212,6 +215,18 @@ export interface BuilderActions {
   moveTo: (activeKey: string, parentKey: string | null, index: number) => void;
 
   setGridPlacement: (key: string, device: GridDevice, placement: GridPlacement | undefined) => void;
+  /**
+   * One element's place on a Stage for one device; `undefined` clears that
+   * device so it falls back (tablet → desktop; phones stack). A drag commits
+   * once on release, and an arrow-key run on one element coalesces into one
+   * undo step.
+   */
+  setStagePlacement: (
+    key: string,
+    device: StageDevice,
+    placement: StagePlacement | undefined,
+    options?: { coalesce?: boolean }
+  ) => void;
   setSetting: (key: string, path: (string | number)[], value: unknown) => void;
   unsetSetting: (key: string, path: (string | number)[]) => void;
   listAdd: (key: string, path: (string | number)[], item: unknown) => void;
@@ -575,6 +590,11 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
         set({ selectedKey: node._key, selectedKeys: [node._key] });
       },
 
+      replaceBlock: (key, blocks) => {
+        if (findBlock(get().tree, key)?.locked) return;
+        get().detachPatternRef(key, blocks);
+      },
+
       detachPatternRef: (key, blocks) => {
         const at = locate(get().tree, key);
         if (at === null || blocks.length === 0) return;
@@ -724,6 +744,20 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           if (!node.visual.grid) node.visual.grid = {};
           if (placement) node.visual.grid[device] = placement;
           else delete node.visual.grid[device];
+        }),
+      setStagePlacement: (key, device, placement, options) =>
+        commit(options?.coalesce ? `stage:${key}:${device}` : null, (draft) => {
+          const node = findDraft(draft, key);
+          if (
+            !node ||
+            node.locked ||
+            (placement && !stagePlacementSchema.safeParse(placement).success)
+          )
+            return;
+          if (!node.visual) node.visual = {};
+          if (!node.visual.stage) node.visual.stage = {};
+          if (placement) node.visual.stage[device] = placement;
+          else delete node.visual.stage[device];
         }),
       setVisualStyle: (key, breakpoint, patch, options) =>
         commit(options?.discrete ? null : `visual:${key}:${breakpoint}`, (draft) => {

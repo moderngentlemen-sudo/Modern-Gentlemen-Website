@@ -2,6 +2,15 @@ import { editorialCollectionManifests } from "./editorialCollection";
 import { studioCanvas, studioElement } from "./studioCanvas";
 import { widgetStudio } from "./widgetStudio";
 import { gridLayout } from "./gridLayout";
+import { stageLayout } from "./stageLayout";
+import {
+  nativeCountdown,
+  nativeKnockout,
+  nativeLogo,
+  nativeShape,
+  nativeSignup,
+  nativeSocial,
+} from "./launchElements";
 import { signatureSectionManifests } from "./mgSignatureSections";
 /**
  * The manifest set — one entry per block in `components/sections/registry.ts`.
@@ -103,6 +112,7 @@ export const blockManifests = {
   layoutContainer,
   widgetStudio,
   gridLayout,
+  stageLayout,
   stack,
   nativeHeading,
   nativeText,
@@ -115,6 +125,12 @@ export const blockManifests = {
   nativeButton,
   nativeDivider,
   nativeSpacer,
+  nativeCountdown,
+  nativeSignup,
+  nativeSocial,
+  nativeLogo,
+  nativeKnockout,
+  nativeShape,
   patternRef,
   documentContent,
   documentContentGap,

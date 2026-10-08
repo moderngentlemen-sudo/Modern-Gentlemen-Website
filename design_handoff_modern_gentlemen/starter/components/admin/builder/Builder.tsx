@@ -30,6 +30,7 @@ import { AreaSwitcher } from "./AreaSwitcher";
 import { EditorExperience, EditorExperienceSwitch, useEditorExperience } from "./EditorExperience";
 import { FocusLayout } from "./FocusEditor";
 import type { FocusCommand } from "./FocusTools";
+import { STAGE_STARTERS, stageStarter } from "@/lib/blocks/stageStarters";
 import { Canvas } from "./Canvas";
 import { WidgetLibrary } from "./WidgetLibrary";
 import { InsertMenu } from "./InsertMenu";
@@ -133,6 +134,20 @@ export type { SerializedIssue };
  * server round-trip on click would put a spinner in the middle of an operation
  * that is otherwise a local tree edit.
  */
+const BUILT_IN_LAYOUTS: BuilderPattern[] = STAGE_STARTERS.map(({ id, label }) => {
+  const blocks = stageStarter(id);
+  return {
+    id: `layout:cs${id}`,
+    name: `Coming soon · CS${id} ${label}`,
+    description: "Editable layout: drag, scale and restyle every element, or add your own.",
+    blockCount: (blocks[0].children?.length ?? 0) + 1,
+    blocks,
+    syncMode: "detachable",
+    published: true,
+    category: { label: "Coming soon layouts", position: 1000 },
+  };
+});
+
 export interface BuilderPattern {
   id: string;
   name: string;
@@ -197,6 +212,20 @@ export function Builder({
     [actions, id, area]
   );
 
+  /**
+   * The fourteen coming-soon layouts ride along as built-in, copy-on-insert
+   * patterns on pages and templates, so the Insert pane, its hover previews and
+   * the command bar offer them with no extra wiring. They never reach the
+   * database as patterns: inserting copies their blocks.
+   */
+  const allPatterns = useMemo(
+    () =>
+      init.doc.type === "page" || init.doc.type === "template"
+        ? [...patterns, ...BUILT_IN_LAYOUTS]
+        : patterns,
+    [patterns, init.doc.type]
+  );
+
   return (
     <BuilderStoreProvider init={init}>
       {/*
@@ -206,13 +235,13 @@ export function Builder({
         seventh prop threaded through a recursive component.
       */}
       <EditorExperience>
-        <PatternsProvider patterns={patterns}>
+        <PatternsProvider patterns={allPatterns}>
           <BuilderLayout
             callbacks={callbacks}
             identityAction={actions.savePageIdentity}
             canPublish={canPublish}
             canPreview={canPreview}
-            patterns={patterns}
+            patterns={allPatterns}
             styleClasses={styleClasses}
             templateOverride={templateOverride}
             previewContexts={previewContexts}
@@ -487,7 +516,10 @@ function BuilderLayout({
    */
   function onInsertBlock(type: string) {
     const selected = selectedKey ? findBlock(tree, selectedKey) : null;
-    if (selected?._type === "gridLayout" && !selected.locked) {
+    if (
+      (selected?._type === "gridLayout" || selected?._type === "stageLayout") &&
+      !selected.locked
+    ) {
       insert(type, undefined, selected._key);
       return;
     }

@@ -219,6 +219,15 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   a unit test reads the config and asserts it. `npm run test:perf` is the gate.
   ⚠️ `fill` is `position: absolute`, so **the parent must be positioned** — a
   `static` parent lets the image escape and cover the wrong box.
+- **A Stage places its children by `visual.stage`, and scales them with CSS
+  `zoom`.** `stageLayout` children carry per-device `{x, y, w, scale, z}`
+  (`lib/blocks/stage.ts`); every device uses a 1440 design width, and phones
+  stack in reading order unless the stage is set to free. Keep `zoom`, not
+  `transform` — the editor's frames and snapping measure the layout box. A
+  knockout's `mix-blend-mode` must sit on the stage **cell** (a stacking
+  context), never inside it. The CS22–CS35 designs are starters built from
+  ordinary blocks (`lib/blocks/stageStarters.ts`); legacy `comingSoonStudio`
+  blocks still render and convert on request, never automatically.
 - **Never commit secrets.** Real values live only in
   `starter/.env.local` (gitignored). `.env.example` carries placeholder names.
 
