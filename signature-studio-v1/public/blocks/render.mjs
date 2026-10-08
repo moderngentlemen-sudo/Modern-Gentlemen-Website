@@ -1,4 +1,5 @@
 /** One renderer for the editing canvas and exports; editor attributes are opt-in. */
+import {imageMarker,missingImage} from '../shared/rendered-images.mjs';
 import {FONTS} from '../design/catalog.mjs';
 import {esc,safeUrl,safeImage,renderSignature,contrast} from '../design/engine.mjs';
 import {walk} from './model.mjs';
@@ -10,7 +11,8 @@ export function rich(text){
 }
 export function effective(node,doc,parent={}){const d=doc.design;return {font:node.type==='heading'?d.nameFont:d.bodyFont,size:node.type==='heading'?d.nameSize:d.bodySize,color:d.primary,align:d.align,weight:node.type==='heading'?d.nameWeight:400,lineHeight:d.lineHeight,tracking:0,nowrap:'inherit',...parent,...(node.type==='heading'?{font:d.nameFont,size:d.nameSize,weight:d.nameWeight}:{}),...node.style};}
 export function valueOf(n,doc){return n.props.bind?doc.identity[n.props.bind]||'':n.props.text??n.props.value??'';}
-export function renderBlocks(doc,{edit=false,images={},origin='https://example.com',fragment=null}={}){
+export function renderBlocks(doc,{edit=false,images={},origin='https://example.com',fragment=null,inventory=null,imagePrefix=''}={}){
+ const capture={inventory,imagePrefix};
  const d=doc.design,scale=d.scale/100,px=n=>Math.round(n*scale*100)/100;const style=o=>Object.entries(o).filter(([,v])=>v!==undefined&&v!==null&&v!=='').map(([k,v])=>k+':'+v).join(';');
  const table=(body,w='100%',s={},align=null)=>`<table${align?` align="${align}"`:''} role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;${esc(style(s))}">${body}</table>`;
  const a=(text,url,s={})=>url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="${esc(style({color:d.link,'text-decoration':d.linkUnderline?'underline':'none',...s}))}">${text}</a>`:text;
@@ -43,10 +45,10 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
     return `<td${att} width="${px(cw)}" style="${esc(style(colBox))}">${body}</td>`+(j<n.children.length-1?`<td width="${px(gap)}" style="width:${px(gap)}px;font-size:0">&nbsp;</td>`:'');
    }).join('')+'</tr>');
   }
-  if(n.type==='fragment'&&fragment)return fragment(n,doc,{edit,images,origin,width,style:s});
+  if(n.type==='fragment'&&fragment)return fragment(n,doc,{edit,images,origin,width,style:s,inventory,imagePrefix});
   if(n.type==='template'){
    const im={};for(const [k,v]of Object.entries(images))if(k.startsWith(n.id+':'))im[k.slice(n.id.length+1)]=v;
-   return renderSignature({...p.project,variant:doc.variant,design:{...p.project.design,scale:d.scale}},{images:im,origin});
+   return renderSignature({...p.project,variant:doc.variant,design:{...p.project.design,scale:d.scale}},{images:im,origin,inventory,imagePrefix:imagePrefix+n.id+':'});
   }
   if(n.type==='heading'||n.type==='text')return `<span${edit?' data-edit="text"':''} style="${p.italic?'font-style:italic;':''}${p.underline?'text-decoration:underline;':''}">${rich(valueOf(n,doc))}</span>`;
   if(n.type==='contact'){
@@ -57,9 +59,11 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
    if(!p.text)return '';const app=p.appearance||'outline';return table(`<tr><td align="${s.align}" style="padding:${px(6)}px ${px(12)}px;${app==='filled'?`background-color:${d.ctaColor};`:''}${app!=='text'?`border:${px(1)}px solid ${d.accent};border-radius:${px(n.style.radius??d.ctaRadius)}px;`:''}">${a(esc(p.text),safeUrl(p.url),{color:app==='filled'?d.ctaText:s.color,'text-decoration':'none'})}</td></tr>`,'',{'margin':s.align==='center'?'0 auto':s.align==='right'?'0 0 0 auto':'0'},s.align);
   }
   if(n.type==='image'||n.type==='qr'){
-   const key=n.id,src=safeImage(images[key]||p.src||'',origin);if(!src)return empty(n.type==='qr'?'Enter a QR destination':'Add artwork in the inspector');
+   const key=n.id,src=safeImage(images[key]||p.src||'',origin);
    const w=n.type==='qr'?p.size||100:p.width||92,h=n.type==='qr'?w:p.height||92;
-   const img=`<img src="${esc(src)}" alt="${esc(p.alt||'')}" width="${px(w)}" height="${px(h)}" border="0" style="display:block;width:${px(w)}px;height:${px(h)}px;margin:${s.align==='center'?'0 auto':s.align==='right'?'0 0 0 auto':'0'};border:0">`;
+   const asset={id:key,source:n.type==='qr'?p.url:p.src,kind:n.type,label:n.label,width:w,height:h,recipe:{...p,width:w,height:h}};
+   if(!src)return (asset.source?missingImage(capture,asset):'')||empty(n.type==='qr'?'Enter a QR destination':'Add artwork in the inspector');
+   const img=`<img${imageMarker(capture,asset)} src="${esc(src)}" alt="${esc(p.alt||'')}" width="${px(w)}" height="${px(h)}" border="0" style="display:block;width:${px(w)}px;height:${px(h)}px;margin:${s.align==='center'?'0 auto':s.align==='right'?'0 0 0 auto':'0'};border:0">`;
    return a(img,safeUrl(p.url));
   }
   if(n.type==='divider'){
@@ -72,7 +76,7 @@ export function renderBlocks(doc,{edit=false,images={},origin='https://example.c
    const size=p.size||24,gap=p.gap??8,app=p.appearance||'bare';return table('<tr>'+items.map((item,j)=>{
     const bg=['circle','tile'].includes(app)?d.accent:'transparent',ink=bg==='transparent'?d.accent:'#ffffff';
     let art=app==='text'?esc(item.label):app==='letter'?esc(item.label.slice(0,2)):'';
-    if(!art){const src=safeImage(images[n.id+':'+item.i]||item.customIcon||`/design/media/${item.id}-${bg==='transparent'?'dark':'light'}.png`,origin);art=`<img alt="${esc(item.label)}" src="${esc(src)}" width="${px(size-6)}" height="${px(size-6)}" border="0" style="display:block;width:${px(size-6)}px;height:${px(size-6)}px;border:0">`;}
+    if(!art){const source=item.customIcon||`/design/media/${item.id}-${bg==='transparent'?'dark':'light'}.png`,src=safeImage(images[n.id+':'+item.i]||source,origin),asset={id:n.id+':'+item.i,source,kind:'social',label:item.label,width:size-6,height:size-6,recipe:{src:source,width:size-6,height:size-6,zoom:100,fit:'contain',shape:'square',background:'transparent'}};art=src?`<img${imageMarker(capture,asset)} alt="${esc(item.label)}" src="${esc(src)}" width="${px(size-6)}" height="${px(size-6)}" border="0" style="display:block;width:${px(size-6)}px;height:${px(size-6)}px;border:0">`:missingImage(capture,asset);}
     return `<td style="padding:0 ${j===items.length-1?0:px(gap)}px 0 0">`+table(`<tr><td align="center" style="padding:${px(3)}px;color:${ink};background-color:${bg};border:${app==='outline'?px(1)+'px solid '+d.accent:'0'};border-radius:${px(app==='circle'||app==='outline'?size/2:app==='tile'?6:0)}px;font-size:${px(11)}px">${a(art,safeUrl(item.url),{color:ink})}</td></tr>`,'')+'</td>';
    }).join('')+'</tr>','',{},s.align);
   }

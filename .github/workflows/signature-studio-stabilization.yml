@@ -48,3 +48,5 @@ jobs:
         run: python tests/alignment_browser.py
       - name: Block browser workflows
         run: python tests/blocks_browser.py
+      - name: Designer export and simulated OAuth workflows
+        run: python tests/design_export_browser.py

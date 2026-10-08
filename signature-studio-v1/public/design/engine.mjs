@@ -1,3 +1,5 @@
+import {imageMarker,missingImage,normalizeEmailAssetMetadata} from '../shared/rendered-images.mjs';
+import {classifyImageSource} from '../shared/email-assets.mjs';
 import {BASE_DESIGN,FONTS,TEMPLATES,SECTIONS,freshProject,NETWORKS} from './catalog.mjs';
 
 export const esc = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -10,14 +12,17 @@ export function safeUrl(value,{email=false,phone=false}={}){
 }
 export function safeImage(src,origin='https://example.com'){
  const s=String(src||'');
+ const source=classifyImageSource(s,{origin});
+ if(['missing','private-or-signed','unsupported','malformed'].includes(source.kind))return '';
  if(/^data:image\/(?:png|jpeg|webp);base64,[a-z\d+/=\s]+$/i.test(s))return s;
+ if(source.kind==='blob'){try{return new URL(s).origin===new URL(origin).origin?s:'';}catch{return '';}}
  if(s.startsWith('/design/media/'))return new URL(s,origin).href;
  return safeUrl(s);
 }
 const TEXT_LIMIT=4000;
 export function normalizeProject(input){
  let source=input?.project||input;if(!source||typeof source!=='object'||Array.isArray(source))throw new Error('This is not a signature project.');
- const p=freshProject();
+ const p=freshProject();if(source.emailAssetMetadata)p.emailAssetMetadata=normalizeEmailAssetMetadata(source.emailAssetMetadata);
  if(source.schemaVersion===2){
   p.name=String(source.name||p.name).slice(0,100);p.templateId=String(source.templateId||p.templateId).slice(0,100);p.variant=source.variant==='reply'?'reply':'full';
   for(const key of Object.keys(p.identity))if(typeof source.identity?.[key]==='string')p.identity[key]=source.identity[key].slice(0,TEXT_LIMIT);
@@ -62,7 +67,7 @@ export function normalizeProject(input){
 }
 export function renderSignature(project,context={}){
  const p=normalizeProject(project),d={...p.design},i=p.identity,c=p.content;
- if(p.variant==='reply')Object.assign(d,{layout:'reply',showLogo:false,nameSize:Math.min(d.nameSize,18),bodySize:Math.min(d.bodySize,12),baseWidth:Math.min(d.baseWidth,420),padding:4,sectionGap:6});
+ if(p.variant==='reply')Object.assign(d,{layout:'reply',...(context.explicitVisibility?{}:{showLogo:false}),nameSize:Math.min(d.nameSize,18),bodySize:Math.min(d.bodySize,12),baseWidth:Math.min(d.baseWidth,420),padding:4,sectionGap:6});
  const scale=d.scale/100,px=v=>Math.round(v*scale*100)/100,font=FONTS[d.bodyFont].value,nameFont=FONTS[d.nameFont].value;
  const origin=context.origin||'https://example.com';
  const style=obj=>Object.entries(obj).filter(([,v])=>v!==undefined&&v!=='').map(([k,v])=>`${k}:${v}`).join(';');
@@ -86,10 +91,12 @@ export function renderSignature(project,context={}){
  };
  function image(slot,size,height=size){
   const a=p.assets[slot];if(!a?.src)return '';
-  const source=safeImage(context.images?.[slot]||a.src,origin);if(!source)return '';
+  const source=safeImage(context.images?.[slot]||a.src,origin);
+  const asset={id:slot,source:a.src,kind:slot,label:a.alt||slot,width:size,height,recipe:{...a,width:size,height,shape:slot==='portrait'?d.portraitShape:slot==='banner'?d.bannerRadius:d.logoShape,background:slot==='logo'?d.imageBackground:'transparent'}};
+  if(!source)return missingImage(context,asset);
   const shape=slot==='portrait'?d.portraitShape:d.logoShape;
   const radius=slot==='banner'?d.bannerRadius:shape==='circle'?size/2:shape==='rounded'?Math.min(16,size/5):0;
-  const img=`<img src="${esc(source)}" width="${px(size)}" height="${px(height)}" alt="${esc(a.alt)}" border="0" style="display:block;margin:${d.align==='center'?'0 auto':d.align==='right'?'0 0 0 auto':'0'};width:${px(size)}px;height:${px(height)}px;border:0;border-radius:${px(radius)}px;outline:none;text-decoration:none">`;
+  const img=`<img${imageMarker(context,asset)} src="${esc(source)}" width="${px(size)}" height="${px(height)}" alt="${esc(a.alt)}" border="0" style="display:block;margin:${d.align==='center'?'0 auto':d.align==='right'?'0 0 0 auto':'0'};width:${px(size)}px;height:${px(height)}px;border:0;border-radius:${px(radius)}px;outline:none;text-decoration:none">`;
   return link(img,safeUrl(a.link));
  }
  const logo=()=>d.showLogo?image('logo',d.logoWidth):'';
@@ -108,7 +115,8 @@ export function renderSignature(project,context={}){
   return table(tr(...list.map((s,index)=>{
    const dark=d.iconInk==='light'||(d.iconInk==='auto'&&['circle','tile'].includes(d.iconStyle));
    const imageURL=safeImage(context.images?.['social-'+s.originalIndex]||s.customIcon||`/design/media/${s.id}-${dark?'light':'dark'}.png`,origin);
-   let art=['text','letter'].includes(d.iconStyle)?esc(d.iconStyle==='text'?s.label:s.id==='linkedin'?'in':s.label.slice(0,2)):imageURL?`<img src="${esc(imageURL)}" width="${px(d.iconSize-6)}" height="${px(d.iconSize-6)}" border="0" alt="${esc(s.label)}" style="display:block;width:${px(d.iconSize-6)}px;height:${px(d.iconSize-6)}px;border:0">`:esc(s.label);
+   const asset={id:'social-'+s.originalIndex,source:s.customIcon||`/design/media/${s.id}-${dark?'light':'dark'}.png`,kind:'social',label:s.label,width:d.iconSize-6,height:d.iconSize-6,recipe:{src:s.customIcon||`/design/media/${s.id}-${dark?'light':'dark'}.png`,width:d.iconSize-6,height:d.iconSize-6,zoom:100,x:0,y:0,fit:'contain',shape:'square',background:'transparent'}};
+   let art=['text','letter'].includes(d.iconStyle)?esc(d.iconStyle==='text'?s.label:s.id==='linkedin'?'in':s.label.slice(0,2)):imageURL?`<img${imageMarker(context,asset)} src="${esc(imageURL)}" width="${px(d.iconSize-6)}" height="${px(d.iconSize-6)}" border="0" alt="${esc(s.label)}" style="display:block;width:${px(d.iconSize-6)}px;height:${px(d.iconSize-6)}px;border:0">`:missingImage(context,asset)||esc(s.label);
    const shape=table(tr(td(art,{'text-align':'center',color:dark?'#ffffff':d.accent,'font-size':px(d.bodySize)+'px','font-weight':600,'padding':px(3)+'px','background-color':['circle','tile'].includes(d.iconStyle)?d.accent:'transparent','border':d.iconStyle==='outline'?`${px(1)}px solid ${d.accent}`:0,'border-radius':['circle','outline'].includes(d.iconStyle)?px(d.iconSize)+'px':d.iconStyle==='tile'?px(5)+'px':0})),['text','letter'].includes(d.iconStyle)?'':px(d.iconSize));
    return td(link(shape,safeUrl(s.url)),{'padding-right':index<list.length-1?px(d.iconGap)+'px':0},'valign="middle"');
   })));

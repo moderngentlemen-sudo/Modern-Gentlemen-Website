@@ -8,6 +8,29 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-07 — Signature Studio email asset stabilization candidate
+
+- Scope is the separate `signature-studio-v1/` application on an isolated fix
+  branch from remote `0986073c8d5e6677837d2dae6dd5c06e70ce8d0b` (v1.5.1).
+  No unrelated website or commercial-feature code changes.
+- v1.5.2 candidate centralizes rendered-image inventory, verified public PNG
+  publication, final-byte immutable hashes, owner/consent guards and atomic
+  Full/Reply copy/install with honest clipboard/readiness recovery.
+- Read-only Railway checks confirmed the actual MG Cloud Preview dependency.
+  Initial DNS failure recovered during an externally initiated Supabase restore;
+  the project now reports Healthy and two old public images decode anonymously.
+  No cloud restore, policy change, upload, billing change or deployment was
+  initiated by this implementation. Free-plan durability remains a release issue.
+- Application tests, live-evidence boundaries and remaining release gates are in
+  `signature-studio-v1/STABILIZATION.md` and `EMAIL_ASSET_RUNBOOK.md`. Real Gmail
+  recipient testing, deployment authorization and rollback execution remain
+  outstanding. The handoff's full definition of done is not yet satisfied.
+- Final local validation: 23 syntax checks, 294 Node tests, 41 unified, 40 block,
+  34 alignment and 3 simulated designer OAuth browser cases passed. Hosting,
+  clipboard and OAuth fixtures are explicitly distinguished from real email.
+- Cost: source/render/export stabilization and regression coverage; no backend
+  migration, new hosting service, subscription work or production deployment.
+
 ### 2026-09-09 — Match native Studio sizing to the original builder
 
 - User reports that published Studio pages look enlarged and asks to match the

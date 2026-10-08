@@ -3,8 +3,10 @@ Requires playwright and Chromium. No live account or Gmail actions are performed
 """
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from browser_runtime import launch_chromium
 import json,sys,base64,cv2,numpy as np
 from blocks_harness import boot
+from email_browser_workflows import run_email_workflows
 OUT=Path(__file__).resolve().parents[1]/'test-results-blocks';OUT.mkdir(exist_ok=True)
 results=[]
 def passed(name):results.append({'name':name,'status':'passed'});print('PASS',name,flush=True)
@@ -14,7 +16,7 @@ def fresh(page,blank=False):
 def click(page,action):page.locator('[data-action="'+action+'"]').filter(visible=True).first.click()
 def settle(page):page.evaluate('blocksStudio.ready()');page.wait_for_timeout(40)
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+    browser=launch_chromium(p)
     page=browser.new_page(viewport={'width':1500,'height':1080})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     boot(page);settle(page)
@@ -168,6 +170,7 @@ with sync_playwright() as p:
         page.locator('.bottom-actions [data-action="export-png"]').click()
     f=OUT/'download-signature.png';down.value.save_as(f);png=cv2.imread(str(f));assert png is not None and png.shape[1]==1080
     passed('HTML, JSON and 2x PNG download workflows')
+    run_email_workflows(browser,boot,lambda name,fn:(fn(),passed(name)),OUT)
     # No browser exceptions across tested workflows.
     assert not errors,errors;passed('no browser JavaScript exceptions')
     # Release preview with a selected editable event invitation (no sample real-world facts).

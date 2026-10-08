@@ -2,6 +2,8 @@ import {TEMPLATES,CATEGORIES,PALETTES,FONTS,NETWORKS,SECTIONS,SECTION_LABELS,BAS
 import {esc,clamp,normalizeProject,renderSignature,preflight,safeUrl,safeImage} from './engine.mjs';
 import {prepareImages,readImage,signaturePNG} from './media.mjs';
 import {Cloud} from './cloud.mjs';
+import {prepareEmailAssets} from '../shared/email-assets.mjs';
+import {createGmailExport,exportMessage,readinessMarkup,consentMarkup,installationGuide,unusedArtworkRows,variantReadiness} from '../shared/gmail-export.mjs';
 
 const $=id=>document.getElementById(id),clone=x=>structuredClone(x),config=window.SIGNATURE_STUDIO_CONFIG||{},cloud=new Cloud(config);
 const STORE='signature-studio.design.v2',STYLE_STORE='signature-studio.styles.v2',FAV_STORE='signature-studio.favorites.v2';
@@ -13,6 +15,29 @@ try{const row=library.projects.find(r=>r.id===activeId);if(row){p=normalizeProje
 if(!p){let legacy=readStored('signatureStudioV1.1',null)||readStored('signatureStudioV1',null);try{p=legacy?normalizeProject(legacy):freshProject();}catch{p=freshProject();}activeId=crypto.randomUUID();}
 let panel='content',undo=[],redo=[],lastGroup='',lastEdit=0,saveTimer,toastTimer,renderVersion=0,prepared={images:{},keys:{},errors:[]},latestHTML='',latestWidth=0,latestHeight=0,keepBrand=false,viewZoom=1,pendingImage=null,renderPromise=Promise.resolve(),cloudBusy=false;
 let galleryFilter='All',gallerySearch='';
+let emailRows=[],emailUnused=[],emailBusy=false,emailNotice='',pendingEmail=null,emailRun=0,emailExpiryTimer;
+const gmailExport=createGmailExport({
+ getState:()=>({document:p,project:activeId,account:cloud.user?.id||null,host:cloud.base,owner:cloudOwner,cloudRevision,revision:renderVersion}),getReady:()=>renderPromise,
+ prepare:(snapshot,variants,options)=>prepareEmailAssets(snapshot,variants,{...options,origin:location.origin,cloud,prepare:async(doc,origin)=>{const result=await prepareImages(doc,origin);if(options.isCurrent())emailUnused.push(...unusedArtworkRows(doc,result.inventory));return result;},render:renderSignature}),
+ apply:result=>{p.publishedAssets={...p.publishedAssets,...result.publishedAssets};p.emailAssetMetadata={...p.emailAssetMetadata,...result.publicationMetadata};saveLocalNow();},
+ onStatus:rows=>{emailRows=[...rows,...emailUnused];renderEmailReadiness();}
+});
+function renderEmailReadiness(){if(!emailBusy&&emailRows.some(row=>row.status==='Ready'&&!gmailExport.hasPrepared(row.variant||p.variant))){emailRows=emailRows.map(row=>row.status==='Ready'&&!gmailExport.hasPrepared(row.variant||p.variant)?{...row,status:'Needs preparation'}:row);emailNotice=exportMessage({code:'PREPARED_EXPIRED'});}if($('emailReadiness'))$('emailReadiness').innerHTML=readinessMarkup(emailRows,{busy:emailBusy,prepared:gmailExport.hasPrepared(p.variant)});if($('emailNotice'))$('emailNotice').textContent=emailNotice;document.querySelectorAll('[data-action="email-copy-prepared"]').forEach(b=>b.disabled=!gmailExport.hasPrepared(p.variant));}
+function invalidateEmail(){const hadReadiness=emailRows.length||emailBusy||pendingEmail;gmailExport.invalidate();clearTimeout(emailExpiryTimer);emailRun++;emailBusy=false;emailUnused=[];pendingEmail=null;emailRows=hadReadiness?variantReadiness(p,[p.variant],{render:renderSignature,origin:location.origin}):[];emailNotice=hadReadiness?'The signature or account changed. Prepare the current signature again.':'';if($('modal')?.open&&$('modalBody').querySelector('[data-action="email-consent"]')){$('modalTitle').textContent='Prepare the updated signature';$('modalBody').innerHTML=emailActions();}renderEmailReadiness();}
+function scheduleEmailExpiry(){clearTimeout(emailExpiryTimer);const run=emailRun;emailExpiryTimer=setTimeout(()=>{if(run===emailRun)renderEmailReadiness();},120100);}
+function emailActions(){return `<div id="emailReadiness"></div><p id="emailNotice" role="status">${esc(emailNotice)}</p><div class="row-end"><button data-action="email-copy-prepared" ${gmailExport.hasPrepared(p.variant)?'':'disabled'}>Copy prepared signature</button><button data-action="account">Sign in / Account</button></div>`;}
+function emailFailure(err){if(err.code==='STALE_EXPORT'){emailRows=[];emailUnused=[];pendingEmail=null;}emailNotice=exportMessage(err);console.warn('Email export stopped:',err.code||'PREPARATION_FAILED');if(err.code==='CONSENT_REQUIRED')openModal('Publish artwork for email?',consentMarkup(emailRows));else{openModal('Email preparation needs attention',emailActions());renderEmailReadiness();toast(emailNotice,true);}}
+async function runEmail(intent='prepare',consented=false){
+ const run=++emailRun;
+ pendingEmail={intent};emailUnused=[];emailBusy=true;emailNotice='Preparing and verifying this signature’s images…';emailRows=variantReadiness(p,[p.variant],{render:renderSignature,origin:location.origin});renderEmailReadiness();
+ try{
+  const result=consented?await gmailExport.consent():await gmailExport.prepare([p.variant]);if(run!==emailRun)return null;emailBusy=false;scheduleEmailExpiry();emailNotice='Images verified. Gmail installation is still pending.';
+  if(intent==='copy'){await gmailExport.copyPrepared(p.variant);emailNotice='Formatted signature copied. Paste it in Gmail, choose defaults and save changes.';toast(emailNotice);}
+  if(intent==='direct'){try{await installDirectGmail(result,p.variant);}catch(err){if(!err.code)err.code='DIRECT_GMAIL_FAILED';throw err;}return result;}
+  if($('modalTitle').textContent==='Publish artwork for email?'||!$('emailReadiness'))openModal('Email images prepared',emailActions()+installationGuide);renderEmailReadiness();return result;
+ }catch(err){if(run===emailRun){emailBusy=false;emailFailure(err);}return null;}
+}
+async function copyPreparedSignature(){try{await gmailExport.copyPrepared(p.variant);emailNotice='Formatted signature copied. Paste it in Gmail, choose defaults and save changes.';renderEmailReadiness();toast(emailNotice);}catch(err){emailFailure(err);}}
 const origin=location.origin;
 const titles={content:['Your details','The right introduction, in your own words.'],type:['Typography','Tune hierarchy, rhythm and the smallest details.'],layout:['Composition','Choose your structure. Set the space around it.'],color:['Color & brand','A palette with purpose. Or make your own.'],images:['Image atelier','Logos, portraits, partner marks and campaign banners.'],social:['Social presence','Choose the channels that matter. Set their order and style.'],blocks:['Beyond the basics','Add a conversation starter, announcement or personal touch.'],order:['Section order','Show, hide and rearrange the elements below your identity.']};
 const get=path=>path.split('.').reduce((o,k)=>o?.[k],p);
@@ -92,7 +117,7 @@ function updatePreview(html,errors=[]){
  return size;
 }
 function render(){
- const version=++renderVersion;refreshButtons();if(document.activeElement!==$('projectName'))$('projectName').value=p.name;$('targetInput').value=p.design.targetWidth;
+ const version=++renderVersion;invalidateEmail();refreshButtons();if(document.activeElement!==$('projectName'))$('projectName').value=p.name;$('targetInput').value=p.design.targetWidth;
  document.querySelectorAll('[data-output]').forEach(o=>o.value=get(o.dataset.output));
  updatePreview(renderSignature(p,{origin}));
  renderPromise=prepareImages(clone(p),origin).then(result=>{if(version!==renderVersion)return;prepared=result;updatePreview(renderSignature(p,{origin,images:result.images}),result.errors);}).catch(e=>toast(e.message,true));return renderPromise;
@@ -126,10 +151,11 @@ function localProjects(){
 function loadProject(project,remote=null){saveLocalNow();p=normalizeProject(project);if(remote?.name)p.name=String(remote.name).slice(0,100);activeId=crypto.randomUUID();cloudId=remote?.id||null;cloudRevision=remote?.updated_at||null;cloudOwner=remote?cloud.user?.id:null;undo=[];redo=[];renderControls();render();saveLocalNow();curated();$('modal').close();}
 function account(){
  $('accountButton').textContent=cloud.user?'Cloud connected':'Cloud account';
+ if(!gmailExport.hasPrepared(p.variant)){emailRows=[];emailNotice='';}
  if(cloud.user)openModal('Your cloud workspace',`<p class="modal-note">Signed in as <strong>${esc(cloud.user.email)}</strong>. Projects are private to this account; only artwork you explicitly publish is placed at public URLs.</p><div class="export-grid"><button data-action="cloud-save">Save current signature<span>Update the linked cloud project.</span></button><button data-action="cloud-save-new">Save as a new project<span>Keep the original cloud project unchanged.</span></button><button data-action="cloud-projects">Open cloud projects<span>Load, duplicate or delete saved designs.</span></button><button data-action="publish-images">Publish email artwork<span>Make only the current processed images accessible for email.</span></button></div><button data-action="signout">Sign out</button><div id="modalMessage" class="modal-message" role="status"></div>`);
  else openModal('Save your work across devices',`<p class="modal-note">Local editing works without an account. Sign in to save private projects and publish the artwork used in your email signature.</p><form id="authForm" class="account-form"><div class="field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></div><div class="row-end"><button type="button" data-action="signup">Create account</button><button type="submit" class="primary">Sign in</button></div></form><div id="modalMessage" class="modal-message" role="status"></div>`);
 }
-async function authenticate(signup=false){const email=$('authEmail')?.value.trim(),password=$('authPassword')?.value;if(!email||!password)return message('Enter your email and password.');message(signup?'Creating your account…':'Signing in…');try{if(signup){const result=await cloud.signUp(email,password);if(result?.access_token){cloud.keep(result);account();}else message('Check your email for account confirmation, then return to sign in.');}else{await cloud.signIn(email,password);account();toast('Signed in.');}$('accountButton').textContent=cloud.user?'Cloud connected':'Cloud account';}catch(e){message(e.message);}}
+async function authenticate(signup=false){const email=$('authEmail')?.value.trim(),password=$('authPassword')?.value;if(!email||!password)return message('Enter your email and password.');gmailExport.invalidate();message(signup?'Creating your account…':'Signing in…');try{if(signup){const result=await cloud.signUp(email,password);if(result?.access_token){cloud.keep(result);account();}else message('Check your email for account confirmation, then return to sign in.');}else{await cloud.signIn(email,password);account();toast('Signed in.');}$('accountButton').textContent=cloud.user?'Cloud connected':'Cloud account';}catch(e){message(e.message);}}
 async function saveCloud(asNew=false){
  if(!cloud.user){account();return;}if(cloudBusy)return;cloudBusy=true;const savingId=activeId;
  try{message('Saving to the cloud…');const owned=cloudOwner===cloud.user.id,row=await cloud.save(clone(p),asNew||!owned?null:cloudId,asNew||!owned?null:cloudRevision);if(savingId!==activeId){const original=library.projects.find(x=>x.id===savingId);if(original){original.cloudId=row.id;original.cloudRevision=row.updated_at;original.cloudOwner=cloud.user.id;}saveLocalNow();toast('The previous signature was saved to the cloud.');return;}cloudId=row.id;cloudRevision=row.updated_at;cloudOwner=cloud.user.id;saveLocalNow();message('Saved to the cloud.');toast(asNew?'Saved as a new cloud project.':'Cloud project saved.');}catch(e){message(e.message);toast(e.message,true);}finally{cloudBusy=false;}
@@ -143,36 +169,30 @@ const filename=()=>p.name.replace(/[^a-z\d_-]+/gi,'-').replace(/^-|-$/g,'').toLo
 async function exportHTML(){await renderPromise;download(filename()+'.html',`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(p.name)}</title></head><body>${latestHTML}</body></html>`,'text/html');toast(/src="data:/.test(latestHTML)?'Portable HTML exported. Publish its local artwork before installing in Gmail.':'HTML signature exported.');}
 async function exportPNG(){await renderPromise;toast('Rendering a 2× PNG…');try{const blob=await signaturePNG(latestHTML,Math.ceil(latestWidth),Math.ceil(latestHeight));download(filename()+'@2x.png',blob);toast('2× PNG exported. The HTML version keeps links clickable.');}catch(e){toast(e.message||'PNG export failed. Try uploading remote images directly.',true);}}
 function exportJSON(){download(filename()+'.json',JSON.stringify({kind:'signature-studio-project',version:2,project:p},null,2),'application/json');toast('Editable project backup exported.');}
-async function copyRich(){
- await renderPromise;if(prepared.errors.length)throw new Error('Fix the image-processing warnings before copying your signature.');if(/src="data:/i.test(latestHTML)){install();throw new Error('Publish your local artwork first, or download portable HTML.');}
- const holder=document.createElement('div');holder.innerHTML=latestHTML;const text=holder.innerText||holder.textContent;
- try{if(!navigator.clipboard?.write||!window.ClipboardItem)throw new Error('Clipboard unavailable');await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([latestHTML],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);}
- catch{holder.style.cssText='position:fixed;left:-10000px;top:0';document.body.appendChild(holder);const range=document.createRange();range.selectNodeContents(holder);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);const ok=document.execCommand('copy');selection.removeAllRanges();holder.remove();if(!ok)throw new Error('Automatic copying was blocked. Download HTML, open it in a browser, then select and copy the rendered signature.');}
- toast('Formatted signature copied. Paste it into Gmail’s signature editor.');if($('installCopied'))$('installCopied').textContent='Copied successfully — ready to paste.';return true;
-}
-async function publishImages(){
- if(!cloud.user){account();throw new Error('Sign in to publish signature artwork.');}await renderPromise;
- if(prepared.errors.length)throw new Error('Fix the image-processing warnings before publishing artwork.');
- const toUpload=Object.entries(prepared.images).filter(([,src])=>src.startsWith('data:'));
- if(!toUpload.length){toast('The current signature already uses hosted artwork.');return;}
- if(!confirm(`Publish ${toUpload.length} processed image(s) for email? Anyone with the image URLs can view them. Your project and source details remain private.`))return;
- for(const [slot,src] of toUpload){const key=prepared.keys[slot];const url=await cloud.upload(src,key);p.publishedAssets[key]=url;}
- await render();scheduleSave();toast('Email artwork published. Earlier exported image URLs remain unchanged.');if($('modalTitle').textContent==='Your signature, everywhere.')install();
-}
-function install(){
- const local=/src="data:/i.test(latestHTML),direct=!!config.enableDirectGmail&&!!config.googleClientId;
- openModal('Your signature, everywhere.',`<p class="modal-note">The export uses your actual type sizes, layout, spacing and cropped artwork. The workspace controls never become part of the signature.</p><div class="export-grid"><button data-action="export-html">HTML signature<span>Portable, editable email markup.</span></button><button data-action="export-png">2× PNG image<span>High-resolution visual; links are not clickable.</span></button><button data-action="export-json">Project JSON<span>Resume editing or transfer to another browser.</span></button><button data-action="copy-source">Copy HTML source<span>For developers and signature management tools.</span></button></div><h3>Install in Gmail</h3>${local?'<div class="highlight">Your signature contains local artwork. Publish the processed images before copying it to Gmail.</div><button data-action="publish-images">Publish email artwork</button>':''}<div class="step"><b>1</b><div><strong>Copy the formatted signature</strong><p>Use the rendered HTML, not an image or raw source code.</p><button data-action="copy-rich" class="primary">Copy formatted signature</button><p id="installCopied"></p></div></div><div class="step"><b>2</b><div><strong>Open Gmail settings</strong><p>Under General → Signature, create a signature or select an existing one.</p><a class="button" href="https://mail.google.com/mail/u/0/#settings/general" target="_blank" rel="noopener noreferrer">Open Gmail settings ↗</a></div></div><div class="step"><b>3</b><div><strong>Paste, choose defaults and save</strong><p>Paste into the signature box. Choose defaults for new emails and replies, then select Save Changes. Send yourself a test email.</p></div></div><details><summary>Direct Gmail installation</summary><p class="micro">${direct?'Google authorization is configured. You will review the detected address before replacing its signature.':'Direct installation remains disabled until the site’s Google OAuth client is configured. Guided installation above needs no Gmail permissions.'}</p><button data-action="direct-gmail" ${direct?'':'disabled'}>Connect Gmail</button></details><div id="modalMessage" class="modal-message"></div>`);
+async function copyRich(){return runEmail('copy');}
+async function publishImages(){return runEmail();}
+async function install(){
+ await renderPromise;const direct=!!config.enableDirectGmail&&!!config.googleClientId;
+ emailRows=variantReadiness(p,[p.variant],{render:renderSignature,origin,isPrepared:gmailExport.hasPrepared});
+ openModal('Your signature, everywhere.',`<p class="modal-note">Portable HTML preserves your editable design. Gmail copy checks every rendered image and prepares public PNG artwork when needed.</p><div class="export-grid"><button data-action="export-html">Portable HTML<span>Download markup for your records.</span></button><button data-action="export-png">2× PNG image<span>Visual only; links are not clickable.</span></button><button data-action="export-json">Project JSON<span>Keep the original editable artwork.</span></button><button data-action="copy-source">Copy HTML source<span>Developer source; not Gmail-ready.</span></button></div>${emailActions()}<button data-action="copy-rich" class="primary">Copy formatted signature</button>${installationGuide}<details><summary>Direct Gmail installation</summary><p class="micro">${direct?'Google authorization is configured. Public images must pass the same preparation checks. You will review the detected address before its signature is replaced.':'Direct installation is disabled until the site’s Google OAuth client is configured. Guided installation needs no Gmail permissions.'}</p><button data-action="direct-gmail" ${direct?'':'disabled'}>Connect Gmail</button></details><div id="modalMessage" class="modal-message"></div>`);renderEmailReadiness();
 }
 async function directGmail(){
  if(!config.enableDirectGmail||!config.googleClientId)throw new Error('Direct Gmail installation is not configured.');
- await renderPromise;if(/src="data:/i.test(latestHTML))throw new Error('Publish local artwork before direct installation.');if(prepared.errors.length)throw new Error('Fix image-processing warnings first.');
+ return runEmail('direct');
+}
+async function installDirectGmail(result,variant){
+ gmailExport.prepared(variant,result);
  if(!window.google?.accounts?.oauth2){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=resolve;s.onerror=()=>reject(new Error('Google sign-in did not load. Use Guided Install.'));document.head.appendChild(s);});}
+ gmailExport.prepared(variant,result);
  const response=await new Promise((resolve,reject)=>google.accounts.oauth2.initTokenClient({client_id:config.googleClientId,scope:'https://www.googleapis.com/auth/gmail.settings.basic',callback:r=>r.error?reject(new Error(r.error)):resolve(r),error_callback:e=>reject(new Error(e.type||'Google sign-in was closed.'))}).requestAccessToken());
+ gmailExport.prepared(variant,result);
  const headers={Authorization:'Bearer '+response.access_token,'Content-Type':'application/json'},base='https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs';
  const listed=await fetch(base,{headers});if(!listed.ok)throw new Error('Gmail could not return your sending address.');const aliases=await listed.json(),primary=aliases.sendAs?.find(a=>a.isPrimary);if(!primary)throw new Error('No primary Gmail address was returned.');
+ gmailExport.prepared(variant,result);
  if(!confirm(`Replace the current Gmail signature for ${primary.sendAsEmail}? This changes that address’s signature; it does not send an email.`))return;
- const installed=await fetch(base+'/'+encodeURIComponent(primary.sendAsEmail),{method:'PATCH',headers,body:JSON.stringify({signature:latestHTML})});if(!installed.ok){const error=await installed.json();throw new Error(error.error?.message||'Gmail rejected the signature.');}
- message('Signature installed for '+primary.sendAsEmail+'. Send yourself a test email.');
+ const signature=gmailExport.prepared(variant,result);
+ const installed=await fetch(base+'/'+encodeURIComponent(primary.sendAsEmail),{method:'PATCH',headers,body:JSON.stringify({signature})});if(!installed.ok)throw new Error('Gmail rejected the signature. Retry or use guided installation.');
+ openModal('Gmail signature updated',`<p class="modal-note">Gmail accepted the verified signature for ${esc(primary.sendAsEmail)}. Send a real test message to check recipient rendering. Separate Full / Reply named defaults still require Gmail Settings.</p>${installationGuide}`);
 }
 function saveStyle(){openModal('Save your signature style',`<p class="modal-note">Save this layout, spacing, typography and color palette to My styles. Applying it later will not replace contact details or uploaded imagery.</p><div class="field"><label for="styleName">Style name</label><input id="styleName" maxlength="80" value="${esc(p.name+' style')}"></div><div class="row-end"><button data-action="confirm-style" class="primary">Save style</button></div>`);}
 function brandKit(){const keys=['primary','secondary','link','accent','tint','background','nameFont','bodyFont','ctaColor','ctaText'],brand={};for(const k of keys)brand[k]=p.design[k];download('signature-brand-kit.json',JSON.stringify({kind:'signature-brand-kit',version:1,brand},null,2),'application/json');toast('Brand palette and font pairing exported.');}
@@ -203,12 +223,14 @@ const actions={
  'open-local':b=>{const r=library.projects.find(x=>x.id===b.dataset.id);if(!r)return;saveLocalNow();p=normalizeProject(r.project);activeId=r.id;cloudId=r.cloudId||null;cloudRevision=r.cloudRevision||null;cloudOwner=r.cloudOwner||null;undo=[];redo=[];renderControls();render();curated();saveLocalNow();$('modal').close();},
  'duplicate-local':b=>{const r=library.projects.find(x=>x.id===b.dataset.id);if(r){const copy=normalizeProject(r.project);copy.name+=' · Copy';loadProject(copy);toast('Independent project copy created.');}},
  'delete-local':b=>{if(!confirm('Delete this browser project? Cloud copies are not deleted.'))return;library.projects=library.projects.filter(r=>r.id!==b.dataset.id);if(activeId===b.dataset.id){p=freshProject();activeId=crypto.randomUUID();cloudId=null;cloudRevision=null;cloudOwner=null;renderControls();render();}saveLocalNow();localProjects();},
- 'signup':()=>authenticate(true),'signout':async()=>{await cloud.signOut();cloudId=null;cloudRevision=null;cloudOwner=null;saveLocalNow();account();},
+ 'signup':()=>authenticate(true),'signout':async()=>{gmailExport.invalidate();emailRows=[];pendingEmail=null;await cloud.signOut();cloudId=null;cloudRevision=null;cloudOwner=null;saveLocalNow();account();},
  'cloud-save':()=>saveCloud(false),'cloud-save-new':()=>saveCloud(true),'cloud-projects':cloudProjects,
  'open-cloud':b=>{const row=window.__cloudRows?.find(r=>r.id===b.dataset.id);if(row)loadProject(row.data,row);},
  'duplicate-cloud':async b=>{const row=window.__cloudRows?.find(r=>r.id===b.dataset.id);if(row){const copy=normalizeProject(row.data);copy.name=row.name+' · Copy';loadProject(copy);await saveCloud(true);}},
  'delete-cloud':async b=>{if(!confirm('Delete this cloud project? Published images and browser copies will remain.'))return;await cloud.remove(b.dataset.id);if(cloudId===b.dataset.id){cloudId=null;cloudRevision=null;cloudOwner=null;saveLocalNow();}await cloudProjects();},
  'publish-images':publishImages,'copy-rich':copyRich,'direct-gmail':directGmail,
+ 'email-prepare':()=>runEmail(),'email-copy-prepared':copyPreparedSignature,'email-consent':()=>pendingEmail?runEmail(pendingEmail.intent,true):null,
+ 'email-repair':()=>{$('modal').close();panel='images';renderControls();},'email-guide':()=>openModal('Gmail installation guide',installationGuide),close:()=>$('modal').close(),
  'copy-source':async()=>{await renderPromise;await navigator.clipboard.writeText(latestHTML);toast('HTML source copied. Paste rendered HTML, not source, into Gmail.');}
 };
 document.addEventListener('click',async e=>{
