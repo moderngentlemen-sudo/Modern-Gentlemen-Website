@@ -83,6 +83,8 @@ export interface BuilderDocument {
   slug: string;
   status: DocumentStatus;
   version: number;
+  /** When a `scheduled` page or article will publish itself, as an ISO instant. */
+  scheduledFor?: string | null;
   /**
    * Where in the payload the tree being edited lives — a *path*, not a key.
    *

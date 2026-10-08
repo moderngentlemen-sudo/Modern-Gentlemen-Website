@@ -8,6 +8,38 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Publish menu with scheduling (PR #124)
+
+- **Scheduling existed in the database since `0010`/`0016` and in
+  `scheduleAction` on pages and articles, but nothing in any editor called
+  it.** `PublishMenu.tsx` is the first UI for it, in `PublishBar`, so all three
+  editor layouts get it. The Publish button is split: the main half opens the
+  existing confirm dialog (which still owns issue handling); the caret offers
+  Publish now, Schedule… / Change schedule…, Cancel schedule and Unpublish.
+- Schedule dialog: quick picks (in an hour on the quarter hour, tomorrow 9:00,
+  Monday 9:00; `schedule.ts`, pure, `now` injected), a `datetime-local` in the
+  editor's zone (named in the label), a plain-English "Publishes …" line, an
+  optional history note, and refusal while Health has blocking issues (the
+  server's `assertPublishable` would refuse anyway). Says honestly that a run
+  can be late by an hour or more — the decisions log records GitHub's cron gap.
+- **Cancel = `unpublish_document`.** The runner (`run_due_publishes`) fires only
+  rows still `status = 'scheduled'`, so returning to draft cancels by
+  construction; no new RPC or migration. `scheduled_for` is left set on the row
+  and is inert. Scheduling is offered only when the document is not
+  `published`: `schedule_document` sets `status = 'scheduled'`, which on a live
+  page would take it off the public site until the runner fired.
+- `BuilderDocument.scheduledFor` (optional) is seeded from `scheduled_for` on
+  the page and article builder routes; the bar shows "Publishes Tue 14 Oct,
+  09:00" beside the status pill. `BuilderServerActions` gains optional
+  `schedule` and `unpublish`, passed only with `page.publish` /
+  `article.publish`.
+- ⚠️ **The menu and its dialogs render through a portal.** The bar is a sticky
+  `z-20` header and the Canvas toolbar is `z-40` in another branch, so anything
+  rendered inside the bar is painted under that toolbar regardless of its own
+  z-index — found in the browser, invisible to jsdom.
+- Tests: `schedule.test.ts` (4), `PublishMenu.test.tsx` (6); E2E journey
+  schedules a fixture page, reloads, cancels. 3,950 unit tests, build green.
+
 ### 2026-10-08 — Focus phase 3: search/social previews and "Side by side" (PR #124)
 
 - **Search and social previews** — `SharePreviews.tsx` replaces the two plain

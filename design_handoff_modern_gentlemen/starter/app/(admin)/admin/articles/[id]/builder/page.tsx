@@ -7,7 +7,14 @@ import { BLOCK_TREE_KEY } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
 import { BuilderWithTheme as Builder } from "@/components/admin/builder/BuilderWithTheme";
 
-import { createPreviewAction, publishAction, saveDraftAction, snapshotAction } from "../actions";
+import {
+  createPreviewAction,
+  publishAction,
+  saveDraftAction,
+  scheduleAction,
+  snapshotAction,
+  unpublishAction,
+} from "../actions";
 import { createPatternFromSelectionAction } from "@/app/(admin)/admin/patterns/actions";
 
 /**
@@ -47,6 +54,7 @@ export default async function ArticleBuilderPage({ params }: { params: Promise<{
           title: article.title,
           slug: article.slug,
           status: article.status,
+          scheduledFor: article.scheduled_for,
           version: article.version,
           treeKey,
           rest,
@@ -62,6 +70,9 @@ export default async function ArticleBuilderPage({ params }: { params: Promise<{
         publish: publishAction,
         snapshot: snapshotAction,
         createPreview: createPreviewAction,
+        ...(user.permissions.has("article.publish")
+          ? { schedule: scheduleAction, unpublish: unpublishAction }
+          : {}),
         ...(user.permissions.has("pattern.write")
           ? { createPatternFromSelection: createPatternFromSelectionAction }
           : {}),

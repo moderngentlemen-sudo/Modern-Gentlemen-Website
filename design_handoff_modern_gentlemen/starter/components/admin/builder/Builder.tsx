@@ -87,6 +87,14 @@ export interface BuilderServerActions {
     area?: string;
     context?: PreviewContextOption;
   }) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
+  /** Pages and articles: queue a publish of the draft for a future instant. */
+  schedule?: (input: {
+    id: string;
+    whenIso: string;
+    note?: string;
+  }) => Promise<ActionResult<{ version: number }>>;
+  /** Back to draft. Also what cancels a scheduled publish: the runner only fires `scheduled`. */
+  unpublish?: (input: { id: string; note?: string }) => Promise<ActionResult<{ version: number }>>;
   createPatternFromSelection?: (input: {
     name: string;
     key: string;
@@ -105,6 +113,8 @@ export interface BuilderCallbacks {
     context?: PreviewContextOption
   ) => Promise<ActionResult<{ path: string; expiresAt: string }>>;
   createPatternFromSelection?: BuilderServerActions["createPatternFromSelection"];
+  schedule?: (whenIso: string, note?: string) => Promise<ActionResult<{ version: number }>>;
+  unpublish?: () => Promise<ActionResult<{ version: number }>>;
 }
 
 export interface PreviewContextOption {
@@ -179,6 +189,10 @@ export function Builder({
       snapshot: () => actions.snapshot({ id }),
       createPreview: (device, context) => actions.createPreview({ id, device, area, context }),
       createPatternFromSelection: actions.createPatternFromSelection,
+      schedule: actions.schedule
+        ? (whenIso: string, note?: string) => actions.schedule!({ id, whenIso, note })
+        : undefined,
+      unpublish: actions.unpublish ? () => actions.unpublish!({ id }) : undefined,
     }),
     [actions, id, area]
   );

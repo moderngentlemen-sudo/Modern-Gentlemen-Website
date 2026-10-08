@@ -16,6 +16,8 @@ import { TemplateOverrideControl } from "@/components/admin/TemplateOverrideCont
 import type { TemplateOverrideState } from "@/lib/services/templates";
 import type { TemplateOverrideAction } from "@/components/admin/TemplateOverrideControl";
 
+import { PublishMenu } from "./PublishMenu";
+import { describeWhen, describeWhenShort } from "./schedule";
 import { useBuilder } from "./StoreContext";
 import type { BuilderCallbacks, PreviewContextOption } from "./Builder";
 
@@ -92,7 +94,7 @@ export function PublishBar({
         // The store is seeded once and router.refresh() does not re-seed it, so
         // the status and version have to be applied here or the bar keeps
         // claiming the page is a draft.
-        setDoc({ status: "published", version: result.data.version });
+        setDoc({ status: "published", scheduledFor: null, version: result.data.version });
         toast.push(`Published v${result.data.version}`, "success");
         router.refresh();
         return;
@@ -169,6 +171,15 @@ export function PublishBar({
             </h1>
             <StatusPill status={doc.status} />
             <span className={LABEL_SM}>v{doc.version}</span>
+            {doc.status === "scheduled" && doc.scheduledFor && (
+              <span
+                className="font-mono text-[10px] text-mg-fg/70"
+                title={describeWhen(doc.scheduledFor)}
+                suppressHydrationWarning
+              >
+                Publishes {describeWhenShort(doc.scheduledFor)}
+              </span>
+            )}
           </div>
           <p className="mt-0.5 font-mono text-[10px]">
             <SaveStatusLabel />
@@ -264,14 +275,11 @@ export function PublishBar({
               >
                 Snapshot
               </Button>
-              <Button
-                size="sm"
-                variant="solid"
-                onClick={() => setConfirmPublish(true)}
-                disabled={pending}
-              >
-                Publish
-              </Button>
+              <PublishMenu
+                callbacks={callbacks}
+                issues={totalIssues}
+                onPublishNow={() => setConfirmPublish(true)}
+              />
             </>
           )}
         </div>
