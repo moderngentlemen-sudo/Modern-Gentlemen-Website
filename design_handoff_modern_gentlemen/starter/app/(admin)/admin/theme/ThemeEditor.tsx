@@ -75,6 +75,7 @@ import { Toggle } from "@/components/admin/ui/Toggle";
 import { useToast } from "@/components/admin/ui/Toast";
 import { publishThemeAction, saveThemeDraftAction, unpublishThemeAction } from "./actions";
 import { StyleClassEditor } from "./StyleClassEditor";
+import { FontUpload } from "./FontUpload";
 
 interface ThemeEditorProps {
   initial: {
@@ -112,7 +113,9 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
   const [draft, setDraft] = useState<ThemeSettings>(initial.draft);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [transitionPending, startTransition] = useTransition();
+  const [fontUploading, setFontUploading] = useState(false);
+  const pending = transitionPending || fontUploading;
   const router = useRouter();
   const toast = useToast();
 
@@ -512,11 +515,33 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
             ) : undefined
           }
         >
-          <div className="space-y-5">
+          <div id="custom-fonts" className="space-y-5">
+            {canWrite && (
+              <FontUpload
+                disabled={pending || draft.typography.webfonts.length >= 12}
+                onBusyChange={setFontUploading}
+                onUploaded={(font) => {
+                  setDirty(true);
+                  setError(null);
+                  setDraft((current) => ({
+                    ...current,
+                    typography: {
+                      ...current.typography,
+                      webfonts: [...current.typography.webfonts, font],
+                    },
+                  }));
+                }}
+              />
+            )}
+            {draft.typography.webfonts.length >= 12 && (
+              <p className="text-[13px] text-mg-fg/60">
+                The 12-font limit is reached. Remove a font to add another.
+              </p>
+            )}
             {draft.typography.webfonts.length === 0 ? (
               <p className="text-[13px] leading-relaxed text-mg-fg/60">
-                Add up to 12 fonts from an HTTPS provider stylesheet or a direct WOFF, WOFF2, TTF or
-                OTF file. Added fonts become available in every typography role above.
+                Upload a font or add an HTTPS provider stylesheet or direct font link. Up to 12
+                fonts become available in every typography role above.
               </p>
             ) : (
               draft.typography.webfonts.map((font) => (
@@ -549,7 +574,11 @@ export function ThemeEditor({ initial, canWrite, canPublish }: ThemeEditorProps)
                     <TextInput
                       label="CSS font family"
                       value={font.family}
-                      help="Use the exact family name supplied by the provider."
+                      help={
+                        font.source === "stylesheet"
+                          ? "Use the exact family name supplied by the provider."
+                          : "Uploaded files use an automatic family alias; you can keep it as supplied."
+                      }
                       disabled={!canWrite || pending}
                       onChange={(value) => updateWebfont(font.id, { family: value })}
                     />

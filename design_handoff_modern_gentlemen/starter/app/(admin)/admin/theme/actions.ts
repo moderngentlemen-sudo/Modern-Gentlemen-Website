@@ -5,6 +5,9 @@ import { z } from "zod";
 
 import { publishTheme, rollbackTheme, saveThemeDraft, unpublishTheme } from "@/lib/services/theme";
 import { themeSettingsSchema } from "@/lib/domain/theme";
+import type { ThemeWebfont } from "@/lib/domain/theme";
+import { fontUploadFileError } from "@/lib/domain/fontUpload";
+import { uploadThemeFont } from "@/lib/services/fontUpload";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 
@@ -38,6 +41,20 @@ const Note = z.object({ note: z.string().trim().max(500).optional() }).optional(
  * not a product fact, a theme *is* its colours.
  */
 const SaveDraft = themeSettingsSchema;
+
+export async function uploadThemeFontAction(
+  formData: FormData
+): Promise<ActionResult<ThemeWebfont>> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "Choose a font file to upload." };
+  const error = fontUploadFileError(file.name, file.size);
+  if (error) return { ok: false, error };
+  try {
+    return ok(await uploadThemeFont({ fileName: file.name, bytes: await file.arrayBuffer() }));
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
 
 function invalid(error: z.ZodError): ActionResult<never> {
   const issue = error.issues[0];

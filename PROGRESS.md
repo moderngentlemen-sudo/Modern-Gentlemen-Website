@@ -8,6 +8,49 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Custom font upload (branch `feat/custom-font-upload`)
+
+- `/admin/theme` → Webfonts now accepts WOFF, WOFF2, TTF and OTF uploads up to
+  5 MiB. Appearance Studio's Typography panel links directly to this library.
+  The browser decodes the font before upload; the server independently checks
+  extension, size, container signature, declared length and table bounds, and
+  chooses the canonical MIME type rather than trusting the browser's metadata.
+- An uploaded file becomes a normal `ThemeWebfont` with a stable id and CSS
+  family alias. All five existing typography roles, draft saving, publishing,
+  public `@font-face` output and revision rollback reuse the existing contract.
+  Weight, style and fallback remain editable. Upload does not save or publish
+  a theme, and failures leave the working theme unchanged. The 12-font limit
+  still applies. Saving/publishing is disabled while an upload is in progress.
+- `20261008081516_custom_font_storage.sql` provisions a public-read `fonts`
+  bucket, restricted to four font MIME types and 5 MiB. INSERT requires
+  `theme.write` through the editor's session and RLS. It grants no UPDATE or
+  DELETE: unique immutable URLs remain valid for published themes and history.
+  Removing a font from a draft removes its theme reference, not stored bytes.
+  Reclaiming abandoned uploads requires a privileged audit of theme revisions.
+  Apply this migration before deploying the application change.
+- Local format, lint and type checks pass. Two existing ledger tests initially
+  failed because the Windows checkout used CRLF in `MODULE_MAP.md`; local
+  newline normalization fixed them without a content change. The final full
+  unit run passed all 4,083 tests in 169 files, including the 18 new font
+  tests pass. A real OFL ABeeZee font and its license are included for
+  browser/storage verification; a real Geist WOFF2 also passed server validation.
+- Added real-stack integration checks for public byte delivery, theme-writer
+  uploads, anonymous/member/media-only refusal, MIME bounds and immutable
+  objects. Local production compilation and its lint/type gates passed after
+  using the system certificate store for Google Fonts. Page-data collection
+  cannot finish without the site's environment/seeded database; no local
+  Supabase or admin credentials are present. Storage integration remains unrun.
+- Isolated desktop (1440px) and phone (390px) browser review passed: real font
+  decode, upload feedback, role assignment, simulated draft saving and real
+  `@font-face` loading/rendering, with zero browser errors or horizontal phone
+  overflow. The review used simulated storage, not a production upload.
+- No production deployment occurred. The owner explicitly approved repository
+  publication after local verification. Hosted build and storage integration
+  verification will run on the pull request.
+- Expected cost: a bounded upload control, authorized service and storage
+  migration. Actual scope matches; no dependency, theme schema version,
+  existing design component or live content change.
+
 ### 2026-10-08 — Coming Soon remade as editable Stage layouts (branch `claude/coming-soon-composable`)
 
 - The owner asked for the CS22–CS35 coming-soon pages to be fully editable in
