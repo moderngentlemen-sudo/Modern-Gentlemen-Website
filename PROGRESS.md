@@ -8,6 +8,30 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-08 — Focus phase 3: search/social previews and "Side by side" (PR #124)
+
+- **Search and social previews** — `SharePreviews.tsx` replaces the two plain
+  text boxes in Page settings (all three editor layouts get it). A results-page
+  mock (brand, host and path as breadcrumbs, title cut at ~60 characters,
+  `metaDescription` at 160) with length meters (title 30–60, description
+  70–160; guides shown as a meter, never enforced), a no-index warning, and a
+  shared-link card with Large image / Compact styles using the social image.
+  Labelled "approximate" in the UI on purpose: every network lays this out
+  differently and changes it without notice. Host comes from
+  `NEXT_PUBLIC_SITE_URL`. Same fallbacks as before (social title → SEO title →
+  page title; social description → meta description).
+- **Side by side** — `arrange.ts` `wrapInColumns` (pure) puts 2–4 selected
+  sibling blocks into one new Columns row, one block per column in page order
+  (ratio 1-1 / 1-1-1 / 1-1-1-1), at the first block's position. Store action
+  `wrapSelectionInColumns` goes through `replaceWith`, so it is one undo step.
+  `cannotWrapInColumns` gives the refusal reason (not siblings, locked, already
+  columns, a container whose slot does not allow `columns`), shown as the
+  disabled button's tooltip in the selection bar. Also in the command bar.
+- Tests: `SharePreviews.test.tsx` (5), `arrange.test.ts` (3), Focus tests 35.
+  Gates: format, lint, typecheck, 3,940 unit tests. Browser check on a
+  temporary route (removed): previews render, Side by side wraps into a row, no
+  page errors.
+
 ### 2026-10-08 — Focus phase 2: command bar, History, selection bar, suggestions, device compare (branch `claude/focus-editor`)
 
 - **Command bar (Ctrl/⌘K, or the rail's search icon)** — `FocusTools.tsx`

@@ -399,6 +399,9 @@ describe("Selection bar", () => {
     expect(store.getState().past.length).toBe(before + 1);
     fireEvent.click(within(bar).getByRole("button", { name: "Lock" }));
     expect(store.getState().tree.every((node) => node.locked)).toBe(true);
+    const sideBySide = within(bar).getByRole("button", { name: "Side by side" });
+    expect((sideBySide as HTMLButtonElement).disabled).toBe(true);
+    expect(sideBySide.getAttribute("title")).toMatch(/Unlock/);
     fireEvent.click(within(bar).getByRole("button", { name: "Clear" }));
     expect(screen.queryByRole("toolbar")).toBeNull();
   });
@@ -448,5 +451,24 @@ describe("Compare devices", () => {
   it("is offered on the rail only when previews can be minted", () => {
     renderFocus([]);
     expect(screen.queryByRole("button", { name: "Compare devices" })).toBeNull();
+  });
+});
+
+describe("Side by side", () => {
+  it("wraps two selected blocks into one Columns row as one undo step", () => {
+    const a = newBlockNode("nativeHeading");
+    const b = newBlockNode("nativeText");
+    renderFocus([a, b]);
+    act(() => {
+      store.getState().select(a._key);
+      store.getState().select(b._key, true);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Side by side" }));
+    const tree = store.getState().tree;
+    expect(tree).toHaveLength(1);
+    expect(tree[0]._type).toBe("columns");
+    expect(store.getState().selectedKey).toBe(tree[0]._key);
+    act(() => store.getState().undo());
+    expect(store.getState().tree.map((n) => n._key)).toEqual([a._key, b._key]);
   });
 });

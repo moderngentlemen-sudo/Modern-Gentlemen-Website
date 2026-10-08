@@ -248,6 +248,13 @@ export function FocusLayout({
         },
       },
       {
+        id: "side-by-side",
+        label: "Put selection side by side",
+        group: "Edit",
+        keywords: "columns row wrap arrange",
+        run: () => state().wrapSelectionInColumns(),
+      },
+      {
         id: "deselect",
         label: "Clear selection",
         group: "Edit",

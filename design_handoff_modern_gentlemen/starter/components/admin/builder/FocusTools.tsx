@@ -7,6 +7,7 @@ import { FOCUS_RING, HAIRLINE, LABEL_SM } from "@/components/admin/ui/styles";
 import { findBlock, flattenBlocks } from "@/lib/blocks/traverse";
 import type { BlockTree } from "@/lib/blocks/types";
 
+import { cannotWrapInColumns } from "./arrange";
 import { blockLabel, blockSnippet, describeStep, type HistoryStep } from "./history";
 import type { BrowseItem } from "./InsertMenu";
 import { useBuilder, useBuilderStore } from "./StoreContext";
@@ -413,14 +414,20 @@ export function SelectionBar() {
   const allHidden = nodes.every((node) => node.visibility?.hidden);
   const anchor = selectedKey ? findBlock(tree, selectedKey) : undefined;
   const state = () => store.getState();
+  const wrapRefusal = cannotWrapInColumns(tree, selectedKeys);
 
-  const action = (label: string, onClick: () => void, opts?: { title?: string }): ReactNode => (
+  const action = (
+    label: string,
+    onClick: () => void,
+    opts?: { title?: string; disabled?: boolean }
+  ): ReactNode => (
     <button
       type="button"
       onClick={onClick}
       title={opts?.title}
+      disabled={opts?.disabled}
       className={clsx(
-        "px-3 py-1.5 text-[12px] text-[#f4f4f4] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+        "px-3 py-1.5 text-[12px] text-[#f4f4f4] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white disabled:cursor-not-allowed disabled:text-[#f4f4f4]/40 disabled:hover:bg-transparent"
       )}
     >
       {label}
@@ -452,6 +459,10 @@ export function SelectionBar() {
           { title: `Give every selected block the spacing of ${blockLabel(anchor)}` }
         )}
       {action(allLocked ? "Unlock" : "Lock", () => state().setSelectedLocked(!allLocked))}
+      {action("Side by side", () => state().wrapSelectionInColumns(), {
+        title: wrapRefusal ?? "Put these blocks in one Columns row, one per column",
+        disabled: wrapRefusal !== null,
+      })}
       {action("Delete", () => state().removeSelected(), { title: "Delete" })}
       {action("Clear", () => state().select(null), { title: "Esc" })}
     </div>
