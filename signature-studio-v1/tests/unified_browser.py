@@ -4,8 +4,10 @@ therefore does not claim real network/OAuth/clipboard integration coverage.
 """
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from browser_runtime import launch_chromium
 import json,sys,traceback
 from unified_harness import boot
+from email_browser_workflows import run_email_workflows
 OUT=Path(__file__).resolve().parents[1]/'test-results-unified';OUT.mkdir(exist_ok=True)
 reports=[]
 def run(name,fn):
@@ -21,7 +23,7 @@ def setvalue(path,value):
  else:loc.fill(str(value))
  ready()
 with sync_playwright() as p:
- b=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+ b=launch_chromium(p)
  page=b.new_page(viewport={'width':1512,'height':980},device_scale_factor=1);page.set_default_timeout(4000)
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)));boot(page)
  def initial():
@@ -173,6 +175,7 @@ with sync_playwright() as p:
   nav('templates');assert page.locator('#uCategory').is_visible();nav('blocks')
  run('Mobile workspace navigation avoids whole-page horizontal overflow',mobile)
  page.screenshot(path=str(OUT/'mobile-workspace.png'),full_page=True)
+ run_email_workflows(b,boot,run,OUT)
  run('No unhandled JavaScript errors',lambda: (_ for _ in ()).throw(AssertionError(errors)) if errors else None)
  (OUT/'browser-report.json').write_text(json.dumps({'harness':'Offline production-module DOM/pointer tests; network/storage/media shims','groups':reports,'pageErrors':errors},indent=2))
  b.close()

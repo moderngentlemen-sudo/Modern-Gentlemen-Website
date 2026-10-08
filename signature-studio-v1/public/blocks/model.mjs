@@ -1,3 +1,4 @@
+import {normalizeEmailAssetMetadata} from '../shared/rendered-images.mjs';
 /** Versioned block documents. All operations return copies; no HTML is accepted. */
 import {freshProject,BASE_DESIGN,NETWORKS} from '../design/catalog.mjs';
 import {normalizeProject,clamp} from '../design/engine.mjs';
@@ -115,6 +116,7 @@ export function normalize(input){
   if(n.type==='template'){if(!p.project)throw new Error('The preserved template is missing.');n.props.project=normalizeProject(p.project);}
   return n;
  }
+ doc.emailAssetMetadata=normalizeEmailAssetMetadata(input.emailAssetMetadata);
  doc.children=(Array.isArray(input.children)?input.children:[]).map(n=>read(n));
  if(visibilityRulesVersion<2){
   const replyCore=new Set(['identity','identity-no-company','contact','name','title','company','pronouns']);

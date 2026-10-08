@@ -4,6 +4,7 @@ No Gmail, OAuth, real cloud sessions, or recipient email-client rendering is exe
 """
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from browser_runtime import launch_chromium
 from unified_harness import boot
 import json,traceback,sys
 OUT=Path(__file__).resolve().parents[1]/'test-results-alignment';OUT.mkdir(exist_ok=True)
@@ -46,7 +47,7 @@ def drag_handle(selector,dx,dy,mods=(),cancel=False):
  for k in reversed(mods):page.keyboard.up(k)
  ready()
 with sync_playwright() as p:
- browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+ browser=launch_chromium(p)
  page=browser.new_page(viewport={'width':1512,'height':1100},device_scale_factor=1)
  page.set_default_timeout(3500);page.on('pageerror',lambda e:errors.append(str(e)));boot(page)
  def handles():

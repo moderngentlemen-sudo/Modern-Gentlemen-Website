@@ -4,7 +4,7 @@ import {normalizeProject} from '../design/engine.mjs';
 import {block,clone,normalize as validate,freshDocument,walk,uid} from '../blocks/model.mjs';
 export const STORE='signature-studio.unified.v1';
 export function designProject(doc){
- return normalizeProject({...freshProject(),...(doc.designData||{}),schemaVersion:2,name:doc.name,variant:doc.variant,identity:doc.identity,design:doc.design,publishedAssets:doc.publishedAssets});
+ return normalizeProject({...freshProject(),...(doc.designData||{}),schemaVersion:2,name:doc.name,variant:doc.variant,identity:doc.identity,design:doc.design,publishedAssets:doc.publishedAssets,emailAssetMetadata:doc.emailAssetMetadata});
 }
 function keepData(doc,p){
  doc.designData={};for(const k of ['templateId','visible','assets','socials','content','extras','sections'])doc.designData[k]=clone(p[k]);
@@ -77,7 +77,7 @@ export function compose(project){
 }
 export function fromDesign(input){
  const p=normalizeProject(input.project||input),doc=freshDocument(true);
- doc.name=p.name;doc.variant=p.variant;doc.identity=clone(p.identity);doc.design=clone(p.design);doc.publishedAssets=clone(p.publishedAssets||{});keepData(doc,p);doc.children=[compose(p)];return validate(doc);
+ doc.name=p.name;doc.variant=p.variant;doc.identity=clone(p.identity);doc.design=clone(p.design);doc.publishedAssets=clone(p.publishedAssets||{});doc.emailAssetMetadata=clone(p.emailAssetMetadata||{});keepData(doc,p);doc.children=[compose(p)];return validate(doc);
 }
 /** Upgrade only the in-memory/local copy; old storage and remote records stay intact. */
 export function upgrade(input){
