@@ -563,7 +563,7 @@ export function FocusLayout({
               }}
               onClose={() => select(null)}
             />
-            <div className="min-h-0 flex-1 overflow-hidden">{inspector}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{inspector}</div>
             {inspectorFooter}
           </aside>
         )}
@@ -871,7 +871,13 @@ function FloatingInspector({
         onClose={onClose}
         onPointerDown={startDrag}
       />
-      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+      {/*
+        Scrolls itself. The card has a max-height but no height, so a child's
+        `h-full` cannot resolve and the panel's own scroller grows to its
+        content; with `overflow-hidden` here everything past the first
+        screenful (a Coming Soon block's whole content section) was unreachable.
+      */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
       {footer}
     </aside>
   );
