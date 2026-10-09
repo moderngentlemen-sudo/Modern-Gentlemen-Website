@@ -1422,3 +1422,47 @@ describe("page settings share the document timeline", () => {
     expect(store.getState().payload().pageSettings).toMatchObject({ seoTitle: "First" });
   });
 });
+
+describe("placing a stacked stage freely on phones", () => {
+  it("switches the stage and seeds every element's phone placement in one undo step", () => {
+    const a = newBlockNode("nativeText");
+    const b = newBlockNode("nativeHeading");
+    const stage = { ...newBlockNode("stageLayout"), children: [a, b] };
+    const store = makeStore([stage]);
+    const pastBefore = store.getState().past.length;
+    store.getState().placeStageOnPhones(stage._key, {
+      [a._key]: { x: 6, y: 20, w: 88, scale: 2.5, z: 1 },
+      [b._key]: { x: 6, y: 45, w: 88, scale: 2.5, z: 2 },
+    });
+    const next = store.getState().tree[0];
+    expect((next.settings as { mobileLayout?: string }).mobileLayout).toBe("free");
+    expect(next.children![0].visual?.stage?.mobile).toEqual({
+      x: 6,
+      y: 20,
+      w: 88,
+      scale: 2.5,
+      z: 1,
+    });
+    expect(next.children![1].visual?.stage?.mobile?.y).toBe(45);
+    expect(store.getState().past.length).toBe(pastBefore + 1);
+    store.getState().undo();
+    expect((store.getState().tree[0].settings as { mobileLayout?: string }).mobileLayout).not.toBe(
+      "free"
+    );
+    expect(store.getState().tree[0].children![0].visual?.stage?.mobile).toBeUndefined();
+  });
+
+  it("skips locked elements and placements that fail validation", () => {
+    const a = { ...newBlockNode("nativeText"), locked: true };
+    const b = newBlockNode("nativeText");
+    const stage = { ...newBlockNode("stageLayout"), children: [a, b] };
+    const store = makeStore([stage]);
+    store.getState().placeStageOnPhones(stage._key, {
+      [a._key]: { x: 1, y: 1, w: 50, scale: 1, z: 1 },
+      [b._key]: { x: 1, y: 1, w: 50, scale: 99, z: 1 },
+    });
+    const children = store.getState().tree[0].children!;
+    expect(children[0].visual?.stage?.mobile).toBeUndefined();
+    expect(children[1].visual?.stage?.mobile).toBeUndefined();
+  });
+});

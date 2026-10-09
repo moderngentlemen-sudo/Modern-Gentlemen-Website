@@ -162,4 +162,54 @@ describe("visual element design", () => {
       "visual.styles.desktop.zIndex",
     ]);
   });
+
+  it("hovers with custom colours and the new animations, bounded to hex", () => {
+    const css = visualCss("card", {
+      effects: {
+        hover: "glow",
+        hoverColor: "#d4af37",
+        hoverBackground: "#1b2a4a",
+        hoverOutline: "#ffffff",
+        hoverGlow: "#c8102e",
+      },
+    }).css;
+    expect(css).toContain(":hover{box-shadow:0 18px 55px #c8102e66}");
+    expect(css).toContain(":hover{background-color:#1b2a4a}");
+    expect(css).toContain(":hover{outline:1px solid #ffffff;outline-offset:0}");
+    expect(css).toMatch(
+      /:hover :not\(\[data-knockout\] p\):not\(\[data-outline="true"\]\)\{color:#d4af37!important\}/
+    );
+    expect(css).toContain("color .3s");
+    for (const [hover, fragment] of [
+      ["sink", "translateY(3px)"],
+      ["grow", "scale(1.06)"],
+      ["tilt", "rotateX(4deg)"],
+      ["brighten", "brightness(1.15)"],
+      ["underline", ":hover{background-size:100% 2px}"],
+      ["shine", ":hover{background-position:-50% 0}"],
+    ] as const) {
+      expect(visualCss("x", { effects: { hover } }).css).toContain(fragment);
+    }
+    expect(visualCss("x", { effects: { hover: "tilt" } }).css).toContain(
+      "prefers-reduced-motion:reduce"
+    );
+  });
+
+  it("leaves elements without hover colours exactly as they were", () => {
+    const css = visualCss("plain", { effects: { hover: "lift" } }).css;
+    expect(css).not.toContain("color .3s");
+    expect(css).not.toContain("background-color");
+  });
+
+  it("refuses hover colours that are not six-digit hex", () => {
+    const issues = validateVisualDesign({
+      effects: { hoverColor: "red", hoverBackground: "#12345", hoverOutline: "url(x)" },
+    });
+    expect(issues.map((i) => i.path)).toEqual([
+      "visual.effects.hoverColor",
+      "visual.effects.hoverBackground",
+      "visual.effects.hoverOutline",
+    ]);
+    expect(validateVisualDesign({ effects: { hover: "tilt", hoverGlow: "#c8102e" } })).toEqual([]);
+  });
 });

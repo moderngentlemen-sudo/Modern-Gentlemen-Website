@@ -227,6 +227,12 @@ export interface BuilderActions {
     placement: StagePlacement | undefined,
     options?: { coalesce?: boolean }
   ) => void;
+  /**
+   * Switches a Stage's phones from stacked to free placement, seeding every
+   * element's phone placement (measured from where it sat in the stack) in
+   * one undo step, so the first phone drag never makes the layout jump.
+   */
+  placeStageOnPhones: (stageKey: string, placements: Record<string, StagePlacement>) => void;
   setSetting: (key: string, path: (string | number)[], value: unknown) => void;
   unsetSetting: (key: string, path: (string | number)[]) => void;
   listAdd: (key: string, path: (string | number)[], item: unknown) => void;
@@ -758,6 +764,20 @@ export function createBuilderStore(init: BuilderInit): BuilderStore {
           if (!node.visual.stage) node.visual.stage = {};
           if (placement) node.visual.stage[device] = placement;
           else delete node.visual.stage[device];
+        }),
+      placeStageOnPhones: (stageKey, placements) =>
+        commit(null, (draft) => {
+          const stage = findDraft(draft, stageKey);
+          if (!stage || stage.locked || stage._type !== "stageLayout") return;
+          stage.settings = { ...(stage.settings ?? {}), mobileLayout: "free" };
+          for (const child of stage.children ?? []) {
+            const placement = placements[child._key];
+            if (!placement || child.locked || !stagePlacementSchema.safeParse(placement).success)
+              continue;
+            if (!child.visual) child.visual = {};
+            if (!child.visual.stage) child.visual.stage = {};
+            child.visual.stage.mobile = placement;
+          }
         }),
       setVisualStyle: (key, breakpoint, patch, options) =>
         commit(options?.discrete ? null : `visual:${key}:${breakpoint}`, (draft) => {

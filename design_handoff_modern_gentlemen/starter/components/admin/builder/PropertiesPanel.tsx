@@ -505,6 +505,70 @@ function BlockProperties({
         ))}
       </PanelSection>
 
+      <PanelSection
+        title="Hover"
+        defaultOpen={Boolean(
+          node.visual?.effects?.hover ||
+          node.visual?.effects?.hoverColor ||
+          node.visual?.effects?.hoverBackground ||
+          node.visual?.effects?.hoverOutline
+        )}
+      >
+        <Select
+          label="Hover effect"
+          value={node.visual?.effects?.hover ?? ""}
+          disabled={locked}
+          placeholder="None set"
+          options={VISUAL_HOVERS.map((value) => ({ value, label: HOVER_LABEL[value] }))}
+          help="What the element does while the pointer is over it. Nothing moves for visitors who ask for reduced motion."
+          onChange={(hover) =>
+            setVisualEffects(key, {
+              hover: hover === "" ? undefined : (hover as VisualEffects["hover"]),
+            })
+          }
+        />
+        <HoverColour
+          label="Text colour on hover"
+          value={node.visual?.effects?.hoverColor}
+          disabled={locked}
+          onChange={(hoverColor) => setVisualEffects(key, { hoverColor })}
+        />
+        <HoverColour
+          label="Background on hover"
+          value={node.visual?.effects?.hoverBackground}
+          disabled={locked}
+          onChange={(hoverBackground) => setVisualEffects(key, { hoverBackground })}
+        />
+        <HoverColour
+          label="Outline on hover"
+          value={node.visual?.effects?.hoverOutline}
+          disabled={locked}
+          onChange={(hoverOutline) => setVisualEffects(key, { hoverOutline })}
+        />
+        {(node.visual?.effects?.hover === "glow" ||
+          node.visual?.effects?.hover === "underline") && (
+          <HoverColour
+            label={node.visual.effects.hover === "glow" ? "Glow colour" : "Underline colour"}
+            value={node.visual.effects.hoverGlow}
+            disabled={locked}
+            onChange={(hoverGlow) => setVisualEffects(key, { hoverGlow })}
+          />
+        )}
+        <Select
+          label="Hover speed"
+          value={node.visual?.effects?.motion ?? ""}
+          disabled={locked}
+          placeholder="Default"
+          options={optionsFor(VISUAL_MOTIONS)}
+          help="Also sets how fast the entrance plays."
+          onChange={(motion) =>
+            setVisualEffects(key, {
+              motion: motion === "" ? undefined : (motion as VisualEffects["motion"]),
+            })
+          }
+        />
+      </PanelSection>
+
       <PanelSection title={`Visual appearance — ${device}`} defaultOpen={false}>
         {VISUAL_APPEARANCE_FIELDS.map((field) => (
           <Select
@@ -517,30 +581,6 @@ function BlockProperties({
             onChange={(value) => setVisualProperty(field.property, value)}
           />
         ))}
-        <Select
-          label="Hover effect"
-          value={node.visual?.effects?.hover ?? ""}
-          disabled={locked}
-          placeholder="None set"
-          options={optionsFor(VISUAL_HOVERS)}
-          onChange={(hover) =>
-            setVisualEffects(key, {
-              hover: hover === "" ? undefined : (hover as VisualEffects["hover"]),
-            })
-          }
-        />
-        <Select
-          label="Motion"
-          value={node.visual?.effects?.motion ?? ""}
-          disabled={locked}
-          placeholder="Default"
-          options={optionsFor(VISUAL_MOTIONS)}
-          onChange={(motion) =>
-            setVisualEffects(key, {
-              motion: motion === "" ? undefined : (motion as VisualEffects["motion"]),
-            })
-          }
-        />
         <Select
           label="Entrance"
           value={node.visual?.effects?.entrance ?? ""}
@@ -837,6 +877,56 @@ function titleCase(value: string | number): string {
   return String(value)
     .replaceAll("-", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+const HOVER_LABEL: Record<(typeof VISUAL_HOVERS)[number], string> = {
+  none: "None",
+  lift: "Lift",
+  sink: "Press down",
+  scale: "Scale up slightly",
+  grow: "Grow",
+  tilt: "Tilt in 3D",
+  glow: "Glow",
+  fade: "Fade",
+  brighten: "Brighten",
+  underline: "Underline draws in",
+  shine: "Light sweep (on a background)",
+};
+
+/** An optional hover colour: a swatch, or nothing set. */
+function HoverColour({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string | undefined;
+  disabled: boolean;
+  onChange: (value: string | undefined) => void;
+}) {
+  return (
+    <div className="flex items-end gap-2">
+      <div className="min-w-0 flex-1">
+        <TextInput
+          label={label}
+          type="color"
+          value={value ?? "#c8102e"}
+          disabled={disabled}
+          onChange={(next) => onChange(/^#[0-9a-f]{6}$/i.test(next) ? next : undefined)}
+        />
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={disabled || !value}
+        onClick={() => onChange(undefined)}
+        aria-label={`Clear ${label.toLowerCase()}`}
+      >
+        {value ? "Clear" : "Not set"}
+      </Button>
+    </div>
+  );
 }
 
 function optionsFor(values: readonly (string | number)[], suffix = "") {

@@ -90,8 +90,9 @@ export function StageLayout({
   const glow = clampPct(glowStrength, 0);
   const letterbox = Math.min(15, Math.max(0, Number.isFinite(bars) ? bars : 0));
   const introOn = INTROS.includes(intro);
+  const stageColor = HEX.test(color) ? color : "#0d0d0d";
   const style = {
-    "--stage-color": /^#[0-9a-f]{6}$/i.test(color) ? color : "#0d0d0d",
+    "--stage-color": stageColor,
     "--stage-scrim": clampPct(scrim, 35) / 100,
     ...(scrimColor && /^#[0-9a-f]{6}$/i.test(scrimColor)
       ? { "--stage-scrim-rgb": hexChannels(scrimColor) }
@@ -122,6 +123,11 @@ export function StageLayout({
       data-zoom={zoom === "in" || zoom === "out" ? zoom : undefined}
       data-bars={letterbox > 0 ? "" : undefined}
     >
+      {standalone && (
+        // The page behind Safari's bars takes the stage's colour (globals.css).
+        // The colour is a validated #rrggbb, so nothing else can reach the CSS.
+        <style>{`:root{--mg-standalone-canvas:${stageColor}}`}</style>
+      )}
       {video ? (
         <StageVideo src={video} poster={image} className={styles.media} />
       ) : image ? (

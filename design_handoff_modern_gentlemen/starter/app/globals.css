@@ -588,6 +588,22 @@ body:has([data-site-main] [data-coming-soon-standalone="true"]) [data-site-chrom
 [data-site-main]:has([data-coming-soon-standalone="true"]) {
   padding-top: 0 !important;
 }
+/*
+ * A standalone coming-soon page paints the whole canvas in its own colour.
+ * iOS Safari tints the status bar and the toolbar area from the page's
+ * background, so with the site's light theme behind a dark stage those areas
+ * showed white. The stage publishes its colour as --mg-standalone-canvas;
+ * older standalone designs fall back to the dark ground they all share.
+ * `!important` because the mobile canvas rules above are more specific.
+ */
+html:has([data-site-main] [data-coming-soon-standalone="true"]),
+html:has([data-site-main] [data-after-hours-standalone="true"]),
+html:has([data-site-main] [data-coming-soon-standalone="true"]) body,
+html:has([data-site-main] [data-after-hours-standalone="true"]) body,
+html:has([data-site-main] [data-coming-soon-standalone="true"]) [data-site-main],
+html:has([data-site-main] [data-after-hours-standalone="true"]) [data-site-main] {
+  background: var(--mg-standalone-canvas, #0d0d0d) !important;
+}
 
 /* Page overrides are scoped to the public document, never the editor canvas. */
 @media (min-width: 681px) {

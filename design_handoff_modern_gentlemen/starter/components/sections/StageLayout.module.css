@@ -135,6 +135,19 @@
   .inner {
     zoom: calc(tan(atan2(100cqw, var(--stage-design))) * var(--sm-s, var(--st-s, var(--sd-s, 1))));
   }
+  /*
+   * Free placement on phones keeps the stack's centred text and its caps on
+   * countdown and knockout sizes, so switching a stacked stage to free (the
+   * editor does it on the first phone drag) changes nothing visually.
+   */
+  .layer[data-mobile="free"] {
+    text-align: center;
+  }
+  .layer[data-mobile="free"] > .cell {
+    --cd-max: 12cqw;
+    --cd-gap: 2.4cqw;
+    --ko-max: 26cqw;
+  }
   /* Stack mode: the reliable phone layout, in reading order. */
   .layer[data-mobile="stack"] {
     display: flex;
