@@ -19,6 +19,15 @@ const fontVar = (font: string | undefined): Record<string, string> => {
   const stack = libraryFontStack(font);
   return stack ? { "--el-font": stack } : {};
 };
+/** Relative luminance of `#rrggbb`, 0 (black) to 1 (white). */
+function luminance(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const lin = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+}
 const within = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 
@@ -141,6 +150,8 @@ export function LaunchLogo({
 export function LaunchKnockout({
   text = "SOON",
   panel = "light",
+  panelColor,
+  panelOpacity = 100,
   size = 320,
   cover = true,
   font = "theme:heading",
@@ -150,6 +161,8 @@ export function LaunchKnockout({
 }: {
   text?: string;
   panel?: "light" | "dark";
+  panelColor?: string;
+  panelOpacity?: number;
   size?: number;
   cover?: boolean;
   font?: string;
@@ -157,7 +170,12 @@ export function LaunchKnockout({
   letterSpacing?: number;
   align?: "left" | "center" | "right";
 }) {
-  const light = panel !== "dark";
+  const custom = panelColor && HEX.test(panelColor) ? panelColor : undefined;
+  // The letters are cut out by a blend, not a mask: a pale panel lightens
+  // (screen, black letters vanish) and a deep one darkens (multiply, white
+  // letters vanish). A custom colour picks whichever its lightness suits.
+  const light = custom ? luminance(custom) > 0.4 : panel !== "dark";
+  const fade = within(panelOpacity, 0, 100, 100);
   return (
     <>
       <FontStylesheet font={font} />
@@ -171,7 +189,8 @@ export function LaunchKnockout({
             "--ko-size": `${within(size, 20, 1200, 320)}px`,
             "--ko-weight": /^[1-9]00$/.test(weight) ? weight : "700",
             "--ko-tracking": `${within(letterSpacing, -0.2, 1, -0.04)}em`,
-            "--ko-panel": light ? "#f4f4f4" : "#0d0d0d",
+            "--ko-panel": custom ?? (light ? "#f4f4f4" : "#0d0d0d"),
+            ...(fade < 100 ? { opacity: fade / 100 } : {}),
             "--ko-ink": light ? "#000000" : "#ffffff",
             textAlign: align,
           } as CSSProperties
@@ -183,38 +202,87 @@ export function LaunchKnockout({
   );
 }
 
+const SHADOWS = {
+  soft: "0 12px 40px rgba(0, 0, 0, 0.28)",
+  strong: "0 24px 80px rgba(0, 0, 0, 0.55)",
+} as const;
+const BLENDS = ["multiply", "screen", "overlay", "soft-light", "color"] as const;
+type Blend = (typeof BLENDS)[number];
+
+/** `#rrggbb` at an alpha, as `rgba()`: a hex colour cannot carry its own opacity. */
+function alpha(hex: string, percent: number) {
+  if (percent >= 100) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${percent / 100})`;
+}
+
 export function LaunchShape({
   shape = "rectangle",
   fill = "#c8102e",
+  fillOpacity = 100,
   opacity = 100,
-  height = 200,
   blur = 0,
+  saturation = 100,
+  height = 200,
   radius = 0,
+  fill2,
+  gradientAngle = 180,
+  fill2Opacity = 100,
+  borderColor,
   stroke = 2,
+  shadow = "none",
+  blend = "normal",
+  sheen = false,
 }: {
   shape?: "rectangle" | "circle" | "ring" | "line";
   fill?: string;
+  fillOpacity?: number;
   opacity?: number;
-  height?: number;
   blur?: number;
+  saturation?: number;
+  height?: number;
   radius?: number;
+  fill2?: string;
+  gradientAngle?: number;
+  fill2Opacity?: number;
+  borderColor?: string;
   stroke?: number;
+  shadow?: "none" | "soft" | "strong";
+  blend?: "normal" | Blend;
+  sheen?: boolean;
 }) {
   const b = within(blur, 0, 80, 0);
+  const sat = within(saturation, 0, 300, 100);
+  const colour = HEX.test(fill) ? fill : "#c8102e";
+  const from = alpha(colour, within(fillOpacity, 0, 100, 100));
+  const background =
+    fill2 && HEX.test(fill2)
+      ? `linear-gradient(${within(gradientAngle, 0, 360, 180)}deg, ${from}, ${alpha(fill2, within(fill2Opacity, 0, 100, 100))})`
+      : from;
+  const outline = shape !== "ring" && shape !== "line" && borderColor && HEX.test(borderColor);
+  const mode = (BLENDS as readonly string[]).includes(blend) ? (blend as Blend) : undefined;
   return (
     <div
       aria-hidden="true"
       className={styles.shape}
       data-shape={shape}
-      data-blur={b > 0 ? "true" : undefined}
+      data-blur={b > 0 || sat !== 100 ? "true" : undefined}
+      data-blend={mode}
+      data-sheen={sheen && shape !== "ring" ? "true" : undefined}
       style={
         {
-          "--sh-fill": HEX.test(fill) ? fill : "#c8102e",
+          "--sh-fill": colour,
+          "--sh-bg": background,
           "--sh-opacity": within(opacity, 0, 100, 100) / 100,
           "--sh-height": `${within(height, 1, 4000, 200)}px`,
           "--sh-blur": `${b}px`,
+          "--sh-saturate": `${sat}%`,
           "--sh-radius": `${within(radius, 0, 2000, 0)}px`,
           "--sh-stroke": `${within(stroke, 0, 80, 2)}px`,
+          ...(outline
+            ? { "--sh-border": `${within(stroke, 0, 80, 2)}px solid ${borderColor}` }
+            : {}),
+          ...(shadow === "soft" || shadow === "strong" ? { "--sh-shadow": SHADOWS[shadow] } : {}),
         } as CSSProperties
       }
     />

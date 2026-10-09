@@ -40,27 +40,27 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: rgb(0 0 0 / var(--stage-scrim, 0.35));
+  background: rgb(var(--stage-scrim-rgb, 0 0 0) / var(--stage-scrim, 0.35));
 }
 .shade[data-shade="vignette"] {
   background: radial-gradient(
     ellipse at 50% 50%,
-    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 0.4)),
-    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 1.6)) 78%
+    rgb(var(--stage-scrim-rgb, 0 0 0) / calc(var(--stage-scrim, 0.35) * 0.4)),
+    rgb(var(--stage-scrim-rgb, 0 0 0) / calc(var(--stage-scrim, 0.35) * 1.6)) 78%
   );
 }
 .shade[data-shade="bottom"] {
   background: linear-gradient(
     180deg,
-    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 0.3)),
-    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 1.8))
+    rgb(var(--stage-scrim-rgb, 0 0 0) / calc(var(--stage-scrim, 0.35) * 0.3)),
+    rgb(var(--stage-scrim-rgb, 0 0 0) / calc(var(--stage-scrim, 0.35) * 1.8))
   );
 }
 .shade[data-shade="left"] {
   background: linear-gradient(
     90deg,
-    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 1.8)),
-    rgb(0 0 0 / calc(var(--stage-scrim, 0.35) * 0.3))
+    rgb(var(--stage-scrim-rgb, 0 0 0) / calc(var(--stage-scrim, 0.35) * 1.8)),
+    rgb(var(--stage-scrim-rgb, 0 0 0) / calc(var(--stage-scrim, 0.35) * 0.3))
   );
 }
 .shade[data-shade="none"] {
@@ -179,4 +179,175 @@
 }
 .cell:has([data-knockout="multiply"]) {
   mix-blend-mode: multiply;
+}
+/* A shape's blend mode, lifted onto its cell for the same reason. */
+.cell:has([data-blend="multiply"]) {
+  mix-blend-mode: multiply;
+}
+.cell:has([data-blend="screen"]) {
+  mix-blend-mode: screen;
+}
+.cell:has([data-blend="overlay"]) {
+  mix-blend-mode: overlay;
+}
+.cell:has([data-blend="soft-light"]) {
+  mix-blend-mode: soft-light;
+}
+.cell:has([data-blend="color"]) {
+  mix-blend-mode: color;
+}
+
+/*
+ * Effects. Every one is opt-in, adds no element or attribute while off, and
+ * stops moving under prefers-reduced-motion (the grain stays, still).
+ */
+.glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 60% at var(--stage-glow-at, 50% 110%),
+    rgb(var(--stage-glow-rgb, 200 16 46) / var(--stage-glow, 0.4)),
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+}
+
+.grain {
+  position: absolute;
+  inset: -50%;
+  z-index: 60;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.12;
+  animation: stageGrain 0.9s steps(5) infinite;
+}
+.grain[data-grain="strong"] {
+  opacity: 0.24;
+}
+@keyframes stageGrain {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-6%, 4%);
+  }
+  40% {
+    transform: translate(5%, -7%);
+  }
+  60% {
+    transform: translate(-3%, -4%);
+  }
+  80% {
+    transform: translate(7%, 3%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Letterbox bars: cinematic black above and below, over everything. */
+.stage[data-bars]::before,
+.stage[data-bars]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--stage-bars);
+  background: #000;
+  z-index: 59;
+  pointer-events: none;
+}
+.stage[data-bars]::before {
+  top: 0;
+}
+.stage[data-bars]::after {
+  bottom: 0;
+}
+
+/* A slow push in or pull out on the video or photograph. */
+.stage[data-zoom] .media,
+.stage[data-zoom] .posterBox {
+  animation: stageZoomIn 32s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+.stage[data-zoom="out"] .media,
+.stage[data-zoom="out"] .posterBox {
+  animation-name: stageZoomOut;
+}
+@keyframes stageZoomIn {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+@keyframes stageZoomOut {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/*
+ * Opening sequence: placed elements arrive one after another, in the order they
+ * sit in the layer (the editor's layer order), on the public page and previews.
+ * The editor canvas renders its own frames, not [data-stage-cell], so editing
+ * never waits on it.
+ */
+.layer[data-intro] > [data-stage-cell] {
+  animation: 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: calc(var(--cell-i, 0) * var(--stage-intro-step, 160ms) + 200ms);
+}
+.layer[data-intro="fade"] > [data-stage-cell] {
+  animation-name: stageIntroFade;
+}
+.layer[data-intro="rise"] > [data-stage-cell] {
+  animation-name: stageIntroRise;
+}
+.layer[data-intro="blur"] > [data-stage-cell] {
+  animation-name: stageIntroBlur;
+}
+.layer[data-intro="wipe"] > [data-stage-cell] {
+  animation-name: stageIntroWipe;
+}
+@keyframes stageIntroFade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes stageIntroRise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+@keyframes stageIntroBlur {
+  from {
+    opacity: 0;
+    filter: blur(14px);
+    transform: scale(1.04);
+  }
+}
+@keyframes stageIntroWipe {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(12px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain,
+  .stage[data-zoom] .media,
+  .stage[data-zoom] .posterBox,
+  .layer[data-intro] > [data-stage-cell] {
+    animation: none;
+  }
 }

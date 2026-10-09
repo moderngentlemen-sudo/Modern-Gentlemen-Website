@@ -223,6 +223,38 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
   Gmail acceptance has not been performed.
 
+### 2026-10-09 — Coming Soon panels and premium effects (branch `claude/coming-soon-panels`)
+
+- Asked by the owner: options for the colour, opacity, etc. of the panels in
+  the Coming Soon pages, then effects that make them stand out and feel
+  premium. All additive; every new setting defaults to what rendered before,
+  and an effect that is off adds no element, attribute or variable.
+- **Shape panels** (`nativeShape` — the frosted panel, red band, plate,
+  rules): colour opacity separate from overall opacity (translucent tint with
+  full-strength blur, the usual frosted glass), frosted saturation, gradient
+  to a second colour with angle and end opacity, outline colour (rectangles
+  and circles; width shares the ring's), soft/strong shadow, blend mode, and a
+  "light sweep" sheen. ⚠️ A blend mode has to be lifted onto the stage
+  **cell** like the knockout's (`.cell:has([data-blend=…])`): the cell is a
+  stacking context.
+- **Knockout panel:** any colour plus opacity. The letters are cut out by a
+  blend, not a mask, so a custom colour picks screen or multiply by its
+  luminance (> 0.4 → screen). White or black give a solid panel; colours in
+  between give a tinted one, and the help text says so.
+- **Stage:** shade colour (`--stage-scrim-rgb`, black when unset), and an
+  effects set: opening sequence (fade / rise / blur / wipe, in layer order,
+  pace quick / measured / slow), slow zoom in or out on the background, film
+  grain, a coloured light glow (colour, strength, direction) and letterbox
+  bars. The intro uses `animation-fill-mode: backwards` on purpose: `both`
+  would keep the wipe's final `clip-path` and clip the knockout panel, which
+  extends past its cell. The canvas renders its own frames rather than
+  `[data-stage-cell]`, so editing never waits on the intro.
+- **Countdown:** "When a number changes" — fade, rise or flip. Each number is
+  keyed on its value, so a change remounts it and replays the animation.
+- Every animation stops under `prefers-reduced-motion` (checked in Chromium:
+  zero running animations). axe: zero violations on a stage with every effect
+  on. Gates: format, lint, typecheck, 4,095 unit tests.
+
 ### 2026-10-09 — Coming Soon pages support the site's installed fonts (branch `claude/coming-soon-fonts`)
 
 - Asked by the owner: every coming-soon page should support the fonts

@@ -44,6 +44,10 @@ export const stageLayout = defineBlock({
       max: 90,
       integer: true,
     }),
+    scrimColor: field.color({
+      label: "Shade colour",
+      help: "Leave unset for black. A brand colour tints the video or photograph.",
+    }),
     shade: field.select({
       label: "Shade style",
       default: "even",
@@ -61,6 +65,73 @@ export const stageLayout = defineBlock({
       min: 0,
       max: 100,
       integer: true,
+    }),
+    intro: field.select({
+      label: "Opening sequence",
+      default: "none",
+      options: [
+        { value: "none", label: "None — everything is there at once" },
+        { value: "fade", label: "Fade in, one after another" },
+        { value: "rise", label: "Rise in, one after another" },
+        { value: "blur", label: "Come into focus, one after another" },
+        { value: "wipe", label: "Wipe up, one after another" },
+      ],
+      help: "Elements arrive in layer order when the page opens. Off for visitors who ask for reduced motion.",
+    }),
+    introPace: field.select({
+      label: "Opening pace",
+      default: "measured",
+      options: [
+        { value: "quick", label: "Quick" },
+        { value: "measured", label: "Measured" },
+        { value: "slow", label: "Slow and cinematic" },
+      ],
+    }),
+    zoom: field.select({
+      label: "Slow zoom on the background",
+      default: "none",
+      options: [
+        { value: "none", label: "None" },
+        { value: "in", label: "Push in" },
+        { value: "out", label: "Pull out" },
+      ],
+      help: "A 30-second camera move on the video or photograph.",
+    }),
+    grain: field.select({
+      label: "Film grain",
+      default: "none",
+      options: [
+        { value: "none", label: "None" },
+        { value: "subtle", label: "Subtle" },
+        { value: "strong", label: "Strong" },
+      ],
+    }),
+    glowStrength: field.number({
+      label: "Light glow (%)",
+      default: 0,
+      min: 0,
+      max: 100,
+      integer: true,
+      help: "A soft pool of coloured light over the background. 0 is off.",
+    }),
+    glowColor: field.color({ label: "Glow colour", default: "#c8102e" }),
+    glowPosition: field.select({
+      label: "Glow from",
+      default: "bottom",
+      options: [
+        { value: "bottom", label: "Below" },
+        { value: "top", label: "Above" },
+        { value: "left", label: "The left" },
+        { value: "right", label: "The right" },
+        { value: "center", label: "The centre" },
+      ],
+    }),
+    bars: field.number({
+      label: "Letterbox bars (%)",
+      default: 0,
+      min: 0,
+      max: 15,
+      help: "Black cinema bars above and below, each this share of the height. 0 is off. They sit over everything, so keep text clear of them.",
     }),
     height: field.select({
       label: "Height",

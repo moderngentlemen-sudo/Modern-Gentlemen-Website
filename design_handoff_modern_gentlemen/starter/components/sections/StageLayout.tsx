@@ -13,6 +13,15 @@ export interface StageProps {
   image?: string;
   color?: string;
   scrim?: number;
+  scrimColor?: string;
+  grain?: "none" | "subtle" | "strong";
+  zoom?: "none" | "in" | "out";
+  glowColor?: string;
+  glowStrength?: number;
+  glowPosition?: "top" | "bottom" | "left" | "right" | "center";
+  bars?: number;
+  intro?: "none" | "fade" | "rise" | "blur" | "wipe";
+  introPace?: "quick" | "measured" | "slow";
   shade?: StageShade;
   monochrome?: number;
   focusX?: number;
@@ -35,11 +44,37 @@ const clampPct = (n: number | undefined, fallback: number) =>
  * and elements placed anywhere on it (see `StageCell`). The editor renders the
  * same component, so what an editor drags is what the site shows.
  */
+const HEX = /^#[0-9a-f]{6}$/i;
+const INTROS: readonly string[] = ["fade", "rise", "blur", "wipe"];
+const INTRO_STEP = { quick: "90ms", measured: "160ms", slow: "280ms" } as const;
+const GLOW_AT = {
+  top: "50% -10%",
+  bottom: "50% 110%",
+  left: "-10% 50%",
+  right: "110% 50%",
+  center: "50% 50%",
+} as const;
+
+/** `#rrggbb` as `r g b`, for `rgb(var(--x) / alpha)`. */
+const hexChannels = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `${n >> 16} ${(n >> 8) & 255} ${n & 255}`;
+};
+
 export function StageLayout({
   video = "",
   image = "",
   color = "#0d0d0d",
   scrim = 35,
+  scrimColor,
+  grain = "none",
+  zoom = "none",
+  glowColor = "#c8102e",
+  glowStrength = 0,
+  glowPosition = "bottom",
+  bars = 0,
+  intro = "none",
+  introPace = "measured",
   shade = "even",
   monochrome = 0,
   focusX = 50,
@@ -52,14 +87,29 @@ export function StageLayout({
   standalone = false,
   children,
 }: StageProps) {
+  const glow = clampPct(glowStrength, 0);
+  const letterbox = Math.min(15, Math.max(0, Number.isFinite(bars) ? bars : 0));
+  const introOn = INTROS.includes(intro);
   const style = {
     "--stage-color": /^#[0-9a-f]{6}$/i.test(color) ? color : "#0d0d0d",
     "--stage-scrim": clampPct(scrim, 35) / 100,
+    ...(scrimColor && /^#[0-9a-f]{6}$/i.test(scrimColor)
+      ? { "--stage-scrim-rgb": hexChannels(scrimColor) }
+      : {}),
     "--stage-mono": `${clampPct(monochrome, 0)}%`,
     "--stage-focus-x": `${clampPct(focusX, 50)}%`,
     "--stage-focus-y": `${clampPct(focusY, 50)}%`,
     "--stage-stack-justify": JUSTIFY[mobileAlign] ?? "center",
     "--stage-stack-gap": `${Math.min(120, Math.max(0, mobileGap))}px`,
+    ...(glow > 0
+      ? {
+          "--stage-glow-rgb": hexChannels(HEX.test(glowColor) ? glowColor : "#c8102e"),
+          "--stage-glow": glow / 100,
+          "--stage-glow-at": GLOW_AT[glowPosition] ?? GLOW_AT.bottom,
+        }
+      : {}),
+    ...(letterbox > 0 ? { "--stage-bars": `${letterbox}%` } : {}),
+    ...(introOn ? { "--stage-intro-step": INTRO_STEP[introPace] ?? INTRO_STEP.measured } : {}),
   } as CSSProperties;
   return (
     <section
@@ -69,6 +119,8 @@ export function StageLayout({
       data-darkband={tone === "light" ? "" : undefined}
       data-stage-tone={tone}
       data-coming-soon-standalone={standalone ? "true" : undefined}
+      data-zoom={zoom === "in" || zoom === "out" ? zoom : undefined}
+      data-bars={letterbox > 0 ? "" : undefined}
     >
       {video ? (
         <StageVideo src={video} poster={image} className={styles.media} />
@@ -78,9 +130,18 @@ export function StageLayout({
         </div>
       ) : null}
       {(video || image) && <div className={styles.shade} data-shade={shade} aria-hidden="true" />}
-      <div className={styles.layer} data-height={height} data-mobile={mobileLayout}>
+      {glow > 0 && <div className={styles.glow} aria-hidden="true" />}
+      <div
+        className={styles.layer}
+        data-height={height}
+        data-mobile={mobileLayout}
+        data-intro={introOn ? intro : undefined}
+      >
         {children}
       </div>
+      {(grain === "subtle" || grain === "strong") && (
+        <div className={styles.grain} data-grain={grain} aria-hidden="true" />
+      )}
     </section>
   );
 }
@@ -99,7 +160,7 @@ export function StageCell({
     <div
       className={styles.cell}
       data-stage-cell=""
-      style={stageVariables(stage, { index }) as CSSProperties}
+      style={{ ...stageVariables(stage, { index }), "--cell-i": index } as CSSProperties}
     >
       <div className={styles.inner}>{children}</div>
     </div>
