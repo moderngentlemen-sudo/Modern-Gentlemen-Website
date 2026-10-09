@@ -170,17 +170,11 @@
 }
 
 /*
- * Knockout text blends with the stage background. The blend has to sit on the
- * placed element itself: each one is a stacking context (it has a z-index),
- * and a blend inside one would only mix with that element's own contents.
+ * A shape's blend mode is lifted onto its cell: each placed element is a
+ * stacking context (it has a z-index), and a blend inside one would only mix
+ * with that element's own contents. (Knockout text no longer blends: it is an
+ * SVG mask, because Safari will not blend an element with a playing video.)
  */
-.cell:has([data-knockout="screen"]) {
-  mix-blend-mode: screen;
-}
-.cell:has([data-knockout="multiply"]) {
-  mix-blend-mode: multiply;
-}
-/* A shape's blend mode, lifted onto its cell for the same reason. */
 .cell:has([data-blend="multiply"]) {
   mix-blend-mode: multiply;
 }

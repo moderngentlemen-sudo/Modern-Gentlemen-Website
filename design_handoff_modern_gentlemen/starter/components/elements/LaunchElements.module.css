@@ -317,23 +317,33 @@
 }
 
 /* Knockout */
+.knockoutBox {
+  --ko-fs: min(var(--ko-size), var(--ko-max, 100000px));
+  position: relative;
+}
+/* The panel beyond the letters' own box: a plain shadow, no mask needed. */
+.knockoutBox[data-cover="true"] {
+  box-shadow: 0 0 0 400vmax var(--ko-panel);
+}
+.knockoutBox[data-knockout="none"] {
+  background: var(--ko-panel);
+}
 .knockout {
   margin: 0;
   font-family: var(--ko-font);
-  font-size: min(var(--ko-size), var(--ko-max, 100000px));
+  font-size: var(--ko-fs);
   font-weight: var(--ko-weight, 700);
   letter-spacing: var(--ko-tracking, -0.04em);
   line-height: 0.82;
-  background: var(--ko-panel);
   color: var(--ko-ink);
 }
-.knockout[data-cover="true"] {
-  box-shadow: 0 0 0 400vmax var(--ko-panel);
-}
-/* Outline letters: the fill matches the panel and only the stroke is cut out. */
-.knockout[data-letters="outline"] {
-  -webkit-text-stroke: var(--ko-stroke, 3px) var(--ko-stroke-color);
-  paint-order: stroke fill;
+.knockoutMask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 /* Shape */
 .shape {

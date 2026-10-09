@@ -251,6 +251,39 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
   Gmail acceptance has not been performed.
 
+### 2026-10-09 — Knockout letters stayed filled on iPad Safari (branch `claude/knockout-safari`)
+
+- Reported by the owner: on an iPad in Safari the knockout letters showed
+  filled instead of cut out. Not the editor and not the settings: the cut-out
+  was a blend (`mix-blend-mode: screen`/`multiply` on the stage cell), and
+  WebKit on iOS/iPadOS does not blend a page element with a playing
+  `<video>` — it composites the video on its own layer, so the element paints
+  unblended. Chromium and Firefox blend correctly, which is why every check
+  passed. WebKit is not installed in the session container, so the fix was
+  chosen to remove the dependency rather than verified in Safari itself.
+- **The knockout is now an SVG mask** (`components/elements/LaunchKnockout.tsx`,
+  a client component): the real text stays in the page, transparent, for
+  layout and screen readers; an SVG over it draws the panel with the letters
+  masked out; the wrapper's box-shadow still extends the panel across the
+  stage. Nothing blends, so it works in every browser — and a custom panel
+  colour is now exactly that colour rather than a blended tint.
+- **Line breaks:** SVG text does not wrap, so a client effect reads where the
+  browser broke the transparent text (per-character `Range` rects, re-measured
+  on resize and when fonts load) and draws one SVG line each. Before layout
+  (and on the server) explicit `\n` breaks are used.
+- **Reach:** the mask and cover panel extend half a box past the letters' box
+  on every side (`REACH`), which cuts out letters overhanging their box and
+  overlaps the box-shadow so the two halves fuse instead of meeting at an
+  antialiased hairline (seen in the first attempt).
+- Letter styles keep their meaning: Cut out; Tinted (now the letters redrawn
+  over the cut-out in the colour at the strength's opacity); Outline (letters
+  white in the mask with a black stroke, so only the edges are cut); Solid
+  (no mask at all). The shape element's blend mode has the same Safari limit;
+  its help text now says so.
+- Verified in Chromium over the playing reel at desktop and iPad widths: all
+  four styles, a two-line "COMING SOON", the owner's own settings (CS30 "MG",
+  uploaded font, −0.08em). Gates: format, lint, typecheck, 4,098 unit tests.
+
 ### 2026-10-09 — Coming Soon panels and premium effects (branch `claude/coming-soon-panels`)
 
 - Asked by the owner: options for the colour, opacity, etc. of the panels in
