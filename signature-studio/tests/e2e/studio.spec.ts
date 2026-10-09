@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { shot } from "./helpers";
 
 test("create from a template, edit details, switch template without losing content", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/app");
   await page.getByTestId("template-legal-counsel").click();
   await page.getByTestId("field-name").fill("Avery Stone");
   await page.getByTestId("field-email").fill("avery@stone.law");

@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { applyTemplate } from "../core/apply";
 import { TEMPLATES, type TemplateGroup } from "../core/templates";
 import type { SignatureDoc } from "../core/types";
-import { edit, toast, useStudio } from "../store/editor";
+import { edit, toast, undo, useStudio } from "../store/editor";
+import { blocksFromDoc } from "../core/blocks";
 import { Segmented, Toggle } from "../ui/kit";
 import { Thumb } from "../ui/SigHtml";
 
@@ -25,7 +26,11 @@ export function TemplatesPanel() {
   return (
     <>
       <h2>Templates</h2>
-      <p className="lede">Switch any time — your details, images and add-ons always come with you.</p>
+      <p className="lede">
+        {doc.mode === "builder"
+          ? "Pick a starting layout. It replaces your current blocks (you can undo); your details and images come with you."
+          : "Switch any time — your details, images and add-ons always come with you."}
+      </p>
       <Segmented
         label="Template group"
         value={group}
@@ -44,8 +49,12 @@ export function TemplatesPanel() {
             className="sig-tile"
             aria-current={doc.templateId === t.id}
             onClick={() => {
-              edit((d) => applyTemplate(d, t.id, { keepColors }));
-              toast(`Template: ${t.name}`, "success");
+              edit((d) => {
+                applyTemplate(d, t.id, { keepColors });
+                // In the builder a template is a starting layout.
+                if (d.mode === "builder") d.blocks = blocksFromDoc(d);
+              });
+              toast(doc.mode === "builder" ? `Layout replaced with ${t.name}` : `Template: ${t.name}`, "success", { label: "Undo", run: undo });
             }}
             data-testid={`apply-${t.id}`}
           >

@@ -1,11 +1,12 @@
 import { useEffect, type ReactNode } from "react";
 import {
   ArrowLeft,
+  Blocks,
   Check,
   CreditCard,
   Image as ImageIcon,
+  Layers,
   LayoutTemplate,
-  Loader2,
   Mail,
   Monitor,
   Moon,
@@ -29,8 +30,14 @@ import { SocialPanel } from "../panels/SocialPanel";
 import { DesignPanel } from "../panels/DesignPanel";
 import { AddOnsPanel } from "../panels/AddOnsPanel";
 import { CardPanel } from "../panels/CardPanel";
+import { BlocksPanel, LayersPanel } from "../builder/Panels";
+import { Inspector } from "../builder/Inspector";
+import { DragLayer, Stage } from "../builder/Stage";
+import { duplicateSelected, enterBuilder, enterQuick, nudgeSelected, removeSelected } from "../builder/actions";
 
-const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
+type NavItem = { id: Tab; label: string; icon: ReactNode };
+
+const QUICK_TABS: NavItem[] = [
   { id: "templates", label: "Templates", icon: <LayoutTemplate size={20} /> },
   { id: "details", label: "Details", icon: <User size={20} /> },
   { id: "images", label: "Images", icon: <ImageIcon size={20} /> },
@@ -40,7 +47,20 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: "card", label: "Canva", icon: <CreditCard size={20} /> },
 ];
 
+const BUILDER_TABS: NavItem[] = [
+  { id: "blocks", label: "Blocks", icon: <Blocks size={20} /> },
+  { id: "layers", label: "Layers", icon: <Layers size={20} /> },
+  { id: "templates", label: "Templates", icon: <LayoutTemplate size={20} /> },
+  { id: "details", label: "Details", icon: <User size={20} /> },
+  { id: "images", label: "Images", icon: <ImageIcon size={20} /> },
+  { id: "social", label: "Social", icon: <Share2 size={20} /> },
+  { id: "design", label: "Design", icon: <Palette size={20} /> },
+  { id: "card", label: "Canva", icon: <CreditCard size={20} /> },
+];
+
 const PANELS: Record<Exclude<Tab, "install">, () => ReactNode> = {
+  blocks: BlocksPanel,
+  layers: LayersPanel,
   templates: TemplatesPanel,
   details: DetailsPanel,
   images: ImagesPanel,
@@ -50,20 +70,38 @@ const PANELS: Record<Exclude<Tab, "install">, () => ReactNode> = {
   card: CardPanel,
 };
 
-function useShortcuts() {
+function useShortcuts(builder: boolean) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
       const t = e.target as HTMLElement;
-      // Let text fields keep their own undo.
-      if (t.closest("input, textarea, [contenteditable]")) return;
-      e.preventDefault();
-      if (e.shiftKey) redo();
-      else undo();
+      // Text fields keep their own keys (and their own undo).
+      if (t.closest("input, textarea, select, [contenteditable]")) return;
+      const mod = e.metaKey || e.ctrlKey;
+      const k = e.key.toLowerCase();
+      if (mod && k === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (!builder || useStudio.getState().dialog) return;
+      const sel = useStudio.getState().selected;
+      if (k === "escape") ui({ selected: null });
+      if (!sel) return;
+      if (k === "delete" || k === "backspace") {
+        e.preventDefault();
+        removeSelected();
+      } else if (mod && k === "d") {
+        e.preventDefault();
+        duplicateSelected();
+      } else if (e.altKey && (k === "arrowup" || k === "arrowdown")) {
+        e.preventDefault();
+        nudgeSelected(k === "arrowup" ? -1 : 1);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [builder]);
 }
 
 function Topbar() {
@@ -71,6 +109,7 @@ function Topbar() {
   const saving = useStudio((s) => s.saving);
   const canUndo = useStudio((s) => s.past.length > 0);
   const canRedo = useStudio((s) => s.future.length > 0);
+  const builder = doc.mode === "builder";
   return (
     <header className="topbar">
       <button className="icon-btn" onClick={goHome} aria-label="Back to my signatures" title="My signatures">
@@ -89,6 +128,14 @@ function Topbar() {
         )}
       </span>
       <div className="grow" />
+      <div className="mode-switch" role="group" aria-label="Editor mode">
+        <button aria-pressed={!builder} onClick={() => builder && enterQuick()} data-testid="mode-quick" title="Simple forms">
+          Quick
+        </button>
+        <button aria-pressed={builder} onClick={() => !builder && enterBuilder()} data-testid="mode-builder" title="Drag-and-drop builder">
+          <Blocks size={14} /> Builder
+        </button>
+      </div>
       <button className="icon-btn" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (⌘Z)">
         <Undo2 size={18} />
       </button>
@@ -98,8 +145,8 @@ function Topbar() {
       <button className="icon-btn desktop-only" onClick={() => ui({ dialog: "settings" })} aria-label="Settings" title="Settings">
         <Settings size={18} />
       </button>
-      <button className="btn primary" onClick={() => ui({ dialog: "install" })} data-testid="open-install">
-        <Mail size={17} /> <span>Add to Gmail</span>
+      <button className="btn accent" onClick={() => ui({ dialog: "install" })} data-testid="open-install">
+        <Mail size={17} /> <span className="desktop-only">Add to Gmail</span>
       </button>
     </header>
   );
@@ -113,8 +160,17 @@ function Preview() {
   const dark = useStudio((s) => s.darkPreview);
   const fallbackFonts = useStudio((s) => s.fallbackFonts);
   const html = previewHtml(doc, variant, fallbackFonts);
+  const builder = doc.mode === "builder";
+  const editable = builder && !(variant === "reply" && doc.reply.compact);
   return (
-    <main className="preview-area" aria-label="Preview">
+    <main
+      className="preview-area"
+      aria-label="Preview"
+      onPointerDown={(e) => {
+        // Clicking the empty canvas clears the selection.
+        if (builder && e.target === e.currentTarget) ui({ selected: null });
+      }}
+    >
       <div className="preview-tools">
         <Segmented
           inline
@@ -140,7 +196,7 @@ function Preview() {
           <Moon size={14} /> Dark
           <Switch checked={dark} onChange={(v) => ui({ darkPreview: v })} label="Dark mode preview" />
         </label>
-        <label className="chip" title="Show the fonts most recipients will actually see">
+        <label className="chip desktop-only" title="Show the fonts most recipients will actually see">
           <Type size={14} /> Inbox fonts
           <Switch checked={fallbackFonts} onChange={(v) => ui({ fallbackFonts: v })} label="Inbox fonts preview" />
         </label>
@@ -168,30 +224,41 @@ function Preview() {
             <br />
             {variant === "reply" ? "Sounds good — talk Thursday." : "It was great meeting you today. Here are my details so we can stay in touch."}
           </div>
-          {html ? <SigHtml html={html} className="sig-host" testId="preview" /> : <p className="muted">Add your name in Details to see your signature.</p>}
+          {editable ? (
+            <Stage html={html} />
+          ) : html ? (
+            <SigHtml html={html} className="sig-host" testId="preview" />
+          ) : (
+            <p className="muted">Add your name in Details to see your signature.</p>
+          )}
         </div>
       </div>
       <p className="preview-note">
-        {variant === "reply"
-          ? "The reply version is lighter, so long threads stay tidy."
-          : "Links and buttons work in the preview. What you see is what recipients get."}
-        {doc.card.enabled && doc.card.hotspots.length > 0 && variant === "full" && " Hover the card to try its clickable areas."}
+        {editable
+          ? "Click to select · drag to move · drop blocks into columns to place them side by side."
+          : variant === "reply"
+            ? doc.reply.compact
+              ? "The reply version is a compact text signature. Turn it off in Design to use your layout in replies."
+              : "The reply version is lighter, so long threads stay tidy."
+            : "Links and buttons work in the preview. What you see is what recipients get."}
       </p>
     </main>
   );
 }
 
 export function Editor() {
-  useShortcuts();
+  const builder = useStudio((s) => s.doc?.mode === "builder");
+  useShortcuts(builder);
   const tab = useStudio((s) => s.tab);
-  const running = useStudio((s) => s.saving === "saving");
-  const Panel = PANELS[tab === "install" ? "details" : tab];
+  const tabs = builder ? BUILDER_TABS : QUICK_TABS;
+  const active = tabs.some((t) => t.id === tab) ? tab : tabs[0].id;
+  const Panel = PANELS[active === "install" ? "details" : active];
   return (
-    <div className="editor" data-busy={running || undefined}>
+    <div className={`editor${builder ? " builder" : ""}`}>
       <Topbar />
       <nav className="nav" role="tablist" aria-label="Editor sections">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => ui({ tab: t.id })} data-testid={`tab-${t.id}`}>
+        {tabs.map((t) => (
+          <button key={t.id} role="tab" aria-selected={active === t.id} onClick={() => ui({ tab: t.id })} data-testid={`tab-${t.id}`}>
             {t.icon}
             {t.label}
           </button>
@@ -206,8 +273,8 @@ export function Editor() {
         <Panel />
       </section>
       <Preview />
+      {builder && <Inspector />}
+      <DragLayer />
     </div>
   );
 }
-
-export const Spinner = () => <Loader2 size={16} className="spin" />;

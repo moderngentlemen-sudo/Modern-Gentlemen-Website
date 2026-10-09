@@ -2,6 +2,7 @@
  * The public digital business card. Everything comes from the link itself
  * (`?card=…`), so it works without a server or an account.
  */
+import { BRAND } from "../brand";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { CalendarDays, Globe, Mail, MapPin, Phone, RotateCw, Share2, Smartphone, UserPlus } from "lucide-react";
 import { decodeCard, vcard, type CardData } from "../core/digitalCard";
@@ -140,7 +141,7 @@ export function DigitalCard({ token }: { token: string }) {
             })}
           </div>
         )}
-        <p className="dc-foot">Made with Signature Studio</p>
+        <p className="dc-foot">{BRAND.madeWith}</p>
       </main>
     </div>
   );

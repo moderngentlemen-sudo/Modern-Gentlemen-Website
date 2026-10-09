@@ -198,6 +198,98 @@ export interface SignatureDoc {
   published: Record<string, Published>;
   /** Public digital-card page URL, once published. */
   digitalCardUrl?: string;
+  /** "quick": template + forms. "builder": the drag-and-drop layout in `blocks`. */
+  mode?: "quick" | "builder";
+  blocks?: Column;
 }
 
 export type Variant = "full" | "reply";
+
+// ---------------------------------------------------------------------------
+// Builder: a free-form block layout (drag and drop). Email can't position
+// things absolutely, so a layout is rows of columns of blocks — which maps
+// one-to-one onto the tables every inbox understands.
+// ---------------------------------------------------------------------------
+
+export type Align = "left" | "center" | "right";
+export type VAlign = "top" | "middle" | "bottom";
+
+/** Optional panel around a block or column. */
+export interface Box {
+  padding?: number;
+  background?: string;
+  radius?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  borderSide?: "all" | "left" | "top" | "bottom";
+}
+
+/** Per-block overrides of the signature's design. */
+export interface BlockStyle {
+  color?: string;
+  accent?: string;
+  font?: string;
+  fontSize?: number;
+  align?: Align;
+  box?: Box;
+}
+
+export interface Column {
+  id: string;
+  /** Fixed width in px; auto when unset. */
+  width?: number;
+  align?: Align;
+  gap: number;
+  blocks: Block[];
+  box?: Box;
+}
+
+interface BlockBase {
+  id: string;
+  /** Which signature version shows the block (default: both). */
+  visibility?: "both" | "full" | "reply";
+  style?: BlockStyle;
+}
+
+export type ButtonStyle = "solid" | "outline" | "pill" | "link";
+
+export type Block = BlockBase &
+  (
+    | { type: "row"; columns: Column[]; gap: number; valign: VAlign; divider: boolean }
+    | { type: "name"; scale?: number; upper?: boolean; underline?: boolean }
+    | { type: "title"; upper?: boolean; italic?: boolean; titleOnly?: boolean }
+    | { type: "field"; field: DetailKey; upper?: boolean }
+    | { type: "text"; text: string; size?: number; bold?: boolean; italic?: boolean; muted?: boolean }
+    | { type: "contacts"; layout: "stacked" | "inline" | "grid" | "chips"; iconBg?: boolean }
+    | { type: "socials"; size?: number }
+    | { type: "photo"; size?: number }
+    | { type: "logo"; size?: number }
+    | { type: "image"; assetId?: string; width: number; link?: string; alt?: string; radius?: number }
+    | { type: "monogram"; size: number }
+    | { type: "divider"; width?: number; thickness?: number }
+    | { type: "spacer"; height: number }
+    | { type: "button"; text: string; url: string; buttonStyle: ButtonStyle; icon?: "calendar" | "" }
+    | { type: "signOff"; text: string; script: boolean }
+    | { type: "quote"; text: string; author: string }
+    | { type: "reviews"; rating: number; text: string; url: string }
+    | { type: "video"; assetId?: string; url: string; title: string }
+    | { type: "apps"; appStore: string; googlePlay: string }
+    | { type: "digitalCard" }
+    | { type: "canva" }
+  );
+
+export type BlockType = Block["type"];
+
+/** A saved brand: applied to new signatures and on request to existing ones. */
+export interface BrandKit {
+  accent: string;
+  text: string;
+  muted: string;
+  surface: string;
+  headingFont: string;
+  bodyFont: string;
+  logo?: AssetMeta;
+  /** Company name and website, prefilled into new signatures. */
+  company?: string;
+  website?: string;
+}

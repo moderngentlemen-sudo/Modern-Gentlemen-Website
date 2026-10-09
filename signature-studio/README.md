@@ -1,10 +1,18 @@
-# Signature Studio 3
+# Signet (working name) — Signature Studio
 
-A fresh, form-driven email-signature builder in the style of the popular
-signature generators — with Canva import, clickable business cards and a
-shareable digital card. Signatures paste straight into Gmail.
+An email-signature product: a drag-and-drop builder, a Quick mode with simple
+forms, Canva import, clickable business cards and a shareable digital card.
+Signatures paste straight into Gmail. Product plan and name shortlist:
+[`docs/PRODUCT.md`](docs/PRODUCT.md).
 
-- **48 templates**, half for business sectors (corporate, real estate, legal,
+- **Drag-and-drop builder:** rows of columns of 25 kinds of block, layers,
+  inspector, per-block style and panels, new-email/reply visibility, keyboard
+  shortcuts, undo; works with touch. Every layout compiles to Gmail-safe tables.
+- **Brand kit:** colours, fonts, logo, company — for new signatures and on demand.
+- **Routes:** `/` marketing site, `/app` dashboard, `/app/s/<id>` editor,
+  `?card=…` digital card.
+
+- **60 templates**, half for business sectors (corporate, real estate, legal,
   finance, healthcare, tech, hospitality, beauty, fitness…) and half for
   personal style (Swiss, Bauhaus, Art Deco, Brutalist, neon, botanical,
   handwritten…), across 14 layouts. Switch any time; content always comes along.
@@ -28,7 +36,7 @@ shareable digital card. Signatures paste straight into Gmail.
 npm install
 npm run dev          # app on http://localhost:5173
 npm test             # unit tests (renderer, templates, slicing, digital card)
-npm run e2e          # Playwright: template flow, Canva → Gmail copy, digital card
+npm run e2e          # Playwright: builder DnD, brand kit, templates, Canva → Gmail copy, digital card
 npm run build
 ```
 
@@ -49,8 +57,10 @@ src/core/      document model, templates, fonts, social platforms, digital card
 src/render/    the one renderer (preview + Gmail HTML), icons, validation
 src/publish/   derive 2× images, host upload, verification, readiness
 src/store/     editor state (undo/redo, autosave), uploaded assets
-src/screens/   Home, Editor, DigitalCard
+src/screens/   Landing, Home (dashboard), Editor, DigitalCard
+src/builder/   drag-and-drop: Stage (canvas), dnd, palette, layers, inspector
+src/core/blocks.ts  block tree operations + template → builder layouts
 src/panels/    Templates, Details, Images, Social, Design, Add-ons, Canva
 src/dialogs/   Install, Settings, Crop
-docs/          DECISIONS.md, CANVA.md
+docs/          PRODUCT.md, DECISIONS.md, CANVA.md
 ```

@@ -124,7 +124,7 @@ async function prepareDigitalCard(force: boolean) {
   const token = await encodeCard(
     cardDataFromDoc(now, { front: url(reqs[0]), back: card.backAssetId ? url(reqs[1]) : undefined, photo: photo ? url(reqs[reqs.length - 1]) : undefined }),
   );
-  const link = cardPageUrl(location.origin, location.pathname, token);
+  const link = cardPageUrl(location.origin, "/", token);
   if (link !== now.digitalCardUrl) editSilently((d) => void (d.digitalCardUrl = link));
 }
 

@@ -8,6 +8,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-09 — Signature Studio → product, Phase 1: drag-and-drop builder + redesign
+
+- **Owner decisions:** build it into a product, with a new name (shortlist in
+  `signature-studio/docs/PRODUCT.md`; working name "Signet", set in
+  `src/brand.ts`), Free + Pro + Teams plans, and accounts later on a **new,
+  separate** Supabase project. No billing code until authorised (D28–D33).
+- **Builder:** `doc.mode = "builder"` stores a layout of rows → columns →
+  blocks (`doc.blocks`), rendered by the same renderer, so it stays Gmail-safe.
+  Templates convert to builder layouts (`core/blocks.ts`). The builder has
+  pointer drag and drop that works on touch, layers, an inspector, per-block
+  style and panels, and visibility for new emails vs replies.
+- **Redesign:** new tokens and type (Instrument Serif and Geist).
+  - The marketing site is at `/`, the dashboard at `/app`, and the editor at
+    `/app/s/<id>`. Cloudflare Pages serves index.html for any path, as long as
+    there is no 404.html.
+  - New: a brand kit, 60 templates, and a phone-friendly builder.
+- **Gates:** `tsc -b`, `npm test` (19), `npm run e2e` (5, including
+  builder drag/move/delete/undo/reload and the brand kit), `npm run build`.
+
 ### 2026-10-08 — Signature Studio 3: new builder, Canva → Gmail import
 
 - **Rebuilt from scratch** at the owner's request (2.0 "felt too similar"; the

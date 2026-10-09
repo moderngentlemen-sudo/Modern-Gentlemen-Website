@@ -1,6 +1,8 @@
 import { FONTS, fontDef } from "../core/fonts";
 import type { ContactIcons, Design } from "../core/types";
-import { edit, useStudio } from "../store/editor";
+import { edit, ui, useStudio } from "../store/editor";
+import { applyBrand } from "../core/apply";
+import { Palette } from "lucide-react";
 import { ColorField, Segmented, SectionTitle, Select, Slider, Toggle } from "../ui/kit";
 
 const PALETTES: { name: string; accent: string; text: string; muted: string; surface: string }[] = [
@@ -28,11 +30,21 @@ function fontHint(id: string) {
 export function DesignPanel() {
   const d = useStudio((s) => s.doc!.design);
   const reply = useStudio((s) => s.doc!.reply);
+  const brand = useStudio((s) => s.prefs.brand);
   const set = <K extends keyof Design>(k: K, v: Design[K], coalesce = true) => edit((doc) => void (doc.design[k] = v), coalesce ? `design.${k}` : undefined);
   return (
     <>
       <h2>Design</h2>
       <p className="lede">Fine-tune colours, type and spacing.</p>
+      {brand ? (
+        <button className="btn sm" style={{ marginBottom: 6 }} onClick={() => edit((doc) => applyBrand(doc, brand))} data-testid="apply-brand">
+          <Palette size={14} /> Apply my brand kit
+        </button>
+      ) : (
+        <button className="btn sm ghost" style={{ marginBottom: 6 }} onClick={() => ui({ dialog: "brand" })}>
+          <Palette size={14} /> Set up a brand kit
+        </button>
+      )}
       <SectionTitle>Palettes</SectionTitle>
       <div className="palette-grid">
         {PALETTES.map((p) => (
