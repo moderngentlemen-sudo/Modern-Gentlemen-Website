@@ -19,6 +19,20 @@ const fontVar = (font: string | undefined): Record<string, string> => {
   const stack = libraryFontStack(font);
   return stack ? { "--el-font": stack } : {};
 };
+/** `a` blended toward `b` by `percent`, both `#rrggbb`. */
+function mix(a: string, b: string, percent: number) {
+  const p = percent / 100;
+  const ch = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [ch(a), ch(b)];
+  return `#${x
+    .map((v, i) =>
+      Math.round(v + (y[i] - v) * p)
+        .toString(16)
+        .padStart(2, "0")
+    )
+    .join("")}`;
+}
+
 /** Relative luminance of `#rrggbb`, 0 (black) to 1 (white). */
 function luminance(hex: string) {
   const n = parseInt(hex.slice(1), 16);
@@ -158,6 +172,10 @@ export function LaunchKnockout({
   weight = "700",
   letterSpacing = -0.04,
   align = "center",
+  letters = "cutout",
+  letterColor = "#c8102e",
+  letterStrength = 60,
+  outlineWidth = 3,
 }: {
   text?: string;
   panel?: "light" | "dark";
@@ -169,6 +187,10 @@ export function LaunchKnockout({
   weight?: string;
   letterSpacing?: number;
   align?: "left" | "center" | "right";
+  letters?: "cutout" | "tinted" | "outline" | "solid";
+  letterColor?: string;
+  letterStrength?: number;
+  outlineWidth?: number;
 }) {
   const custom = panelColor && HEX.test(panelColor) ? panelColor : undefined;
   // The letters are cut out by a blend, not a mask: a pale panel lightens
@@ -176,12 +198,26 @@ export function LaunchKnockout({
   // letters vanish). A custom colour picks whichever its lightness suits.
   const light = custom ? luminance(custom) > 0.4 : panel !== "dark";
   const fade = within(panelOpacity, 0, 100, 100);
+  const tint = HEX.test(letterColor) ? letterColor : "#c8102e";
+  const panelFill = custom ?? (light ? "#f4f4f4" : "#0d0d0d");
+  // The colour that vanishes in each blend: black under screen, white under multiply.
+  const clear = light ? "#000000" : "#ffffff";
+  const mode = ["tinted", "outline", "solid"].includes(letters) ? letters : "cutout";
+  const ink =
+    mode === "solid"
+      ? tint
+      : mode === "tinted"
+        ? mix(clear, tint, within(letterStrength, 0, 100, 60))
+        : mode === "outline"
+          ? panelFill
+          : clear;
   return (
     <>
       <FontStylesheet font={font} />
       <p
         className={styles.knockout}
-        data-knockout={light ? "screen" : "multiply"}
+        data-knockout={mode === "solid" ? "none" : light ? "screen" : "multiply"}
+        data-letters={mode === "cutout" ? undefined : mode}
         data-cover={cover ? "true" : "false"}
         style={
           {
@@ -189,9 +225,12 @@ export function LaunchKnockout({
             "--ko-size": `${within(size, 20, 1200, 320)}px`,
             "--ko-weight": /^[1-9]00$/.test(weight) ? weight : "700",
             "--ko-tracking": `${within(letterSpacing, -0.2, 1, -0.04)}em`,
-            "--ko-panel": custom ?? (light ? "#f4f4f4" : "#0d0d0d"),
+            "--ko-panel": panelFill,
             ...(fade < 100 ? { opacity: fade / 100 } : {}),
-            "--ko-ink": light ? "#000000" : "#ffffff",
+            "--ko-ink": ink,
+            ...(mode === "outline"
+              ? { "--ko-stroke": `${within(outlineWidth, 1, 40, 3)}px`, "--ko-stroke-color": clear }
+              : {}),
             textAlign: align,
           } as CSSProperties
         }

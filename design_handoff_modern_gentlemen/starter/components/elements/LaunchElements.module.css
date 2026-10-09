@@ -330,6 +330,11 @@
 .knockout[data-cover="true"] {
   box-shadow: 0 0 0 400vmax var(--ko-panel);
 }
+/* Outline letters: the fill matches the panel and only the stroke is cut out. */
+.knockout[data-letters="outline"] {
+  -webkit-text-stroke: var(--ko-stroke, 3px) var(--ko-stroke-color);
+  paint-order: stroke fill;
+}
 /* Shape */
 .shape {
   width: 100%;
@@ -359,44 +364,137 @@
 }
 
 /*
- * Countdown tick: each number is keyed on its value, so a change remounts it
- * and the animation plays once per change. Still under reduced motion.
+ * Countdown transitions (TickNumber). While a number changes, the outgoing
+ * value sits over the incoming one and both animate for --cd-tick-ms; only a
+ * moving number animates, so the first paint and the dashes never do.
  */
-.countdown[data-tick] .num,
-.countdown[data-tick] .single {
-  animation: 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.tick {
+  position: relative;
+  display: inline-block;
 }
-.countdown[data-tick="fade"] .num,
-.countdown[data-tick="fade"] .single {
-  animation-name: cdTickFade;
+.tickOut {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.countdown[data-tick="rise"] .num,
-.countdown[data-tick="rise"] .single {
-  animation-name: cdTickRise;
+.tickIn,
+.tickOut {
+  display: inline-block;
+  animation-duration: var(--cd-tick-ms, 550ms);
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation-fill-mode: both;
 }
-.countdown[data-tick="flip"] {
+/* The rolls clip to the number's own box, like an odometer window. */
+.countdown[data-tick="rise"] .tick,
+.countdown[data-tick="drop"] .tick {
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.countdown[data-tick="fade"] .tickIn[data-moving] {
+  animation-name: cdFadeIn;
+}
+.countdown[data-tick="fade"] .tickOut {
+  animation-name: cdFadeOut;
+}
+.countdown[data-tick="rise"] .tickIn[data-moving] {
+  animation-name: cdRiseIn;
+}
+.countdown[data-tick="rise"] .tickOut {
+  animation-name: cdRiseOut;
+}
+.countdown[data-tick="drop"] .tickIn[data-moving] {
+  animation-name: cdDropIn;
+}
+.countdown[data-tick="drop"] .tickOut {
+  animation-name: cdDropOut;
+}
+.countdown[data-tick="flip"] .tick {
   perspective: 600px;
 }
-.countdown[data-tick="flip"] .num,
-.countdown[data-tick="flip"] .single {
-  animation-name: cdTickFlip;
-  transform-origin: 50% 60%;
+.countdown[data-tick="flip"] .tickIn[data-moving] {
+  animation-name: cdFlipIn;
+  transform-origin: 50% 0%;
 }
-@keyframes cdTickFade {
-  from {
-    opacity: 0.15;
-  }
+.countdown[data-tick="flip"] .tickOut {
+  animation-name: cdFlipOut;
+  transform-origin: 50% 100%;
 }
-@keyframes cdTickRise {
+.countdown[data-tick="blur"] .tickIn[data-moving] {
+  animation-name: cdBlurIn;
+}
+.countdown[data-tick="blur"] .tickOut {
+  animation-name: cdBlurOut;
+}
+.countdown[data-tick="zoom"] .tickIn[data-moving] {
+  animation-name: cdZoomIn;
+}
+.countdown[data-tick="zoom"] .tickOut {
+  animation-name: cdZoomOut;
+}
+@keyframes cdFadeIn {
   from {
     opacity: 0;
-    transform: translateY(0.25em);
   }
 }
-@keyframes cdTickFlip {
+@keyframes cdFadeOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes cdRiseIn {
   from {
-    opacity: 0.3;
-    transform: rotateX(-80deg);
+    transform: translateY(100%);
+  }
+}
+@keyframes cdRiseOut {
+  to {
+    transform: translateY(-100%);
+  }
+}
+@keyframes cdDropIn {
+  from {
+    transform: translateY(-100%);
+  }
+}
+@keyframes cdDropOut {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes cdFlipIn {
+  from {
+    opacity: 0.2;
+    transform: rotateX(90deg);
+  }
+}
+@keyframes cdFlipOut {
+  to {
+    opacity: 0;
+    transform: rotateX(-90deg);
+  }
+}
+@keyframes cdBlurIn {
+  from {
+    opacity: 0;
+    filter: blur(0.12em);
+  }
+}
+@keyframes cdBlurOut {
+  to {
+    opacity: 0;
+    filter: blur(0.12em);
+  }
+}
+@keyframes cdZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes cdZoomOut {
+  to {
+    opacity: 0;
+    transform: scale(1.5);
   }
 }
 
@@ -429,8 +527,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .countdown[data-tick] .num,
-  .countdown[data-tick] .single,
+  .tickIn,
+  .tickOut,
   .shape[data-sheen="true"]::after {
     animation: none;
   }
