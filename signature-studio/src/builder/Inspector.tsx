@@ -14,6 +14,7 @@ import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, 
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
 import { duplicateSelected, removeSelected, updateBlock, updateColumn, updateSelected, wrapSelected } from "./actions";
 import { blockLabel } from "./catalog";
+import { TextFormatBar } from "./TextFormatBar";
 
 const ALIGN = [
   { value: "left" as const, label: "Left" },
@@ -142,27 +143,22 @@ function StyleEditor({ b }: { b: Block }) {
           <Segmented<Align> label="Alignment" value={st.align ?? "left"} onChange={(v) => setStyle({ align: v })} options={ALIGN} />
         </Field>
       )}
-      {textual && (
-        <>
-          <ColorField
-            label="Text colour"
-            value={st.color ?? design.text}
-            onChange={(c) => setStyle({ color: c }, "color")}
-            extra={[design.text, design.accent, design.muted]}
-          />
-          <Select
-            label="Font"
-            value={st.font ?? ""}
-            options={[{ value: "", label: "Signature default" }, ...FONTS.map((f) => ({ value: f.id, label: f.label }))]}
-            onChange={(v) => setStyle({ font: v || undefined })}
-          />
-          <Slider label="Text size" unit="px" min={9} max={28} value={st.fontSize ?? design.fontSize} onChange={(v) => setStyle({ fontSize: v }, "size")} />
-        </>
-      )}
+      {textual && <TextFormatBar b={b} />}
       {["contacts", "socials", "button", "monogram", "divider", "reviews", "quote", "name"].includes(b.type) && (
         <ColorField label="Accent colour" value={st.accent ?? design.accent} onChange={(c) => setStyle({ accent: c }, "accent")} extra={[design.accent]} />
       )}
-      {(st.color || st.font || st.fontSize || st.accent) && (
+      {(st.color ||
+        st.colorRole ||
+        st.font ||
+        st.fontSize ||
+        st.accent ||
+        st.weight ||
+        st.italic !== undefined ||
+        st.underline ||
+        st.strike ||
+        st.case ||
+        st.lineHeight ||
+        st.tracking !== undefined) && (
         <button className="btn sm ghost" onClick={() => updateBlock(b.id, (x) => void (x.style = { align: x.style?.align, box: x.style?.box }))}>
           Reset to signature style
         </button>
@@ -225,7 +221,6 @@ function Content({ b }: { b: Block }) {
             Shows “{details.name || "your name"}”. <GoTo tab="details">Edit details</GoTo>
           </p>
           <Slider label="Size" unit="×" min={0.7} max={2.2} step={0.05} value={b.scale ?? 1} onChange={(v) => set({ scale: v }, "scale")} />
-          <Toggle label="Capitals" checked={!!b.upper} onChange={(v) => set({ upper: v })} />
           <Toggle label="Accent underline" checked={!!b.underline} onChange={(v) => set({ underline: v })} />
           <LinkField value={b.link} onChange={(v) => set({ link: v }, "link")} />
         </>
@@ -237,8 +232,6 @@ function Content({ b }: { b: Block }) {
             Shows your title, department and company. <GoTo tab="details">Edit details</GoTo>
           </p>
           <Toggle label="Job title only" checked={!!b.titleOnly} onChange={(v) => set({ titleOnly: v })} />
-          <Toggle label="Capitals" checked={!!b.upper} onChange={(v) => set({ upper: v })} />
-          <Toggle label="Italic" checked={!!b.italic} onChange={(v) => set({ italic: v })} />
           <LinkField value={b.link} onChange={(v) => set({ link: v }, "link")} />
         </>
       );
@@ -255,7 +248,7 @@ function Content({ b }: { b: Block }) {
             }))}
           />
           <TextField label="Value" value={details[b.field]} onChange={(v) => edit((d) => void (d.details[b.field] = v), `details.${b.field}`)} />
-          <Toggle label="Small capitals" checked={!!b.upper} onChange={(v) => set({ upper: v })} />
+          <Toggle label="Label style" hint="Small, spaced capitals in the accent colour" checked={!!b.upper} onChange={(v) => set({ upper: v })} />
           <LinkField value={b.link} onChange={(v) => set({ link: v }, "link")} hint="instead of the usual one" />
         </>
       );
@@ -263,10 +256,7 @@ function Content({ b }: { b: Block }) {
       return (
         <>
           <LinkableText label="Text" value={b.text} onChange={(v) => set({ text: v }, "text")} testId="inspector-text" />
-          <Toggle label="Bold" checked={!!b.bold} onChange={(v) => set({ bold: v })} />
-          <Toggle label="Italic" checked={!!b.italic} onChange={(v) => set({ italic: v })} />
-          <Toggle label="Secondary colour" checked={!!b.muted} onChange={(v) => set({ muted: v })} />
-          <Toggle label="Capitals" checked={!!b.upper} onChange={(v) => set({ upper: v })} />
+
           <LinkField value={b.link} onChange={(v) => set({ link: v }, "link")} hint="makes the whole block a link" />
         </>
       );

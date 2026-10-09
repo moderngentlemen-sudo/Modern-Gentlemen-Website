@@ -27,6 +27,8 @@ Signatures paste straight into Gmail. Product plan and name shortlist:
 - **My templates:** save any design (without personal details) and reuse it.
 - **Exports:** a PNG image, a print-ready business card (save it as a PDF from the print dialog), and HTML.
 - **Snapping:** resize handles and column edges snap to matching sizes and even splits. Hold Alt to resize freely. Double-click text on the canvas to edit it in place.
+- **Text formatting:** one toolbar for every text block: font (previewed in its own face), weight, size, bold/italic/underline/strike, case (incl. small capitals), colour role (text, muted, accent or custom) and spacing. Select words to make them bold, italic, underlined, struck through, highlighted or coloured, in the inspector or on the canvas (⌘B/⌘I/⌘U). Quotes, dashes and ellipses tidy themselves as you type.
+- **Colours:** every colour picker offers this signature's colours and the brand kit first, then recent colours, a hex field and an eyedropper.
 - **Text links:** select words and press ⌘K (in the inspector or right on the canvas) to link them to a website, email or phone number. Text, name, title and detail blocks can also link as a whole.
 - **Hover text:** a tooltip on any linked block or image. Gmail strips hover styles, so tooltips are what survives in the inbox. The editor highlights links on hover, and the digital card page has hover effects.
 - **Multi-select:** Shift- or ⌘-click blocks (on the canvas or in Layers) to restyle, hide, duplicate or delete them together, or put them side by side or in a panel.

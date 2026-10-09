@@ -8,12 +8,13 @@
 import { BRAND } from "../brand";
 import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
-import { INLINE_LINK, linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
+import { linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
 import { clampScale, scaleDoc } from "../core/scale";
 import { fontStack } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
-import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Design, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import { parseRich, type RichNode } from "../core/richtext";
 import { getTemplate, type LayoutId } from "../core/templates";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
@@ -998,19 +999,50 @@ function cardHtml(c: Ctx, digitalUrl: string | null): string {
 // Builder blocks — rows of columns of blocks, rendered with the same parts
 // ---------------------------------------------------------------------------
 
+/** A block's text colour: a custom colour, else the colour role it follows, else none. */
+export function styleColor(st: BlockStyle | undefined, d: Design): string | undefined {
+  if (st?.color) return st.color;
+  if (st?.colorRole) return st.colorRole === "accent" ? d.accent : st.colorRole === "muted" ? d.muted : d.text;
+  return undefined;
+}
+
 /** Apply a block's style overrides to the design its parts read. */
 function withStyle(c: Ctx, st?: BlockStyle): Ctx {
-  if (!st || (!st.color && !st.accent && !st.font && !st.fontSize)) return c;
+  const color = styleColor(st, c.doc.design);
+  if (!st || (!color && !st.accent && !st.font && !st.fontSize)) return c;
   const d = c.doc.design;
   const design = {
     ...d,
-    text: st.color ?? d.text,
+    text: color ?? d.text,
     accent: st.accent ?? d.accent,
     headingFont: st.font ?? d.headingFont,
     bodyFont: st.font ?? d.bodyFont,
     fontSize: st.fontSize ?? d.fontSize,
   };
   return { ...c, doc: { ...c.doc, design } };
+}
+
+/**
+ * Block-level typography (weight, italic, underline, strike, case, line
+ * height, letter spacing) applied to every text element the block produced.
+ * Text elements are the ones that set a font-family; later declarations in an
+ * inline style win, so the override is simply appended.
+ */
+export function withTypography(html: string, st?: BlockStyle): string {
+  if (!st) return html;
+  const deco = [st.underline && "underline", st.strike && "line-through"].filter(Boolean).join(" ");
+  const decl = css({
+    "font-weight": st.weight,
+    "font-style": st.italic === undefined ? undefined : st.italic ? "italic" : "normal",
+    "text-decoration": deco || undefined,
+    "text-transform":
+      st.case === "upper" ? "uppercase" : st.case === "lower" ? "lowercase" : st.case === "title" ? "capitalize" : st.case === "none" ? "none" : undefined,
+    "font-variant": st.case === "smallcaps" ? "small-caps" : undefined,
+    "line-height": st.lineHeight ? `${Math.round(st.lineHeight * 100)}%` : undefined,
+    "letter-spacing": st.tracking !== undefined ? `${st.tracking}em` : undefined,
+  });
+  if (!decl) return html;
+  return html.replace(/style="([^"]*font-family:[^"]*)"/g, (_m, s: string) => `style="${s}${s.trim().endsWith(";") ? "" : ";"}${decl}"`);
 }
 
 function boxed(html: string, box?: Box): string {
@@ -1039,18 +1071,38 @@ function showsIn(b: Block, variant: Variant): boolean {
   return !b.visibility || b.visibility === "both" || b.visibility === variant;
 }
 
-/** Text with `[words](where)` links; everything else escaped, newlines kept. */
+/** Text with inline formatting (see core/richtext.ts); everything else escaped, newlines kept. */
 function richText(raw: string, linkColor: string): string {
-  let out = "";
-  let last = 0;
-  for (const m of raw.matchAll(INLINE_LINK)) {
-    out += escText(raw.slice(last, m.index));
-    const href = linkTarget(m[2]);
-    out += href ? link(href, escText(m[1]), linkColor) : escText(m[0]);
-    last = (m.index ?? 0) + m[0].length;
-  }
-  out += escText(raw.slice(last));
-  return out.replace(/\n/g, "<br>");
+  const walk = (nodes: RichNode[]): string =>
+    nodes
+      .map((n) => {
+        switch (n.t) {
+          case "text":
+            return escText(n.v);
+          case "link": {
+            const href = linkTarget(n.href);
+            // An unusable target (javascript:, garbage) stays visible as typed.
+            return href ? link(href, walk(n.kids), linkColor) : escText(n.raw);
+          }
+          case "color":
+            return `<span style="color:${esc(n.color)};">${walk(n.kids)}</span>`;
+          case "mark":
+            switch (n.mark) {
+              case "bold":
+                return `<strong style="font-weight:700;">${walk(n.kids)}</strong>`;
+              case "italic":
+                return `<em style="font-style:italic;">${walk(n.kids)}</em>`;
+              case "underline":
+                return `<u style="text-decoration:underline;">${walk(n.kids)}</u>`;
+              case "strike":
+                return `<s style="text-decoration:line-through;">${walk(n.kids)}</s>`;
+              case "highlight":
+                return `<span style="background-color:${mix(linkColor, "#ffffff", 0.78)};padding:0 2px;">${walk(n.kids)}</span>`;
+            }
+        }
+      })
+      .join("");
+  return walk(parseRich(raw)).replace(/\n/g, "<br>");
 }
 
 /** Hover text on every link and image a block produced (unless they have one). */
@@ -1064,6 +1116,7 @@ function withHover(html: string, hover: string | undefined): string {
 function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   const c = withStyle(c0, b.style);
   const d = c.doc.design;
+  const sc = styleColor(b.style, c0.doc.design);
   const align = b.style?.align;
   const empty = (label: string, w = 0, h = 0, round = false) => (c.preview ? placeholder(label, w, h, round) : "");
   switch (b.type) {
@@ -1075,9 +1128,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
       return table(row(cell(n, `border-bottom:4px solid ${d.accent};padding-bottom:${sp(c, 4)}px;`)));
     }
     case "title":
-      return (
-        titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: b.style?.color, href: linkTarget(b.link) }) || empty("Job title")
-      );
+      return titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: sc, href: linkTarget(b.link) }) || empty("Job title");
     case "field": {
       const v = c.doc.details[b.field].trim();
       if (!v) return empty(`Add your ${b.field}`);
@@ -1091,27 +1142,34 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
               ? telHref(v)
               : null;
       const shown = b.field === "website" ? displayWebUrl(v) : v;
-      return text(c, link(href, esc(shown), b.style?.color ?? (b.upper ? d.accent : d.text)), {
+      return text(c, link(href, esc(shown), sc ?? (b.upper ? d.accent : d.text)), {
         upper: b.upper,
         tracking: b.upper ? 0.2 : undefined,
         weight: b.upper ? 600 : undefined,
         size: b.upper ? d.fontSize - 2 : undefined,
-        color: b.style?.color ?? (b.upper ? d.accent : d.text),
+        color: sc ?? (b.upper ? d.accent : d.text),
         align,
       });
     }
     case "text":
       if (!b.text.trim()) return empty("Text");
-      return text(c, b.link ? link(linkTarget(b.link), escText(b.text).replace(/\n/g, "<br>"), b.style?.color ?? d.text) : richText(b.text, d.accent), {
-        size: b.size,
-        weight: b.bold ? 700 : undefined,
-        italic: b.italic,
-        upper: b.upper,
-        tracking: b.upper ? 0.14 : undefined,
-        color: b.style?.color ?? (b.muted ? d.muted : d.text),
-        align,
-        lh: 1.45,
-      });
+      // A whole-block link keeps the inline formatting but not inner links (links can't nest).
+      return text(
+        c,
+        b.link
+          ? link(linkTarget(b.link), richText(b.text.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, "$1"), sc ?? d.text), sc ?? d.text)
+          : richText(b.text, d.accent),
+        {
+          size: b.size,
+          weight: b.bold ? 700 : undefined,
+          italic: b.italic,
+          upper: b.upper,
+          tracking: b.upper ? 0.14 : undefined,
+          color: sc ?? (b.muted ? d.muted : d.text),
+          align,
+          lh: 1.45,
+        },
+      );
     case "contacts": {
       const html =
         b.layout === "grid"
@@ -1248,7 +1306,7 @@ function blockHtml(c: Ctx, b: Block, digitalUrl: string | null, align?: string):
   const shown = showsIn(b, c.opts.variant);
   // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
   if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
-  const html = boxed(withHover(leafHtml(c, b, digitalUrl), b.hover), b.style?.box);
+  const html = boxed(withHover(withTypography(leafHtml(c, b, digitalUrl), b.type === "row" ? undefined : b.style), b.hover), b.style?.box);
   if (!c.preview) return html;
   // The editor's wrapper must not stop centred/right-aligned columns from aligning their blocks.
   const place = align === "center" ? "display:table;margin-left:auto;margin-right:auto;" : align === "right" ? "display:table;margin-left:auto;" : "";

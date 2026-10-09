@@ -55,6 +55,29 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: audit Batch 2 (text studio)
+
+From the editor audit, items T1, T2/E5, T3, T5/E4 and T6:
+- **T1 — one formatting toolbar** for every block with text (`builder/TextFormatBar.tsx`):
+  - visual font picker, weight (Light–Extra bold), size stepper;
+  - B / I / U / S, case (as typed, capitals, lower, title, small caps);
+  - colour role (Auto / Text / Muted / Accent / Custom);
+  - line height and letter spacing under "Spacing".
+  - It replaces the scattered per-block switches. `builder/typography.ts` reads older settings (text.bold, title.italic, name.upper…) and moves a block onto the new `BlockStyle` fields the first time it is changed. The renderer applies them with `withTypography`, as inline CSS that Gmail keeps.
+- **T2/E5 — word formatting:** select words, then Bold / Italic / Underline / Strike / Highlight / Colour / Link. This works in the inspector and on the canvas (a floating bar while editing in place), and ⌘B/⌘I/⌘U work too.
+  - Stored as light markup in the same string (`core/richtext.ts`), rendered to `<strong>/<em>/<u>/<s>/<span style>`.
+  - An unusable link target stays visible as typed, as before.
+- **T3 — font picker:** each font is previewed in its own face, grouped (Shows everywhere, Serif, Sans, Display, Mono), with recently used fonts first and a note on what most inboxes show instead.
+- **T5/E4 — colours:**
+  - Colour roles follow the design, so a theme change recolours text with an assigned role.
+  - Every colour field is now a popover: this signature's colours, brand kit, recent colours, hex input, the system picker and an eyedropper where the browser has one.
+- **T6 — smart typography as you type:**
+  - curly quotes and apostrophes, `--` → —, `...` → …;
+  - Backspace straight after puts back what you typed;
+  - never inside link targets, and never across a phone number's hyphens;
+  - spellcheck is on in text boxes.
+- **Gates:** `npm test` (94), `npm run e2e` (40, incl. `text-studio.spec.ts`), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio: audit Batch 1 (fix what's broken)
 
 From the editor audit (https://claude.ai/artifact/2Ah4jUeZcrgc9rmtLGE2oM), items B1, B3–B7 and I6:

@@ -21,7 +21,7 @@ const DIR_NAME: Record<HandleDir, string> = {
 import { resizeKind, snapColumn, snapResize } from "./snap";
 import { toolbarTop } from "./toolbar";
 import { inlineTarget } from "./inlineText";
-import { useLinker } from "../ui/LinkableText";
+import { useLinker, useRichEditing } from "../ui/LinkableText";
 import { updateColumn } from "./actions";
 import { findBlock, isWithin, rowOfColumn, walk } from "../core/blocks";
 import type { Block, Column } from "../core/types";
@@ -528,6 +528,7 @@ function InlineEditor({
   const done = useRef(false);
   const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
   const linker = useLinker(ref, v, setV);
+  const rich = useRichEditing(ref, v, setV);
   const finish = (out: string | null) => {
     if (done.current) return;
     done.current = true;
@@ -542,13 +543,18 @@ function InlineEditor({
     "data-testid": "inline-editor",
     style: { left: rect.x - 4, top: rect.y - 4, width: Math.max(180, rect.w + 8), minHeight: rect.h + 8 },
     onFocus: (e: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) => e.currentTarget.select(),
-    onChange: (e: { target: { value: string } }) => setV(e.target.value),
+    spellCheck: true,
+    onChange: (e: { target: { value: string; selectionStart: number | null } }) =>
+      rich.change(e.target.value, e.target.selectionStart ?? e.target.value.length),
     onBlur: () => {
       if (!linker.open) finish(v);
     },
     onPointerDown: (e: { stopPropagation: () => void }) => e.stopPropagation(),
     onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
-      if (linkable) linker.onKey(e);
+      if (linkable) {
+        linker.onKey(e);
+        rich.onKey(e);
+      }
       if (e.defaultPrevented) return;
       if (e.key === "Escape") {
         e.preventDefault();
@@ -560,9 +566,21 @@ function InlineEditor({
     },
   };
   const field = multiline ? <textarea {...props} rows={Math.max(2, v.split("\n").length)} /> : <input {...props} />;
-  if (!linker.popover) return field;
+  const bar = linkable ? (
+    <div className="ov-rich" style={{ left: rect.x - 4, top: rect.y - 44 }}>
+      {rich.toolbar(linker.start)}
+    </div>
+  ) : null;
+  if (!linker.popover)
+    return (
+      <>
+        {bar}
+        {field}
+      </>
+    );
   return (
     <>
+      {bar}
       {field}
       <div className="ov-link-pop" style={{ left: rect.x - 4, top: rect.y + rect.h + 10 }}>
         {linker.popover}

@@ -243,8 +243,24 @@ export interface Box {
 }
 
 /** Per-block overrides of the signature's design. */
+export type TextCase = "none" | "upper" | "lower" | "title" | "smallcaps";
+
+/** Which of the signature's colours text follows (a custom `color` wins). */
+export type ColorRole = "text" | "muted" | "accent";
+
 export interface BlockStyle {
   color?: string;
+  colorRole?: ColorRole;
+  /** 300–800. */
+  weight?: number;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  case?: TextCase;
+  /** Line height as a multiple of the font size. */
+  lineHeight?: number;
+  /** Letter spacing in em. */
+  tracking?: number;
   accent?: string;
   font?: string;
   fontSize?: number;
