@@ -33,6 +33,7 @@ export interface LaunchCountdownProps {
   unit?: Unit;
   outline?: boolean;
   timeZone?: string;
+  tick?: "none" | "fade" | "rise" | "flip";
 }
 
 /** Ticks once a second after mount; `null` on the server so SSR shows dashes, never a stale time. */
@@ -85,6 +86,7 @@ export function LaunchCountdown({
   unit = "seconds",
   outline = true,
   timeZone = "Europe/London",
+  tick = "none",
 }: LaunchCountdownProps) {
   const now = useNow();
   const parts = now === null ? null : countdownParts(target, now);
@@ -129,7 +131,9 @@ export function LaunchCountdown({
       <div className={styles.grid}>
         {shown.map((u) => (
           <span key={u} className={clsx(styles.unit, accentUnit === u && styles.accent)}>
-            <span className={styles.num}>{values[u]}</span>
+            <span key={values[u]} className={styles.num}>
+              {values[u]}
+            </span>
             <span className={styles.label}>{label(u)}</span>
           </span>
         ))}
@@ -143,7 +147,9 @@ export function LaunchCountdown({
         <span className={styles.label} style={{ marginTop: 0 }}>
           {label("days")}
         </span>
-        <span className={styles.num}>{values.days}</span>
+        <span key={values.days} className={styles.num}>
+          {values.days}
+        </span>
         <span className={styles.clockSmall}>{small}</span>
       </span>
     );
@@ -205,7 +211,11 @@ export function LaunchCountdown({
   } else if (style === "single") {
     body = (
       <span className={styles.unit}>
-        <span className={styles.single} data-outline={outline ? "true" : "false"}>
+        <span
+          key={values[unit]}
+          className={styles.single}
+          data-outline={outline ? "true" : "false"}
+        >
           {values[unit]}
         </span>
         <span className={styles.label}>{label(unit)}</span>
@@ -222,7 +232,9 @@ export function LaunchCountdown({
               </span>
             )}
             <span className={clsx(styles.unit, accentUnit === u && styles.accent)}>
-              <span className={styles.num}>{values[u]}</span>
+              <span key={values[u]} className={styles.num}>
+                {values[u]}
+              </span>
               <span className={styles.label}>{label(u)}</span>
             </span>
           </span>
@@ -239,6 +251,7 @@ export function LaunchCountdown({
       className={styles.countdown}
       data-align={align}
       data-countdown-style={style}
+      data-tick={tick === "fade" || tick === "rise" || tick === "flip" ? tick : undefined}
       style={vars}
     >
       <FontStylesheet font={font} />

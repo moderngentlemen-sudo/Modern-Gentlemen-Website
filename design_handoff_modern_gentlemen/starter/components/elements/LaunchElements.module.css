@@ -334,13 +334,15 @@
 .shape {
   width: 100%;
   height: var(--sh-height);
-  background: var(--sh-fill);
+  background: var(--sh-bg, var(--sh-fill));
   opacity: var(--sh-opacity);
   border-radius: var(--sh-radius);
+  border: var(--sh-border, 0);
+  box-shadow: var(--sh-shadow, none);
 }
 .shape[data-blur="true"] {
-  -webkit-backdrop-filter: blur(var(--sh-blur));
-  backdrop-filter: blur(var(--sh-blur));
+  -webkit-backdrop-filter: blur(var(--sh-blur)) saturate(var(--sh-saturate, 100%));
+  backdrop-filter: blur(var(--sh-blur)) saturate(var(--sh-saturate, 100%));
 }
 .shape[data-shape="circle"],
 .shape[data-shape="ring"] {
@@ -354,4 +356,82 @@
 }
 .shape[data-shape="line"] {
   height: var(--sh-stroke);
+}
+
+/*
+ * Countdown tick: each number is keyed on its value, so a change remounts it
+ * and the animation plays once per change. Still under reduced motion.
+ */
+.countdown[data-tick] .num,
+.countdown[data-tick] .single {
+  animation: 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.countdown[data-tick="fade"] .num,
+.countdown[data-tick="fade"] .single {
+  animation-name: cdTickFade;
+}
+.countdown[data-tick="rise"] .num,
+.countdown[data-tick="rise"] .single {
+  animation-name: cdTickRise;
+}
+.countdown[data-tick="flip"] {
+  perspective: 600px;
+}
+.countdown[data-tick="flip"] .num,
+.countdown[data-tick="flip"] .single {
+  animation-name: cdTickFlip;
+  transform-origin: 50% 60%;
+}
+@keyframes cdTickFade {
+  from {
+    opacity: 0.15;
+  }
+}
+@keyframes cdTickRise {
+  from {
+    opacity: 0;
+    transform: translateY(0.25em);
+  }
+}
+@keyframes cdTickFlip {
+  from {
+    opacity: 0.3;
+    transform: rotateX(-80deg);
+  }
+}
+
+/* Shape sheen: a slow band of light that crosses the panel now and then. */
+.shape[data-sheen="true"] {
+  position: relative;
+  overflow: hidden;
+}
+.shape[data-sheen="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: shapeSheen 7s cubic-bezier(0.45, 0, 0.2, 1) 1.2s infinite;
+}
+@keyframes shapeSheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  35%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown[data-tick] .num,
+  .countdown[data-tick] .single,
+  .shape[data-sheen="true"]::after {
+    animation: none;
+  }
 }
