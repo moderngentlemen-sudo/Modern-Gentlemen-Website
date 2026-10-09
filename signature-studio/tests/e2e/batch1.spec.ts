@@ -87,16 +87,16 @@ test("an animated GIF is published as a GIF, and rounding it explains that it wi
     .setInputFiles({ name: "banner.gif", mimeType: "image/gif", buffer: Buffer.from(GIF, "base64") });
   await expect(preview(page).locator('img[src^="blob:"]')).not.toHaveCount(0);
 
-  // Rounded corners would freeze it — the checks say so.
-  await page.getByTestId("inspector").getByRole("switch", { name: "Rounded corners" }).check();
+  // A rounded frame would freeze it — the checks say so.
+  await page.getByTestId("inspector").getByRole("group", { name: "Frame shape" }).getByRole("button", { name: "Rounded" }).click();
   await page
     .locator(".preview-tools")
     .getByRole("button", { name: /to check|Looks good|issue/ })
     .click();
-  await expect(page.getByText("Rounded corners stop a GIF from animating")).toBeVisible();
+  await expect(page.getByText("A frame shape stops a GIF from animating")).toBeVisible();
   await page.keyboard.press("Escape");
   await preview(page).locator('img[src^="blob:"]').last().click();
-  await page.getByTestId("inspector").getByRole("switch", { name: "Rounded corners" }).uncheck();
+  await page.getByTestId("inspector").getByRole("group", { name: "Frame shape" }).getByRole("button", { name: "Square" }).click();
 
   // Publish and copy: the GIF goes out as a .gif.
   await page.getByTestId("open-install").click();

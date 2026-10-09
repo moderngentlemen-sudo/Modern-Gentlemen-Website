@@ -1,67 +1,23 @@
-import { Crop, Pipette, Trash2 } from "lucide-react";
-import type { AssetMeta, ImageShape } from "../core/types";
+import { Pipette } from "lucide-react";
 import { extractColors } from "../store/assets";
-import { edit, toast, ui, useStudio } from "../store/editor";
-import { ImageDrop } from "../ui/ImageDrop";
-import { Segmented, SectionTitle, Slider, TextField } from "../ui/kit";
+import { edit, toast, useStudio } from "../store/editor";
+import { ImageStudio } from "../builder/ImageStudio";
+import { SectionTitle, Slider, TextField } from "../ui/kit";
 
 type Slot = "photo" | "logo";
 
 function SlotEditor({ slot }: { slot: Slot }) {
   const image = useStudio((s) => s.doc!.images[slot]);
-  const has = !!image.assetId;
-  const set = (meta: AssetMeta) =>
-    edit((d) => {
-      d.assets[meta.id] = meta;
-      d.images[slot].assetId = meta.id;
-      d.images[slot].crop = { x: 0, y: 0, zoom: 1 };
-    });
   return (
     <>
-      <div className="image-slot">
-        <ImageDrop
-          assetId={image.assetId}
-          onFile={set}
-          round={slot === "photo" && image.shape === "circle"}
-          label={slot === "photo" ? "headshot" : "logo"}
-          testId={`upload-${slot}`}
-        />
-        <div style={{ display: "grid", gap: 6 }}>
-          <strong>{slot === "photo" ? "Headshot" : "Logo"}</strong>
-          <span className="hint">{slot === "photo" ? "A friendly, well-lit photo works best." : "PNG with a transparent background is ideal."}</span>
-          {has && (
-            <div className="row" style={{ gap: 4 }}>
-              <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: slot })} data-testid={`adjust-${slot}`}>
-                <Crop size={14} /> Zoom &amp; crop
-              </button>
-              <button className="btn sm ghost danger" onClick={() => edit((d) => void (d.images[slot].assetId = undefined))}>
-                <Trash2 size={14} /> Remove
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      {has && (
+      <span className="hint">{slot === "photo" ? "A friendly, well-lit photo works best." : "PNG with a transparent background is ideal."}</span>
+      <ImageStudio arg={slot} uploadTestId={`upload-${slot}`} editTestId={`adjust-${slot}`} />
+      {image.assetId && (
         <>
-          {slot === "photo" && (
-            <div className="field">
-              <span className="label">Shape</span>
-              <Segmented<ImageShape>
-                label="Photo shape"
-                value={image.shape}
-                onChange={(v) => edit((d) => void (d.images.photo.shape = v))}
-                options={[
-                  { value: "circle", label: "Circle" },
-                  { value: "rounded", label: "Rounded" },
-                  { value: "square", label: "Square" },
-                ]}
-              />
-            </div>
-          )}
           <Slider
             label="Size"
             unit="px"
-            min={slot === "photo" ? 40 : 40}
+            min={40}
             max={slot === "photo" ? 160 : 220}
             value={image.size}
             onChange={(v) => edit((d) => void (d.images[slot].size = v), `${slot}.size`)}
@@ -94,6 +50,7 @@ export function ImagesPanel() {
     <>
       <h2>Images</h2>
       <p className="lede">Add a headshot and a logo. We size, crop and host them for you.</p>
+      <SectionTitle>Headshot</SectionTitle>
       <SlotEditor slot="photo" />
       <SectionTitle>Logo</SectionTitle>
       <SlotEditor slot="logo" />

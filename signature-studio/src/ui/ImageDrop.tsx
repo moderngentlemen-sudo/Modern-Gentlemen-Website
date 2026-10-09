@@ -3,12 +3,15 @@ import { ImagePlus, Loader2 } from "lucide-react";
 import type { AssetMeta } from "../core/types";
 import { ACCEPT_ATTR, ingestFile, UploadError } from "../store/assets";
 import { toast } from "../store/editor";
+import { rememberImage } from "../store/library";
 import { previewSource } from "./samples";
 import { useSourcesVersion } from "./SigHtml";
 
 export async function uploadImage(file: File): Promise<AssetMeta | null> {
   try {
-    return await ingestFile(file);
+    const meta = await ingestFile(file);
+    void rememberImage(meta);
+    return meta;
   } catch (e) {
     toast(e instanceof UploadError ? e.message : "That image couldn't be added.", "error");
     return null;

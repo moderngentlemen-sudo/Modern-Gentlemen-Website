@@ -17,8 +17,11 @@ import {
   rowOf,
   rowOfColumn,
   walk,
+  block as newBlock,
 } from "../core/blocks";
-import type { Block, Column } from "../core/types";
+import type { AssetMeta, Block, Column } from "../core/types";
+import { uploadImage } from "../ui/ImageDrop";
+import { writeImage } from "./imageTarget";
 import { edit, toast, ui, undo, useStudio, tree } from "../store/editor";
 
 export interface DropTarget {
@@ -67,9 +70,10 @@ export function defaultTarget(): DropTarget | null {
   return { columnId: root.id, index: root.blocks.length };
 }
 
-export function addBlock(b: Block, target: DropTarget | null = defaultTarget()) {
+export function addBlock(b: Block, target: DropTarget | null = defaultTarget(), assets: AssetMeta[] = []) {
   if (!target) return;
   edit((d) => {
+    for (const m of assets) d.assets[m.id] = m;
     const root = tree(d);
     if (!root) return;
     if (!(target.beside && placeBeside(root, b, target.beside.id, target.beside.side))) insertBlock(root, b, target.columnId, target.index);
@@ -298,4 +302,25 @@ export function pasteBlock(): boolean {
   if (!clipboard) return false;
   addBlock(cloneBlock(clipboard));
   return true;
+}
+
+/**
+ * An image file dropped or pasted onto the layout: it fills the photo, logo
+ * or image block it lands on (or the selected one), otherwise it becomes a
+ * new image block.
+ */
+export async function placeImageFile(file: File, onBlockId?: string | null) {
+  const meta = await uploadImage(file);
+  if (!meta) return;
+  const d = doc();
+  const root = d ? tree(d) : undefined;
+  const id = onBlockId ?? useStudio.getState().selected;
+  const b = id && root ? findBlock(root, id)?.block : null;
+  if (b && (b.type === "photo" || b.type === "logo" || b.type === "image")) {
+    writeImage(b.type === "image" ? `block:${b.id}` : b.type, { asset: meta, crop: { x: 0, y: 0, zoom: 1 } });
+    ui({ selected: b.id, multi: [] });
+    toast(b.type === "photo" ? "Photo replaced" : b.type === "logo" ? "Logo replaced" : "Image replaced", "success", { label: "Undo", run: undo });
+    return;
+  }
+  addBlock(newBlock("image", { assetId: meta.id, width: Math.min(meta.width, 320) }), defaultTarget(), [meta]);
 }

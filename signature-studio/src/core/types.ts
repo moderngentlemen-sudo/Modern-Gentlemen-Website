@@ -7,6 +7,8 @@
  * switches because templates never own content.
  */
 
+import type { ImageLook } from "./imageLook";
+
 export const DOC_SCHEMA = "signature-studio.v3" as const;
 
 export type DetailKey = "name" | "title" | "company" | "department" | "pronouns" | "phone" | "mobile" | "email" | "website" | "address";
@@ -34,6 +36,8 @@ export interface ImageSlot {
   link?: string;
   /** Frame aspect (width / height); defaults to square for photos, the image's own for others. */
   aspect?: number;
+  /** Frame, border, shadow and colour adjustments (core/imageLook.ts). */
+  look?: ImageLook;
 }
 
 export interface Images {
@@ -179,6 +183,17 @@ export interface AssetMeta {
   height: number;
   bytes: number;
   hash: string;
+  /** Made from another asset by rotating, flipping or straightening it; editing starts again from that one. */
+  origin?: AssetOrigin;
+}
+
+export interface AssetOrigin {
+  id: string;
+  rotate: 0 | 90 | 180 | 270;
+  flipH?: boolean;
+  flipV?: boolean;
+  /** Small rotation in degrees (−15…15), cropped to hide the corners. */
+  straighten?: number;
 }
 
 export interface Published {
@@ -309,6 +324,7 @@ export type Block = BlockBase &
         radius?: number;
         aspect?: number;
         crop?: { x: number; y: number; zoom: number };
+        look?: ImageLook;
       }
     | { type: "logos"; items: { id: string; assetId?: string; link?: string; alt?: string }[]; height: number; gap: number }
     | { type: "qr"; source: "website" | "digitalCard" | "custom"; url: string; size: number; caption: string }

@@ -55,6 +55,41 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: audit Batch 3 (image studio)
+
+From the editor audit, items I1, I2, I3, I5, I7 and I8:
+- **I1 — one image inspector** for the headshot, the logo and image blocks (`builder/ImageStudio.tsx`, `builder/imageTarget.ts`). It covers replace, library, edit and remove, plus:
+  - frame shape (square, rounded with a radius, squircle, circle, arch);
+  - border with colour, and a ring gap;
+  - soft shadow;
+  - backing colour with padding.
+- **How it renders:**
+  - `core/imageLook.ts` (pure, unit-tested) holds the geometry as SVG path strings and every colour change as one 4×5 colour matrix.
+  - The editor preview draws them as inline SVG (`clipPath`, `feColorMatrix`, `feDropShadow`).
+  - Publishing draws the same numbers on a canvas (`derive.ts` `styled`), so the preview matches what recipients get.
+  - A plain photo keeps its old image request key, so nothing already published is re-made.
+- **I2 — image editor** (`dialogs/CropDialog.tsx`):
+  - larger stage that shows the real frame shape;
+  - crop presets (Original, Square, 4:5, 4:3, 16:9, Banner);
+  - rotate left and right, flip both ways, straighten (±15°, auto-zoomed to hide corners);
+  - rule-of-thirds grid;
+  - arrow-key nudge and +/− zoom;
+  - auto-frame, which centres the subject using a detail and contrast centroid (`subjectCenter`).
+  - Rotating, flipping and straightening make a new asset that remembers its original (`AssetMeta.origin`), so they can be undone or changed later without losing quality.
+- **I3 — adjustments:**
+  - brightness, contrast, saturation and warmth;
+  - presets B&W, Warm, Cool, Vivid, Fade, Sepia, **Brand duotone** (follows the accent colour) and One colour.
+- **I5 — logo tools:** trim empty edges, white version (for dark backgrounds), brand-colour version.
+- **I7 — image library and canvas drops:**
+  - Every upload on this device is kept in a library (IndexedDB, never synced), so it can be reused in any signature.
+  - An image file dropped onto the canvas, or pasted with ⌘V, fills the photo, logo or image block it lands on (or the selected one). Otherwise it becomes a new image block.
+- **I8 — image checks:**
+  - "will look blurry" (fewer source pixels than the displayed width);
+  - "may look soft on retina" (fewer than 2×);
+  - a tip when images add more than ~350 KB to every email.
+  - GIF checks now cover frames and colour changes.
+- **Gates:** `npm test` (105), `npm run e2e` (44, incl. `image-studio.spec.ts`, which publishes a framed photo and checks the PNG is 2× its size), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio: audit Batch 2 (text studio)
 
 From the editor audit, items T1, T2/E5, T3, T5/E4 and T6:

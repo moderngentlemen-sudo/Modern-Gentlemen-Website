@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Copy, Crop as CropIcon, Minus, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Copy, Minus, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { SIGN_OFFS } from "../core/seasonal";
 import { ICON_CHOICES } from "../core/iconPaths";
 import { glyphSvg, svgDataUrl } from "../render/icons";
@@ -9,6 +9,7 @@ import { FONTS } from "../core/fonts";
 import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, DetailKey } from "../core/types";
 import { edit, ui, useStudio, type Tab, tree, treeOf } from "../store/editor";
 import { ImageDrop } from "../ui/ImageDrop";
+import { ImageStudio } from "./ImageStudio";
 import { LinkableText } from "../ui/LinkableText";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
@@ -294,46 +295,20 @@ function Content({ b }: { b: Block }) {
       return (
         <>
           <Slider label="Size" unit="px" min={32} max={240} value={b.size ?? (b.type === "photo" ? 84 : 110)} onChange={(v) => set({ size: v }, "size")} />
-          <div className="row">
-            <GoTo tab="images">{b.type === "photo" ? "Change photo" : "Change logo"}</GoTo>
-            <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: b.type })}>
-              <CropIcon size={14} /> Zoom &amp; crop
-            </button>
-          </div>
+          <ImageStudio arg={b.type} editTestId={`adjust-${b.type}`} />
+          <p className="hint">The {b.type === "photo" ? "photo" : "logo"} is shared by every layout of this signature.</p>
         </>
       );
     case "image":
       return (
         <>
-          <Field label="Image">
-            <ImageDrop
-              assetId={b.assetId}
-              label="image"
-              style={{ width: "100%", height: 90 }}
-              onFile={(m) =>
-                edit((d) => {
-                  d.assets[m.id] = m;
-                  const hit = tree(d) && findBlock(tree(d), b.id);
-                  if (hit && hit.block.type === "image") {
-                    hit.block.assetId = m.id;
-                    hit.block.width = Math.min(m.width, 480);
-                  }
-                })
-              }
-            />
-          </Field>
+          <ImageStudio arg={`block:${b.id}`} editTestId="adjust-image" />
           <button className="btn sm" onClick={() => ui({ dialog: "banners", dialogArg: `block:${b.id}` })} data-testid="open-banners">
             <Sparkles size={14} /> Seasonal &amp; promo banners
           </button>
           <Slider label="Width" unit="px" min={40} max={640} step={10} value={b.width} onChange={(v) => set({ width: v }, "width")} />
-          <Toggle label="Rounded corners" checked={!!b.radius} onChange={(v) => set({ radius: v ? 8 : 0 })} />
           <TextField label="Link" placeholder="https://…" value={b.link ?? ""} onChange={(v) => set({ link: v }, "link")} />
           <TextField label="Description" hint="for screen readers" value={b.alt ?? ""} onChange={(v) => set({ alt: v }, "alt")} />
-          {b.assetId && (
-            <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: `block:${b.id}` })} data-testid="adjust-image">
-              <CropIcon size={14} /> Zoom &amp; crop
-            </button>
-          )}
         </>
       );
     case "logos":

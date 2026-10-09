@@ -10,6 +10,7 @@ import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
 import { linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
+import { frameLayout, framePath, isPlainLook, lookKey, lookMatrix, matrixValues, shortHash, type FrameShape, type ImageLook } from "../core/imageLook";
 import { clampScale, scaleDoc } from "../core/scale";
 import { fontStack } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
@@ -29,7 +30,17 @@ interface Base {
 
 export type ImageRequest = Base &
   (
-    | { kind: "crop"; assetId: string; w: number; h: number; rect: { sx: number; sy: number; sw: number; sh: number }; shape: ImageShape; radius: number }
+    | {
+        kind: "crop";
+        assetId: string;
+        w: number;
+        h: number;
+        rect: { sx: number; sy: number; sw: number; sh: number };
+        shape: ImageShape;
+        radius: number;
+        /** Frame, border, shadow and colour (absent for a plain crop). `w`/`h` are then the whole output, shadow included. */
+        look?: { look: ImageLook; frame: FrameShape; accent: string; fw: number; fh: number };
+      }
     | { kind: "slice"; assetId: string; cardW: number; cardH: number; radius: number; x: number; y: number; w: number; h: number }
     | { kind: "video"; assetId: string; w: number; h: number; rect: { sx: number; sy: number; sw: number; sh: number } }
     | { kind: "social"; platform: string; shape: string; size: number; color: string }
@@ -353,35 +364,90 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
   const meta = c.doc.assets[slot.assetId];
   if (!meta) return "";
   const w = o.size ?? slot.size;
-  const square = slot.shape === "circle" || label === "Photo";
+  const frame: FrameShape = slot.look?.frame ?? slot.shape;
+  const square = frame === "circle" || label === "Photo";
   const aspect = square ? 1 : (slot.aspect ?? meta.width / meta.height);
   const h = Math.max(1, Math.round(w / aspect));
+  const html = isPlainLook(slot.look) ? plainImage(c, slot, meta, label, w, h, aspect, frame as ImageShape) : styledImage(c, slot, meta, label, w, h, frame);
+  if (!html) return "";
+  return slot.link ? link(normalizeWebUrl(slot.link), html, c.doc.design.accent) : html;
+}
+
+type Meta = SignatureDoc["assets"][string];
+
+function plainImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: number, h: number, aspect: number, shape: ImageShape): string {
   const rect = cropRect(meta.width, meta.height, aspect, slot.crop);
-  const radius = slot.shape === "rounded" ? Math.round(w * 0.12) : 0;
+  const radius = shape === "rounded" ? Math.round(w * 0.12) : 0;
   const req: ImageRequest = {
     kind: "crop",
-    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${slot.shape}`,
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${shape}`,
     label,
-    assetId: slot.assetId,
+    assetId: slot.assetId!,
     w,
     h,
     rect,
-    shape: slot.shape,
+    shape,
     radius,
   };
-  let html: string;
   if (c.preview) {
     c.images.push(req);
-    const src = c.opts.sourceUrl?.(slot.assetId) ?? "";
+    const src = c.opts.sourceUrl?.(slot.assetId!) ?? "";
     const k = w / rect.sw;
-    const br = slot.shape === "circle" ? "50%" : `${radius}px`;
-    html = `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(-rect.sx * k).toFixed(1)}px;top:${(-rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
-  } else {
-    const src = source(c, req, () => null);
-    if (!src) return "";
-    html = imgTag(src, w, h, label);
+    const br = shape === "circle" ? "50%" : `${radius}px`;
+    return `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(-rect.sx * k).toFixed(1)}px;top:${(-rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
   }
-  return slot.link ? link(normalizeWebUrl(slot.link), html, c.doc.design.accent) : html;
+  const src = source(c, req, () => null);
+  return src ? imgTag(src, w, h, label) : "";
+}
+
+/** Framed, bordered, shadowed or recoloured: one baked image in email, the same geometry as inline SVG while editing. */
+function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: number, h: number, frame: FrameShape): string {
+  const look = slot.look!;
+  const accent = c.doc.design.accent;
+  const L = frameLayout(look, frame, w, h);
+  const rect = cropRect(meta.width, meta.height, L.inner.w / L.inner.h, slot.crop);
+  const req: ImageRequest = {
+    kind: "crop",
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${frame}|${shortHash(lookKey(look, accent))}`,
+    label,
+    assetId: slot.assetId!,
+    w: L.W,
+    h: L.H,
+    rect,
+    shape: "square",
+    radius: 0,
+    look: { look, frame, accent, fw: w, fh: h },
+  };
+  if (!c.preview) {
+    const src = source(c, req, () => null);
+    return src ? imgTag(src, L.W, L.H, label) : "";
+  }
+  c.images.push(req);
+  const src = c.opts.sourceUrl?.(slot.assetId!) ?? "";
+  const id = `lk${shortHash(req.key)}`;
+  const f = L.frame;
+  const i = L.inner;
+  const outer = framePath(frame, f.x, f.y, f.w, f.h, f.r);
+  const inner = framePath(frame, i.x, i.y, i.w, i.h, i.r);
+  const k = i.w / rect.sw;
+  const m = lookMatrix(look, accent);
+  const defs = [
+    `<clipPath id="${id}o"><path d="${outer}"/></clipPath>`,
+    `<clipPath id="${id}i"><path d="${inner}"/></clipPath>`,
+    m ? `<filter id="${id}f" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${matrixValues(m)}"/></filter>` : "",
+    look.shadow
+      ? `<filter id="${id}s" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="${(L.m / 3).toFixed(1)}" stdDeviation="${(L.m * 0.45).toFixed(1)}" flood-color="#000" flood-opacity="0.28"/></filter>`
+      : "",
+  ].join("");
+  const parts = [
+    look.shadow ? `<path d="${outer}" fill="${esc(look.backing ?? "#ffffff")}" filter="url(#${id}s)"/>` : "",
+    look.backing ? `<path d="${outer}" fill="${esc(look.backing)}"/>` : "",
+    `<g clip-path="url(#${id}i)"><image href="${esc(src)}" x="${(i.x - rect.sx * k).toFixed(1)}" y="${(i.y - rect.sy * k).toFixed(1)}" width="${(meta.width * k).toFixed(1)}" height="${(meta.height * k).toFixed(1)}" preserveAspectRatio="none"${m ? ` filter="url(#${id}f)"` : ""}/></g>`,
+    look.border
+      ? `<path d="${outer}" fill="none" stroke="${esc(look.borderColor ?? accent)}" stroke-width="${look.border * 2}" clip-path="url(#${id}o)"/>`
+      : "",
+  ].join("");
+  return `<svg width="${L.W}" height="${L.H}" viewBox="0 0 ${L.W} ${L.H}" role="img" aria-label="${esc(label)}" style="display:block;overflow:visible;"><defs>${defs}</defs>${parts}</svg>`;
 }
 
 function photoHtml(c: Ctx, size?: number): string {
@@ -1196,6 +1262,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         crop: b.crop ?? { x: 0, y: 0, zoom: 1 },
         link: b.link || undefined,
         aspect: b.aspect,
+        look: b.look,
       };
       return (b.assetId && c.doc.assets[b.assetId] ? slotImage(c, slot, b.alt || "Image") : "") || empty("Image", Math.min(b.width, 200), 60);
     }

@@ -4,7 +4,8 @@
  * "make it 10% bigger" is one control instead of twenty.
  * The renderer scales its own built-in sizes with the same factor.
  */
-import type { Block, Box, Column, SignatureDoc } from "./types";
+import type { Block, Box, Column, ImageSlot, SignatureDoc } from "./types";
+import type { ImageLook } from "./imageLook";
 
 export const MIN_SCALE = 0.7;
 export const MAX_SCALE = 1.5;
@@ -18,6 +19,15 @@ function box(b: Box | undefined, s: number): Box | undefined {
   if (!b) return b;
   return { ...b, padding: opt(b.padding, s), radius: opt(b.radius, s) };
 }
+
+/** Border, ring and padding grow with the image (0 stays 0). */
+function look(l: ImageLook | undefined, s: number): ImageLook | undefined {
+  if (!l) return l;
+  const z = (n: number | undefined) => (n ? r(n, s) : n);
+  return { ...l, radius: opt(l.radius, s), border: z(l.border), gap: z(l.gap), inset: z(l.inset) };
+}
+
+const slot = (x: ImageSlot, s: number): ImageSlot => ({ ...x, size: r(x.size, s), look: look(x.look, s) });
 
 function column(c: Column, s: number): Column {
   // Gaps are multiplied by design.spacing in the renderer, which is scaled already.
@@ -37,7 +47,7 @@ function block(b: Block, s: number): Block {
     case "logo":
       return { ...base, size: opt(base.size, s) };
     case "image":
-      return { ...base, width: r(base.width, s) };
+      return { ...base, width: r(base.width, s), look: look(base.look, s) };
     case "monogram":
       return { ...base, size: r(base.size, s) };
     case "divider":
@@ -67,8 +77,8 @@ export function scaleDoc(doc: SignatureDoc, s: number): SignatureDoc {
       social: { ...d.social, size: r(d.social.size, s), gap: r(d.social.gap, s) },
     },
     images: {
-      photo: { ...doc.images.photo, size: r(doc.images.photo.size, s) },
-      logo: { ...doc.images.logo, size: r(doc.images.logo.size, s) },
+      photo: slot(doc.images.photo, s),
+      logo: slot(doc.images.logo, s),
     },
     card: { ...doc.card, width: r(doc.card.width, s) },
     addons: { ...doc.addons, banner: { ...doc.addons.banner, width: r(doc.addons.banner.width, s) } },

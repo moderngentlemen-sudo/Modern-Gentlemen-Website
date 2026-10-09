@@ -46,6 +46,7 @@ import {
   enterSelected,
   nudgeSelected,
   pasteBlock,
+  placeImageFile,
   removeSelected,
   selectAdjacent,
   selectOutward,
@@ -129,8 +130,21 @@ function useShortcuts(builder: boolean) {
         nudgeSelected(k === "arrowup" ? -1 : 1);
       }
     };
+    // Paste an image (a screenshot, a copied logo) straight into the layout.
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (!builder || useStudio.getState().dialog || t.closest?.("input, textarea, [contenteditable]")) return;
+      const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith("image/"));
+      if (!file) return;
+      e.preventDefault();
+      void placeImageFile(file);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("paste", onPaste);
+    };
   }, [builder]);
 }
 

@@ -2399,6 +2399,100 @@ body.is-resizing * {
   background: repeating-conic-gradient(#f1eee7 0 25%, #ffffff 0 50%) 0 0 / 16px 16px;
 }
 
+.crop-stage:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.crop-backing,
+.crop-grid,
+.crop-busy {
+  position: absolute;
+  inset: 0;
+}
+
+.crop-grid {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  background:
+    linear-gradient(
+      to right,
+      transparent calc(33.33% - 0.5px),
+      rgba(255, 255, 255, 0.85) 0 calc(33.33% + 0.5px),
+      transparent 0 calc(66.66% - 0.5px),
+      rgba(255, 255, 255, 0.85) 0 calc(66.66% + 0.5px),
+      transparent 0
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(33.33% - 0.5px),
+      rgba(255, 255, 255, 0.85) 0 calc(33.33% + 0.5px),
+      transparent 0 calc(66.66% - 0.5px),
+      rgba(255, 255, 255, 0.85) 0 calc(66.66% + 0.5px),
+      transparent 0
+    );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.crop-stage.show-grid .crop-grid {
+  opacity: 1;
+}
+
+.crop-busy {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.editor-tabs {
+  margin-bottom: 14px;
+}
+
+.img-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.img-tools .btn[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.preset {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  cursor: pointer;
+  font: 600 11.5px/1.2 var(--ui);
+  color: var(--ink-2);
+}
+
+.preset img {
+  width: 100%;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 7px;
+  background: repeating-conic-gradient(#f1eee7 0 25%, #ffffff 0 50%) 0 0 / 10px 10px;
+}
+
+.preset[aria-pressed="true"] {
+  border-color: var(--brand);
+  color: var(--ink);
+}
+
 .crop-stage:active {
   cursor: grabbing;
 }
@@ -3267,4 +3361,104 @@ body.is-col-resizing * {
 .ov-rich .rich-colour > button:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
+}
+
+/* ---- Image inspector and library ---- */
+.image-studio {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.image-studio .image-slot {
+  margin-bottom: 0;
+}
+
+.image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: center;
+  min-width: 0;
+}
+
+.image-studio .seg button {
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 11.5px;
+}
+
+.library {
+  position: relative;
+}
+
+.library-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 264px;
+  max-height: 300px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-3, 0 18px 40px rgba(20, 16, 40, 0.18));
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.library-item {
+  position: relative;
+}
+
+.library-item > button:first-child {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: repeating-conic-gradient(#f1eee7 0 25%, #ffffff 0 50%) 0 0 / 10px 10px;
+  cursor: pointer;
+}
+
+.library-item > button:first-child:hover {
+  border-color: var(--brand);
+}
+
+.library-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.library-forget {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--ink);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.library-item:hover .library-forget,
+.library-forget:focus-visible {
+  opacity: 1;
+}
+
+.stage.file-over {
+  outline: 2px dashed var(--brand);
+  outline-offset: -8px;
 }

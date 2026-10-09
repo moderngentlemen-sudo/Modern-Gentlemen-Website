@@ -26,7 +26,7 @@ import { updateColumn } from "./actions";
 import { findBlock, isWithin, rowOfColumn, walk } from "../core/blocks";
 import type { Block, Column } from "../core/types";
 import { edit, ui, useStudio, tree, treeOf } from "../store/editor";
-import { duplicateSelected, nudgeSelected, removeSelected, selectParent, toggleInSelection } from "./actions";
+import { duplicateSelected, nudgeSelected, placeImageFile, removeSelected, selectParent, toggleInSelection } from "./actions";
 import { blockLabel } from "./catalog";
 import { armDrag, registerResolver, useDrag, type Resolution } from "./dnd";
 
@@ -99,6 +99,7 @@ export function Stage({ html, className }: { html: string; className?: string })
   const [guide, setGuide] = useState<{ x: number; y: number; h: number } | null>(null);
   const [inline, setInline] = useState<{ id: string; value: string; multiline: boolean; linkable?: boolean } | null>(null);
   const [hover, setHover] = useState<string | null>(null);
+  const [fileOver, setFileOver] = useState(false);
 
   const shadow = () => hostRef.current?.shadowRoot ?? null;
 
@@ -246,7 +247,25 @@ export function Stage({ html, className }: { html: string; className?: string })
   const row = sel && root ? (sel.block.type === "row" ? sel.block : rowOfColumn(root, sel.parent.id)) : null;
 
   return (
-    <div ref={stageRef} className={`stage ${className ?? ""}`} data-testid="stage">
+    <div
+      ref={stageRef}
+      className={`stage ${className ?? ""}${fileOver ? " file-over" : ""}`}
+      data-testid="stage"
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setFileOver(true);
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setFileOver(false)}
+      onDrop={(e) => {
+        const file = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+        setFileOver(false);
+        if (!file) return;
+        e.preventDefault();
+        void placeImageFile(file, hit(e));
+      }}
+    >
       <div
         ref={hostRef}
         className="sig-host"
