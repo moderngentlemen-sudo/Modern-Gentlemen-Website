@@ -12,6 +12,12 @@ do $$ begin
   assert (select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000a') = 'Ada', 'display name copied';
 end $$;
 
+-- The sign-up helper can't be called directly.
+do $$ begin
+  assert not has_function_privilege('anon', 'public.handle_new_user()', 'execute'), 'anon can call handle_new_user';
+  assert not has_function_privilege('authenticated', 'public.handle_new_user()', 'execute'), 'users can call handle_new_user';
+end $$;
+
 -- ---- As user A ----
 set role authenticated;
 do $$ begin perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false); end $$;

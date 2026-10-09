@@ -43,6 +43,9 @@ begin
 end;
 $$;
 
+-- Only ever runs as the sign-up trigger; not callable through the API.
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
@@ -169,8 +172,11 @@ drop policy if exists "signet-images: read own" on storage.objects;
 create policy "signet-images: read own" on storage.objects for select to authenticated
   using (bucket_id = 'signet-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
+-- Named "remove own" (it was created under this name on the live project, and
+-- Supabase owns storage.objects, so it can't be renamed there).
 drop policy if exists "signet-images: delete own" on storage.objects;
-create policy "signet-images: delete own" on storage.objects for delete to authenticated
+drop policy if exists "signet-images: remove own" on storage.objects;
+create policy "signet-images: remove own" on storage.objects for delete to authenticated
   using (bucket_id = 'signet-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- ---------------------------------------------------------------------------

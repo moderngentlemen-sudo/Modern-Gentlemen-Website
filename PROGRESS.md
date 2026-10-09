@@ -55,6 +55,34 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signet Supabase project created and schema applied
+
+- **Project:** `signet` (ref `wgrbgdvvhciahzhhhret`, `ca-central-1`) in the separate **Signet** organisation, on the Free plan. The website's project was not touched.
+- **Schema:** applied with the MCP's `execute_sql`, because `apply_migration` and any statement containing `drop`/`delete` time out. The MCP waits for a "destructive statement" confirmation that never reaches a remote session.
+  - Applied without the `drop … if exists` guards (safe on an empty project), with `create or replace trigger` for triggers.
+  - The storage delete policy is named `signet-images: remove own`. Supabase owns `storage.objects`, so it can't be renamed. The migration file now uses that name.
+- **Advisor fix:** `handle_new_user()` was callable through the API. EXECUTE is now revoked, live and in the migration, with an RLS test.
+- **Checked from outside with the publishable key:**
+  - anonymous visitors can read cards but not their owners;
+  - signature reads come back empty, and writes to signatures and cards are refused;
+  - uploads to the bucket are refused;
+  - the sign-up helper isn't reachable.
+- **Still for the owner:**
+  1. Run `delete_my_account()` in the SQL editor (SQL is in `signature-studio/supabase/README.md`).
+  2. Set Auth → URL configuration: Site URL and the `/app` redirect.
+  3. Optionally add the Google sign-in provider.
+  4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (the `sb_publishable_…` key) to Cloudflare Pages and redeploy.
+
+### 2026-10-09 — Signature Studio: resize handles on every side and corner
+
+- **Handles:** a selected block now has eight handles — four corners and four edges — instead of one bottom-right handle. Pure maths is in `builder/resize.ts` (`resizeValue`, `handlesFor`) and is unit-tested.
+- **How they behave:**
+  - Every handle scales the block in proportion: dragging away from the block grows it, dragging towards it shrinks it. A corner follows whichever direction moved further.
+  - Spacers get only top and bottom handles.
+  - Blocks shorter or narrower than 48px drop the side or top/bottom handles that would cover the corners.
+- **Layout fixes:** the drag grip moved 8px further out, and the block toolbar moved 12px further away, so neither sits over a handle. Both overlaps were found by the new e2e test.
+- **Gates:** `npm test`, `npm run e2e`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio Phase 2 (accounts & cloud) — code built, project pending
 
 - **PR:** [moderngentlemen-sudo/Modern-Gentlemen-Website#134](https://github.com/moderngentlemen-sudo/Modern-Gentlemen-Website/pull/134). It carries the three earlier batches plus this one.

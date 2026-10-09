@@ -27,6 +27,40 @@ test("resize handle scales the selected block", async ({ page }) => {
   expect(size(await html(page))).toBe(size(before));
 });
 
+test("handles on every side and corner scale the block, growing outward and shrinking inward", async ({ page }) => {
+  await builderFrom(page);
+  await preview(page).getByText("Jordan Ellis").click();
+  // A one-line name is short: corners plus top and bottom (side handles would cover the corners).
+  for (const dir of ["n", "ne", "se", "s", "sw", "nw"]) await expect(page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`)).toBeVisible();
+  await shot(page, "53-handles");
+  const size = async () => Number(/font-size:(\d+)px;[^"]*">Jordan Ellis/.exec(await html(page))![1]);
+  const drag = async (dir: string, dx: number, dy: number) => {
+    const b = (await page.getByTestId(`resize-handle-${dir}`).boundingBox())!;
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width / 2 + dx, b.y + b.height / 2 + dy, { steps: 8 });
+    await page.mouse.up();
+  };
+  const start = await size();
+  await drag("sw", -60, 0); // bottom-left corner, outward
+  const wider = await size();
+  expect(wider).toBeGreaterThan(start);
+  await drag("n", 0, 6); // top edge, inward
+  const smaller = await size();
+  expect(smaller).toBeLessThan(wider);
+  await drag("nw", -40, -40); // top-left corner, outward
+  expect(await size()).toBeGreaterThan(smaller);
+
+  // A taller block (the photo) gets all eight, and its left edge works too.
+  await preview(page).locator("img").nth(1).click();
+  for (const dir of ["n", "ne", "e", "se", "s", "sw", "w", "nw"])
+    await expect(page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`)).toBeVisible();
+  const photo = async () => (await preview(page).locator("img").nth(1).boundingBox())!.width;
+  const p0 = await photo();
+  await drag("w", -30, 0);
+  expect(await photo()).toBeGreaterThan(p0);
+});
+
 test("new blocks, palette search, hide from layers, copy/paste", async ({ page }) => {
   await builderFrom(page);
   await page.getByTestId("palette-search").fill("qr");

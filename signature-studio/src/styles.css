@@ -1718,9 +1718,9 @@ kbd {
 
 .stage {
   position: relative;
-  /* Room above the first block for its toolbar. */
-  padding-top: 34px;
-  margin-top: -16px;
+  /* Room above the first block for its toolbar (which sits clear of the resize handles). */
+  padding-top: 42px;
+  margin-top: -24px;
 }
 
 .stage .sig-host {
@@ -2242,28 +2242,53 @@ body.is-dragging * {
 }
 
 .ov-resize {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   padding: 0;
-  border-radius: 50%;
+  border-radius: 4px;
   background: #fff;
-  border: 2.5px solid var(--violet);
+  border: 2px solid var(--violet);
   box-shadow: var(--shadow-1);
-  cursor: nwse-resize;
+  /* Centred on the frame's corner or edge midpoint. */
+  transform: translate(-50%, -50%);
 }
 
-.ov-resize.v {
-  cursor: ns-resize;
-  border-radius: 6px;
-  height: 14px;
+/* Corners win where handles meet. */
+.ov-resize.corner {
+  z-index: 4;
+}
+
+.ov-resize.edge-h {
   width: 22px;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.ov-resize.edge-v {
+  width: 10px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.ov-resize:hover {
+  background: var(--violet);
 }
 
 /* Bigger targets for fingers. */
 @media (pointer: coarse) {
   .ov-resize {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .ov-resize.edge-h {
+    width: 30px;
+    height: 16px;
+  }
+
+  .ov-resize.edge-v {
+    width: 16px;
+    height: 30px;
   }
 
   .ov-grip {

@@ -40,10 +40,15 @@ test("a Canva signature design becomes a clickable, pixel-exact Gmail signature"
   await shot(page, "03-install-copy");
   await page.getByTestId("copy-full").click();
 
-  const html = await page.evaluate(async () => {
-    const items = await navigator.clipboard.read();
-    return await (await items[0].getType("text/html")).text();
-  });
+  // Copying is asynchronous: wait until the rich HTML has actually landed on the clipboard.
+  const readHtml = () =>
+    page.evaluate(async () => {
+      const items = await navigator.clipboard.read();
+      const item = items.find((i) => i.types.includes("text/html"));
+      return item ? await (await item.getType("text/html")).text() : "";
+    });
+  await expect.poll(readHtml, { timeout: 10_000 }).toContain("<table");
+  const html = await readHtml();
   expect(html).toContain('href="mailto:jordan@example.com"');
   expect(html).toMatch(/<img src="http:\/\/localhost:8787\/s\/[0-9a-f]{64}\.png"/);
   expect(html).not.toMatch(/data:|blob:/);
