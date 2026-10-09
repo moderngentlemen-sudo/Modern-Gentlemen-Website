@@ -302,3 +302,41 @@ describe("right-to-left", () => {
     expect(validateEmailHtml(html).filter((p) => p.level === "error")).toEqual([]);
   });
 });
+
+describe("text studio rendering", () => {
+  it("applies block typography to every text element, and colour roles", async () => {
+    const { withTypography, styleColor } = await import("./render");
+    const out = withTypography('<div style="font-family:Arial;font-size:13px;">Hi</div><img src="x" style="display:block">', {
+      weight: 600,
+      italic: true,
+      underline: true,
+      case: "smallcaps",
+      lineHeight: 1.6,
+      tracking: 0.1,
+    });
+    expect(out).toContain(
+      "font-family:Arial;font-size:13px;font-weight:600;font-style:italic;text-decoration:underline;font-variant:small-caps;line-height:160%;letter-spacing:0.1em;",
+    );
+    expect(out).toContain('<img src="x" style="display:block">');
+    const d = fullDoc(TEMPLATES[0].id).design;
+    expect(styleColor({ colorRole: "accent" }, d)).toBe(d.accent);
+    expect(styleColor({ colorRole: "accent", color: "#123456" }, d)).toBe("#123456");
+  });
+
+  it("renders inline marks in a text block as Gmail-safe tags", async () => {
+    const { blocksFromDoc, block } = await import("../core/blocks");
+    const d = fullDoc(TEMPLATES[0].id);
+    d.mode = "builder";
+    d.blocks = blocksFromDoc(d);
+    d.blocks.blocks.push(block("text", { text: "Call **today** for ==20%== off, ~~old~~ __new__ *price* [here]{#C8102E}" }));
+    const { html } = renderSignature(d, { variant: "full", mode: "email", resolve: hosted });
+    expect(html).toContain('<strong style="font-weight:700;">today</strong>');
+    expect(html).toMatch(/<span style="background-color:#[0-9a-f]{6};padding:0 2px;">20%<\/span>/);
+    expect(html).toContain('<s style="text-decoration:line-through;">old</s>');
+    expect(html).toContain('<u style="text-decoration:underline;">new</u>');
+    expect(html).toContain('<em style="font-style:italic;">price</em>');
+    expect(html).toContain('<span style="color:#C8102E;">here</span>');
+    expect(html).not.toContain("**");
+    expect(validateEmailHtml(html).filter((p) => p.level === "error")).toEqual([]);
+  });
+});

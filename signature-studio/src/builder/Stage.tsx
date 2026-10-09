@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ArrowUpLeft, Copy, GripVertical, Trash2 } from "lucide-react";
-import { HANDLE_CURSOR, handlesFor, resizeSpec, resizeValue, type HandleDir } from "./resize";
+import { HANDLE_CURSOR, handlesFor, resizeSpec, resizeValue, type HandleDir, type ResizeSpec } from "./resize";
 
 const DIR_NAME: Record<HandleDir, string> = {
   n: "top",
@@ -19,13 +19,15 @@ const DIR_NAME: Record<HandleDir, string> = {
   sw: "bottom left",
 };
 import { resizeKind, snapColumn, snapResize } from "./snap";
+import { toolbarTop } from "./toolbar";
 import { inlineTarget } from "./inlineText";
-import { useLinker } from "../ui/LinkableText";
+import { useLinker, useRichEditing } from "../ui/LinkableText";
 import { updateColumn } from "./actions";
 import { findBlock, isWithin, rowOfColumn, walk } from "../core/blocks";
-import type { Column } from "../core/types";
+import { clampScale } from "../core/scale";
+import type { Block, Column } from "../core/types";
 import { edit, ui, useStudio, tree, treeOf } from "../store/editor";
-import { duplicateSelected, nudgeSelected, removeSelected, selectParent, toggleInSelection } from "./actions";
+import { duplicateSelected, nudgeSelected, placeImageFile, removeSelected, selectParent, toggleInSelection } from "./actions";
 import { blockLabel } from "./catalog";
 import { armDrag, registerResolver, useDrag, type Resolution } from "./dnd";
 
@@ -40,10 +42,74 @@ a[href]:hover{background-color:rgba(108,85,255,.12);outline:1px dashed rgba(108,
 [data-col]{min-height:24px}
 </style>`;
 
+/** First field worth typing into: never a colour picker, a slider or a switch. */
+const FIRST_FIELD = "textarea, input:not([type=checkbox]):not([type=range]):not([type=color]), select";
+
+const focusFirst = (scope: string) =>
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(scope)?.querySelector<HTMLElement>(FIRST_FIELD)?.focus()));
+
+/**
+ * Double-click on a block without text of its own: do the thing people most
+ * likely want — change or crop an image, edit contact details or social links —
+ * instead of focusing whatever input happens to come first.
+ */
+export function primaryAction(b: Block) {
+  const doc = useStudio.getState().doc;
+  switch (b.type) {
+    case "photo":
+    case "logo": {
+      const has = !!doc?.images[b.type].assetId;
+      if (has) ui({ dialog: "crop", dialogArg: b.type });
+      else ui({ tab: "images" });
+      return;
+    }
+    case "image":
+      if (b.assetId) ui({ dialog: "crop", dialogArg: `block:${b.id}` });
+      else requestAnimationFrame(() => document.querySelector<HTMLElement>(".inspector .image-drop")?.click());
+      return;
+    case "contacts":
+      ui({ tab: "details" });
+      // Land on the contact lines, not the name at the top of the form.
+      requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="field-phone"]')?.focus()));
+      return;
+    case "socials":
+      ui({ tab: "social" });
+      return;
+    default:
+      focusFirst(".inspector");
+  }
+}
+
 function allColumns(root: Column): Column[] {
   const out = [root];
   for (const { block } of walk(root)) if (block.type === "row") out.push(...block.columns);
   return out;
+}
+
+/** Most phones show about this much of an email's width without shrinking it. */
+export const PHONE_WIDTH = 360;
+
+/** Under the canvas: does the signature fit a phone, and a one-click fix when it doesn't. */
+export function PhoneFit() {
+  const w = useStudio((s) => s.sigWidth);
+  const scale = useStudio((s) => s.doc?.design.scale ?? 1);
+  const guide = useStudio((s) => s.phoneGuide);
+  if (!w) return null;
+  const over = w > PHONE_WIDTH;
+  const fit = clampScale(Math.floor((scale * PHONE_WIDTH * 100) / w) / 100);
+  return (
+    <div className={`phone-fit${over ? " over" : ""}`} data-testid="phone-fit">
+      <span>{over ? `${w}px wide — phones will shrink it to fit.` : `${w}px wide · fits phones.`}</span>
+      {over && fit < scale && (
+        <button className="btn sm" onClick={() => edit((d) => void (d.design.scale = fit))} data-testid="fit-phone">
+          Fit to phone
+        </button>
+      )}
+      <button className="btn sm ghost" aria-pressed={guide} onClick={() => useStudio.setState({ phoneGuide: !guide })}>
+        {guide ? "Hide phone guide" : "Show phone guide"}
+      </button>
+    </div>
+  );
 }
 
 export function Stage({ html, className }: { html: string; className?: string }) {
@@ -60,6 +126,9 @@ export function Stage({ html, className }: { html: string; className?: string })
   const [guide, setGuide] = useState<{ x: number; y: number; h: number } | null>(null);
   const [inline, setInline] = useState<{ id: string; value: string; multiline: boolean; linkable?: boolean } | null>(null);
   const [hover, setHover] = useState<string | null>(null);
+  const [fileOver, setFileOver] = useState(false);
+  const [sig, setSig] = useState<{ x: number; w: number } | null>(null);
+  const phoneGuide = useStudio((s) => s.phoneGuide);
 
   const shadow = () => hostRef.current?.shadowRoot ?? null;
 
@@ -81,6 +150,14 @@ export function Stage({ html, className }: { html: string; className?: string })
       cols[el.dataset.col!] = { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
     });
     setColRects(cols);
+    const host = hostRef.current;
+    const table = sr.querySelector("table");
+    if (host && table) {
+      const z = useStudio.getState().zoom || 1;
+      const w = Math.round(table.getBoundingClientRect().width / z);
+      setSig({ x: host.getBoundingClientRect().left - base.left, w });
+      if (useStudio.getState().sigWidth !== w) useStudio.setState({ sigWidth: w });
+    }
   }, []);
 
   useLayoutEffect(() => {
@@ -107,6 +184,21 @@ export function Stage({ html, className }: { html: string; className?: string })
       host.removeEventListener("click", noNav);
     };
   }, [measure]);
+
+  // Enter on a selected block: edit its text in place, or do its main action.
+  useEffect(() => {
+    const onEdit = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      const st = useStudio.getState();
+      const b = st.doc ? findBlock(tree(st.doc), id)?.block : null;
+      if (!b || !st.doc) return;
+      const target = inlineTarget(b, st.doc);
+      if (target) setInline({ id, value: target.value, multiline: target.multiline, linkable: target.linkable });
+      else primaryAction(b);
+    };
+    window.addEventListener("signet:edit-block", onEdit);
+    return () => window.removeEventListener("signet:edit-block", onEdit);
+  }, []);
 
   // Drop targets: the deepest column under the pointer, then the slot between its blocks.
   useEffect(
@@ -192,7 +284,25 @@ export function Stage({ html, className }: { html: string; className?: string })
   const row = sel && root ? (sel.block.type === "row" ? sel.block : rowOfColumn(root, sel.parent.id)) : null;
 
   return (
-    <div ref={stageRef} className={`stage ${className ?? ""}`} data-testid="stage">
+    <div
+      ref={stageRef}
+      className={`stage ${className ?? ""}${fileOver ? " file-over" : ""}`}
+      data-testid="stage"
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setFileOver(true);
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setFileOver(false)}
+      onDrop={(e) => {
+        const file = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+        setFileOver(false);
+        if (!file) return;
+        e.preventDefault();
+        void placeImageFile(file, hit(e));
+      }}
+    >
       <div
         ref={hostRef}
         className="sig-host"
@@ -209,10 +319,10 @@ export function Stage({ html, className }: { html: string; className?: string })
             ui({ selected: id });
             return setInline({ id, value: target.value, multiline: target.multiline, linkable: target.linkable });
           }
-          // Otherwise jump straight to the first thing to edit in the inspector.
-          requestAnimationFrame(() =>
-            document.querySelector<HTMLElement>(".inspector textarea, .inspector input:not([type=checkbox]):not([type=range]), .inspector select")?.focus(),
-          );
+          if (b) {
+            ui({ selected: id });
+            primaryAction(b);
+          }
         }}
         onPointerMove={(e) => !dragging && setHover(hit(e))}
         onPointerLeave={() => setHover(null)}
@@ -226,6 +336,11 @@ export function Stage({ html, className }: { html: string; className?: string })
         }}
       />
       <div className="stage-overlay" aria-hidden={!sel}>
+        {phoneGuide && sig && (
+          <div className="ov-phone" style={{ left: sig.x + PHONE_WIDTH * zoom }} data-testid="phone-guide">
+            <span>Phone width · {PHONE_WIDTH}px</span>
+          </div>
+        )}
         {guide && <div className="ov-guide" style={{ left: guide.x, top: guide.y, height: guide.h }} />}
         {!dragging &&
           row &&
@@ -303,7 +418,7 @@ export function Stage({ html, className }: { html: string; className?: string })
         {multi.length > 0 && !dragging && rects[multi[0]] && (
           <div
             className="ov-toolbar"
-            style={{ left: rects[multi[0]].x, top: rects[multi[0]].y < 32 ? rects[multi[0]].y + rects[multi[0]].h + 6 : rects[multi[0]].y - 32 }}
+            style={{ left: rects[multi[0]].x, top: toolbarTop(rects[multi[0]], rects, multi[0]) }}
             role="toolbar"
             aria-label="Selection actions"
           >
@@ -355,6 +470,17 @@ export function Stage({ html, className }: { html: string; className?: string })
                       document.body.classList.add("is-resizing");
                       document.body.style.cursor = HANDLE_CURSOR[dir];
                       const move = (ev: PointerEvent) => {
+                        // Image edges change the shape (Shift keeps the proportions).
+                        if (spec.stretch && dir.length === 1 && !ev.shiftKey) {
+                          const r = spec.stretch(dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);
+                          edit((d) => {
+                            const h = tree(d) ? findBlock(tree(d), id) : null;
+                            if (h) r.patch(d, h.block);
+                          }, `resize.${id}`);
+                          const st = stageRef.current!.getBoundingClientRect();
+                          setTip({ x: ev.clientX - st.left + 14, y: ev.clientY - st.top + 14, label: `${r.label} · Shift keeps proportions` });
+                          return;
+                        }
                         const raw = resizeValue(spec, dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);
                         // Hold Alt to resize freely without snapping.
                         const snap = ev.altKey ? { value: raw } : snapResize(useStudio.getState().doc!, id, raw, resizeKind(sel.block));
@@ -385,12 +511,7 @@ export function Stage({ html, className }: { html: string; className?: string })
                   />
                 );
               })}
-            <div
-              className="ov-toolbar"
-              style={{ left: selRect.x, top: selRect.y < 40 ? selRect.y + selRect.h + 12 : selRect.y - 40 }}
-              role="toolbar"
-              aria-label="Block actions"
-            >
+            <div className="ov-toolbar" style={{ left: selRect.x, top: toolbarTop(selRect, rects, selected!) }} role="toolbar" aria-label="Block actions">
               <button
                 className="ov-handle"
                 title="Drag to move"
@@ -403,6 +524,7 @@ export function Stage({ html, className }: { html: string; className?: string })
                 <GripVertical size={14} />
               </button>
               <span className="ov-name">{blockLabel(sel.block)}</span>
+              {spec && <SizeChip spec={spec} id={sel.block.id} />}
               {canParent && (
                 <button onClick={selectParent} title="Select the columns around it" aria-label="Select parent">
                   <ArrowUpLeft size={14} />
@@ -431,6 +553,64 @@ export function Stage({ html, className }: { html: string; className?: string })
 const box = (r: Rect) => ({ left: r.x, top: r.y, width: r.w, height: r.h });
 
 /** Ghost + drop indicator while dragging (portal, viewport coordinates). */
+/** The selected block's size, under it: click to type an exact size or pick a preset. */
+function SizeChip({ spec, id }: { spec: ResizeSpec; id: string }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const apply = (v: number) => {
+    const val = Math.min(spec.max, Math.max(spec.min, v));
+    edit((d) => {
+      const h = tree(d) ? findBlock(tree(d), id) : null;
+      if (h) spec.patch(val)(d, h.block);
+    });
+  };
+  const shown = spec.dims ?? spec.label(spec.start);
+  return (
+    <span className="ov-size" onPointerDown={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className="ov-size-btn"
+        onClick={() => {
+          setDraft(String(Math.round(spec.start * 100) / 100));
+          setOpen(!open);
+        }}
+        aria-expanded={open}
+        title="Exact size · [ and ] resize, Shift for bigger steps"
+        data-testid="size-chip"
+      >
+        {shown}
+      </button>
+      {open && (
+        <div className="ov-size-pop" role="dialog" aria-label="Size">
+          <input
+            className="input sm"
+            autoFocus
+            inputMode="decimal"
+            aria-label="Exact size"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                const n = parseFloat(draft);
+                if (!Number.isNaN(n)) apply(n);
+                setOpen(false);
+              }
+              if (e.key === "Escape") setOpen(false);
+            }}
+            data-testid="size-input"
+          />
+          {spec.presets?.map((p) => (
+            <button key={p.label} type="button" className="btn sm" onClick={() => (apply(p.value), setOpen(false))} title={spec.label(p.value)}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 export function DragLayer() {
   const { source, label, x, y, resolution } = useDrag();
   if (!source) return null;
@@ -479,6 +659,7 @@ function InlineEditor({
   const done = useRef(false);
   const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
   const linker = useLinker(ref, v, setV);
+  const rich = useRichEditing(ref, v, setV);
   const finish = (out: string | null) => {
     if (done.current) return;
     done.current = true;
@@ -493,13 +674,18 @@ function InlineEditor({
     "data-testid": "inline-editor",
     style: { left: rect.x - 4, top: rect.y - 4, width: Math.max(180, rect.w + 8), minHeight: rect.h + 8 },
     onFocus: (e: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) => e.currentTarget.select(),
-    onChange: (e: { target: { value: string } }) => setV(e.target.value),
+    spellCheck: true,
+    onChange: (e: { target: { value: string; selectionStart: number | null } }) =>
+      rich.change(e.target.value, e.target.selectionStart ?? e.target.value.length),
     onBlur: () => {
       if (!linker.open) finish(v);
     },
     onPointerDown: (e: { stopPropagation: () => void }) => e.stopPropagation(),
     onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
-      if (linkable) linker.onKey(e);
+      if (linkable) {
+        linker.onKey(e);
+        rich.onKey(e);
+      }
       if (e.defaultPrevented) return;
       if (e.key === "Escape") {
         e.preventDefault();
@@ -511,9 +697,21 @@ function InlineEditor({
     },
   };
   const field = multiline ? <textarea {...props} rows={Math.max(2, v.split("\n").length)} /> : <input {...props} />;
-  if (!linker.popover) return field;
+  const bar = linkable ? (
+    <div className="ov-rich" style={{ left: rect.x - 4, top: rect.y - 44 }}>
+      {rich.toolbar(linker.start)}
+    </div>
+  ) : null;
+  if (!linker.popover)
+    return (
+      <>
+        {bar}
+        {field}
+      </>
+    );
   return (
     <>
+      {bar}
       {field}
       <div className="ov-link-pop" style={{ left: rect.x - 4, top: rect.y + rect.h + 10 }}>
         {linker.popover}

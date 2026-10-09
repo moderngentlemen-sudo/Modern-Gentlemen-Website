@@ -279,3 +279,34 @@ describe("copying inside an edit", () => {
     expect(out.blocks[1].id).not.toBe(out.blocks[0].id);
   });
 });
+
+describe("keyboard navigation order", () => {
+  it("steps through blocks in reading order, skipping rows", async () => {
+    const { adjacentBlockId } = await import("./blocks");
+    const a = block("text", { text: "A" });
+    const b = block("text", { text: "B" });
+    const c = block("text", { text: "C" });
+    const row = rowOf([col([b]), col([c])]);
+    const root = col([a, row]);
+    expect(adjacentBlockId(root, a.id, 1)).toBe(b.id);
+    expect(adjacentBlockId(root, b.id, 1)).toBe(c.id);
+    expect(adjacentBlockId(root, c.id, 1)).toBeNull();
+    expect(adjacentBlockId(root, b.id, -1)).toBe(a.id);
+    expect(adjacentBlockId(root, row.id, 1)).toBe(b.id);
+  });
+});
+
+describe("breadcrumb path", () => {
+  it("lists the rows and columns above a block", async () => {
+    const { pathTo, col, rowOf, block } = await import("./blocks");
+    const t = block("text", { text: "hi" });
+    const inner = col([t]);
+    const r = rowOf([col(), inner]);
+    const root = col([block("name"), r]);
+    const p = pathTo(root, t.id);
+    expect(p.map((x) => x.kind)).toEqual(["row", "column"]);
+    expect(p[1].kind === "column" && p[1].index).toBe(2);
+    expect(pathTo(root, root.blocks[0].id)).toEqual([]);
+    expect(pathTo(root, inner.id).map((x) => x.kind)).toEqual(["row"]);
+  });
+});

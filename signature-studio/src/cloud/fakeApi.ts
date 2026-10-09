@@ -6,7 +6,8 @@
  */
 import type { SignatureDoc } from "../core/types";
 import type { CardData } from "../core/digitalCard";
-import { CloudError, type CloudApi, type CloudUser, type RemoteDoc, type WriteResult } from "./api";
+import type { SuggestRequest } from "../core/aiSuggest";
+import { CloudError, type CloudApi, type CloudUser, type LiveBannerRow, type RemoteDoc, type WriteResult } from "./api";
 
 interface Row {
   doc: SignatureDoc;
@@ -20,9 +21,11 @@ interface FakeState {
   prefs: Record<string, Record<string, unknown>>;
   files: Record<string, { mime: string; data: string }>;
   cards: Record<string, { owner: string; signatureId: string; data: CardData }>;
+  banners?: Record<string, LiveBannerRow & { owner: string }>;
+  clicks?: { slug: string; item: number; at: number }[];
 }
 
-const empty = (): FakeState => ({ session: null, docs: {}, prefs: {}, files: {}, cards: {} });
+const empty = (): FakeState => ({ session: null, docs: {}, prefs: {}, files: {}, cards: {}, banners: {}, clicks: [] });
 
 const toDataUrl = (blob: Blob) =>
   new Promise<string>((resolve, reject) => {
@@ -175,5 +178,53 @@ export class FakeApi implements CloudApi {
 
   async getCard(slug: string) {
     return this.state.cards[slug]?.data ?? null;
+  }
+
+  /** Test builds serve this path themselves (see tests/e2e). */
+  liveBase() {
+    return `${location.origin}/__live`;
+  }
+
+  async saveLiveBanner(r: LiveBannerRow) {
+    const me = this.me();
+    const banners = (this.state.banners ??= {});
+    const had = banners[r.slug];
+    if (had && had.owner !== me) throw new CloudError("That banner belongs to someone else");
+    banners[r.slug] = { ...structuredClone(r), owner: me };
+    this.save();
+  }
+
+  async bannerClicks(slug: string, sinceDays: number) {
+    const me = this.me();
+    if (this.state.banners?.[slug]?.owner !== me) return {};
+    const since = Date.now() - sinceDays * 86_400_000;
+    const out: Record<number, number> = {};
+    for (const c of this.state.clicks ?? []) if (c.slug === slug && c.at >= since) out[c.item] = (out[c.item] ?? 0) + 1;
+    return out;
+  }
+
+  /** Test helper: what the public endpoint would record. */
+  recordClick(slug: string, item: number) {
+    (this.state.clicks ??= []).push({ slug, item, at: Date.now() });
+    this.save();
+  }
+
+  /** Deterministic stand-in: three other templates, the first with a new accent and serif headings. */
+  async suggestDesigns(request: SuggestRequest) {
+    this.me();
+    const others = request.templates.filter((t) => t.id !== request.current.template).slice(0, 3);
+    return {
+      ok: true as const,
+      data: {
+        suggestions: others.map((t, i) => ({
+          templateId: t.id,
+          title: `Direction ${i + 1}`,
+          why: `A ${t.category.toLowerCase()} look for a ${request.role || "professional"}.`,
+          accent: i === 0 ? "#0f766e" : request.current.accent,
+          headingFont: i === 0 ? "playfair" : request.current.headingFont,
+          bodyFont: request.current.bodyFont,
+        })),
+      },
+    };
   }
 }

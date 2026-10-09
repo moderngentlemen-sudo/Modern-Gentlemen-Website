@@ -22,6 +22,7 @@ const fontOptions = FONTS.map((f) => ({ value: f.id, label: `${f.label}${f.safe 
 export function BrandDialog() {
   const open = useStudio((s) => s.dialog === "brand");
   const saved = useStudio((s) => s.prefs.brand);
+  const docStyles = useStudio((s) => s.doc?.design.textStyles);
   const [kit, setKit] = useState<BrandKit>(blank);
   useEffect(() => {
     if (open) setKit(saved ? structuredClone(saved) : blank());
@@ -93,6 +94,15 @@ export function BrandDialog() {
           <SectionTitle>Fonts</SectionTitle>
           <Select label="Headings" value={kit.headingFont} options={fontOptions} onChange={(v) => set({ headingFont: v })} />
           <Select label="Body" value={kit.bodyFont} options={fontOptions} onChange={(v) => set({ bodyFont: v })} />
+          <SectionTitle>Text styles</SectionTitle>
+          <p className="hint">
+            {kit.textStyles?.length ? kit.textStyles.map((t) => t.name).join(", ") : "None yet. Save text styles in a signature, then add them here."}
+          </p>
+          {!!docStyles?.length && (
+            <button className="btn sm" onClick={() => set({ textStyles: structuredClone(docStyles) })} data-testid="brand-styles">
+              Use this signature's {docStyles.length} text style{docStyles.length > 1 ? "s" : ""}
+            </button>
+          )}
         </div>
         <div>
           <SectionTitle>Colours</SectionTitle>

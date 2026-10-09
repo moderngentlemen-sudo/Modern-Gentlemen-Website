@@ -34,6 +34,10 @@ interface State {
   device: "desktop" | "mobile";
   darkPreview: boolean;
   fallbackFonts: boolean;
+  /** Builder: show the phone-width guide on the canvas. */
+  phoneGuide: boolean;
+  /** Builder: the signature's rendered width in px (measured on the canvas). */
+  sigWidth: number;
   saving: "saved" | "saving" | "error";
   prefs: Prefs;
   toasts: Toast[];
@@ -65,6 +69,8 @@ export const useStudio = create<State>(() => ({
   device: "desktop",
   darkPreview: false,
   fallbackFonts: false,
+  phoneGuide: false,
+  sigWidth: 0,
   saving: "saved",
   prefs: DEFAULT_PREFS,
   toasts: [],

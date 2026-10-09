@@ -6,6 +6,7 @@ import { edit, toast, undo, useStudio } from "../store/editor";
 import { blocksFromDoc } from "../core/blocks";
 import { Segmented, Toggle } from "../ui/kit";
 import { Thumb } from "../ui/SigHtml";
+import { AiSuggest } from "./AiSuggest";
 
 function withTemplate(doc: SignatureDoc, id: string, keepColors: boolean): SignatureDoc {
   const copy = structuredClone(doc);
@@ -31,6 +32,7 @@ export function TemplatesPanel() {
           ? "Pick a starting layout. It replaces your current blocks (you can undo); your details and images come with you."
           : "Switch any time — your details, images and add-ons always come with you."}
       </p>
+      <AiSuggest />
       <Segmented
         label="Template group"
         value={group}

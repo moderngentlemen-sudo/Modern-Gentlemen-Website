@@ -6,13 +6,16 @@ import { estimateScriptWidth, SCRIPT_FONT } from "../render/render";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "../render/icons";
 import { GLYPH_PATHS } from "../core/iconPaths";
 import { sourceUrl } from "../store/assets";
+import { gifStillReason } from "../core/gif";
+import type { AssetMeta } from "../core/types";
+import { applyMatrix, frameLayout, framePath, lookMatrix } from "../core/imageLook";
 
 export const DENSITY = 2;
 
 export interface Derivative {
   blob: Blob;
-  mime: "image/png" | "image/jpeg";
-  ext: "png" | "jpg";
+  mime: "image/png" | "image/jpeg" | "image/gif";
+  ext: "png" | "jpg" | "gif";
 }
 
 function load(src: string): Promise<HTMLImageElement> {
@@ -59,10 +62,75 @@ async function svg(markup: string, w: number, h: number, crisp = false): Promise
   return encode(c, false);
 }
 
-export async function derive(req: ImageRequest, mimeOf: (assetId: string) => string | undefined): Promise<Derivative> {
+type CropReq = Extract<ImageRequest, { kind: "crop" }>;
+
+/** A framed image, drawn exactly as the editor's SVG preview (render.ts `styledImage`). */
+export function styled(img: CanvasImageSource, req: CropReq & { look: NonNullable<CropReq["look"]> }): HTMLCanvasElement {
+  const { look, frame, accent, fw, fh } = req.look;
+  const L = frameLayout(look, frame, fw, fh);
+  const D = DENSITY;
+  const { c, ctx } = canvas(L.W * D, L.H * D);
+  ctx.scale(D, D);
+  const f = L.frame;
+  const i = L.inner;
+  const outer = new Path2D(framePath(frame, f.x, f.y, f.w, f.h, f.r));
+  const inner = new Path2D(framePath(frame, i.x, i.y, i.w, i.h, i.r));
+  if (look.shadow) {
+    ctx.save();
+    // Shadow sizes are in device pixels: canvas transforms don't apply to them.
+    ctx.shadowColor = "rgba(0,0,0,0.28)";
+    ctx.shadowBlur = L.m * 0.9 * D;
+    ctx.shadowOffsetY = (L.m / 3) * D;
+    ctx.fillStyle = look.backing ?? "#ffffff";
+    ctx.fill(outer);
+    ctx.restore();
+  }
+  if (look.backing) {
+    ctx.fillStyle = look.backing;
+    ctx.fill(outer);
+  }
+  // The picture, colour-adjusted on its own canvas first.
+  const pic = canvas(i.w * D, i.h * D);
+  pic.ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, 0, 0, pic.c.width, pic.c.height);
+  const m = lookMatrix(look, accent);
+  if (m) {
+    const data = pic.ctx.getImageData(0, 0, pic.c.width, pic.c.height);
+    applyMatrix(data.data, m);
+    pic.ctx.putImageData(data, 0, 0);
+  }
+  ctx.save();
+  ctx.clip(inner);
+  ctx.drawImage(pic.c, i.x, i.y, i.w, i.h);
+  ctx.restore();
+  if (look.border) {
+    ctx.save();
+    ctx.clip(outer);
+    ctx.lineWidth = look.border * 2;
+    ctx.strokeStyle = look.borderColor ?? accent;
+    ctx.stroke(outer);
+    ctx.restore();
+  }
+  return c;
+}
+
+export async function derive(
+  req: ImageRequest,
+  mimeOf: (assetId: string) => string | undefined,
+  metaOf: (assetId: string) => AssetMeta | undefined = () => undefined,
+): Promise<Derivative> {
   switch (req.kind) {
     case "crop": {
+      // Animated GIFs go out untouched when nothing needs baking in, so they keep moving.
+      if (mimeOf(req.assetId) === "image/gif" && !req.look && gifStillReason(metaOf(req.assetId), req) === null) {
+        const blob = await (await fetch(asset(req.assetId))).blob();
+        return { blob, mime: "image/gif", ext: "gif" };
+      }
       const img = await load(asset(req.assetId));
+      if (req.look) {
+        // Square, shadowless photos stay JPEG (smaller); anything with transparent corners is PNG.
+        const opaque = req.look.frame === "square" && !req.look.look.shadow && mimeOf(req.assetId) === "image/jpeg";
+        return encode(styled(img, req as CropReq & { look: NonNullable<CropReq["look"]> }), opaque);
+      }
       const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
       ctx.beginPath();
       if (req.shape === "circle") ctx.ellipse(c.width / 2, c.height / 2, c.width / 2, c.height / 2, 0, 0, Math.PI * 2);
@@ -112,6 +180,19 @@ export async function derive(req: ImageRequest, mimeOf: (assetId: string) => str
     }
     case "qr":
       return svg(qrSvg(req.value, req.size * DENSITY, req.color), req.size, req.size, true);
+    case "text": {
+      // Brand fonts are registered in this page (store/fonts.ts); wait for the face before drawing.
+      const font = (sz: number) => `${req.italic ? "italic " : ""}${req.weight} ${sz}px ${req.family}`;
+      await document.fonts.load(font(req.size * DENSITY), req.text);
+      const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
+      ctx.font = font(req.size * DENSITY);
+      ctx.fillStyle = req.color;
+      ctx.textBaseline = "middle";
+      if (req.tracking) ctx.letterSpacing = `${req.tracking * req.size * DENSITY}px`;
+      const line = req.size * req.lh * DENSITY;
+      req.text.split("\n").forEach((t, i) => ctx.fillText(t, 2 * DENSITY, line * i + line / 2));
+      return encode(c, false);
+    }
     case "script": {
       await document.fonts.load(`${req.size * DENSITY}px "${SCRIPT_FONT}"`);
       const w = estimateScriptWidth(req.text, req.size);

@@ -1,6 +1,6 @@
 /** Local persistence (IndexedDB): signatures, uploaded images, preferences. */
 import { createStore, del, entries, get, set, type UseStore } from "idb-keyval";
-import type { BrandKit, SignatureDoc } from "../core/types";
+import type { AssetMeta, BrandKit, SignatureDoc } from "../core/types";
 import type { Profile } from "../core/profile";
 import type { SavedTemplate } from "../core/myTemplates";
 import type { Version } from "../core/versions";
@@ -33,6 +33,12 @@ export const versionStore = {
 export const assetStore = {
   put: (id: string, blob: Blob) => set(id, blob, db().assets),
   get: (id: string) => get<Blob>(id, db().assets).then((b) => b ?? null),
+};
+
+/** Images uploaded on this device, for reuse in any signature (blobs stay in the asset store). Never synced. */
+export const libraryStore = {
+  get: () => get<AssetMeta[]>("library", db().prefs).then((v) => v ?? []),
+  put: (list: AssetMeta[]) => set("library", list, db().prefs),
 };
 
 export interface Prefs {

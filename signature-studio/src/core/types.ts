@@ -7,6 +7,8 @@
  * switches because templates never own content.
  */
 
+import type { ImageLook } from "./imageLook";
+
 export const DOC_SCHEMA = "signature-studio.v3" as const;
 
 export type DetailKey = "name" | "title" | "company" | "department" | "pronouns" | "phone" | "mobile" | "email" | "website" | "address";
@@ -34,6 +36,8 @@ export interface ImageSlot {
   link?: string;
   /** Frame aspect (width / height); defaults to square for photos, the image's own for others. */
   aspect?: number;
+  /** Frame, border, shadow and colour adjustments (core/imageLook.ts). */
+  look?: ImageLook;
 }
 
 export interface Images {
@@ -106,6 +110,49 @@ export interface Design {
   scale?: number;
   /** Text direction. "rtl" mirrors the layout for Arabic, Hebrew, Persian and Urdu. */
   direction?: "ltr" | "rtl";
+  /** Named, linked typography: blocks that use a style follow it when it changes. */
+  textStyles?: TextStyleDef[];
+}
+
+export interface LiveBannerItem {
+  id: string;
+  assetId?: string;
+  link?: string;
+  alt?: string;
+  /** Inclusive dates, YYYY-MM-DD (UTC). */
+  from?: string;
+  to?: string;
+}
+
+export interface LiveBannerSettings {
+  /** Public id, assigned the first time it is published. */
+  slug?: string;
+  mode: "schedule" | "rotate";
+  items: LiveBannerItem[];
+  /** Count clicks (no personal data). Off unless turned on. */
+  track?: boolean;
+}
+
+/** A text style: the typography fields of BlockStyle, under a name. */
+export interface TextStyleDef {
+  id: string;
+  name: string;
+  font?: string;
+  fontSize?: number;
+  weight?: number;
+  italic?: boolean;
+  case?: TextCase;
+  lineHeight?: number;
+  tracking?: number;
+  colorRole?: ColorRole;
+  color?: string;
+}
+
+/** A font file uploaded by the user (the file itself lives in the asset store under `key`). */
+export interface CustomFont {
+  family: string;
+  key: string;
+  bytes: number;
 }
 
 export interface AddOns {
@@ -179,6 +226,17 @@ export interface AssetMeta {
   height: number;
   bytes: number;
   hash: string;
+  /** Made from another asset by rotating, flipping or straightening it; editing starts again from that one. */
+  origin?: AssetOrigin;
+}
+
+export interface AssetOrigin {
+  id: string;
+  rotate: 0 | 90 | 180 | 270;
+  flipH?: boolean;
+  flipV?: boolean;
+  /** Small rotation in degrees (−15…15), cropped to hide the corners. */
+  straighten?: number;
 }
 
 export interface Published {
@@ -219,6 +277,8 @@ export interface SignatureDoc {
   madeWith?: boolean;
   /** Share details, social links and photo with your saved profile (default on). */
   useProfile?: boolean;
+  /** Brand fonts uploaded for this signature. */
+  customFonts?: CustomFont[];
 }
 
 export type Variant = "full" | "reply";
@@ -243,8 +303,28 @@ export interface Box {
 }
 
 /** Per-block overrides of the signature's design. */
+export type TextCase = "none" | "upper" | "lower" | "title" | "smallcaps";
+
+/** Which of the signature's colours text follows (a custom `color` wins). */
+export type ColorRole = "text" | "muted" | "accent";
+
 export interface BlockStyle {
+  /** A text style (Design.textStyles) this block follows; its own fields still win. */
+  textStyle?: string;
+  /** With a custom (uploaded) font: send this text as an image so every inbox shows the font. Default on. */
+  asImage?: boolean;
   color?: string;
+  colorRole?: ColorRole;
+  /** 300–800. */
+  weight?: number;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  case?: TextCase;
+  /** Line height as a multiple of the font size. */
+  lineHeight?: number;
+  /** Letter spacing in em. */
+  tracking?: number;
   accent?: string;
   font?: string;
   fontSize?: number;
@@ -293,6 +373,9 @@ export type Block = BlockBase &
         radius?: number;
         aspect?: number;
         crop?: { x: number; y: number; zoom: number };
+        look?: ImageLook;
+        /** A live banner: more pictures shown on a schedule or in turn; this block's own picture is the fallback. */
+        live?: LiveBannerSettings;
       }
     | { type: "logos"; items: { id: string; assetId?: string; link?: string; alt?: string }[]; height: number; gap: number }
     | { type: "qr"; source: "website" | "digitalCard" | "custom"; url: string; size: number; caption: string }
@@ -325,4 +408,5 @@ export interface BrandKit {
   /** Company name and website, prefilled into new signatures. */
   company?: string;
   website?: string;
+  textStyles?: TextStyleDef[];
 }

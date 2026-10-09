@@ -24,6 +24,7 @@ test("link selected words, link a whole block, and add hover text", async ({ pag
   await expect(box).toHaveValue("Read our latest [case study](example.com/work)");
   expect(await shadowHtml(page)).toMatch(/<a [^>]*href="https:\/\/example\.com\/work"[^>]*>case study<\/a>/);
 
+  await page.getByTestId("section-more").click();
   await page.getByTestId("inspector-hover").fill("See the full story");
   expect(await shadowHtml(page)).toContain('title="See the full story"');
 

@@ -98,6 +98,50 @@ reset role;
 do $$ begin
   assert (select doc ->> 'name' from public.signatures where id = 'sig_1') = 'v2', 'B could not change A''s signature';
 end $$;
+-- ---- Live banners: owners only; clicks are written by the edge function alone ----
+set role authenticated;
+do $$ begin perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false); end $$;
+insert into public.live_banners (slug, signature_id, block_id, items, fallback, track)
+  values ('adabanner01', 'sig_1', 'blk', '[]', '{"image":"https://x/a.png"}', true);
+do $$ begin
+  begin
+    insert into public.banner_clicks (slug, item) values ('adabanner01', 0);
+    raise exception 'a user could write click counts';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+insert into public.banner_clicks (slug, item) values ('adabanner01', 0), ('adabanner01', -1);
+set role authenticated;
+do $$ begin perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false); end $$;
+do $$ begin
+  assert (select count(*) from public.banner_clicks) = 2, 'A reads own clicks';
+end $$;
+do $$ begin perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false); end $$;
+do $$ begin
+  assert (select count(*) from public.live_banners) = 0, 'B cannot see A''s banners';
+  assert (select count(*) from public.banner_clicks) = 0, 'B cannot see A''s clicks';
+  begin
+    insert into public.live_banners (slug, owner, signature_id, block_id, fallback) values ('bbanner0001', '00000000-0000-0000-0000-00000000000a', 's', 'b', '{}');
+    raise exception 'B could create a banner owned by A';
+  exception when insufficient_privilege or check_violation then null;
+  end;
+end $$;
+update public.live_banners set track = false where slug = 'adabanner01';
+reset role;
+do $$ begin
+  assert (select track from public.live_banners where slug = 'adabanner01'), 'B could change A''s banner';
+end $$;
+set role anon;
+do $$ begin
+  begin
+    perform slug from public.live_banners;
+    raise exception 'anon could read banners';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
 -- Deleting an account removes everything of theirs and nothing of anyone else's.
 insert into public.signatures (owner, id, doc) values ('00000000-0000-0000-0000-00000000000b', 'sig_b', '{}');
 set role anon;
@@ -117,6 +161,8 @@ do $$ begin
   assert (select count(*) from auth.users) = 1, 'A deleted';
   assert (select count(*) from public.signatures) = 1, 'only A''s signatures removed';
   assert (select count(*) from public.cards) = 0, 'A''s card removed';
+  assert (select count(*) from public.live_banners) = 0, 'A''s banners removed';
+  assert (select count(*) from public.banner_clicks) = 0, 'A''s banner clicks removed';
   assert (select count(*) from public.profiles) = 1, 'only A''s profile removed';
 end $$;
 \echo 'RLS tests passed'

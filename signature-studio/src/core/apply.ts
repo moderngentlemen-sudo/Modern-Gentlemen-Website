@@ -32,6 +32,10 @@ export function applyBrand(doc: SignatureDoc, brand: BrandKit, opts: { fillEmpty
     headingFont: brand.headingFont,
     bodyFont: brand.bodyFont,
   });
+  if (brand.textStyles?.length) {
+    const have = new Set((doc.design.textStyles ?? []).map((t) => t.id));
+    doc.design.textStyles = [...(doc.design.textStyles ?? []), ...brand.textStyles.filter((t) => !have.has(t.id)).map((t) => ({ ...t }))];
+  }
   if (brand.logo && (!opts.fillEmpty || !doc.images.logo.assetId)) {
     doc.assets[brand.logo.id] = brand.logo;
     doc.images.logo.assetId = brand.logo.id;

@@ -92,6 +92,7 @@ test("whole-signature size and canvas zoom", async ({ page }) => {
   await builderFrom(page);
   const size = (h: string) => Number(/font-size:(\d+)px;[^"]*">Jordan Ellis/.exec(h)![1]);
   const before = size(await html(page));
+  await page.getByTestId("tab-style").click();
   await page.getByTestId("tab-design").click();
   await page.locator(".panel").getByTestId("scale").fill("1.3");
   await expect.poll(async () => size(await html(page))).toBeGreaterThan(before);

@@ -7,7 +7,8 @@
  */
 import { uid } from "../lib/id";
 import { sha256Hex } from "../lib/hash";
-import type { AssetMeta } from "../core/types";
+import type { AssetMeta, AssetOrigin } from "../core/types";
+import { straightenScale } from "../core/imageLook";
 import { assetStore } from "../storage/db";
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
@@ -87,12 +88,14 @@ export async function ingestFile(file: File | Blob, name = "image"): Promise<Ass
     let blob: Blob = file;
     let mime = type;
     const longEdge = Math.max(w, h);
-    if (type === "image/svg+xml" || longEdge > MAX_EDGE || type === "image/gif" || type === "image/webp") {
-      // SVGs and oversized/animated images become a safe, bounded PNG/JPEG.
+    if (type === "image/svg+xml" || longEdge > MAX_EDGE || type === "image/webp") {
+      // SVGs and oversized images become a safe, bounded PNG/JPEG. GIFs within
+      // bounds stay GIFs, so animated banners keep moving (see core/gif.ts).
       const scale = Math.min(1, (type === "image/svg+xml" ? 1600 : MAX_EDGE) / longEdge);
       w = Math.max(1, Math.round(w * scale));
       h = Math.max(1, Math.round(h * scale));
       mime = type === "image/jpeg" ? "image/jpeg" : "image/png";
+      // An oversized GIF can't be resized without losing its frames: it becomes a still.
       blob = await rasterize(img, w, h, mime);
     }
     const hash = await sha256Hex(blob);
@@ -258,3 +261,79 @@ export async function darkModeRisk(assetId: string): Promise<boolean> {
   darkRisk.set(assetId, risk);
   return risk;
 }
+
+function toBlob(c: HTMLCanvasElement, type: string): Promise<Blob> {
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new UploadError("Couldn't process this image."))), type, 0.95));
+}
+
+/**
+ * Rotate, flip and straighten an image into a new asset that remembers how it
+ * was made (`origin`), so later edits start again from the untouched original.
+ */
+export async function orientAsset(base: AssetMeta, o: Omit<AssetOrigin, "id">): Promise<AssetMeta> {
+  const src = sourceUrl(base.id);
+  if (!src) throw new UploadError("The original image is missing from this browser. Re-upload it.");
+  const img = await loadImage(src);
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  const quarter = o.rotate === 90 || o.rotate === 270;
+  const w = quarter ? H : W;
+  const h = quarter ? W : H;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d")!;
+  ctx.imageSmoothingQuality = "high";
+  ctx.translate(w / 2, h / 2);
+  const tilt = o.straighten ?? 0;
+  if (tilt) {
+    // Rotate a little and zoom just enough that no empty corner shows.
+    const k = straightenScale(w, h, tilt);
+    ctx.rotate((tilt * Math.PI) / 180);
+    ctx.scale(k, k);
+  }
+  ctx.rotate((o.rotate * Math.PI) / 180);
+  ctx.scale(o.flipH ? -1 : 1, o.flipV ? -1 : 1);
+  ctx.drawImage(img, -W / 2, -H / 2);
+  const type = base.mime === "image/jpeg" ? "image/jpeg" : "image/png";
+  const blob = await toBlob(c, type);
+  const meta = await ingestFile(new File([blob], base.name, { type }));
+  return { ...meta, name: base.name, origin: { id: base.id, ...o } };
+}
+
+/**
+ * Where the subject probably is (0…1 on each axis): the centre of mass of
+ * detail and of whatever differs from the background. Good enough to centre
+ * a headshot or a product in its frame.
+ */
+export async function subjectCenter(assetId: string): Promise<{ x: number; y: number } | null> {
+  const src = sourceUrl(assetId);
+  if (!src) return null;
+  const img = await loadImage(src);
+  const S = 64;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0, S, S);
+  const d = ctx.getImageData(0, 0, S, S).data;
+  const lum = (i: number) => (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) * (d[i + 3] / 255);
+  const bg = [0, (S - 1) * 4, S * (S - 1) * 4, (S * S - 1) * 4].map(lum).reduce((a, b) => a + b) / 4;
+  let sx = 0;
+  let sy = 0;
+  let sw = 0;
+  for (let y = 1; y < S - 1; y++)
+    for (let x = 1; x < S - 1; x++) {
+      const i = (y * S + x) * 4;
+      const edge = Math.abs(lum(i + 4) - lum(i - 4)) + Math.abs(lum(i + S * 4) - lum(i - S * 4));
+      const wgt = edge + Math.abs(lum(i) - bg) * 0.5;
+      sx += x * wgt;
+      sy += y * wgt;
+      sw += wgt;
+    }
+  if (sw < 1) return null;
+  return { x: sx / sw / (S - 1), y: sy / sw / (S - 1) };
+}
+
+/** Is this asset the result of a rotate/flip/straighten, and is its original still here? */
+export const originOf = (meta: AssetMeta | undefined, assets: Record<string, AssetMeta>) => (meta?.origin && assets[meta.origin.id] ? meta.origin : null);

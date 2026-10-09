@@ -55,6 +55,151 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: audit Batch 5 (parity)
+
+From the editor audit, items I4, T3/T4, live banners, click tracking and AI suggestions:
+- **I4 — background removal in the browser, nothing uploaded:**
+  - **Remove flat background** (logos): floods in from the edges through the background colour, feathers the edge, keeps enclosed details (`core/cutout.ts`).
+  - **Cut out person** (photos): Google's MediaPipe selfie segmenter runs on the device. The code and model (~10 MB) come once from pinned URLs (jsDelivr `@mediapipe/tasks-vision@0.10.14`, Google's model store), and the mask orients itself.
+  - Both make a new transparent PNG, so undo restores the original.
+- **T3 — text styles:**
+  - Named, linked typography (`Design.textStyles`, `BlockStyle.textStyle`, `core/textStyles.ts`).
+  - "Save as style" captures a block's look; any text block can use it.
+  - "Update style" pushes a block's changes to every block using it; a block's own settings still win.
+  - The brand kit can carry styles to new signatures.
+- **T4 — brand fonts:**
+  - Upload WOFF2/WOFF/TTF/OTF (checked by magic bytes, ≤ 3 MB). The font is stored on this device and registered with `FontFace`.
+  - It is listed under "Your fonts" in the picker and previews in the editor.
+  - Because no recipient has the font, name and text blocks in it go out as crisp 2× images with the words as alt text ("Send as an image", default on).
+- **Live banners:**
+  - An image block can carry more pictures that show on set dates (UTC; the newest running campaign wins) or rotate daily. The block's own picture is the fallback.
+  - Publishing uploads every picture at the block's size and stores the row (`live_banners`).
+  - The email then points at the public `banner` edge function, which redirects to whichever picture and link are current.
+  - Picking is pure (`core/liveBanner.ts`), shared byte-for-byte with the function and unit-tested.
+  - Without an account the main picture goes out as before.
+- **Opt-in click counts:** per banner and per item, with no personal data (`banner_clicks`). Owners see 30-day counts in the inspector.
+- **AI design suggestions** (Style → Templates → Suggest designs):
+  - Claude Opus 5.5 picks three of Signet's own templates and personalises the accent and fonts; each is previewed with your content and applied in one click (undoable).
+  - Only the job title, company, which pieces exist and the current look are sent, never contact details.
+  - It runs in the `suggest-layout` edge function: signed-in users, 20 a day, with structured output and the server-side refusal fallback. The app re-validates every id and colour.
+  - **It needs `ANTHROPIC_API_KEY` set as a function secret** (not set yet).
+- **Supabase (`wgrbgdvvhciahzhhhret` only):**
+  - Migrations 0002 (live banners and clicks) and 0003 (AI request log) were applied additively, with no drops.
+  - The `banner` (public) and `suggest-layout` (JWT) functions are deployed.
+  - RLS tests cover the new tables, including cascade on account deletion.
+  - The security advisor reports one intentional info item: `ai_requests` has RLS and no policies, so it is service-role only.
+- **Gates:** `npm test` (128), `npm run e2e` (57, incl. `batch5.spec.ts`, which runs the real on-device person cut-out), `npm run test:db`, `npm run build`.
+
+### 2026-10-09 — Signature Studio: audit Batch 4 (calmer editor, precise scaling)
+
+From the editor audit, items E1–E3, S1–S5, L1, L2 and B2:
+- **L1 — five-place builder rail:** Add, Layers, Content (Details / Images / Social), Style (Design / Templates), Publish (Add to Gmail, versions, card). Places with several panels show sub-tabs, and each place remembers the panel you left.
+- **L2 — Quick mode is a guided path:**
+  - numbered steps in the rail, ticked when done (template, details, images, social);
+  - a sticky "Step n of 6 · Back · Next" bar under each panel, ending in Add to Gmail.
+- **E1 — calmer inspector:**
+  - Content, Style, Panel and Visibility & hover are foldable sections, remembered per section.
+  - A folded section shows a one-line summary (e.g. "Playfair · 14px · Semibold · Accent").
+  - Panel and Visibility start folded.
+- **E2 — breadcrumb:** Signature › Columns › Column 2 › Name. Each step selects that level, and selecting a column now shows its settings.
+- **E3 — content in the inspector:** name, title/department/company and contact blocks edit their details in place.
+- **S1 — size chip and keyboard:**
+  - The block toolbar shows the size; click it for an exact value and S/M/L presets.
+  - `[` and `]` resize the selection (Shift for ×10).
+- **S2 — image edges unlock the aspect:** side edges change width, top and bottom change height, and the crop fills the new shape. Corners and Shift keep proportions.
+- **S3 — group sizing:** with several blocks selected, Smaller / Larger scale them together, and Match size copies the first one's size to blocks of the same kind.
+- **S4 — phone fit:**
+  - Under the canvas: "339px wide · fits phones", or a warning with **Fit to phone** (sets the signature scale).
+  - An optional 360px phone guide on the canvas.
+- **S5 — text scales from its height:** text corners follow the vertical drag, so long lines resize sensibly.
+- **B2 — phone bottom sheet:** on phones the inspector is a bottom sheet with a grip that folds it down to its header.
+- **Gates:** `npm test` (109), `npm run e2e` (51, incl. `batch4.spec.ts`), `npm run test:db`, `npm run build`.
+
+### 2026-10-09 — Signature Studio: audit Batch 3 (image studio)
+
+From the editor audit, items I1, I2, I3, I5, I7 and I8:
+- **I1 — one image inspector** for the headshot, the logo and image blocks (`builder/ImageStudio.tsx`, `builder/imageTarget.ts`). It covers replace, library, edit and remove, plus:
+  - frame shape (square, rounded with a radius, squircle, circle, arch);
+  - border with colour, and a ring gap;
+  - soft shadow;
+  - backing colour with padding.
+- **How it renders:**
+  - `core/imageLook.ts` (pure, unit-tested) holds the geometry as SVG path strings and every colour change as one 4×5 colour matrix.
+  - The editor preview draws them as inline SVG (`clipPath`, `feColorMatrix`, `feDropShadow`).
+  - Publishing draws the same numbers on a canvas (`derive.ts` `styled`), so the preview matches what recipients get.
+  - A plain photo keeps its old image request key, so nothing already published is re-made.
+- **I2 — image editor** (`dialogs/CropDialog.tsx`):
+  - larger stage that shows the real frame shape;
+  - crop presets (Original, Square, 4:5, 4:3, 16:9, Banner);
+  - rotate left and right, flip both ways, straighten (±15°, auto-zoomed to hide corners);
+  - rule-of-thirds grid;
+  - arrow-key nudge and +/− zoom;
+  - auto-frame, which centres the subject using a detail and contrast centroid (`subjectCenter`).
+  - Rotating, flipping and straightening make a new asset that remembers its original (`AssetMeta.origin`), so they can be undone or changed later without losing quality.
+- **I3 — adjustments:**
+  - brightness, contrast, saturation and warmth;
+  - presets B&W, Warm, Cool, Vivid, Fade, Sepia, **Brand duotone** (follows the accent colour) and One colour.
+- **I5 — logo tools:** trim empty edges, white version (for dark backgrounds), brand-colour version.
+- **I7 — image library and canvas drops:**
+  - Every upload on this device is kept in a library (IndexedDB, never synced), so it can be reused in any signature.
+  - An image file dropped onto the canvas, or pasted with ⌘V, fills the photo, logo or image block it lands on (or the selected one). Otherwise it becomes a new image block.
+- **I8 — image checks:**
+  - "will look blurry" (fewer source pixels than the displayed width);
+  - "may look soft on retina" (fewer than 2×);
+  - a tip when images add more than ~350 KB to every email.
+  - GIF checks now cover frames and colour changes.
+- **Gates:** `npm test` (105), `npm run e2e` (44, incl. `image-studio.spec.ts`, which publishes a framed photo and checks the PNG is 2× its size), `npm run test:db`, `npm run build`.
+
+### 2026-10-09 — Signature Studio: audit Batch 2 (text studio)
+
+From the editor audit, items T1, T2/E5, T3, T5/E4 and T6:
+- **T1 — one formatting toolbar** for every block with text (`builder/TextFormatBar.tsx`):
+  - visual font picker, weight (Light–Extra bold), size stepper;
+  - B / I / U / S, case (as typed, capitals, lower, title, small caps);
+  - colour role (Auto / Text / Muted / Accent / Custom);
+  - line height and letter spacing under "Spacing".
+  - It replaces the scattered per-block switches. `builder/typography.ts` reads older settings (text.bold, title.italic, name.upper…) and moves a block onto the new `BlockStyle` fields the first time it is changed. The renderer applies them with `withTypography`, as inline CSS that Gmail keeps.
+- **T2/E5 — word formatting:** select words, then Bold / Italic / Underline / Strike / Highlight / Colour / Link. This works in the inspector and on the canvas (a floating bar while editing in place), and ⌘B/⌘I/⌘U work too.
+  - Stored as light markup in the same string (`core/richtext.ts`), rendered to `<strong>/<em>/<u>/<s>/<span style>`.
+  - An unusable link target stays visible as typed, as before.
+- **T3 — font picker:** each font is previewed in its own face, grouped (Shows everywhere, Serif, Sans, Display, Mono), with recently used fonts first and a note on what most inboxes show instead.
+- **T5/E4 — colours:**
+  - Colour roles follow the design, so a theme change recolours text with an assigned role.
+  - Every colour field is now a popover: this signature's colours, brand kit, recent colours, hex input, the system picker and an eyedropper where the browser has one.
+- **T6 — smart typography as you type:**
+  - curly quotes and apostrophes, `--` → —, `...` → …;
+  - Backspace straight after puts back what you typed;
+  - never inside link targets, and never across a phone number's hyphens;
+  - spellcheck is on in text boxes.
+- **Gates:** `npm test` (94), `npm run e2e` (40, incl. `text-studio.spec.ts`), `npm run test:db`, `npm run build`.
+
+### 2026-10-09 — Signature Studio: audit Batch 1 (fix what's broken)
+
+From the editor audit (https://claude.ai/artifact/2Ah4jUeZcrgc9rmtLGE2oM), items B1, B3–B7 and I6:
+- **B1 — phone top bar:**
+  - Add to Gmail stays on screen.
+  - Quick/Builder, Redo and Settings move into ⋯ below 600px (`.wide-only` / `.narrow-only`).
+  - The name truncates with an ellipsis.
+- **B3 — toolbar placement:** the block toolbar goes above or below the selection, whichever covers fewer other blocks (`builder/toolbar.ts`, unit-tested).
+- **B4 — double-click** on a block with no inline text does its main action (`Stage.primaryAction`):
+  - photo or logo: crop, or the Images tab when empty;
+  - image: crop, or upload;
+  - contacts: Details, with the phone field focused;
+  - socials: the Social tab.
+
+  It no longer lands in a colour picker.
+- **B5 — inspector layout:** "Show in" uses short labels (New emails → "New") and fits. The Hover text hint became a placeholder.
+- **B6 — preview toolbar:** device, dark mode and inbox fonts moved into a "View" menu, so the toolbar is one row. The button shows which options are on.
+- **B7 — keyboard:**
+  - ↑/↓ select the previous or next block (`adjacentBlockId`).
+  - Enter steps into a row, or edits the block in place (falling back to its main action).
+  - Esc goes out to the columns, then deselects.
+- **I6 — animated GIFs keep moving:**
+  - GIFs are no longer converted to PNG at upload, unless they are larger than 2400px.
+  - Publishing sends the original GIF when there's no crop, rounding or shape and it's ≤1 MB (`core/gif.ts`, `derive`). Otherwise it goes out as a still, and a live check explains why.
+  - Quick-mode banners that are GIFs keep square corners.
+- **Gates:** `npm test` (85), `npm run e2e` (36, incl. `batch1.spec.ts`), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signet Supabase project created and schema applied
 
 - **Project:** `signet` (ref `wgrbgdvvhciahzhhhret`, `ca-central-1`) in the separate **Signet** organisation, on the Free plan. The website's project was not touched.

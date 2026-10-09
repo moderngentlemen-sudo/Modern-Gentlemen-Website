@@ -14,6 +14,14 @@ export interface ResizeSpec {
   /** Apply the new value (to the block, or the document for document-level sizes). */
   patch: (v: number) => (doc: SignatureDoc, b: Block) => void;
   label: (v: number) => string;
+  /** Corners follow the vertical movement (text: a long line barely changes width ratio). */
+  prefer?: "y";
+  /** Edge handles change the shape instead of scaling (images: unlock the aspect). */
+  stretch?: (dir: HandleDir, dx: number, dy: number, box: { w: number; h: number }) => { patch: (doc: SignatureDoc, b: Block) => void; label: string };
+  /** One-click sizes. */
+  presets?: { label: string; value: number }[];
+  /** "W × H" for blocks whose shape can change. */
+  dims?: string;
 }
 
 const px = (v: number) => `${Math.round(v)}px`;
@@ -27,6 +35,12 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
     max: 40,
     patch: (v) => (_d, x) => void (x.style = { ...x.style, fontSize: Math.round(v) }),
     label: (v) => `${Math.round(v)}px text`,
+    prefer: "y",
+    presets: [
+      { label: "S", value: Math.max(9, d.fontSize - 2) },
+      { label: "M", value: d.fontSize },
+      { label: "L", value: d.fontSize + 3 },
+    ],
   });
   switch (b.type) {
     case "photo":
@@ -37,6 +51,11 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
         max: 260,
         patch: (v) => (_d, x) => void ((x as typeof b).size = Math.round(v)),
         label: px,
+        presets: [
+          { label: "S", value: 56 },
+          { label: "M", value: 84 },
+          { label: "L", value: 120 },
+        ],
       };
     case "logo":
       return {
@@ -46,9 +65,51 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
         max: 320,
         patch: (v) => (_d, x) => void ((x as typeof b).size = Math.round(v)),
         label: px,
+        presets: [
+          { label: "S", value: 80 },
+          { label: "M", value: 120 },
+          { label: "L", value: 170 },
+        ],
       };
-    case "image":
-      return { axis: "x", start: b.width, min: 40, max: 640, patch: (v) => (_d, x) => void ((x as typeof b).width = Math.round(v)), label: px };
+    case "image": {
+      const meta = b.assetId ? doc.assets[b.assetId] : undefined;
+      // The image's own box (its wrapper fills the column, so the canvas frame isn't its size).
+      const w0 = b.width;
+      const h0 = meta ? Math.max(1, Math.round(w0 / (b.aspect ?? meta.width / meta.height))) : 0;
+      return {
+        dims: meta ? `${w0} × ${h0}` : undefined,
+        axis: "x",
+        start: b.width,
+        min: 40,
+        max: 640,
+        patch: (v) => (_d, x) => void ((x as typeof b).width = Math.round(v)),
+        label: px,
+        presets: [
+          { label: "S", value: 160 },
+          { label: "M", value: 300 },
+          { label: "L", value: 480 },
+          { label: "Phone", value: 340 },
+        ],
+        // Side edges change the width and keep the height; top and bottom change the height. The crop fills the new shape.
+        stretch: meta
+          ? (dir, dx, dy) => {
+              const sx = dir === "e" ? 1 : dir === "w" ? -1 : 0;
+              const sy = dir === "s" ? 1 : dir === "n" ? -1 : 0;
+              const w = Math.round(Math.min(640, Math.max(40, w0 + sx * dx)));
+              const h = Math.round(Math.max(12, h0 + sy * dy));
+              const aspect = Math.round((w / h) * 1000) / 1000;
+              return {
+                patch: (_d, x) => {
+                  const im = x as typeof b;
+                  im.width = w;
+                  im.aspect = aspect;
+                },
+                label: `${w} × ${h}`,
+              };
+            }
+          : undefined,
+      };
+    }
     case "monogram":
       return { axis: "x", start: b.size, min: 28, max: 140, patch: (v) => (_d, x) => void ((x as typeof b).size = Math.round(v)), label: px };
     case "qr":
@@ -145,7 +206,7 @@ export function resizeValue(spec: ResizeSpec, dir: HandleDir, dx: number, dy: nu
   const h = Math.max(8, box.h);
   const fx = sx ? (w + sx * dx) / w : 1;
   const fy = sy ? (h + sy * dy) / h : 1;
-  const f = Math.abs(fx - 1) >= Math.abs(fy - 1) ? fx : fy;
+  const f = sx && sy && spec.prefer === "y" ? fy : Math.abs(fx - 1) >= Math.abs(fy - 1) ? fx : fy;
   return clamp(spec.start * Math.max(0.05, f));
 }
 
@@ -159,3 +220,10 @@ export const HANDLE_CURSOR: Record<HandleDir, string> = {
   nw: "nwse-resize",
   se: "nwse-resize",
 };
+
+/** Keyboard resizing: one step (1px, or 0.05 for scales), ten with Shift. */
+export function stepValue(spec: ResizeSpec, dir: 1 | -1, big = false): number {
+  const unit = spec.step ?? (spec.max <= 5 ? 0.05 : 1);
+  const v = spec.start + dir * unit * (big ? 10 : 1);
+  return Math.round(Math.min(spec.max, Math.max(spec.min, v)) * 100) / 100;
+}

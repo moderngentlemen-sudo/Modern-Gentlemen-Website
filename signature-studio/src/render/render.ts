@@ -8,12 +8,16 @@
 import { BRAND } from "../brand";
 import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
-import { INLINE_LINK, linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
+import { linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
+import { frameLayout, framePath, isPlainLook, lookKey, lookMatrix, matrixValues, shortHash, type FrameShape, type ImageLook } from "../core/imageLook";
 import { clampScale, scaleDoc } from "../core/scale";
-import { fontStack } from "../core/fonts";
+import { fontDef, fontStack, isCustomFont } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
-import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Design, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import { parseRich, plainRich, type RichNode } from "../core/richtext";
+import { resolveBlockStyle } from "../core/textStyles";
+import { pickBanner } from "../core/liveBanner";
 import { getTemplate, type LayoutId } from "../core/templates";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
@@ -24,11 +28,23 @@ import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 interface Base {
   key: string;
   label: string;
+  /** Part of a live banner: which block, and which item (-1 = the fallback). */
+  live?: { block: string; item: number };
 }
 
 export type ImageRequest = Base &
   (
-    | { kind: "crop"; assetId: string; w: number; h: number; rect: { sx: number; sy: number; sw: number; sh: number }; shape: ImageShape; radius: number }
+    | {
+        kind: "crop";
+        assetId: string;
+        w: number;
+        h: number;
+        rect: { sx: number; sy: number; sw: number; sh: number };
+        shape: ImageShape;
+        radius: number;
+        /** Frame, border, shadow and colour (absent for a plain crop). `w`/`h` are then the whole output, shadow included. */
+        look?: { look: ImageLook; frame: FrameShape; accent: string; fw: number; fh: number };
+      }
     | { kind: "slice"; assetId: string; cardW: number; cardH: number; radius: number; x: number; y: number; w: number; h: number }
     | { kind: "video"; assetId: string; w: number; h: number; rect: { sx: number; sy: number; sw: number; sh: number } }
     | { kind: "social"; platform: string; shape: string; size: number; color: string }
@@ -36,6 +52,19 @@ export type ImageRequest = Base &
     | { kind: "badge"; store: "apple" | "google"; height: number }
     | { kind: "qr"; value: string; size: number; color: string }
     | { kind: "script"; text: string; color: string; size: number }
+    | {
+        kind: "text";
+        text: string;
+        family: string;
+        size: number;
+        weight: number;
+        italic: boolean;
+        color: string;
+        tracking: number;
+        lh: number;
+        w: number;
+        h: number;
+      }
   );
 
 export interface RenderOptions {
@@ -49,6 +78,10 @@ export interface RenderOptions {
   fallbackFonts?: boolean;
   /** Builder canvas: show hidden blocks faded so they can still be selected. */
   editing?: boolean;
+  /** email mode: base URL of the live-banner endpoint; without it live banners go out as their fallback picture. */
+  liveBase?: string;
+  /** Clock for live banners in the preview (tests). */
+  now?: number;
 }
 
 export interface RenderResult {
@@ -352,35 +385,90 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
   const meta = c.doc.assets[slot.assetId];
   if (!meta) return "";
   const w = o.size ?? slot.size;
-  const square = slot.shape === "circle" || label === "Photo";
+  const frame: FrameShape = slot.look?.frame ?? slot.shape;
+  const square = frame === "circle" || label === "Photo";
   const aspect = square ? 1 : (slot.aspect ?? meta.width / meta.height);
   const h = Math.max(1, Math.round(w / aspect));
+  const html = isPlainLook(slot.look) ? plainImage(c, slot, meta, label, w, h, aspect, frame as ImageShape) : styledImage(c, slot, meta, label, w, h, frame);
+  if (!html) return "";
+  return slot.link ? link(normalizeWebUrl(slot.link), html, c.doc.design.accent) : html;
+}
+
+type Meta = SignatureDoc["assets"][string];
+
+function plainImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: number, h: number, aspect: number, shape: ImageShape): string {
   const rect = cropRect(meta.width, meta.height, aspect, slot.crop);
-  const radius = slot.shape === "rounded" ? Math.round(w * 0.12) : 0;
+  const radius = shape === "rounded" ? Math.round(w * 0.12) : 0;
   const req: ImageRequest = {
     kind: "crop",
-    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${slot.shape}`,
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${shape}`,
     label,
-    assetId: slot.assetId,
+    assetId: slot.assetId!,
     w,
     h,
     rect,
-    shape: slot.shape,
+    shape,
     radius,
   };
-  let html: string;
   if (c.preview) {
     c.images.push(req);
-    const src = c.opts.sourceUrl?.(slot.assetId) ?? "";
+    const src = c.opts.sourceUrl?.(slot.assetId!) ?? "";
     const k = w / rect.sw;
-    const br = slot.shape === "circle" ? "50%" : `${radius}px`;
-    html = `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(-rect.sx * k).toFixed(1)}px;top:${(-rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
-  } else {
-    const src = source(c, req, () => null);
-    if (!src) return "";
-    html = imgTag(src, w, h, label);
+    const br = shape === "circle" ? "50%" : `${radius}px`;
+    return `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(-rect.sx * k).toFixed(1)}px;top:${(-rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
   }
-  return slot.link ? link(normalizeWebUrl(slot.link), html, c.doc.design.accent) : html;
+  const src = source(c, req, () => null);
+  return src ? imgTag(src, w, h, label) : "";
+}
+
+/** Framed, bordered, shadowed or recoloured: one baked image in email, the same geometry as inline SVG while editing. */
+function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: number, h: number, frame: FrameShape): string {
+  const look = slot.look!;
+  const accent = c.doc.design.accent;
+  const L = frameLayout(look, frame, w, h);
+  const rect = cropRect(meta.width, meta.height, L.inner.w / L.inner.h, slot.crop);
+  const req: ImageRequest = {
+    kind: "crop",
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${frame}|${shortHash(lookKey(look, accent))}`,
+    label,
+    assetId: slot.assetId!,
+    w: L.W,
+    h: L.H,
+    rect,
+    shape: "square",
+    radius: 0,
+    look: { look, frame, accent, fw: w, fh: h },
+  };
+  if (!c.preview) {
+    const src = source(c, req, () => null);
+    return src ? imgTag(src, L.W, L.H, label) : "";
+  }
+  c.images.push(req);
+  const src = c.opts.sourceUrl?.(slot.assetId!) ?? "";
+  const id = `lk${shortHash(req.key)}`;
+  const f = L.frame;
+  const i = L.inner;
+  const outer = framePath(frame, f.x, f.y, f.w, f.h, f.r);
+  const inner = framePath(frame, i.x, i.y, i.w, i.h, i.r);
+  const k = i.w / rect.sw;
+  const m = lookMatrix(look, accent);
+  const defs = [
+    `<clipPath id="${id}o"><path d="${outer}"/></clipPath>`,
+    `<clipPath id="${id}i"><path d="${inner}"/></clipPath>`,
+    m ? `<filter id="${id}f" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${matrixValues(m)}"/></filter>` : "",
+    look.shadow
+      ? `<filter id="${id}s" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="${(L.m / 3).toFixed(1)}" stdDeviation="${(L.m * 0.45).toFixed(1)}" flood-color="#000" flood-opacity="0.28"/></filter>`
+      : "",
+  ].join("");
+  const parts = [
+    look.shadow ? `<path d="${outer}" fill="${esc(look.backing ?? "#ffffff")}" filter="url(#${id}s)"/>` : "",
+    look.backing ? `<path d="${outer}" fill="${esc(look.backing)}"/>` : "",
+    `<g clip-path="url(#${id}i)"><image href="${esc(src)}" x="${(i.x - rect.sx * k).toFixed(1)}" y="${(i.y - rect.sy * k).toFixed(1)}" width="${(meta.width * k).toFixed(1)}" height="${(meta.height * k).toFixed(1)}" preserveAspectRatio="none"${m ? ` filter="url(#${id}f)"` : ""}/></g>`,
+    look.border
+      ? `<path d="${outer}" fill="none" stroke="${esc(look.borderColor ?? accent)}" stroke-width="${look.border * 2}" clip-path="url(#${id}o)"/>`
+      : "",
+  ].join("");
+  return `<svg width="${L.W}" height="${L.H}" viewBox="0 0 ${L.W} ${L.H}" role="img" aria-label="${esc(label)}" style="display:block;overflow:visible;"><defs>${defs}</defs>${parts}</svg>`;
 }
 
 function photoHtml(c: Ctx, size?: number): string {
@@ -864,7 +952,8 @@ function addonsBottom(c: Ctx, digitalUrl: string | null): string[] {
     const slot: ImageSlot = {
       assetId: a.banner.assetId,
       size: Math.min(a.banner.width, d.width),
-      shape: "rounded",
+      // Rounding would freeze an animated GIF, so GIF banners keep square corners.
+      shape: c.doc.assets[a.banner.assetId].mime === "image/gif" ? "square" : "rounded",
       crop: { x: 0, y: 0, zoom: 1 },
       link: a.banner.url || undefined,
     };
@@ -997,19 +1086,182 @@ function cardHtml(c: Ctx, digitalUrl: string | null): string {
 // Builder blocks — rows of columns of blocks, rendered with the same parts
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Live banners
+// ---------------------------------------------------------------------------
+
+/** Mark the request slotImage just added as part of a live banner. */
+function tagLast(c: Ctx, before: number, live: { block: string; item: number }) {
+  for (let i = before; i < c.images.length; i++) c.images[i].live = live;
+}
+
+/**
+ * A banner whose picture changes after the email is sent. Every picture is
+ * published at the block's size; the email shows the live endpoint, which
+ * redirects to whichever is current. The editor shows today's.
+ */
+function liveBannerHtml(c: Ctx, b: Extract<Block, { type: "image" }>, slot: ImageSlot): string {
+  const live = b.live!;
+  const meta = c.doc.assets[b.assetId!];
+  const frame = { ...slot, aspect: slot.aspect ?? meta.width / meta.height, link: undefined };
+  const items = live.items.filter((i) => i.assetId && c.doc.assets[i.assetId]);
+  const label = b.alt || "Banner";
+  if (c.preview) {
+    const today = pickBanner(
+      {
+        mode: live.mode,
+        items: items.map((i) => ({ image: i.assetId!, link: i.link, from: i.from, to: i.to })),
+        fallback: { image: b.assetId!, link: b.link },
+      },
+      c.opts.now ?? Date.now(),
+    );
+    const shown = today.index < 0 ? b : items[today.index];
+    const n = c.images.length;
+    const html = slotImage(c, { ...frame, assetId: shown.assetId, crop: today.index < 0 ? slot.crop : { x: 0, y: 0, zoom: 1 } }, label);
+    tagLast(c, n, { block: b.id, item: today.index < 0 ? -1 : live.items.indexOf(shown as (typeof live.items)[number]) });
+    return link(linkTarget(shown.link ?? b.link) ?? null, html, c.doc.design.accent);
+  }
+  // Email: publish every picture; show the fallback, or the live endpoint once it exists.
+  let n = c.images.length;
+  const main = slotImage(c, frame, label);
+  tagLast(c, n, { block: b.id, item: -1 });
+  live.items.forEach((it, i) => {
+    if (!it.assetId || !c.doc.assets[it.assetId]) return;
+    n = c.images.length;
+    slotImage(c, { ...frame, assetId: it.assetId, crop: { x: 0, y: 0, zoom: 1 } }, `${label} ${i + 1}`);
+    tagLast(c, n, { block: b.id, item: i });
+  });
+  if (!main) return "";
+  if (!c.opts.liveBase || !live.slug) return link(linkTarget(b.link) ?? null, main, c.doc.design.accent);
+  const base = `${c.opts.liveBase.replace(/\/$/, "")}/banner/${live.slug}`;
+  return link(`${base}/go`, main.replace(/src="[^"]*"/, `src="${esc(`${base}/img`)}"`), c.doc.design.accent);
+}
+
+// ---------------------------------------------------------------------------
+// Brand-font text sent as an image
+// ---------------------------------------------------------------------------
+
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+
+/** Width of a line in a CSS font: measured on a canvas in the browser, estimated elsewhere. */
+export function measureLine(line: string, cssFont: string, size: number): number {
+  if (measureCtx === undefined) {
+    try {
+      measureCtx = typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : null;
+    } catch {
+      measureCtx = null;
+    }
+  }
+  if (measureCtx) {
+    measureCtx.font = cssFont;
+    return measureCtx.measureText(line).width;
+  }
+  return line.length * size * 0.56;
+}
+
+const caseText = (s: string, c?: string) =>
+  c === "upper" ? s.toUpperCase() : c === "lower" ? s.toLowerCase() : c === "title" ? s.replace(/\b\p{L}/gu, (m) => m.toUpperCase()) : s;
+
+/**
+ * A name or text block in an uploaded font: no inbox has the font, so the
+ * text goes out as a crisp image (with the words as its alt text).
+ */
+function textImage(c: Ctx, b: Block, sc: string | undefined): string | null {
+  const st = b.style ?? {};
+  const d = c.doc.design;
+  let value: string;
+  let size: number;
+  let weight: number;
+  let lh: number;
+  let href: string | null = null;
+  if (b.type === "name") {
+    value = c.doc.details.name.trim();
+    size = Math.round(d.fontSize * d.nameScale * (b.scale ?? 1));
+    weight = st.weight ?? 700;
+    lh = st.lineHeight ?? 1.2;
+    href = linkTarget(b.link);
+    if (st.case === undefined && (b.upper || d.nameCase === "upper")) value = value.toUpperCase();
+  } else if (b.type === "text") {
+    value = plainRich(b.text).trim();
+    size = b.size ?? st.fontSize ?? d.fontSize;
+    weight = st.weight ?? (b.bold ? 700 : 400);
+    lh = st.lineHeight ?? 1.45;
+    href = linkTarget(b.link);
+  } else return null;
+  if (!value) return null;
+  value = caseText(value, st.case);
+  const family = fontDef(st.font!).family;
+  const italic = !!(st.italic ?? (b.type === "text" && b.italic));
+  const tracking = st.tracking ?? 0;
+  const color = sc ?? (b.type === "text" && b.muted ? d.muted : d.text);
+  const lines = value.split("\n");
+  const cssFont = `${italic ? "italic " : ""}${weight} ${size}px ${family}`;
+  const w = Math.ceil(Math.max(...lines.map((l) => measureLine(l, cssFont, size) + tracking * size * l.length)) + 4);
+  const h = Math.ceil(lines.length * size * lh);
+  const req: ImageRequest = {
+    kind: "text",
+    key: `text|${shortHash([value, family, size, weight, italic, color, tracking, lh, w].join("|"))}`,
+    label: b.type === "name" ? "Name" : "Text",
+    text: value,
+    family,
+    size,
+    weight,
+    italic,
+    color,
+    tracking,
+    lh,
+    w,
+    h,
+  };
+  const src = source(c, req, () => null);
+  if (!src) return "";
+  return link(href, imgTag(src, w, h, value.replace(/\n/g, " ")), color);
+}
+
+/** A block's text colour: a custom colour, else the colour role it follows, else none. */
+export function styleColor(st: BlockStyle | undefined, d: Design): string | undefined {
+  if (st?.color) return st.color;
+  if (st?.colorRole) return st.colorRole === "accent" ? d.accent : st.colorRole === "muted" ? d.muted : d.text;
+  return undefined;
+}
+
 /** Apply a block's style overrides to the design its parts read. */
 function withStyle(c: Ctx, st?: BlockStyle): Ctx {
-  if (!st || (!st.color && !st.accent && !st.font && !st.fontSize)) return c;
+  const color = styleColor(st, c.doc.design);
+  if (!st || (!color && !st.accent && !st.font && !st.fontSize)) return c;
   const d = c.doc.design;
   const design = {
     ...d,
-    text: st.color ?? d.text,
+    text: color ?? d.text,
     accent: st.accent ?? d.accent,
     headingFont: st.font ?? d.headingFont,
     bodyFont: st.font ?? d.bodyFont,
     fontSize: st.fontSize ?? d.fontSize,
   };
   return { ...c, doc: { ...c.doc, design } };
+}
+
+/**
+ * Block-level typography (weight, italic, underline, strike, case, line
+ * height, letter spacing) applied to every text element the block produced.
+ * Text elements are the ones that set a font-family; later declarations in an
+ * inline style win, so the override is simply appended.
+ */
+export function withTypography(html: string, st?: BlockStyle): string {
+  if (!st) return html;
+  const deco = [st.underline && "underline", st.strike && "line-through"].filter(Boolean).join(" ");
+  const decl = css({
+    "font-weight": st.weight,
+    "font-style": st.italic === undefined ? undefined : st.italic ? "italic" : "normal",
+    "text-decoration": deco || undefined,
+    "text-transform":
+      st.case === "upper" ? "uppercase" : st.case === "lower" ? "lowercase" : st.case === "title" ? "capitalize" : st.case === "none" ? "none" : undefined,
+    "font-variant": st.case === "smallcaps" ? "small-caps" : undefined,
+    "line-height": st.lineHeight ? `${Math.round(st.lineHeight * 100)}%` : undefined,
+    "letter-spacing": st.tracking !== undefined ? `${st.tracking}em` : undefined,
+  });
+  if (!decl) return html;
+  return html.replace(/style="([^"]*font-family:[^"]*)"/g, (_m, s: string) => `style="${s}${s.trim().endsWith(";") ? "" : ";"}${decl}"`);
 }
 
 function boxed(html: string, box?: Box): string {
@@ -1038,18 +1290,38 @@ function showsIn(b: Block, variant: Variant): boolean {
   return !b.visibility || b.visibility === "both" || b.visibility === variant;
 }
 
-/** Text with `[words](where)` links; everything else escaped, newlines kept. */
+/** Text with inline formatting (see core/richtext.ts); everything else escaped, newlines kept. */
 function richText(raw: string, linkColor: string): string {
-  let out = "";
-  let last = 0;
-  for (const m of raw.matchAll(INLINE_LINK)) {
-    out += escText(raw.slice(last, m.index));
-    const href = linkTarget(m[2]);
-    out += href ? link(href, escText(m[1]), linkColor) : escText(m[0]);
-    last = (m.index ?? 0) + m[0].length;
-  }
-  out += escText(raw.slice(last));
-  return out.replace(/\n/g, "<br>");
+  const walk = (nodes: RichNode[]): string =>
+    nodes
+      .map((n) => {
+        switch (n.t) {
+          case "text":
+            return escText(n.v);
+          case "link": {
+            const href = linkTarget(n.href);
+            // An unusable target (javascript:, garbage) stays visible as typed.
+            return href ? link(href, walk(n.kids), linkColor) : escText(n.raw);
+          }
+          case "color":
+            return `<span style="color:${esc(n.color)};">${walk(n.kids)}</span>`;
+          case "mark":
+            switch (n.mark) {
+              case "bold":
+                return `<strong style="font-weight:700;">${walk(n.kids)}</strong>`;
+              case "italic":
+                return `<em style="font-style:italic;">${walk(n.kids)}</em>`;
+              case "underline":
+                return `<u style="text-decoration:underline;">${walk(n.kids)}</u>`;
+              case "strike":
+                return `<s style="text-decoration:line-through;">${walk(n.kids)}</s>`;
+              case "highlight":
+                return `<span style="background-color:${mix(linkColor, "#ffffff", 0.78)};padding:0 2px;">${walk(n.kids)}</span>`;
+            }
+        }
+      })
+      .join("");
+  return walk(parseRich(raw)).replace(/\n/g, "<br>");
 }
 
 /** Hover text on every link and image a block produced (unless they have one). */
@@ -1063,8 +1335,13 @@ function withHover(html: string, hover: string | undefined): string {
 function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   const c = withStyle(c0, b.style);
   const d = c.doc.design;
+  const sc = styleColor(b.style, c0.doc.design);
   const align = b.style?.align;
   const empty = (label: string, w = 0, h = 0, round = false) => (c.preview ? placeholder(label, w, h, round) : "");
+  if (!c.preview && isCustomFont(b.style?.font) && b.style?.asImage !== false) {
+    const img = textImage(c, b, sc);
+    if (img !== null) return img;
+  }
   switch (b.type) {
     case "row":
       return rowHtml(c, b, digitalUrl);
@@ -1074,9 +1351,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
       return table(row(cell(n, `border-bottom:4px solid ${d.accent};padding-bottom:${sp(c, 4)}px;`)));
     }
     case "title":
-      return (
-        titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: b.style?.color, href: linkTarget(b.link) }) || empty("Job title")
-      );
+      return titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: sc, href: linkTarget(b.link) }) || empty("Job title");
     case "field": {
       const v = c.doc.details[b.field].trim();
       if (!v) return empty(`Add your ${b.field}`);
@@ -1090,27 +1365,34 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
               ? telHref(v)
               : null;
       const shown = b.field === "website" ? displayWebUrl(v) : v;
-      return text(c, link(href, esc(shown), b.style?.color ?? (b.upper ? d.accent : d.text)), {
+      return text(c, link(href, esc(shown), sc ?? (b.upper ? d.accent : d.text)), {
         upper: b.upper,
         tracking: b.upper ? 0.2 : undefined,
         weight: b.upper ? 600 : undefined,
         size: b.upper ? d.fontSize - 2 : undefined,
-        color: b.style?.color ?? (b.upper ? d.accent : d.text),
+        color: sc ?? (b.upper ? d.accent : d.text),
         align,
       });
     }
     case "text":
       if (!b.text.trim()) return empty("Text");
-      return text(c, b.link ? link(linkTarget(b.link), escText(b.text).replace(/\n/g, "<br>"), b.style?.color ?? d.text) : richText(b.text, d.accent), {
-        size: b.size,
-        weight: b.bold ? 700 : undefined,
-        italic: b.italic,
-        upper: b.upper,
-        tracking: b.upper ? 0.14 : undefined,
-        color: b.style?.color ?? (b.muted ? d.muted : d.text),
-        align,
-        lh: 1.45,
-      });
+      // A whole-block link keeps the inline formatting but not inner links (links can't nest).
+      return text(
+        c,
+        b.link
+          ? link(linkTarget(b.link), richText(b.text.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, "$1"), sc ?? d.text), sc ?? d.text)
+          : richText(b.text, d.accent),
+        {
+          size: b.size,
+          weight: b.bold ? 700 : undefined,
+          italic: b.italic,
+          upper: b.upper,
+          tracking: b.upper ? 0.14 : undefined,
+          color: sc ?? (b.muted ? d.muted : d.text),
+          align,
+          lh: 1.45,
+        },
+      );
     case "contacts": {
       const html =
         b.layout === "grid"
@@ -1137,7 +1419,9 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         crop: b.crop ?? { x: 0, y: 0, zoom: 1 },
         link: b.link || undefined,
         aspect: b.aspect,
+        look: b.look,
       };
+      if (b.live && b.assetId && c.doc.assets[b.assetId]) return liveBannerHtml(c, b, slot);
       return (b.assetId && c.doc.assets[b.assetId] ? slotImage(c, slot, b.alt || "Image") : "") || empty("Image", Math.min(b.width, 200), 60);
     }
     case "logos": {
@@ -1243,11 +1527,12 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   }
 }
 
-function blockHtml(c: Ctx, b: Block, digitalUrl: string | null, align?: string): string {
+function blockHtml(c: Ctx, b0: Block, digitalUrl: string | null, align?: string): string {
+  const b = resolveBlockStyle(b0, c.doc.design);
   const shown = showsIn(b, c.opts.variant);
   // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
   if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
-  const html = boxed(withHover(leafHtml(c, b, digitalUrl), b.hover), b.style?.box);
+  const html = boxed(withHover(withTypography(leafHtml(c, b, digitalUrl), b.type === "row" ? undefined : b.style), b.hover), b.style?.box);
   if (!c.preview) return html;
   // The editor's wrapper must not stop centred/right-aligned columns from aligning their blocks.
   const place = align === "center" ? "display:table;margin-left:auto;margin-right:auto;" : align === "right" ? "display:table;margin-left:auto;" : "";

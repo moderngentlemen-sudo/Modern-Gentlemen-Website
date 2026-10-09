@@ -9,6 +9,34 @@ import type { Column, SignatureDoc } from "./types";
 import { GMAIL_SIGNATURE_LIMIT } from "../render/validate";
 import { renderSignature } from "../render/render";
 import { INLINE_LINK } from "../lib/url";
+import { gifStillReason } from "./gif";
+import { cropRect } from "./crop";
+import type { AssetMeta } from "./types";
+import { isPlainLook, type ImageLook } from "./imageLook";
+
+/** A message when an animated GIF will be sent as a still image, else null. */
+export function gifIssue(
+  meta: AssetMeta | undefined,
+  aspect?: number,
+  crop: { x: number; y: number; zoom: number } = { x: 0, y: 0, zoom: 1 },
+  shape: "square" | "rounded" | "circle" = "square",
+  look?: ImageLook,
+): string | null {
+  if (!meta || meta.mime !== "image/gif") return null;
+  if (look?.frame && look.frame !== "square") return "A frame shape stops a GIF from animating. Choose Square to keep it moving.";
+  if (!isPlainLook(look)) return "Borders, shadows and colour changes stop a GIF from animating. Remove them to keep it moving.";
+  const rect = cropRect(meta.width, meta.height, aspect ?? meta.width / meta.height, crop);
+  switch (gifStillReason(meta, { rect, shape })) {
+    case "shaped":
+      return "Rounded corners stop a GIF from animating. Turn them off to keep it moving.";
+    case "cropped":
+      return "Cropping stops a GIF from animating. Reset the crop to keep it moving.";
+    case "too-big":
+      return "This GIF is over 1 MB, so it will be sent as a still image. Use a smaller GIF to keep it moving.";
+    default:
+      return null;
+  }
+}
 
 export type CheckLevel = "error" | "warning" | "tip";
 
@@ -108,6 +136,75 @@ export function estimateEmailSize(doc: SignatureDoc, hostBase = "https://images.
 }
 
 // ---------------------------------------------------------------------------
+// Images: sharpness and weight
+// ---------------------------------------------------------------------------
+
+/**
+ * Images are published at 2× for sharp screens. Fewer source pixels than the
+ * displayed width looks blurry everywhere; fewer than twice looks soft on
+ * retina screens.
+ */
+export function imageSharpness(sourcePx: number, displayPx: number): "blurry" | "soft" | null {
+  if (sourcePx < displayPx * 0.98) return "blurry";
+  if (sourcePx < displayPx * 1.9) return "soft";
+  return null;
+}
+
+/** Rough bytes of a published image (2× PNG, or JPEG for opaque photos; GIFs as they are). */
+export function estimateImageBytes(w: number, h: number, meta: AssetMeta | undefined, passthrough = false): number {
+  if (passthrough && meta) return meta.bytes;
+  const px = w * 2 * h * 2;
+  return Math.round(px * (meta?.mime === "image/jpeg" ? 0.22 : 0.6));
+}
+
+export const IMAGE_WEIGHT_TIP = 350 * 1024;
+
+function checkImages(doc: SignatureDoc, add: (i: CheckIssue) => void) {
+  const reqs = renderSignature(doc, { variant: "full", mode: "email", resolve: () => "https://images.example.com/x.png" }).images;
+  const root = doc.mode === "builder" ? doc.blocks : undefined;
+  const fixFor = (assetId: string) => {
+    if (root)
+      for (const { block: b } of walk(root)) {
+        if (b.type === "image" && b.assetId === assetId) return { tab: "blocks", blockId: b.id, label: "Select image" };
+        if ((b.type === "photo" || b.type === "logo") && doc.images[b.type].assetId === assetId) return { tab: "blocks", blockId: b.id, label: "Select image" };
+      }
+    return { tab: "images", label: "Change image" };
+  };
+  let bytes = 0;
+  const seen = new Set<string>();
+  for (const r of reqs) {
+    if (r.kind !== "crop" && r.kind !== "slice" && r.kind !== "video") continue;
+    const meta = doc.assets[r.assetId];
+    bytes += estimateImageBytes(r.w, r.h, meta, r.kind === "crop" && meta?.mime === "image/gif" && !r.look && !gifStillReason(meta, r));
+    if (r.kind !== "crop" || !meta || seen.has(r.key)) continue;
+    seen.add(r.key);
+    const shown = r.look ? r.look.fw : r.w;
+    const sharp = imageSharpness(r.rect.sw, shown);
+    const what = r.label === "Photo" ? "Your photo" : /logo$/i.test(r.label) ? "Your logo" : `“${r.label}”`;
+    if (sharp === "blurry")
+      add({
+        id: `blurry-${r.key}`,
+        level: "warning",
+        message: `${what} is shown larger than the picture itself, so it will look blurry. Use a bigger image (at least ${shown * 2}px wide) or show it smaller.`,
+        fix: fixFor(r.assetId),
+      });
+    else if (sharp === "soft")
+      add({
+        id: `soft-${r.key}`,
+        level: "tip",
+        message: `${what} may look soft on sharp (retina) screens. An image at least ${shown * 2}px wide looks crisp.`,
+        fix: fixFor(r.assetId),
+      });
+  }
+  if (bytes > IMAGE_WEIGHT_TIP)
+    add({
+      id: "image-weight",
+      level: "tip",
+      message: `Your images add about ${Math.round(bytes / 1024)} KB to every email, which loads slowly on phones. Smaller or fewer images help.`,
+    });
+}
+
+// ---------------------------------------------------------------------------
 // All checks
 // ---------------------------------------------------------------------------
 
@@ -165,6 +262,7 @@ export function runChecks(doc: SignatureDoc, opts: { size?: number } = {}): Chec
     add({ id: "contrast-accent", level: "warning", message: "Your accent colour is very light — links and icons may be hard to see.", fix: theme });
   if (design.fontSize * scale < 11) add({ id: "small", level: "warning", message: "Text is smaller than 11px, which is hard to read on phones.", fix: theme });
 
+  checkImages(doc, add);
   if (doc.mode === "builder" && doc.blocks) checkBlocks(doc, doc.blocks, add);
   else {
     const a = doc.addons;
@@ -172,6 +270,8 @@ export function runChecks(doc: SignatureDoc, opts: { size?: number } = {}): Chec
       add({ id: "cta", level: "error", message: `Your button link ${linkProblem(a.cta.url)}`, fix: { tab: "addons", label: "Edit add-ons" } });
     if (a.meeting.enabled && !a.meeting.url.trim())
       add({ id: "meeting", level: "warning", message: "“Book a meeting” has no link yet.", fix: { tab: "addons", label: "Edit add-ons" } });
+    const bannerGif = a.banner.enabled && a.banner.assetId ? gifIssue(doc.assets[a.banner.assetId]) : null;
+    if (bannerGif) add({ id: "gif-banner", level: "tip", message: bannerGif, fix: { tab: "addons", label: "Edit add-ons" } });
     if (a.banner.enabled && a.banner.assetId && !a.banner.alt.trim())
       add({ id: "banner-alt", level: "tip", message: "Describe your banner for people who can't see images.", fix: { tab: "addons", label: "Edit add-ons" } });
   }
@@ -237,12 +337,15 @@ function checkBlocks(doc: SignatureDoc, root: Column, add: (i: CheckIssue) => vo
         if (!b.url.trim() && !doc.details.website.trim())
           add({ id: `btn-${b.id}`, level: "warning", message: `“${b.text || "Button"}” has no link.`, fix: fixB(b.id, "Add a link") });
         break;
-      case "image":
+      case "image": {
         badLink(b.link, "Image");
+        const gif = b.assetId ? gifIssue(doc.assets[b.assetId], b.aspect, b.crop, b.radius ? "rounded" : "square", b.look) : null;
+        if (gif) add({ id: `gif-${b.id}`, level: "tip", message: gif, fix: fixB(b.id, "Select image") });
         if (!b.assetId) add({ id: `img-${b.id}`, level: "warning", message: "An image block is empty.", fix: fixB(b.id, "Add image") });
         else if (!b.alt?.trim())
           add({ id: `alt-${b.id}`, level: "tip", message: "Describe your image for people who can't see it.", fix: fixB(b.id, "Add description") });
         break;
+      }
       case "logos":
         b.items.forEach((it, i) => badLink(it.link, `Logo ${i + 1}`));
         if (b.items.some((it) => it.assetId && !it.alt?.trim()))

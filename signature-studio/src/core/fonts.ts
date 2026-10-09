@@ -209,7 +209,16 @@ FONTS.push(
 
 export const FONT_MAP: Record<string, FontDef> = Object.fromEntries(FONTS.map((f) => [f.id, f]));
 
+/** Uploaded brand fonts use ids "custom:<family>"; no recipient has them installed. */
+export const CUSTOM_PREFIX = "custom:";
+export const isCustomFont = (id: string | undefined): id is string => !!id && id.startsWith(CUSTOM_PREFIX);
+export const customFontId = (family: string) => `${CUSTOM_PREFIX}${family}`;
+
 export function fontDef(id: string): FontDef {
+  if (isCustomFont(id)) {
+    const family = id.slice(CUSTOM_PREFIX.length).replace(/["'\\;<>]/g, "");
+    return { ...FONT_MAP.helvetica, id, label: family, family: `'${family}'`, category: "sans", safe: false, seenAs: "Helvetica" };
+  }
   return FONT_MAP[id] ?? FONT_MAP.helvetica;
 }
 

@@ -58,7 +58,8 @@ test("brand kit styles new signatures", async ({ page }) => {
   await page.getByTestId("open-brand").click();
   const dialog = page.getByTestId("brand-dialog");
   await dialog.getByLabel("Company").fill("Northwind Studio");
-  await dialog.getByRole("button", { name: "#dc2626" }).first().click();
+  await dialog.getByRole("button", { name: /^Accent:/ }).click();
+  await dialog.getByRole("dialog", { name: "Accent picker" }).getByRole("button", { name: "#dc2626" }).first().click();
   await page.getByTestId("save-brand").click();
   await page.getByTestId("start-blank").click();
   await expect(page.getByTestId("mode-builder")).toHaveAttribute("aria-pressed", "true");

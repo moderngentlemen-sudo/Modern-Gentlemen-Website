@@ -1,6 +1,6 @@
 /** Small, consistent form controls used across every panel. */
-import { useEffect, useId, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Pipette, X } from "lucide-react";
 import { useStudio } from "../store/editor";
 
 export function Field({ label, hint, children, htmlFor }: { label: ReactNode; hint?: ReactNode; children: ReactNode; htmlFor?: string }) {
@@ -184,6 +184,29 @@ export function Slider({
 
 export const SWATCHES = ["#5b4cf0", "#0a66c2", "#0f766e", "#16a34a", "#d97706", "#dc2626", "#db2777", "#7c3aed", "#b08d57", "#1f2937", "#111111", "#64748b"];
 
+const RECENT_KEY = "signet.recentColors";
+const readRecent = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+};
+const pushRecent = (c: string) => {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify([c, ...readRecent().filter((x) => x !== c)].slice(0, 8)));
+  } catch {
+    /* storage blocked: recents are a convenience */
+  }
+};
+
+type EyeDropperCtor = new () => { open: () => Promise<{ sRGBHex: string }> };
+
+/**
+ * A colour control: one swatch button that opens a picker with this
+ * signature's colours first, then the brand kit, recent picks and more —
+ * plus a hex field and, where the browser has one, an eyedropper.
+ */
 export function ColorField({
   label,
   value,
@@ -197,29 +220,106 @@ export function ColorField({
   swatches?: string[];
   extra?: string[];
 }) {
-  const list = [...new Set([...extra, ...swatches].map((s) => s.toLowerCase()))];
+  const [open, setOpen] = useState(false);
+  const [hex, setHex] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
+  const design = useStudio((s) => s.doc?.design);
+  const brand = useStudio((s) => s.prefs.brand);
+  useEffect(() => setHex(value), [value]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && (e.stopPropagation(), setOpen(false));
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", esc, true);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", esc, true);
+    };
+  }, [open]);
+  const uniq = (l: (string | undefined)[]) => [...new Set(l.filter((x): x is string => !!x && /^#[0-9a-f]{6}$/i.test(x)).map((x) => x.toLowerCase()))];
+  const mine = uniq([...extra, design?.accent, design?.text, design?.muted, design?.surface]);
+  const kit = uniq([brand?.accent, brand?.text, brand?.muted, brand?.surface]).filter((x) => !mine.includes(x));
+  const recent = open ? uniq(readRecent()).filter((x) => !mine.includes(x) && !kit.includes(x)) : [];
+  const more = uniq(swatches).filter((x) => !mine.includes(x) && !kit.includes(x) && !recent.includes(x));
+  const pick = (c: string) => {
+    onChange(c);
+    pushRecent(c.toLowerCase());
+  };
+  const name = typeof label === "string" ? label : "Colour";
+  const Dropper = (window as unknown as { EyeDropper?: EyeDropperCtor }).EyeDropper;
+  const row = (title: string, list: string[]) =>
+    list.length ? (
+      <div className="cp-row">
+        <span className="cp-title">{title}</span>
+        <div className="swatches">
+          {list.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="swatch"
+              style={{ background: c }}
+              aria-label={c}
+              aria-pressed={c === value.toLowerCase()}
+              onClick={() => pick(c)}
+            />
+          ))}
+        </div>
+      </div>
+    ) : null;
   return (
-    <Field label={label} hint={value.toUpperCase()}>
-      <div className="swatches">
-        {list.map((s) => (
-          <button
-            key={s}
-            type="button"
-            className="swatch"
-            style={{ background: s }}
-            aria-label={s}
-            aria-pressed={s === value.toLowerCase()}
-            onClick={() => onChange(s)}
-          />
-        ))}
-        <label className="color-pick" title="Custom colour">
-          <input
-            type="color"
-            value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"}
-            onChange={(e) => onChange(e.target.value)}
-            aria-label={`Custom ${typeof label === "string" ? label : "colour"}`}
-          />
-        </label>
+    <Field label={label}>
+      <div className="color-field" ref={ref}>
+        <button type="button" className="color-btn" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={`${name}: ${value}`} data-color-field>
+          <span className="color-chip" style={{ background: value }} />
+          <span className="color-hex">{value.toUpperCase()}</span>
+        </button>
+        {open && (
+          <div className="color-pop" role="dialog" aria-label={`${name} picker`}>
+            {row("This signature", mine)}
+            {row("Brand kit", kit)}
+            {row("Recent", recent)}
+            {row("More", more)}
+            <div className="cp-custom">
+              <input
+                className="input sm"
+                value={hex}
+                onChange={(e) => {
+                  setHex(e.target.value);
+                  const v = e.target.value.trim();
+                  const norm = /^#?[0-9a-f]{6}$/i.test(v) ? (v.startsWith("#") ? v : `#${v}`) : null;
+                  if (norm) pick(norm.toLowerCase());
+                }}
+                aria-label={`${name} hex`}
+                spellCheck={false}
+              />
+              <label className="color-pick" title="Custom colour">
+                <input
+                  type="color"
+                  value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"}
+                  onChange={(e) => pick(e.target.value)}
+                  aria-label={`Custom ${name}`}
+                />
+              </label>
+              {Dropper && (
+                <button
+                  type="button"
+                  className="icon-btn sm"
+                  title="Pick a colour from the screen"
+                  aria-label="Eyedropper"
+                  onClick={() =>
+                    void new Dropper()
+                      .open()
+                      .then((r) => pick(r.sRGBHex.toLowerCase()))
+                      .catch(() => undefined)
+                  }
+                >
+                  <Pipette size={15} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Field>
   );

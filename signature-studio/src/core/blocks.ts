@@ -79,6 +79,28 @@ export function findBlock(root: Column | undefined, id: string): { block: Block;
   return null;
 }
 
+/**
+ * The chain of rows and columns from the top of the layout down to a block or
+ * column (not including it). Columns carry their 1-based position in the row.
+ */
+export function pathTo(root: Column, id: string): ({ kind: "row"; block: Block } | { kind: "column"; column: Column; index: number })[] {
+  const walkCol = (c: Column, trail: ReturnType<typeof pathTo>): ReturnType<typeof pathTo> | null => {
+    for (const b of c.blocks) {
+      if (b.id === id) return trail;
+      if (b.type === "row")
+        for (let i = 0; i < b.columns.length; i++) {
+          const col = b.columns[i];
+          const next = [...trail, { kind: "row" as const, block: b }];
+          if (col.id === id) return next;
+          const found = walkCol(col, [...next, { kind: "column" as const, column: col, index: i + 1 }]);
+          if (found) return found;
+        }
+    }
+    return null;
+  };
+  return walkCol(root, []) ?? [];
+}
+
 export function findColumn(root: Column | undefined, id: string): Column | null {
   if (!root) return null;
   if (root.id === id) return root;
@@ -99,6 +121,19 @@ export function isWithin(root: Column, ancestorId: string, id: string): boolean 
   if (hit.block.id === id) return true;
   if (hit.block.type !== "row") return false;
   return hit.block.columns.some((c) => c.id === id || !!findBlock(c, id));
+}
+
+/**
+ * The block before or after `id` in reading order, skipping rows (their
+ * contents are what people read). From a row, moves to the first block
+ * inside it going down, or the last block before it going up.
+ */
+export function adjacentBlockId(root: Column, id: string, dir: 1 | -1): string | null {
+  const order = [...walk(root)].map((w) => w.block);
+  const at = order.findIndex((b) => b.id === id);
+  if (at < 0) return null;
+  for (let i = at + dir; i >= 0 && i < order.length; i += dir) if (order[i].type !== "row") return order[i].id;
+  return null;
 }
 
 export function removeBlock(root: Column, id: string): Block | null {

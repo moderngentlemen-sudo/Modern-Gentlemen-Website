@@ -13,11 +13,16 @@ import {
   panel,
   placeBeside,
   removeBlock,
+  adjacentBlockId,
   rowOf,
   rowOfColumn,
   walk,
+  block as newBlock,
 } from "../core/blocks";
-import type { Block, Column } from "../core/types";
+import type { AssetMeta, Block, Column } from "../core/types";
+import { uploadImage } from "../ui/ImageDrop";
+import { writeImage } from "./imageTarget";
+import { resizeSpec, stepValue } from "./resize";
 import { edit, toast, ui, undo, useStudio, tree } from "../store/editor";
 
 export interface DropTarget {
@@ -66,9 +71,10 @@ export function defaultTarget(): DropTarget | null {
   return { columnId: root.id, index: root.blocks.length };
 }
 
-export function addBlock(b: Block, target: DropTarget | null = defaultTarget()) {
+export function addBlock(b: Block, target: DropTarget | null = defaultTarget(), assets: AssetMeta[] = []) {
   if (!target) return;
   edit((d) => {
+    for (const m of assets) d.assets[m.id] = m;
     const root = tree(d);
     if (!root) return;
     if (!(target.beside && placeBeside(root, b, target.beside.id, target.beside.side))) insertBlock(root, b, target.columnId, target.index);
@@ -193,6 +199,45 @@ export function nudgeSelected(by: -1 | 1) {
   moveTo(id, { columnId: hit.parent.id, index: to });
 }
 
+/** ↑/↓: select the previous or next block in reading order. */
+export function selectAdjacent(dir: 1 | -1) {
+  const d = doc();
+  const id = useStudio.getState().selected;
+  const root = d ? tree(d) : undefined;
+  if (!root) return;
+  if (!id) {
+    const first = [...walk(root)].find((w) => w.block.type !== "row");
+    if (first) ui({ selected: first.block.id });
+    return;
+  }
+  const next = adjacentBlockId(root, id, dir);
+  if (next) ui({ selected: next });
+}
+
+/** Esc: from a block inside columns select the columns; otherwise deselect. */
+export function selectOutward() {
+  const st = useStudio.getState();
+  if (st.multi.length) return ui({ selected: null });
+  const root = st.doc ? tree(st.doc) : undefined;
+  const hit = root && st.selected ? findBlock(root, st.selected) : null;
+  const row = hit && root ? rowOfColumn(root, hit.parent.id) : null;
+  ui({ selected: row ? row.id : null });
+}
+
+/** Enter: step into a row, or start editing the selected block (the canvas listens). */
+export function enterSelected() {
+  const st = useStudio.getState();
+  const root = st.doc ? tree(st.doc) : undefined;
+  const hit = root && st.selected ? findBlock(root, st.selected) : null;
+  if (!hit) return;
+  if (hit.block.type === "row") {
+    const first = hit.block.columns.flatMap((c) => [...walk(c)]).find((w) => w.block.type !== "row");
+    if (first) ui({ selected: first.block.id });
+    return;
+  }
+  window.dispatchEvent(new CustomEvent("signet:edit-block", { detail: hit.block.id }));
+}
+
 /** Select the row that contains the selection. */
 export function selectParent() {
   const d = doc();
@@ -258,4 +303,74 @@ export function pasteBlock(): boolean {
   if (!clipboard) return false;
   addBlock(cloneBlock(clipboard));
   return true;
+}
+
+/**
+ * An image file dropped or pasted onto the layout: it fills the photo, logo
+ * or image block it lands on (or the selected one), otherwise it becomes a
+ * new image block.
+ */
+export async function placeImageFile(file: File, onBlockId?: string | null) {
+  const meta = await uploadImage(file);
+  if (!meta) return;
+  const d = doc();
+  const root = d ? tree(d) : undefined;
+  const id = onBlockId ?? useStudio.getState().selected;
+  const b = id && root ? findBlock(root, id)?.block : null;
+  if (b && (b.type === "photo" || b.type === "logo" || b.type === "image")) {
+    writeImage(b.type === "image" ? `block:${b.id}` : b.type, { asset: meta, crop: { x: 0, y: 0, zoom: 1 } });
+    ui({ selected: b.id, multi: [] });
+    toast(b.type === "photo" ? "Photo replaced" : b.type === "logo" ? "Logo replaced" : "Image replaced", "success", { label: "Undo", run: undo });
+    return;
+  }
+  addBlock(newBlock("image", { assetId: meta.id, width: Math.min(meta.width, 320) }), defaultTarget(), [meta]);
+}
+
+/** [ / ]: make the selected block one step smaller or larger (ten with Shift). */
+export function resizeSelectedBy(dir: 1 | -1, big = false): boolean {
+  const d = doc();
+  const root = d ? tree(d) : undefined;
+  const id = useStudio.getState().selected;
+  const hit = id && root ? findBlock(root, id) : null;
+  const spec = hit && d ? resizeSpec(hit.block, d, 300) : null;
+  if (!hit || !spec) return false;
+  const v = stepValue(spec, dir, big);
+  edit((x) => {
+    const h = tree(x) ? findBlock(tree(x), hit.block.id) : null;
+    if (h) spec.patch(v)(x, h.block);
+  }, `resize.${hit.block.id}`);
+  return true;
+}
+
+/**
+ * Resize every selected block together: scale by a factor, or match the first
+ * selected block's size (blocks of the same kind only — a photo can't match a text size).
+ */
+export function resizeSelection(mode: { scale: number } | "match"): number {
+  const d = doc();
+  const root = d ? tree(d) : undefined;
+  if (!d || !root) return 0;
+  const ids = selectedIds();
+  const specs = ids.map((id) => {
+    const h = findBlock(root, id);
+    return h ? { id, type: h.block.type, spec: resizeSpec(h.block, d, 300) } : null;
+  });
+  const first = specs.find((x) => x?.spec);
+  const textual = (t: string) => !["photo", "logo", "image", "monogram", "qr", "socials", "logos", "divider", "spacer", "canva", "name"].includes(t);
+  const sameKind = (t: string) => !!first && (t === first.type || (textual(t) && textual(first.type)));
+  let changed = 0;
+  edit((x) => {
+    const r = tree(x);
+    for (const it of specs) {
+      if (!it?.spec) continue;
+      if (mode === "match" && (!sameKind(it.type) || it === first)) continue;
+      const v = mode === "match" ? first!.spec!.start : it.spec.start * mode.scale;
+      const h = r ? findBlock(r, it.id) : null;
+      if (h) {
+        it.spec.patch(Math.min(it.spec.max, Math.max(it.spec.min, v)))(x, h.block);
+        changed++;
+      }
+    }
+  });
+  return changed;
 }
