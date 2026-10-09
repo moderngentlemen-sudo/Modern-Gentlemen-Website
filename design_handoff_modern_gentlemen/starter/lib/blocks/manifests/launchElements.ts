@@ -286,7 +286,7 @@ export const nativeKnockout = defineBlock({
     }),
     panelColor: field.color({
       label: "Panel colour",
-      help: "Optional; replaces the light or dark preset. The letters stay cut out either way. Pale colours lighten the video and deep colours darken it, so white or black give a solid panel and anything between gives a tinted one.",
+      help: "Optional; replaces the light or dark preset with exactly this colour. The letters stay cut out either way.",
     }),
     letters: field.select({
       label: "Letters",
@@ -449,6 +449,7 @@ export const nativeShape = defineBlock({
     }),
     blend: field.select({
       label: "Blend with the background",
+      help: "Safari on iPad and iPhone does not blend with a playing video, so there the shape shows as Normal. Over a photograph every browser blends.",
       default: "normal",
       options: [
         { value: "normal", label: "Normal" },
