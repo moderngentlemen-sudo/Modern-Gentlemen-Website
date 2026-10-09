@@ -4,8 +4,9 @@ import { edit, ui, useStudio } from "../store/editor";
 import { applyBrand } from "../core/apply";
 import { EARLY_ACCESS, entitlements } from "../core/plans";
 import { BRAND } from "../brand";
+import { MAX_SCALE, MIN_SCALE } from "../core/scale";
 import { Palette } from "lucide-react";
-import { ColorField, Segmented, SectionTitle, Select, Slider, Toggle } from "../ui/kit";
+import { ColorField, Field, Segmented, SectionTitle, Select, Slider, Toggle } from "../ui/kit";
 
 const PALETTES: { name: string; accent: string; text: string; muted: string; surface: string }[] = [
   { name: "Violet", accent: "#5b4cf0", text: "#1d1b2c", muted: "#6b6880", surface: "#f4f2ff" },
@@ -27,6 +28,40 @@ const fontOptions = FONTS.map((f) => ({ value: f.id, label: `${f.label}${f.safe 
 function fontHint(id: string) {
   const f = fontDef(id);
   return f.safe ? "Shows as designed everywhere" : `Most inboxes show ${f.seenAs}`;
+}
+
+/** One control for the size of the whole signature — text, images, icons and spacing together. */
+export function ScaleControl() {
+  const scale = useStudio((s) => s.doc!.design.scale ?? 1);
+  const set = (v: number) => edit((d) => void (d.design.scale = Math.round(v * 100) / 100), "design.scale");
+  return (
+    <Field label="Overall size" hint={`${Math.round(scale * 100)}%`}>
+      <div className="row">
+        <button className="btn sm" onClick={() => set(Math.max(MIN_SCALE, scale - 0.05))} aria-label="Smaller">
+          A−
+        </button>
+        <input
+          type="range"
+          min={MIN_SCALE}
+          max={MAX_SCALE}
+          step={0.01}
+          value={scale}
+          onChange={(e) => set(Number(e.target.value))}
+          style={{ flex: 1, accentColor: "var(--brand)" }}
+          aria-label="Overall size"
+          data-testid="scale"
+        />
+        <button className="btn sm" onClick={() => set(Math.min(MAX_SCALE, scale + 0.05))} aria-label="Bigger">
+          A+
+        </button>
+        {scale !== 1 && (
+          <button className="btn sm ghost" onClick={() => set(1)}>
+            Reset
+          </button>
+        )}
+      </div>
+    </Field>
+  );
 }
 
 /** The "Made with" link switch — shared by the Design panel and the builder. */
@@ -167,6 +202,7 @@ export function DesignPanel() {
         />
       </div>
       <Slider label="Spacing" unit="×" min={0.7} max={1.6} step={0.05} value={d.spacing} onChange={(v) => set("spacing", v)} />
+      <ScaleControl />
       <Slider label="Max width" unit="px" min={320} max={640} step={10} value={d.width} onChange={(v) => set("width", v)} />
 
       <SectionTitle>Footer</SectionTitle>

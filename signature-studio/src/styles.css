@@ -2214,3 +2214,191 @@ body.is-dragging * {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Builder handles ──────────────────────────────────────────────── */
+
+.ov-grip,
+.ov-resize {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 3;
+  touch-action: none;
+}
+
+.ov-grip {
+  width: 18px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--violet);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  box-shadow: var(--shadow-1);
+  padding: 0;
+}
+
+.ov-resize {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid var(--violet);
+  box-shadow: var(--shadow-1);
+  cursor: nwse-resize;
+}
+
+.ov-resize.v {
+  cursor: ns-resize;
+  border-radius: 6px;
+  height: 14px;
+  width: 22px;
+}
+
+/* Bigger targets for fingers. */
+@media (pointer: coarse) {
+  .ov-resize {
+    width: 26px;
+    height: 26px;
+  }
+
+  .ov-grip {
+    width: 24px;
+    height: 34px;
+  }
+}
+
+.ov-tip {
+  position: absolute;
+  z-index: 4;
+  background: var(--ink);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+body.is-resizing,
+body.is-resizing * {
+  cursor: nwse-resize !important;
+  user-select: none;
+}
+
+.zoom-ctl {
+  display: inline-flex;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 2px;
+}
+
+.zoom-ctl button {
+  border: 0;
+  background: transparent;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 12.5px;
+  display: grid;
+  place-items: center;
+}
+
+.zoom-ctl button:hover {
+  background: var(--panel-2);
+}
+
+.palette-search {
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.palette-search svg {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  color: var(--ink-3);
+}
+
+.palette-search .input {
+  padding-left: 36px;
+}
+
+.layer-actions {
+  display: none;
+  gap: 0;
+}
+
+.layer:hover .layer-actions,
+.layer[aria-current="true"] .layer-actions {
+  display: inline-flex;
+}
+
+.layer-actions span {
+  width: 24px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+
+.layer-actions span:hover {
+  background: rgba(21, 19, 26, 0.08);
+  color: var(--ink);
+}
+
+.layer.is-hidden .grow {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.crop-stage {
+  position: relative;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+  cursor: grab;
+  touch-action: none;
+  background: repeating-conic-gradient(#f1eee7 0 25%, #ffffff 0 50%) 0 0 / 16px 16px;
+}
+
+.crop-stage:active {
+  cursor: grabbing;
+}
+
+.crop-stage img {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.icon-grid button {
+  height: 36px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.icon-grid button[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--panel-2);
+}

@@ -117,3 +117,77 @@ describe("tree operations", () => {
     expect(copy.type === "row" && copy.columns[0].id).not.toBe(r.type === "row" && r.columns[0].id);
   });
 });
+
+describe("new blocks", () => {
+  it("render valid Gmail HTML: logo row, QR, icon line, tag", () => {
+    const d = asBuilder(doc("corporate-classic"));
+    d.assets.a = { id: "a", name: "a.png", mime: "image/png", width: 300, height: 100, bytes: 1, hash: "ha" };
+    d.blocks!.blocks.push(
+      block("logos", {
+        items: [
+          { id: "i1", assetId: "a", link: "example.com/award", alt: "Award" },
+          { id: "i2", assetId: "l", alt: "Partner" },
+        ],
+      }),
+      block("qr", { source: "custom", url: "example.com/menu", caption: "Scan for our menu" }),
+      block("iconText", { icon: "clock", text: "Mon–Fri, 9–5", url: "" }),
+      block("tag", { text: "Now hiring", url: "example.com/jobs", filled: true }),
+    );
+    const r = renderSignature(d, { variant: "full", mode: "email", resolve: hosted });
+    expect([
+      ...r.errors,
+      ...validateEmailHtml(r.html)
+        .filter((p) => p.level === "error")
+        .map((p) => p.message),
+    ]).toEqual([]);
+    expect(r.html).toContain('href="https://example.com/award"');
+    expect(r.html).toContain('width="108" height="36"'); // 300×100 logo at 36px tall
+    expect(r.html).toContain("Scan for our menu");
+    expect(r.images.some((i) => i.kind === "qr" && i.value === "https://example.com/menu")).toBe(true);
+    expect(r.images.some((i) => i.kind === "glyph" && i.name === "clock")).toBe(true);
+    expect(r.html).toContain("Now hiring");
+  });
+
+  it("hidden blocks never reach email, but stay selectable (faded) on the canvas", () => {
+    const d = asBuilder(doc("corporate-classic"));
+    const t = block("text", { text: "Secret line", visibility: "hidden" });
+    d.blocks!.blocks.push(t);
+    expect(renderSignature(d, { variant: "full", mode: "email", resolve: hosted }).html).not.toContain("Secret line");
+    expect(renderSignature(d, { variant: "full", mode: "preview", sourceUrl: () => "blob:x" }).html).not.toContain("Secret line");
+    const editing = renderSignature(d, { variant: "full", mode: "preview", sourceUrl: () => "blob:x", editing: true }).html;
+    expect(editing).toContain(`data-block="${t.id}" style="opacity:.3;"`);
+  });
+
+  it("crops and frames image blocks", () => {
+    const d = asBuilder(doc("corporate-classic"));
+    d.blocks!.blocks.push(block("image", { assetId: "p", width: 320, aspect: 16 / 9, crop: { x: 0.5, y: 0, zoom: 2 } }));
+    const r = renderSignature(d, { variant: "full", mode: "email", resolve: hosted });
+    const req = r.images.find((i) => i.kind === "crop" && i.w === 320);
+    expect(req && req.kind === "crop" && req.h).toBe(180);
+    expect(req && req.kind === "crop" && req.rect.sw).toBeCloseTo(400, 0); // 800px wide source at 2× zoom
+  });
+});
+
+describe("whole-signature scale", () => {
+  it("scales text, images, icons and widths together, in both modes", () => {
+    for (const builder of [false, true]) {
+      const base = builder ? asBuilder(doc("corporate-classic")) : doc("corporate-classic");
+      const big: SignatureDoc = { ...base, design: { ...base.design, scale: 1.2 } };
+      const a = renderSignature(base, { variant: "full", mode: "email", resolve: hosted });
+      const b = renderSignature(big, { variant: "full", mode: "email", resolve: hosted });
+      const photo = (r: typeof a) => r.images.find((i) => i.kind === "crop" && i.label === "Photo") as { w: number };
+      expect(photo(b).w).toBe(Math.round(photo(a).w * 1.2));
+      const icon = (r: typeof a) => r.images.find((i) => i.kind === "social") as { size: number };
+      expect(icon(b).size).toBe(Math.round(icon(a).size * 1.2));
+      expect(b.html).toContain(`font-size:${Math.round(base.design.fontSize * 1.2)}px`);
+      expect(validateEmailHtml(b.html).filter((p) => p.level === "error")).toEqual([]);
+    }
+  });
+
+  it("keeps block ids so the canvas can still select them", () => {
+    const d = asBuilder(doc("corporate-classic"));
+    d.design.scale = 0.8;
+    const p = renderSignature(d, { variant: "full", mode: "preview", sourceUrl: () => "blob:x" }).html;
+    for (const { block: b } of walk(d.blocks!)) expect(p).toContain(`data-block="${b.id}"`);
+  });
+});

@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
-import { Copy, Minus, Plus, Trash2, X } from "lucide-react";
+import { Copy, Crop as CropIcon, Minus, Plus, Trash2, X } from "lucide-react";
+import { ICON_CHOICES } from "../core/iconPaths";
+import { glyphSvg, svgDataUrl } from "../render/icons";
+import { uid } from "../lib/id";
 import { col, findBlock, findColumn } from "../core/blocks";
 import { FONTS } from "../core/fonts";
 import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, DetailKey } from "../core/types";
 import { edit, ui, useStudio, type Tab } from "../store/editor";
 import { ImageDrop } from "../ui/ImageDrop";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
-import { MadeWithToggle } from "../panels/DesignPanel";
+import { MadeWithToggle, ScaleControl } from "../panels/DesignPanel";
 import { duplicateSelected, removeSelected, updateBlock, updateColumn } from "./actions";
 import { blockLabel } from "./catalog";
 
@@ -258,7 +261,12 @@ function Content({ b }: { b: Block }) {
       return (
         <>
           <Slider label="Size" unit="px" min={32} max={240} value={b.size ?? (b.type === "photo" ? 84 : 110)} onChange={(v) => set({ size: v }, "size")} />
-          <GoTo tab="images">{b.type === "photo" ? "Change photo" : "Change logo"}</GoTo>
+          <div className="row">
+            <GoTo tab="images">{b.type === "photo" ? "Change photo" : "Change logo"}</GoTo>
+            <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: b.type })}>
+              <CropIcon size={14} /> Zoom &amp; crop
+            </button>
+          </div>
         </>
       );
     case "image":
@@ -285,6 +293,109 @@ function Content({ b }: { b: Block }) {
           <Toggle label="Rounded corners" checked={!!b.radius} onChange={(v) => set({ radius: v ? 8 : 0 })} />
           <TextField label="Link" placeholder="https://…" value={b.link ?? ""} onChange={(v) => set({ link: v }, "link")} />
           <TextField label="Description" hint="for screen readers" value={b.alt ?? ""} onChange={(v) => set({ alt: v }, "alt")} />
+          {b.assetId && (
+            <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: `block:${b.id}` })} data-testid="adjust-image">
+              <CropIcon size={14} /> Zoom &amp; crop
+            </button>
+          )}
+        </>
+      );
+    case "logos":
+      return (
+        <>
+          {b.items.map((it, i) => (
+            <div key={it.id} className="list-item" style={{ display: "grid", gap: 8 }}>
+              <div className="row">
+                <ImageDrop
+                  assetId={it.assetId}
+                  label={`logo ${i + 1}`}
+                  style={{ width: 84, height: 48 }}
+                  onFile={(m) =>
+                    edit((d) => {
+                      d.assets[m.id] = m;
+                      const h = d.blocks && findBlock(d.blocks, b.id);
+                      if (h && h.block.type === "logos") h.block.items[i].assetId = m.id;
+                    })
+                  }
+                />
+                <div style={{ display: "grid", gap: 6, flex: 1, minWidth: 0 }}>
+                  <input
+                    className="input sm"
+                    placeholder="Link (optional)"
+                    value={it.link ?? ""}
+                    aria-label="Logo link"
+                    onChange={(e) => updateBlock(b.id, (x) => x.type === "logos" && void (x.items[i].link = e.target.value), `item.${it.id}.link`)}
+                  />
+                  <input
+                    className="input sm"
+                    placeholder="Name, e.g. Best of 2026"
+                    value={it.alt ?? ""}
+                    aria-label="Logo description"
+                    onChange={(e) => updateBlock(b.id, (x) => x.type === "logos" && void (x.items[i].alt = e.target.value), `item.${it.id}.alt`)}
+                  />
+                </div>
+                <button
+                  className="icon-btn sm"
+                  aria-label="Remove logo"
+                  onClick={() => updateBlock(b.id, (x) => x.type === "logos" && void x.items.splice(i, 1))}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button className="btn sm" onClick={() => updateBlock(b.id, (x) => x.type === "logos" && void x.items.push({ id: uid("i") }))} data-testid="add-logo">
+            <Plus size={14} /> Add a logo
+          </button>
+          <div style={{ height: 10 }} />
+          <Slider label="Height" unit="px" min={16} max={120} value={b.height} onChange={(v) => set({ height: v }, "height")} />
+          <Slider label="Space between" unit="px" min={0} max={40} value={b.gap} onChange={(v) => set({ gap: v }, "gap")} />
+          <p className="hint">Certifications, awards, partners or press logos.</p>
+        </>
+      );
+    case "qr":
+      return (
+        <>
+          <Field label="Opens">
+            <Segmented
+              label="QR code target"
+              value={b.source}
+              onChange={(v) => set({ source: v })}
+              options={[
+                { value: "website", label: "My website" },
+                { value: "digitalCard", label: "Digital card" },
+                { value: "custom", label: "Other link" },
+              ]}
+            />
+          </Field>
+          {b.source === "custom" && <TextField label="Link" placeholder="https://…" value={b.url} onChange={(v) => set({ url: v }, "url")} />}
+          <Slider label="Size" unit="px" min={48} max={200} value={b.size} onChange={(v) => set({ size: v }, "size")} />
+          <TextField label="Caption" hint="optional" value={b.caption} onChange={(v) => set({ caption: v }, "caption")} />
+        </>
+      );
+    case "iconText":
+      return (
+        <>
+          <TextField label="Text" value={b.text} onChange={(v) => set({ text: v }, "text")} testId="inspector-text" />
+          <TextField label="Link" hint="optional" placeholder="https://…" value={b.url} onChange={(v) => set({ url: v }, "url")} />
+          <Field label="Icon">
+            <div className="icon-grid">
+              {ICON_CHOICES.map((ic) => (
+                <button key={ic.id} type="button" aria-pressed={b.icon === ic.id} title={ic.label} aria-label={ic.label} onClick={() => set({ icon: ic.id })}>
+                  <img src={svgDataUrl(glyphSvg(ic.id, 36, "#15131a"))} width={18} height={18} alt="" />
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Toggle label="Filled icon badge" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
+        </>
+      );
+    case "tag":
+      return (
+        <>
+          <TextField label="Text" value={b.text} onChange={(v) => set({ text: v }, "text")} testId="inspector-text" />
+          <TextField label="Link" hint="optional" placeholder="https://…" value={b.url} onChange={(v) => set({ url: v }, "url")} />
+          <Toggle label="Filled" checked={b.filled} onChange={(v) => set({ filled: v })} />
         </>
       );
     case "monogram":
@@ -410,6 +521,7 @@ function SignatureSettings() {
         <Segmented<Align> label="Signature alignment" value={root.align ?? "left"} onChange={(v) => updateColumn(root.id, { align: v })} options={ALIGN} />
       </Field>
       <Slider label="Space between blocks" unit="px" min={0} max={30} value={root.gap} onChange={(v) => updateColumn(root.id, { gap: v }, "gap")} />
+      <ScaleControl />
       <Slider
         label="Max width"
         unit="px"
@@ -462,6 +574,7 @@ export function Inspector() {
               { value: "both", label: "Both" },
               { value: "full", label: "New emails" },
               { value: "reply", label: "Replies" },
+              { value: "hidden", label: "Hidden" },
             ]}
           />
         </>

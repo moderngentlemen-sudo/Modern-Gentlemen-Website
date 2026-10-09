@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Blocks, Copy, CreditCard, LayoutTemplate, Palette, Plus, Search, Settings, Trash2, Upload } from "lucide-react";
 import { BRAND } from "../brand";
 import { applyBrand, applyTemplate } from "../core/apply";
+import { applyProfile } from "../core/profile";
 import { block, col } from "../core/blocks";
 import { newDoc, SAMPLE_DETAILS, SAMPLE_SOCIALS } from "../core/defaults";
 import { ARTISTIC_CATEGORIES, BUSINESS_CATEGORIES, DEFAULT_TEMPLATE, getTemplate, TEMPLATES, type TemplateGroup } from "../core/templates";
@@ -29,8 +30,18 @@ export async function createFromTemplate(templateId: string, opts: CreateOptions
     opts.canva === "signature" ? "My Canva signature" : opts.canva === "card" ? "My business card" : opts.blank ? "My signature" : `${t.name} signature`;
   const doc = newDoc(t.id, t.design, name);
   applyTemplate(doc, t.id);
-  const last = useStudio.getState().docs.find((d) => d.details.name.trim());
-  if (last) {
+  const profile = useStudio.getState().prefs.profile;
+  const last = profile ? null : useStudio.getState().docs.find((d) => d.details.name.trim());
+  if (profile) {
+    applyProfile(doc, profile);
+    // The logo isn't part of the profile; keep the one from the last signature.
+    const prev = useStudio.getState().docs.find((d) => d.images.logo.assetId && d.assets[d.images.logo.assetId]);
+    if (prev) {
+      const id = prev.images.logo.assetId!;
+      doc.assets[id] = prev.assets[id];
+      doc.images.logo = { ...doc.images.logo, assetId: id };
+    }
+  } else if (last) {
     doc.details = structuredClone(last.details);
     doc.socials = structuredClone(last.socials);
     for (const slot of ["photo", "logo"] as const) {
@@ -49,7 +60,7 @@ export async function createFromTemplate(templateId: string, opts: CreateOptions
   if (opts.brand) {
     applyBrand(doc, opts.brand, { fillEmpty: true });
     // Sample content isn't the user's: their brand's company and website win.
-    if (!last && !opts.canva) {
+    if (!profile && !last && !opts.canva) {
       if (opts.brand.company) doc.details.company = opts.brand.company;
       if (opts.brand.website) doc.details.website = opts.brand.website;
     }

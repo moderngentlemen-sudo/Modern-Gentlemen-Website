@@ -7,6 +7,7 @@ import { produce, type Draft } from "immer";
 import type { SignatureDoc, Variant } from "../core/types";
 import { defaultCard } from "../core/defaults";
 import { go } from "../router";
+import { applyProfile, isLinked, isSampleOnly, profileFromDoc, sameProfile } from "../core/profile";
 import { docStore, prefStore, DEFAULT_PREFS, type Prefs } from "../storage/db";
 
 export type Tab = "blocks" | "layers" | "templates" | "details" | "images" | "social" | "design" | "addons" | "card" | "install";
@@ -38,6 +39,8 @@ interface State {
   dialogArg: string | null;
   /** Builder: the selected block. */
   selected: string | null;
+  /** Canvas zoom (view only — never changes the signature). */
+  zoom: number;
 }
 
 const LIMIT = 150;
@@ -64,6 +67,7 @@ export const useStudio = create<State>(() => ({
   dialog: null,
   dialogArg: null,
   selected: null,
+  zoom: 1,
 }));
 
 const get = () => useStudio.getState();
@@ -122,10 +126,35 @@ export async function flushSave() {
     await docStore.put(saved);
     const docs = get().docs.filter((d) => d.id !== saved.id);
     set({ saving: "saved", docs: [saved, ...docs] });
+    await syncProfile(saved);
   } catch {
     set({ saving: "error" });
     toast("Couldn't save in this browser. Export a backup from Settings.", "error");
   }
+}
+
+/**
+ * A linked signature's details, social links and photo are the user's saved
+ * profile: when they change, the profile and every other linked signature
+ * follow.
+ */
+async function syncProfile(source: SignatureDoc) {
+  if (!isLinked(source)) return;
+  const current = get().prefs.profile;
+  const next = profileFromDoc(source);
+  if (current ? sameProfile(current, next) : isSampleOnly(next)) return;
+  updatePrefs({ profile: next });
+  const updated: SignatureDoc[] = [];
+  for (const d of get().docs) {
+    if (d.id === source.id || !isLinked(d) || sameProfile(profileFromDoc(d), next)) continue;
+    const copy = structuredClone(d);
+    applyProfile(copy, next);
+    updated.push(copy);
+  }
+  if (!updated.length) return;
+  await Promise.all(updated.map((d) => docStore.put(d)));
+  const byId = new Map(updated.map((d) => [d.id, d]));
+  set({ docs: get().docs.map((d) => byId.get(d.id) ?? d) });
 }
 
 export async function loadAll() {
@@ -134,6 +163,12 @@ export async function loadAll() {
 }
 
 export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", navigate = true) {
+  // A linked signature always opens with the latest saved profile.
+  const profile = get().prefs.profile;
+  if (profile && isLinked(doc) && !sameProfile(profileFromDoc(doc), profile)) {
+    doc = structuredClone(doc);
+    applyProfile(doc, profile);
+  }
   set({
     doc,
     past: [],

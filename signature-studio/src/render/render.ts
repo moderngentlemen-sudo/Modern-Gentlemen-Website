@@ -10,6 +10,7 @@ import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
 import { mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
+import { clampScale, scaleDoc } from "../core/scale";
 import { fontStack } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
 import type { Block, BlockStyle, BlockType, Box, Column, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
@@ -46,6 +47,8 @@ export interface RenderOptions {
   sourceUrl?: (assetId: string) => string | null;
   /** Fallback-font preview ("as most inboxes show it"). */
   fallbackFonts?: boolean;
+  /** Builder canvas: show hidden blocks faded so they can still be selected. */
+  editing?: boolean;
 }
 
 export interface RenderResult {
@@ -68,6 +71,13 @@ interface Ctx {
   preview: boolean;
   compact: boolean;
   show: { photo: boolean; logo: boolean; social: boolean; addons: boolean; card: boolean };
+  /** Whole-signature scale; stored sizes are pre-scaled, built-in ones go through z(). */
+  k: number;
+}
+
+/** Scale one of the renderer's own built-in sizes. */
+function z(c: Ctx, n: number): number {
+  return Math.round(n * c.k);
 }
 
 const TABLE = 'cellpadding="0" cellspacing="0" border="0" role="presentation"';
@@ -339,7 +349,7 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
   if (!meta) return "";
   const w = o.size ?? slot.size;
   const square = slot.shape === "circle" || label === "Photo";
-  const aspect = square ? 1 : meta.width / meta.height;
+  const aspect = square ? 1 : (slot.aspect ?? meta.width / meta.height);
   const h = Math.max(1, Math.round(w / aspect));
   const rect = cropRect(meta.width, meta.height, aspect, slot.crop);
   const radius = slot.shape === "rounded" ? Math.round(w * 0.12) : 0;
@@ -514,23 +524,23 @@ const L: Record<LayoutId, Layout> = {
     const left = photoHtml(c) || logoHtml(c);
     const right = stack(
       c,
-      [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), left && photoHtml(c) ? logoHtml(c, Math.min(c.doc.images.logo.size, 90)) : ""],
+      [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), left && photoHtml(c) ? logoHtml(c, Math.min(c.doc.images.logo.size, z(c, 90))) : ""],
       6,
     );
     if (!left) return right;
     return table(row(vRule(c).cells(cell(left, "vertical-align:top;"), cell(right, "vertical-align:top;"))));
   },
-  stacked: (c) => stack(c, [photoHtml(c), stack(c, [nameHtml(c), titleHtml(c)], 2), hRule(c, 260), contactsHtml(c), socialsHtml(c), logoHtml(c)], 8),
+  stacked: (c) => stack(c, [photoHtml(c), stack(c, [nameHtml(c), titleHtml(c)], 2), hRule(c, z(c, 260)), contactsHtml(c), socialsHtml(c), logoHtml(c)], 8),
   centered: (c) =>
     stack(
       c,
       [
         photoHtml(c) || logoHtml(c),
         stack(c, [nameHtml(c, { align: "center" }), titleHtml(c, { align: "center" })], 2, "center"),
-        hRule(c, 60),
+        hRule(c, z(c, 60)),
         contactsHtml(c, { inline: true, align: "center" }),
         socialsHtml(c, { align: "center" }),
-        photoHtml(c) ? logoHtml(c, 90) : "",
+        photoHtml(c) ? logoHtml(c, z(c, 90)) : "",
       ],
       8,
       "center",
@@ -551,21 +561,21 @@ const L: Record<LayoutId, Layout> = {
     );
     const body = table(
       row(
-        (photoHtml(c, 64) ? cell(photoHtml(c, 64), `vertical-align:top;padding-right:${sp(c, 14)}px;`) : "") +
+        (photoHtml(c, z(c, 64)) ? cell(photoHtml(c, z(c, 64)), `vertical-align:top;padding-right:${sp(c, 14)}px;`) : "") +
           cell(stack(c, [contactsHtml(c), socialsHtml(c)], 8), "vertical-align:top;") +
-          (logoHtml(c) ? cell(logoHtml(c, 90), `vertical-align:top;padding-left:${sp(c, 14)}px;`, 'align="right"') : ""),
+          (logoHtml(c) ? cell(logoHtml(c, z(c, 90)), `vertical-align:top;padding-left:${sp(c, 14)}px;`, 'align="right"') : ""),
       ),
     );
     return table(
       row(cell(band)) +
         row(cell(body, `padding:${pad}px ${pad + 4}px;border:1px solid ${mix(d.accent, "#ffffff", 0.82)};border-top:0;border-radius:0 0 8px 8px;`)),
-      `width:${Math.min(d.width, 460)}px;`,
-      `width="${Math.min(d.width, 460)}"`,
+      `width:${Math.min(d.width, z(c, 460))}px;`,
+      `width="${Math.min(d.width, z(c, 460))}"`,
     );
   },
   sidebar: (c) => {
     const d = c.doc.design;
-    const details = stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), logoHtml(c, 90)], 6);
+    const details = stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), logoHtml(c, z(c, 90))], 6);
     const bar = cell("&nbsp;", `width:4px;background-color:${d.accent};font-size:1px;border-radius:2px;`, `width="4" bgcolor="${esc(d.accent)}"`);
     const photo = photoHtml(c);
     return table(
@@ -584,7 +594,7 @@ const L: Record<LayoutId, Layout> = {
           cell(stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c)], 6), "vertical-align:middle;"),
       ),
     );
-    const logo = logoHtml(c, 80);
+    const logo = logoHtml(c, z(c, 80));
     return table(
       row(cell(stack(c, [inner, logo], 12), `background-color:${d.surface};padding:${pad}px ${pad + 4}px;border-radius:14px;`, `bgcolor="${esc(d.surface)}"`)),
     );
@@ -592,7 +602,7 @@ const L: Record<LayoutId, Layout> = {
   split3: (c) => {
     const photo = photoHtml(c);
     const mid = stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c)], 6);
-    const right = stack(c, [logoHtml(c, 90), socialsHtml(c)], 10);
+    const right = stack(c, [logoHtml(c, z(c, 90)), socialsHtml(c)], 10);
     let cells = (photo ? cell(photo, `vertical-align:middle;padding-right:${sp(c, 14)}px;`) : "") + cell(mid, "vertical-align:middle;");
     if (right) cells = vRule(c).cells(cells, cell(right, "vertical-align:middle;"));
     return table(row(cells));
@@ -601,9 +611,9 @@ const L: Record<LayoutId, Layout> = {
     const d = c.doc.design;
     const head = [nameHtml(c, { size: Math.round(d.fontSize * 1.1) }), titleHtml(c)].filter(Boolean);
     const line = table(row(head.map((h, i) => cell(h, i ? `padding-left:${sp(c, 10)}px;vertical-align:bottom;` : "vertical-align:bottom;")).join("")));
-    const photo = photoHtml(c, 44);
-    const logo = logoHtml(c, 64);
-    const body = stack(c, [line, contactsHtml(c, { inline: true }), socialsHtml(c, { size: 16 })], 4);
+    const photo = photoHtml(c, z(c, 44));
+    const logo = logoHtml(c, z(c, 64));
+    const body = stack(c, [line, contactsHtml(c, { inline: true }), socialsHtml(c, { size: z(c, 16) })], 4);
     const img = photo || logo;
     return img ? table(row(cell(img, `vertical-align:middle;padding-right:${sp(c, 12)}px;`) + cell(body, "vertical-align:middle;"))) : body;
   },
@@ -615,20 +625,20 @@ const L: Record<LayoutId, Layout> = {
         : "";
     const name = nameHtml(c, { size: Math.round(d.fontSize * d.nameScale * 1.35) });
     const title = c.doc.details.title.trim() ? text(c, esc(c.doc.details.title), { italic: true, color: d.muted, role: "heading", size: d.fontSize + 1 }) : "";
-    return stack(c, [company, name, title, hRule(c, 320), contactsHtml(c, { inline: true }), socialsHtml(c), logoHtml(c, 90)], 6);
+    return stack(c, [company, name, title, hRule(c, z(c, 320)), contactsHtml(c, { inline: true }), socialsHtml(c), logoHtml(c, z(c, 90))], 6);
   },
   monogram: (c) => {
     const left = photoHtml(c) || monogramTile(c, Math.round(64 * c.doc.design.spacing));
     return table(
       row(
         cell(left, `vertical-align:top;padding-right:${sp(c, 16)}px;`) +
-          cell(stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), logoHtml(c, 90)], 6), "vertical-align:top;"),
+          cell(stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), logoHtml(c, z(c, 90))], 6), "vertical-align:top;"),
       ),
     );
   },
   photoRight: (c) => {
     const right = photoHtml(c) || logoHtml(c);
-    const left = stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), photoHtml(c) ? logoHtml(c, 90) : ""], 6);
+    const left = stack(c, [nameHtml(c), titleHtml(c), contactsHtml(c), socialsHtml(c), photoHtml(c) ? logoHtml(c, z(c, 90)) : ""], 6);
     if (!right) return left;
     return table(row(vRule(c).cells(cell(left, "vertical-align:top;"), cell(right, "vertical-align:top;"))));
   },
@@ -651,7 +661,7 @@ const L: Record<LayoutId, Layout> = {
     const chipRows = contactsChips(c);
     const top = table(
       row(
-        (logoHtml(c, 56) ? cell(logoHtml(c, 56), `vertical-align:middle;padding-right:${sp(c, 12)}px;`) : "") +
+        (logoHtml(c, z(c, 56)) ? cell(logoHtml(c, z(c, 56)), `vertical-align:middle;padding-right:${sp(c, 12)}px;`) : "") +
           cell(stack(c, [nameHtml(c), titleHtml(c)], 2), "vertical-align:middle;"),
       ),
     );
@@ -760,8 +770,8 @@ function videoHtml(c: Ctx, assetId: string | undefined, url: string, title: stri
   if (!assetId || !c.doc.assets[assetId]) return "";
   const d = c.doc.design;
   const meta = c.doc.assets[assetId];
-  const w = 240;
-  const h = 135;
+  const w = z(c, 240);
+  const h = z(c, 135);
   const rect = cropRect(meta.width, meta.height, w / h, { x: 0, y: 0, zoom: 1 });
   const req: ImageRequest = { kind: "video", key: `video|${meta.hash}|${w}x${h}`, label: "Video thumbnail", assetId, w, h, rect };
   let thumb: string;
@@ -790,7 +800,7 @@ function appsHtml(c: Ctx, appStore: string, googlePlay: string): string {
     ["google", googlePlay],
   ] as const) {
     if (!url.trim()) continue;
-    const height = 34;
+    const height = z(c, 34);
     const req: ImageRequest = {
       kind: "badge",
       key: `badge|${store}|${height}`,
@@ -808,11 +818,14 @@ function digitalCardLinkHtml(c: Ctx, digitalUrl: string | null): string {
   const d = c.doc.design;
   const url = digitalUrl ?? (c.preview ? "https://example.com/card" : null);
   if (!url) return "";
-  const qrReq: ImageRequest = { kind: "qr", key: `qr|${url}|64|${d.text}`, label: "Digital card QR code", value: url, size: 64, color: d.text };
-  const qr = source(c, qrReq, () => svgDataUrl(qrSvg(url, 64, d.text)));
+  const size = z(c, 64);
+  const qrReq: ImageRequest = { kind: "qr", key: `qr|${url}|${size}|${d.text}`, label: "Digital card QR code", value: url, size, color: d.text };
+  const qr = source(c, qrReq, () => svgDataUrl(qrSvg(url, size, d.text)));
   return table(
     row(
-      (qr ? cell(link(url, imgTag(qr, 64, 64, "QR code to my digital business card"), d.accent), `padding-right:${sp(c, 10)}px;vertical-align:middle;`) : "") +
+      (qr
+        ? cell(link(url, imgTag(qr, size, size, "QR code to my digital business card"), d.accent), `padding-right:${sp(c, 10)}px;vertical-align:middle;`)
+        : "") +
         cell(
           text(c, link(url, "View my digital business card&nbsp;&rarr;", d.accent), { weight: 600, color: d.accent }) +
             text(c, "Save my contact in one tap", { size: d.fontSize - 2, color: d.muted }),
@@ -1084,10 +1097,76 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         assetId: b.assetId,
         size: b.width,
         shape: b.radius ? "rounded" : "square",
-        crop: { x: 0, y: 0, zoom: 1 },
+        crop: b.crop ?? { x: 0, y: 0, zoom: 1 },
         link: b.link || undefined,
+        aspect: b.aspect,
       };
       return (b.assetId && c.doc.assets[b.assetId] ? slotImage(c, slot, b.alt || "Image") : "") || empty("Image", Math.min(b.width, 200), 60);
+    }
+    case "logos": {
+      const cells = b.items
+        .map((it) => {
+          const m = it.assetId ? c.doc.assets[it.assetId] : null;
+          if (!m) return "";
+          const slot: ImageSlot = {
+            assetId: it.assetId,
+            size: Math.max(1, Math.round((b.height * m.width) / m.height)),
+            shape: "square",
+            crop: { x: 0, y: 0, zoom: 1 },
+            link: it.link || undefined,
+          };
+          return slotImage(c, slot, it.alt || "Logo");
+        })
+        .filter(Boolean);
+      if (!cells.length) return empty("Logo row — add logos in the inspector");
+      return table(row(cells.map((h, i) => cell(h, `vertical-align:middle;${i ? `padding-left:${b.gap}px;` : ""}`)).join("")));
+    }
+    case "qr": {
+      const url =
+        b.source === "digitalCard"
+          ? (digitalUrl ?? (c.preview && c.doc.card.assetId ? "https://example.com/card" : null))
+          : b.source === "custom"
+            ? b.url.trim()
+              ? normalizeWebUrl(b.url)
+              : null
+            : websiteHref(c.doc.details.website);
+      const safe = safeHref(url);
+      if (!safe) return empty(b.source === "digitalCard" ? "QR code (needs a digital card)" : "QR code — add a link", b.size, b.size);
+      const req: ImageRequest = { kind: "qr", key: `qr|${safe}|${b.size}|${d.text}`, label: "QR code", value: safe, size: b.size, color: d.text };
+      const src = source(c, req, () => svgDataUrl(qrSvg(safe, b.size, d.text)));
+      if (!src) return "";
+      const code = link(safe, imgTag(src, b.size, b.size, b.caption || "QR code"), d.accent);
+      return b.caption.trim() ? stack(c, [code, text(c, esc(b.caption), { size: Math.max(9, d.fontSize - 3), color: d.muted, align })], 3, align) : code;
+    }
+    case "iconText": {
+      if (!b.text.trim()) return empty("Icon line");
+      const s = Math.max(12, d.fontSize);
+      const icon = b.iconBg ? glyphImg(c, b.icon, s + 6, "#ffffff", d.accent) : glyphImg(c, b.icon, s, d.accent);
+      const is = b.iconBg ? s + 6 : s;
+      const href = b.url.trim() ? normalizeWebUrl(b.url) : null;
+      return text(c, `${icon ? `${inlineImg(icon, is, is, "")}&nbsp;&nbsp;` : ""}${link(href, escText(b.text), d.text)}`, { align });
+    }
+    case "tag": {
+      if (!b.text.trim()) return empty("Tag");
+      const href = b.url.trim() ? normalizeWebUrl(b.url) : null;
+      const color = b.filled ? "#ffffff" : d.accent;
+      const label = text(c, link(href, esc(b.text), color), { size: Math.max(9, d.fontSize - 2), weight: 700, color, nowrap: true, tracking: 0.02 });
+      return table(
+        row(
+          cell(
+            label,
+            css({
+              "background-color": b.filled ? d.accent : undefined,
+              border: b.filled ? undefined : `1.5px solid ${d.accent}`,
+              "border-radius": "999px",
+              padding: `${sp(c, 3)}px ${sp(c, 10)}px`,
+            }),
+            b.filled ? `bgcolor="${esc(d.accent)}"` : "",
+          ),
+        ),
+        "border-collapse:separate;",
+        align === "center" ? 'align="center"' : "",
+      );
     }
     case "monogram":
       return monogramTile(c, b.size);
@@ -1128,10 +1207,12 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
 }
 
 function blockHtml(c: Ctx, b: Block, digitalUrl: string | null): string {
-  if (!showsIn(b, c.opts.variant)) return "";
+  const shown = showsIn(b, c.opts.variant);
+  // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
+  if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
   const html = boxed(leafHtml(c, b, digitalUrl), b.style?.box);
   if (!c.preview) return html;
-  return `<div data-block="${esc(b.id)}">${html}</div>`;
+  return `<div data-block="${esc(b.id)}"${shown ? "" : ' style="opacity:.3;"'}>${html}</div>`;
 }
 
 function columnHtml(c: Ctx, col: Column, digitalUrl: string | null): string {
@@ -1191,7 +1272,9 @@ function madeWithHtml(c: Ctx): string {
 // Entry
 // ---------------------------------------------------------------------------
 
-export function renderSignature(doc: SignatureDoc, opts: RenderOptions): RenderResult {
+export function renderSignature(input: SignatureDoc, opts: RenderOptions): RenderResult {
+  const k = clampScale(input.design.scale);
+  const doc = scaleDoc(input, k);
   const reply = opts.variant === "reply";
   const compact = reply && doc.reply.compact;
   const c: Ctx = {
@@ -1208,6 +1291,7 @@ export function renderSignature(doc: SignatureDoc, opts: RenderOptions): RenderR
       addons: !reply,
       card: !reply || doc.card.inReplies,
     },
+    k,
   };
   const template = getTemplate(doc.templateId);
   const digitalUrl = doc.digitalCardUrl ?? null;

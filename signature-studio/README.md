@@ -9,6 +9,19 @@ Signatures paste straight into Gmail. Product plan and name shortlist:
   inspector, per-block style and panels, new-email/reply visibility, keyboard
   shortcuts, undo; works with touch. Every layout compiles to Gmail-safe tables.
 - **Brand kit:** colours, fonts, logo, company — for new signatures and on demand.
+- **Builder quality of life:**
+  - Canvas handles: resize handles on photos, logos, images, QR codes, text and spacers, and a drag grip.
+  - Canvas zoom.
+  - Double-click a block to edit it.
+  - Copy and paste blocks.
+  - Layers with hide/show and move up/down.
+  - Search in the block palette.
+- **More blocks:**
+  - QR code, logo row (awards, partners), icon line and tag.
+  - Ready-made combinations: promo card, event, testimonial, office hours, "We're hiring", contact row.
+- **Zoom & crop** for the photo, the logo and any image block: drag to reposition, scroll to zoom, choose a frame shape.
+- **Overall size:** scale a whole signature from 70% to 150% with one control.
+- **Saved details:** contact details, social links and photo are entered once and shared by every linked signature.
 - **Routes:** `/` marketing site, `/app` dashboard, `/app/s/<id>` editor,
   `?card=…` digital card.
 

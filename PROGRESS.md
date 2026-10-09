@@ -55,6 +55,28 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: quality-of-life features
+
+- **Builder:**
+  - Resize handles; what they change depends on the block (`src/builder/resize.ts`), and they edit real size properties, not CSS transforms (D37).
+  - A side drag grip, canvas zoom (`ui.zoom`; view only), and double-click to edit.
+  - Copy/paste with ⌘C/⌘V, using an in-memory clipboard.
+  - Layers with hide/show and move up/down.
+  - Search in the block palette.
+- **Hidden blocks:** a block whose `visibility` is `"hidden"` is never sent, but shows faded on the canvas so it can still be selected.
+- **New blocks:**
+  - `qr`, `logos`, `iconText` and `tag`.
+  - Ten more glyphs in `ICON_CHOICES`.
+  - Six ready-made palette entries.
+  - Tap-to-add on a selected panel now goes after the panel. It used to nest inside it.
+- **Zoom & crop:** the photo, the logo and image blocks each have `crop`/`aspect`. The crop dialog supports drag to pan, scroll to zoom, and choosing a frame shape.
+- **Overall size:** `design.scale` (0.7–1.5). `core/scale.ts` scales the stored sizes, and the renderer passes its built-in sizes through `z()` (D36).
+- **Saved profile:** `prefs.profile` holds the details, social links and photo.
+  - Linked signatures (`useProfile`, on by default) sync on save, and refresh from the profile when opened.
+  - New signatures start from the profile.
+  - Untouched sample content is never saved as a profile (D35).
+- **Gates:** `npm test` (31), `npm run e2e` (12), `npm run build`.
+
 ### 2026-10-09 — "Made with Signet" link on free signatures
 
 - The owner chose this over ads (D34). The renderer adds a small muted link under

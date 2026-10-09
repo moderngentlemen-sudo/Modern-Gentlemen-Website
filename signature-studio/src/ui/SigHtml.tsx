@@ -34,8 +34,8 @@ export const SigHtml = memo(function SigHtml({ html, className, testId }: { html
   return <div ref={ref} className={className} data-testid={testId} />;
 });
 
-export function previewHtml(doc: SignatureDoc, variant: Variant = "full", fallbackFonts = false) {
-  return renderSignature(doc, { variant, mode: "preview", sourceUrl: previewSource, fallbackFonts }).html;
+export function previewHtml(doc: SignatureDoc, variant: Variant = "full", fallbackFonts = false, editing = false) {
+  return renderSignature(doc, { variant, mode: "preview", sourceUrl: previewSource, fallbackFonts, editing }).html;
 }
 
 /** A scaled-down live signature, for gallery tiles. */

@@ -32,6 +32,8 @@ export interface ImageSlot {
   /** Pan/zoom framing inside the slot. */
   crop: { x: number; y: number; zoom: number };
   link?: string;
+  /** Frame aspect (width / height); defaults to square for photos, the image's own for others. */
+  aspect?: number;
 }
 
 export interface Images {
@@ -100,6 +102,8 @@ export interface Design {
   social: SocialStyle;
   /** Name text transform. */
   nameCase: "normal" | "upper";
+  /** Overall size of the signature (1 = as designed). Scales text, images, icons and spacing together. */
+  scale?: number;
 }
 
 export interface AddOns {
@@ -203,6 +207,8 @@ export interface SignatureDoc {
   blocks?: Column;
   /** Show the small "Made with …" link under new-email signatures (default on). */
   madeWith?: boolean;
+  /** Share details, social links and photo with your saved profile (default on). */
+  useProfile?: boolean;
 }
 
 export type Variant = "full" | "reply";
@@ -248,8 +254,8 @@ export interface Column {
 
 interface BlockBase {
   id: string;
-  /** Which signature version shows the block (default: both). */
-  visibility?: "both" | "full" | "reply";
+  /** Which signature version shows the block (default: both); "hidden" keeps it but never shows it. */
+  visibility?: "both" | "full" | "reply" | "hidden";
   style?: BlockStyle;
 }
 
@@ -266,7 +272,20 @@ export type Block = BlockBase &
     | { type: "socials"; size?: number }
     | { type: "photo"; size?: number }
     | { type: "logo"; size?: number }
-    | { type: "image"; assetId?: string; width: number; link?: string; alt?: string; radius?: number }
+    | {
+        type: "image";
+        assetId?: string;
+        width: number;
+        link?: string;
+        alt?: string;
+        radius?: number;
+        aspect?: number;
+        crop?: { x: number; y: number; zoom: number };
+      }
+    | { type: "logos"; items: { id: string; assetId?: string; link?: string; alt?: string }[]; height: number; gap: number }
+    | { type: "qr"; source: "website" | "digitalCard" | "custom"; url: string; size: number; caption: string }
+    | { type: "iconText"; icon: string; text: string; url: string; iconBg?: boolean }
+    | { type: "tag"; text: string; url: string; filled: boolean }
     | { type: "monogram"; size: number }
     | { type: "divider"; width?: number; thickness?: number }
     | { type: "spacer"; height: number }

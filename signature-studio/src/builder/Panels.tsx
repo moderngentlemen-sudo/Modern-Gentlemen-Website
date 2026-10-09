@@ -1,23 +1,44 @@
-import { ChevronRight, EyeOff, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, RotateCcw, Search } from "lucide-react";
 import type { Block, Column } from "../core/types";
 import { ui, useStudio } from "../store/editor";
-import { addBlock, resetLayout } from "./actions";
+import { addBlock, nudgeBlock, resetLayout, toggleHidden } from "./actions";
 import { blockLabel, CATALOG, type CatalogItem } from "./catalog";
 import { armDrag } from "./dnd";
 
-const GROUPS: CatalogItem["group"][] = ["Layout", "You", "Content", "Promote"];
-const GROUP_LABEL: Record<CatalogItem["group"], string> = { Layout: "Layout", You: "About you", Content: "Content", Promote: "Promote" };
+const GROUPS: CatalogItem["group"][] = ["Layout", "You", "Content", "Promote", "Ready-made"];
+const GROUP_LABEL: Record<CatalogItem["group"], string> = {
+  Layout: "Layout",
+  You: "About you",
+  Content: "Content",
+  Promote: "Promote",
+  "Ready-made": "Ready-made",
+};
 
 export function BlocksPanel() {
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const matches = (c: CatalogItem) => !query || `${c.label} ${c.hint} ${c.group}`.toLowerCase().includes(query);
   return (
     <>
       <h2>Blocks</h2>
       <p className="lede">Drag a block onto your signature, or tap to add it below the selected block.</p>
-      {GROUPS.map((g) => (
+      <div className="palette-search">
+        <Search size={16} />
+        <input
+          className="input"
+          placeholder="Find a block: QR, hours, logo…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Find a block"
+          data-testid="palette-search"
+        />
+      </div>
+      {GROUPS.filter((g) => CATALOG.some((c) => c.group === g && matches(c))).map((g) => (
         <section key={g}>
           <div className="section-title">{GROUP_LABEL[g]}</div>
           <div className="palette-blocks">
-            {CATALOG.filter((c) => c.group === g).map((item) => (
+            {CATALOG.filter((c) => c.group === g && matches(c)).map((item) => (
               <button
                 key={item.id}
                 className="pblock"
@@ -54,10 +75,41 @@ function LayerRows({ column, depth }: { column: Column; depth: number }) {
     <>
       {column.blocks.map((b: Block) => (
         <div key={b.id}>
-          <button className="layer" aria-current={selected === b.id} style={{ paddingLeft: 10 + depth * 16 }} onClick={() => ui({ selected: b.id })}>
+          <button
+            className={`layer${b.visibility === "hidden" ? " is-hidden" : ""}`}
+            aria-current={selected === b.id}
+            style={{ paddingLeft: 10 + depth * 16 }}
+            onClick={() => ui({ selected: b.id })}
+            data-testid="layer"
+          >
             {b.type === "row" ? <ChevronRight size={13} style={{ transform: "rotate(90deg)" }} /> : <span style={{ width: 13 }} />}
             <span className="grow">{blockLabel(b)}</span>
-            {b.visibility && b.visibility !== "both" && (
+            <span className="layer-actions">
+              {[
+                {
+                  icon: b.visibility === "hidden" ? <Eye size={13} /> : <EyeOff size={13} />,
+                  label: b.visibility === "hidden" ? "Show" : "Hide",
+                  run: () => toggleHidden(b.id),
+                },
+                { icon: <ArrowUp size={13} />, label: "Move up", run: () => nudgeBlock(b.id, -1) },
+                { icon: <ArrowDown size={13} />, label: "Move down", run: () => nudgeBlock(b.id, 1) },
+              ].map((a) => (
+                <span
+                  key={a.label}
+                  role="button"
+                  tabIndex={-1}
+                  title={a.label}
+                  aria-label={`${a.label} ${blockLabel(b)}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    a.run();
+                  }}
+                >
+                  {a.icon}
+                </span>
+              ))}
+            </span>
+            {b.visibility && b.visibility !== "both" && b.visibility !== "hidden" && (
               <span className="badge" title={b.visibility === "full" ? "New emails only" : "Replies only"}>
                 <EyeOff size={11} /> {b.visibility === "full" ? "New" : "Reply"}
               </span>

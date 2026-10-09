@@ -1,5 +1,5 @@
 /** Builder commands. Every change goes through `edit`, so it is undoable and autosaved. */
-import { blocksFromDoc, duplicateBlock, findBlock, findColumn, insertBlock, moveBlock, removeBlock, rowOfColumn } from "../core/blocks";
+import { blocksFromDoc, cloneBlock, duplicateBlock, findBlock, findColumn, insertBlock, moveBlock, removeBlock, rowOfColumn } from "../core/blocks";
 import type { Block, Column } from "../core/types";
 import { edit, toast, ui, undo, useStudio } from "../store/editor";
 
@@ -38,8 +38,9 @@ export function defaultTarget(): DropTarget | null {
   const sel = useStudio.getState().selected;
   const hit = sel ? findBlock(d.blocks, sel) : null;
   if (hit) {
-    // Selecting a row and adding drops into its first column.
-    if (hit.block.type === "row" && hit.block.columns.length) return { columnId: hit.block.columns[0].id, index: hit.block.columns[0].blocks.length };
+    // A selected row with an empty column gets filled; otherwise the new block goes after it.
+    const empty = hit.block.type === "row" ? hit.block.columns.find((c) => !c.blocks.length) : undefined;
+    if (empty) return { columnId: empty.id, index: 0 };
     return { columnId: hit.parent.id, index: hit.index + 1 };
   }
   return { columnId: d.blocks.id, index: d.blocks.blocks.length };
@@ -125,4 +126,34 @@ export function updateColumn(id: string, patch: Partial<Column> | ((c: Column) =
     },
     key ? `col.${id}.${key}` : undefined,
   );
+}
+
+/** Move any block up/down within its column (layers panel). */
+export function nudgeBlock(id: string, by: -1 | 1) {
+  ui({ selected: id });
+  nudgeSelected(by);
+}
+
+/** Hide a block without deleting it (or show it again). */
+export function toggleHidden(id: string) {
+  updateBlock(id, (b) => void (b.visibility = b.visibility === "hidden" ? undefined : "hidden"));
+}
+
+let clipboard: Block | null = null;
+
+/** Copy the selected block (⌘C) — kept in memory for ⌘V, across signatures. */
+export function copySelected(): boolean {
+  const d = doc();
+  const id = useStudio.getState().selected;
+  const hit = d?.blocks && id ? findBlock(d.blocks, id) : null;
+  if (!hit) return false;
+  clipboard = cloneBlock(hit.block);
+  toast("Block copied — paste with ⌘V", "info");
+  return true;
+}
+
+export function pasteBlock(): boolean {
+  if (!clipboard) return false;
+  addBlock(cloneBlock(clipboard));
+  return true;
 }

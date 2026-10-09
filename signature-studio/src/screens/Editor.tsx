@@ -19,6 +19,8 @@ import {
   Type,
   Undo2,
   User,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { goHome, redo, ui, undo, useStudio, edit, type Tab } from "../store/editor";
 import { Segmented, Switch } from "../ui/kit";
@@ -33,7 +35,7 @@ import { CardPanel } from "../panels/CardPanel";
 import { BlocksPanel, LayersPanel } from "../builder/Panels";
 import { Inspector } from "../builder/Inspector";
 import { DragLayer, Stage } from "../builder/Stage";
-import { duplicateSelected, enterBuilder, enterQuick, nudgeSelected, removeSelected } from "../builder/actions";
+import { copySelected, duplicateSelected, enterBuilder, enterQuick, nudgeSelected, pasteBlock, removeSelected } from "../builder/actions";
 
 type NavItem = { id: Tab; label: string; icon: ReactNode };
 
@@ -87,6 +89,7 @@ function useShortcuts(builder: boolean) {
       if (!builder || useStudio.getState().dialog) return;
       const sel = useStudio.getState().selected;
       if (k === "escape") ui({ selected: null });
+      if (mod && k === "v" && pasteBlock()) return e.preventDefault();
       if (!sel) return;
       if (k === "delete" || k === "backspace") {
         e.preventDefault();
@@ -94,6 +97,8 @@ function useShortcuts(builder: boolean) {
       } else if (mod && k === "d") {
         e.preventDefault();
         duplicateSelected();
+      } else if (mod && k === "c") {
+        if (copySelected()) e.preventDefault();
       } else if (e.altKey && (k === "arrowup" || k === "arrowdown")) {
         e.preventDefault();
         nudgeSelected(k === "arrowup" ? -1 : 1);
@@ -159,8 +164,10 @@ function Preview() {
   const device = useStudio((s) => s.device);
   const dark = useStudio((s) => s.darkPreview);
   const fallbackFonts = useStudio((s) => s.fallbackFonts);
-  const html = previewHtml(doc, variant, fallbackFonts);
   const builder = doc.mode === "builder";
+  const zoom = useStudio((s) => s.zoom);
+  const html = previewHtml(doc, variant, fallbackFonts, builder);
+  const setZoom = (z: number) => ui({ zoom: Math.round(Math.min(2, Math.max(0.5, z)) * 100) / 100 });
   const editable = builder && !(variant === "reply" && doc.reply.compact);
   return (
     <main
@@ -196,6 +203,17 @@ function Preview() {
           <Moon size={14} /> Dark
           <Switch checked={dark} onChange={(v) => ui({ darkPreview: v })} label="Dark mode preview" />
         </label>
+        <div className="zoom-ctl" role="group" aria-label="Zoom">
+          <button onClick={() => setZoom(zoom - 0.1)} aria-label="Zoom out" title="Zoom out">
+            <ZoomOut size={15} />
+          </button>
+          <button onClick={() => setZoom(1)} title="Actual size" data-testid="zoom-level" style={{ minWidth: 46 }}>
+            {Math.round(zoom * 100)}%
+          </button>
+          <button onClick={() => setZoom(zoom + 0.1)} aria-label="Zoom in" title="Zoom in">
+            <ZoomIn size={15} />
+          </button>
+        </div>
         <label className="chip desktop-only" title="Show the fonts most recipients will actually see">
           <Type size={14} /> Inbox fonts
           <Switch checked={fallbackFonts} onChange={(v) => ui({ fallbackFonts: v })} label="Inbox fonts preview" />
@@ -227,7 +245,9 @@ function Preview() {
           {editable ? (
             <Stage html={html} />
           ) : html ? (
-            <SigHtml html={html} className="sig-host" testId="preview" />
+            <div style={{ zoom }}>
+              <SigHtml html={html} className="sig-host" testId="preview" />
+            </div>
           ) : (
             <p className="muted">Add your name in Details to see your signature.</p>
           )}
