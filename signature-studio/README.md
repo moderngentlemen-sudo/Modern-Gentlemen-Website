@@ -36,6 +36,12 @@ Signatures paste straight into Gmail. Product plan and name shortlist:
 - **Installable app:** install Signet from the browser; it then works offline.
 - **Seasonal library:** 14 seasonal and promotional banners with your own words, plus ready-made sign-offs.
 - **Right-to-left:** a text-direction switch mirrors the whole signature for Arabic, Hebrew, Persian and Urdu. A check suggests it when your details are written in those scripts.
+- **Accounts (Phase 2, optional):**
+  - Sign in with an emailed link or Google to sync signatures, images, your saved details, brand kit and templates across devices.
+  - Signed-in users host their images in their own account.
+  - Short digital-card links (`/c/<slug>`) update with the signature.
+  - Delete account is self-serve.
+  - Needs a separate Signet Supabase project; setup is in [`supabase/README.md`](supabase/README.md). Without it, the app runs local-only and shows no sign-in.
 - **Routes:** `/` marketing site, `/app` dashboard, `/app/s/<id>` editor,
   `?card=…` digital card.
 
@@ -67,6 +73,7 @@ npm run dev          # app on http://localhost:5173
 npm test             # unit tests (renderer, templates, slicing, digital card)
 npm run e2e          # Playwright: builder DnD, brand kit, templates, Canva → Gmail copy, digital card
 npm run build
+npm run test:db      # Signet database schema + row-level security on a throwaway local Postgres
 node scripts/make-icons.mjs   # only when the app icon changes: re-renders public/*.png
 ```
 
@@ -95,6 +102,8 @@ src/dialogs/   Install, Settings, Crop, Wizard, History, Banners
 src/core/blockTemplates.ts  Modern + Modern Gentlemen templates (block recipes)
 src/core/seasonal.ts        sign-offs and banner designs (SVG → PNG on use)
 src/core/versions.ts        version history (stored in IndexedDB `ss3-versions`)
+src/cloud/                  accounts + sync: CloudApi (Supabase / in-memory fake), sync plan + engine, account store
+supabase/                   Signet's own database schema, RLS tests, setup guide
 src/pwa.ts, public/         manifest, icons, service worker (production only)
 docs/          PRODUCT.md, DECISIONS.md, CANVA.md
 ```

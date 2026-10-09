@@ -71,7 +71,20 @@ None of these names has been checked for trademarks or domains. Do that before y
 - Template previews in right-to-left.
 - More banner artwork (photo-based), and per-banner date reminders ("swap your holiday banner on Jan 2").
 
-### Phase 2 — Accounts and cloud (next)
+### Phase 2 — Accounts and cloud (in progress)
+
+**Built (code, tested; goes live once the Signet Supabase project exists — see `supabase/README.md`):**
+
+- Sign-in with an emailed link or Google. Accounts are optional; without them the app is local-only.
+- Cloud sync of signatures, their images, saved profile, brand kit, my templates and favourites, with conflict-safe merging.
+- Per-user image hosting, which replaces the shared upload key for signed-in users.
+- Short digital-card links (`/c/<slug>`) that update when the signature does.
+- Delete account.
+- The database schema with row-level security, tested on a local Postgres in CI.
+
+**Still to do in Phase 2:** one-click Gmail install (needs Google verification), live banners, "Send me a test", wallet passes and lead capture, opt-in click analytics.
+
+**Original plan:**
 
 - **A separate Supabase project.** It never touches the website's production database.
   - Auth: magic link, plus Google sign-in.

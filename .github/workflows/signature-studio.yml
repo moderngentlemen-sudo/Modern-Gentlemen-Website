@@ -46,6 +46,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # The Signet database schema (supabase/migrations) on a throwaway local
+      # Postgres: applied twice (must be re-runnable), then the row-level
+      # security tests. Runners ship with PostgreSQL server binaries.
+      - name: Database schema & RLS
+        run: npm run test:db
+
       # GitHub runners have no preinstalled browsers. The e2e suite starts the
       # app (test build) and the local test image host itself.
       - name: Install Chromium

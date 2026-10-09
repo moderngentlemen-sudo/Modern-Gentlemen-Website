@@ -27,7 +27,7 @@ export function addVersion(list: Version[], v: Version, max = MAX_VERSIONS): Ver
 }
 
 /** Fields a restore never brings back: identity and what's live in people's inboxes. */
-const KEEP: (keyof SignatureDoc)[] = ["id", "createdAt", "published", "digitalCardUrl"];
+const KEEP: (keyof SignatureDoc)[] = ["id", "createdAt", "published", "digitalCardUrl", "cardSlug", "cardImages"];
 
 /** Make `target` (an Immer draft) match the snapshot, keeping identity and publishing state. */
 export function restoreInto(target: SignatureDoc, snap: SignatureDoc) {

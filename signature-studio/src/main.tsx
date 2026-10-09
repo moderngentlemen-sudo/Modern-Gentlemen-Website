@@ -4,8 +4,10 @@ import { FONTS, googleFontsHref } from "./core/fonts";
 import { App } from "./App";
 import "./styles.css";
 import { setupPwa } from "./pwa";
+import { startAccount } from "./cloud/account";
 
 setupPwa();
+startAccount();
 
 // Template webfonts, so the editor previews them as designed.
 const href = googleFontsHref(FONTS.map((f) => f.id));

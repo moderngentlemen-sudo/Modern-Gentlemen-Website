@@ -24,6 +24,8 @@ export function templateFromDoc(doc: SignatureDoc, name: string): SavedTemplate 
   if (photo && photo !== snap.images.logo.assetId) delete snap.assets[photo];
   snap.published = {};
   delete snap.digitalCardUrl;
+  delete snap.cardSlug;
+  delete snap.cardImages;
   return { id: uid("t"), name: name.trim() || "My template", createdAt: Date.now(), doc: snap };
 }
 
@@ -31,5 +33,16 @@ export function templateFromDoc(doc: SignatureDoc, name: string): SavedTemplate 
 export function docFromTemplate(t: SavedTemplate): SignatureDoc {
   const doc = structuredClone(t.doc);
   const now = Date.now();
-  return { ...doc, id: uid("sig"), name: t.name, createdAt: now, updatedAt: now, published: {}, digitalCardUrl: undefined, useProfile: true };
+  return {
+    ...doc,
+    id: uid("sig"),
+    name: t.name,
+    createdAt: now,
+    updatedAt: now,
+    published: {},
+    digitalCardUrl: undefined,
+    cardSlug: undefined,
+    cardImages: undefined,
+    useProfile: true,
+  };
 }

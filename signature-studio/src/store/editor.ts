@@ -37,7 +37,7 @@ interface State {
   saving: "saved" | "saving" | "error";
   prefs: Prefs;
   toasts: Toast[];
-  dialog: null | "install" | "settings" | "crop" | "templates" | "brand" | "wizard" | "saveTemplate" | "history" | "banners";
+  dialog: null | "install" | "settings" | "crop" | "templates" | "brand" | "wizard" | "saveTemplate" | "history" | "banners" | "account" | "deleteAccount";
   dialogArg: string | null;
   /** Builder: the selected block. */
   selected: string | null;
@@ -104,7 +104,7 @@ export function editSilently(recipe: (d: Draft<SignatureDoc>) => void) {
 export function undo() {
   const { past, future, doc } = get();
   if (!past.length || !doc) return;
-  const prev = { ...past[past.length - 1], published: doc.published, digitalCardUrl: doc.digitalCardUrl };
+  const prev = { ...past[past.length - 1], published: doc.published, digitalCardUrl: doc.digitalCardUrl, cardSlug: doc.cardSlug, cardImages: doc.cardImages };
   set({ doc: prev, past: past.slice(0, -1), future: [doc, ...future], lastKey: null });
   scheduleSave();
 }
@@ -112,7 +112,7 @@ export function undo() {
 export function redo() {
   const { past, future, doc } = get();
   if (!future.length || !doc) return;
-  const next = { ...future[0], published: doc.published, digitalCardUrl: doc.digitalCardUrl };
+  const next = { ...future[0], published: doc.published, digitalCardUrl: doc.digitalCardUrl, cardSlug: doc.cardSlug, cardImages: doc.cardImages };
   set({ doc: next, past: [...past, doc], future: future.slice(1), lastKey: null });
   scheduleSave();
 }
@@ -123,6 +123,10 @@ function scheduleSave() {
   saveTimer = setTimeout(() => void flushSave(), 500);
 }
 
+/** Called after anything is saved or deleted locally (cloud sync listens). */
+export const localChangeListeners = new Set<() => void>();
+const changed = () => localChangeListeners.forEach((fn) => fn());
+
 export async function flushSave() {
   const { doc } = get();
   if (!doc) return;
@@ -132,6 +136,7 @@ export async function flushSave() {
     const docs = get().docs.filter((d) => d.id !== saved.id);
     set({ saving: "saved", docs: [saved, ...docs] });
     await syncProfile(saved);
+    changed();
   } catch {
     set({ saving: "error" });
     toast("Couldn't save in this browser. Export a backup from Settings.", "error");
@@ -192,12 +197,14 @@ export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", naviga
 export async function createDoc(doc: SignatureDoc) {
   await docStore.put(doc);
   set({ docs: [doc, ...get().docs] });
+  changed();
   openDoc(doc, "details");
 }
 
 export async function deleteDoc(id: string) {
   await docStore.remove(id);
   await versionStore.remove(id);
+  changed();
   set({ docs: get().docs.filter((d) => d.id !== id) });
   if (get().doc?.id === id) goHome();
 }
@@ -212,6 +219,7 @@ export function updatePrefs(patch: Partial<Prefs>) {
   const prefs = { ...get().prefs, ...patch };
   set({ prefs });
   void prefStore.put(prefs);
+  changed();
 }
 
 export function toast(message: string, tone: Toast["tone"] = "info", action?: Toast["action"]) {

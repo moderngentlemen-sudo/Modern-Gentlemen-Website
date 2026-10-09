@@ -47,6 +47,12 @@ export interface Prefs {
   myTemplates?: SavedTemplate[];
 }
 
+/** Cloud-sync bookkeeping, one record per account (see cloud/engine.ts). */
+export const syncStateStore = {
+  get: <T>(userId: string) => get<T>(`sync:${userId}`, db().prefs).then((v) => v ?? null),
+  put: (userId: string, state: unknown) => set(`sync:${userId}`, state, db().prefs),
+};
+
 export const DEFAULT_PREFS: Prefs = { publishConsent: false, favorites: [] };
 
 export const prefStore = {

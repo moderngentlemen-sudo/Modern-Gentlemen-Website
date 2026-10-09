@@ -6,6 +6,8 @@
  * is fetched back anonymously and decoded before it counts as ready.
  */
 import { isAcceptableImageUrl, isTestHostUrl } from "../lib/url";
+import { cloud } from "../cloud";
+import { useAccount } from "../cloud/account";
 
 export interface HostConfig {
   /** Base URL of the upload API, e.g. https://img.signature.studio */
@@ -59,8 +61,26 @@ export class HttpAssetHost implements AssetHost {
   }
 }
 
+/** The signed-in user's own folder in the Signet image bucket (Phase 2). */
+export class CloudAssetHost implements AssetHost {
+  readonly label = "your Signet account";
+  async publish(path: string, blob: Blob, mime: string): Promise<string> {
+    try {
+      return await cloud!.upload(path, blob, mime);
+    } catch (e) {
+      throw new HostError(`Couldn't upload to your account: ${e instanceof Error ? e.message : e}`, "network");
+    }
+  }
+}
+
+/**
+ * Where images go: an image host the user set up in Settings, else their
+ * account (when signed in), else the build's default Worker.
+ */
 export function hostFromConfig(config: HostConfig | undefined): AssetHost | null {
-  const endpoint = config?.endpoint?.trim() || (import.meta.env.VITE_ASSET_HOST as string | undefined);
+  const own = config?.endpoint?.trim();
+  if (!own && cloud?.kind === "supabase" && useAccount.getState().user) return new CloudAssetHost();
+  const endpoint = own || (import.meta.env.VITE_ASSET_HOST as string | undefined);
   if (!endpoint) return null;
   try {
     return new HttpAssetHost({ endpoint, token: config?.token });

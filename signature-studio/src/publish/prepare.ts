@@ -12,6 +12,7 @@ import { cardDataFromDoc, cardPageUrl, encodeCard } from "../core/digitalCard";
 import { editSilently, useStudio } from "../store/editor";
 import { derive } from "./derive";
 import { hostFromConfig, verifyPublicImage } from "./host";
+import { publishCard } from "../cloud/account";
 
 export type ImageState = "waiting" | "working" | "ready" | "attention" | "failed";
 
@@ -121,11 +122,17 @@ async function prepareDigitalCard(force: boolean) {
   const now = useStudio.getState().doc!;
   const url = (r?: ImageRequest) => (r ? now.published[r.key]?.url : undefined);
   if (!url(reqs[0])) return;
-  const token = await encodeCard(
-    cardDataFromDoc(now, { front: url(reqs[0]), back: card.backAssetId ? url(reqs[1]) : undefined, photo: photo ? url(reqs[reqs.length - 1]) : undefined }),
-  );
-  const link = cardPageUrl(location.origin, "/", token);
-  if (link !== now.digitalCardUrl) editSilently((d) => void (d.digitalCardUrl = link));
+  const images = { front: url(reqs[0]), back: card.backAssetId ? url(reqs[1]) : undefined, photo: photo ? url(reqs[reqs.length - 1]) : undefined };
+  // Signed in: a short link whose card updates with the signature. Otherwise the card lives in the link itself.
+  const short = await publishCard(now, images).catch(() => null);
+  const link = short ?? cardPageUrl(location.origin, "/", await encodeCard(cardDataFromDoc(now, images)));
+  const slug = short ? short.split("/c/")[1] : undefined;
+  if (link !== now.digitalCardUrl || slug !== now.cardSlug)
+    editSilently((d) => {
+      d.digitalCardUrl = link;
+      d.cardSlug = slug;
+      d.cardImages = images;
+    });
 }
 
 export async function prepareAll(variants: Variant[], force = false) {

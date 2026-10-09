@@ -14,9 +14,12 @@ import { WizardDialog } from "./dialogs/WizardDialog";
 import { SaveTemplateDialog } from "./ui/MoreMenu";
 import { HistoryDialog } from "./dialogs/HistoryDialog";
 import { BannerDialog } from "./dialogs/BannerDialog";
+import { AccountDialog, DeleteAccountDialog } from "./ui/Account";
+import { slugFromPath } from "./core/cardSlug";
 import { Toasts } from "./ui/kit";
 
 const cardToken = new URLSearchParams(location.search).get("card");
+const cardSlug = slugFromPath(location.pathname);
 
 function Studio() {
   const [ready, setReady] = useState(false);
@@ -62,11 +65,15 @@ function Studio() {
       <SaveTemplateDialog />
       <HistoryDialog />
       <BannerDialog />
+      <AccountDialog />
+      <DeleteAccountDialog />
       <Toasts />
     </>
   );
 }
 
 export function App() {
-  return cardToken ? <DigitalCard token={cardToken} /> : <Studio />;
+  if (cardToken) return <DigitalCard token={cardToken} />;
+  if (cardSlug) return <DigitalCard slug={cardSlug} />;
+  return <Studio />;
 }

@@ -206,6 +206,10 @@ export interface SignatureDoc {
   published: Record<string, Published>;
   /** Public digital-card page URL, once published. */
   digitalCardUrl?: string;
+  /** Short card link (`/c/<slug>`) when signed in; the card behind it updates as the signature does. */
+  cardSlug?: string;
+  /** Public image URLs the digital card uses, kept so the short-link card can be refreshed without re-publishing. */
+  cardImages?: { front?: string; back?: string; photo?: string };
   /** "quick": template + forms. "builder": the drag-and-drop layout in `blocks`. */
   mode?: "quick" | "builder";
   blocks?: Column;

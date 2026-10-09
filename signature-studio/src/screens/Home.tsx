@@ -15,6 +15,7 @@ import { Segmented, Switch } from "../ui/kit";
 import { sampleDoc } from "../ui/samples";
 import { Thumb } from "../ui/SigHtml";
 import { install, isIos, usePwa } from "../pwa";
+import { AccountButton } from "../ui/Account";
 
 const NO_TEMPLATES: SavedTemplate[] = [];
 
@@ -83,7 +84,15 @@ export async function createFromTemplate(templateId: string, opts: CreateOptions
 }
 
 function duplicate(doc: SignatureDoc) {
-  const copy: SignatureDoc = { ...structuredClone(doc), id: uid("sig"), name: `${doc.name} copy`, createdAt: Date.now(), updatedAt: Date.now() };
+  const copy: SignatureDoc = {
+    ...structuredClone(doc),
+    id: uid("sig"),
+    name: `${doc.name} copy`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    cardSlug: undefined,
+    digitalCardUrl: undefined,
+  };
   void createDoc(copy);
 }
 
@@ -201,6 +210,7 @@ export function Home() {
         </a>
         <div className="row">
           <InstallAppButton />
+          <AccountButton />
           <button className="btn ghost sm" onClick={() => ui({ dialog: "brand" })} data-testid="open-brand">
             <Palette size={16} /> Brand kit
           </button>

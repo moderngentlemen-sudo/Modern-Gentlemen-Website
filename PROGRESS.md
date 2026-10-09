@@ -55,6 +55,27 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio Phase 2 (accounts & cloud) — code built, project pending
+
+- **PR:** [moderngentlemen-sudo/Modern-Gentlemen-Website#134](https://github.com/moderngentlemen-sudo/Modern-Gentlemen-Website/pull/134). It carries the three earlier batches plus this one.
+- **Supabase:**
+  - Signet gets a separate Supabase project in its **own organisation** (owner's choice). The "modern gentlemen" org is on the Free plan with both slots in use.
+  - The new org isn't visible to the Supabase connector yet. Once it is, create the project, apply `signature-studio/supabase/migrations/20261009000001_signet_schema.sql`, and follow `signature-studio/supabase/README.md`.
+  - **Never apply this migration to the website's project.** The website CI's migration step only covers `design_handoff_modern_gentlemen/starter/supabase`.
+- **Schema:**
+  - Tables `profiles`, `signatures` (server-bumped `revision`, soft delete) and `cards` (public `slug` + `data` only).
+  - Bucket `signet-images`, writable only in your own folder.
+  - `delete_my_account()`.
+  - Every statement is re-runnable. `npm run test:db` applies it twice on a local Postgres and runs `supabase/tests/rls.sql`; the Signature Studio CI runs this too.
+- **Client** (`src/cloud/`):
+  - A `CloudApi` interface with two implementations: Supabase, and an in-memory fake enabled in test builds via `localStorage["signet.fakeCloud"]`.
+  - A pure sync planner (`plan.ts`), the engine (`engine.ts`, two-device unit tests), and the account store with scheduling (`account.ts`).
+  - Sign-in UI is in `ui/Account.tsx`.
+  - Without `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` nothing changes for users.
+- **Hosting and cards:** `CloudAssetHost` is used when signed in, unless the user set their own host. `/c/<slug>` short links (`core/cardSlug.ts`) are refreshed after each sync.
+- **Fixed during development:** preference sync initially dropped keys between devices; it now merges key by key (D54).
+- **Gates:** `npm test` (unit), `npm run e2e` (including `cloud.spec.ts`), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio: links, multi-select, versions, reply layouts, offline app, seasonal library, RTL, 22 templates
 
 - **Templates** (`core/blockTemplates.ts`): 12 **Modern** and 10 **Modern Gentlemen** designs. They are block recipes that open in the builder (D43).
