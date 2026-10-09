@@ -280,6 +280,18 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   white in the mask with a black stroke, so only the edges are cut); Solid
   (no mask at all). The shape element's blend mode has the same Safari limit;
   its help text now says so.
+- **Spikes on uploaded fonts (same branch).** The owner then saw spiky
+  artifacts on the M's bottom vertex and the G's top curve with Gotham Black.
+  Cause: uploads are recorded as weight 400, and the knockout (like any bold
+  text) asks for 700, so the browser *synthesised* a bold. Safari builds faux
+  bold by stroking the outline, and the stroke's miter joins throw spikes off
+  sharp corners; Chromium's is smoother but still visibly fattens the letters
+  (verified side by side with the owner's own file). Fix in
+  `themeWebfontFaceCssText`: a static file that is the **only** face of its
+  family is declared `font-weight: 1 1000`, so it is used as drawn for any
+  weight. Uploads are always their own family, so this covers them all; a
+  family with several files keeps each weight (so 700 still picks the bold
+  file), and a variable range is kept as declared.
 - Verified in Chromium over the playing reel at desktop and iPad widths: all
   four styles, a two-line "COMING SOON", the owner's own settings (CS30 "MG",
   uploaded font, −0.08em). Gates: format, lint, typecheck, 4,098 unit tests.
