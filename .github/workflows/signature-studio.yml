@@ -1,0 +1,63 @@
+name: Signature Studio
+
+# Signature Studio is a standalone Vite app in signature-studio/, separate from
+# the Next.js site in design_handoff_modern_gentlemen/starter/. It only runs
+# when its own files (or this workflow) change.
+on:
+  pull_request:
+    paths:
+      - "signature-studio/**"
+      - ".github/workflows/signature-studio.yml"
+  push:
+    branches: [main]
+    paths:
+      - "signature-studio/**"
+      - ".github/workflows/signature-studio.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: signature-studio
+
+jobs:
+  verify:
+    name: Typecheck, unit tests, build & e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: signature-studio/package-lock.json
+
+      - run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # GitHub runners have no preinstalled browsers. The e2e suite starts the
+      # app (test build) and the local test image host itself.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run e2e
+
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signature-studio-playwright
+          path: signature-studio/test-results
+          retention-days: 7

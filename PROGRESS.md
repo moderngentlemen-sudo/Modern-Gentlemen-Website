@@ -32,7 +32,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   failed because the Windows checkout used CRLF in `MODULE_MAP.md`; local
   newline normalization fixed them without a content change. The final full
   unit run passed all 4,083 tests in 169 files, including the 18 new font
-  tests pass. A real OFL ABeeZee font and its license are included for
+  tests. A real OFL ABeeZee font and its license are included for
   browser/storage verification; a real Geist WOFF2 also passed server validation.
 - Added real-stack integration checks for public byte delivery, theme-writer
   uploads, anonymous/member/media-only refusal, MIME bounds and immutable
@@ -50,6 +50,58 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 - Expected cost: a bounded upload control, authorized service and storage
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
+
+### 2026-10-08 — Signature Studio 3: new builder, Canva → Gmail import
+
+- **Rebuilt from scratch** at the owner's request (2.0 "felt too similar"; the
+  original handoff is set aside). `signature-studio/src` is a new form-driven
+  builder: 48 templates (24 business sectors, 24 artistic styles, 14 layouts),
+  Details / Images / Social / Design / Add-ons / Canva panels, live mock-email
+  preview (desktop/phone, dark, inbox fonts), separate reply version.
+- **Canva:** a Canva PNG/JPG export (a whole signature or a business card) is
+  trimmed of Canva's empty page margin, sized for 2× sharpness, given clickable
+  areas, and sent to Gmail as a sliced image table with linked cells —
+  pixel-exact. See `signature-studio/docs/CANVA.md`. A direct Canva Connect API
+  import needs a Canva developer app and a backend; deferred (D25).
+- **Digital business card** page at `?card=…` (data in the link, no server):
+  flip animation, Save Contact vCard, QR in the signature.
+- Hosting, the image Worker and the install pipeline (publish → verify → copy)
+  are unchanged. v3 uses new IndexedDB stores; 2.0 drafts are not migrated.
+- Gates run in `signature-studio/`: `tsc -b`, `npm test` (11), `npm run e2e`
+  (3, incl. Canva upload → trim → hotspot → publish to test host → clipboard
+  HTML), `npm run build`.
+
+### 2026-10-08 — Signature Studio stays on Cloudflare; Railway version reserved
+
+- **Live setup (owner's Cloudflare account):** the app is the Pages project
+  `modern-gentlemen-website` (root `signature-studio`), at
+  `https://modern-gentlemen-website.pages.dev`. Images are served by the Worker
+  `signature-studio-images` (R2), built with `VITE_ASSET_HOST` set to its
+  workers.dev address. The Worker's `ALLOWED_ORIGINS` must list the **permanent**
+  pages.dev address. A separate Pages project, `signature-studio`, sits behind a
+  Cloudflare Access login and is unused.
+- This change: the Settings dialog no longer discards the upload key when the
+  address field is empty, and the image Worker gains `GET /admin/backup.tar`
+  (key required), with a **Download backup of published images** button in
+  Settings. The dashboard copy `worker/dashboard-worker.js` is regenerated; the
+  deployed Worker needs its code re-pasted to get backups.
+- **Railway alternative reserved** on branch `claude/signature-studio-railway`:
+  one Node server for the app and images on a volume. Not merged. See D22 in
+  `signature-studio/docs/DECISIONS.md`.
+
+### 2026-10-08 — Signature Studio 2.0 added as a standalone app (branch `claude/signature-studio-2-remake-jmzvj4`)
+
+- **New top-level folder `signature-studio/`**: an email-signature design studio
+  (Vite + React + TypeScript), separate from the Next.js site. It does **not**
+  touch `design_handoff_modern_gentlemen/starter/`, its database or Railway.
+  Read `signature-studio/README.md` and `signature-studio/docs/` (proposal,
+  decisions, implementation report, Gmail acceptance protocol).
+- It has its own CI workflow, `.github/workflows/signature-studio.yml`, which is
+  path-filtered to `signature-studio/**` and runs typecheck, unit tests, build
+  and Playwright e2e.
+- Images in installed signatures are meant for a Cloudflare R2 Worker
+  (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
+  Gmail acceptance has not been performed.
 
 ### 2026-10-08 — Coming Soon remade as editable Stage layouts (branch `claude/coming-soon-composable`)
 
