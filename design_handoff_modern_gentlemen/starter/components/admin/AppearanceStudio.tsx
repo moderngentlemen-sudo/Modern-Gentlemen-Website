@@ -617,6 +617,9 @@ export function AppearanceStudio({
                   </div>
                 ))}
                 <h2>Typography</h2>
+                <p className={styles.hint}>
+                  <Link href="/admin/theme#custom-fonts">Upload or manage custom fonts</Link>
+                </p>
                 {TYPOGRAPHY_ROLES.map((role) => (
                   <Select
                     key={role}
