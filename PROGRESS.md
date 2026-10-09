@@ -396,6 +396,43 @@ From the editor audit (https://claude.ai/artifact/2Ah4jUeZcrgc9rmtLGE2oM), items
   (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
   Gmail acceptance has not been performed.
 
+### 2026-10-09 — Safari bars, phone dragging on stages, hover options (branch `claude/stage-mobile-hover`)
+
+- **White bars on iPhone Safari.** Safari tints the status-bar and toolbar
+  areas from the page's own background; standalone coming-soon pages left the
+  light theme's `--mg-bg` on html/body behind a dark stage. A standalone stage
+  now writes `:root{--mg-standalone-canvas:<stage colour>}` (validated hex)
+  and `globals.css` paints html, body and `[data-site-main]` with it on any
+  standalone coming-soon or After Hours page (`!important`: the mobile canvas
+  rules above it are more specific). Scoped to `[data-site-main]`, so the
+  editor is untouched — verified: html/body/main take the stage colour in
+  both themes on a public route, the editor stays `#f4f4f4`.
+- **Dragging on phones.** Not a regression: phones stack stage elements in
+  reading order by default, and stacked elements had no placement, so the
+  editor drew no drag controls in mobile view. Now the first drag on a stacked
+  phone stage converts it to free placement (`placeStageOnPhones`, one undo
+  step), seeding every element from where it sits in the stack — positions
+  measured against the layer, scale converted from stacked CSS pixels to
+  stage-relative (`stackScale / (layer.offsetWidth / 1440)`) — and the same
+  gesture carries on moving the element. Free placement on phones now keeps
+  the stack's centred text and countdown/knockout size caps, so nothing jumps
+  (no live page used free phone placement, checked). ⚠️ The gesture survived
+  only after the clean-up effect in `StageControls` stopped depending on the
+  `node` object: the conversion rewrites the node mid-gesture and the old
+  dependency cancelled it. Verified in Chromium in the real Builder.
+- **Hover options.** New "Hover" panel in the inspector: effect (lift, press
+  down, scale, grow, tilt, glow, fade, brighten, underline draws in, light
+  sweep), text colour, background and outline on hover, glow/underline colour,
+  and speed (the existing `motion`). Colours are validated hex in
+  `visual.effects` (`hoverColor`, `hoverBackground`, `hoverOutline`,
+  `hoverGlow`). The text colour uses `!important` on descendants because
+  native text sets its colour inline, and skips deliberately transparent text
+  (the knockout's layout copy, outlined countdown numerals). Elements that use
+  none of the new options emit byte-identical CSS (asserted). Verified on the
+  real renderer: an inline-coloured heading turns gold, fills and draws its
+  underline on hover.
+- Gates: format, lint, typecheck, 4,104 unit tests.
+
 ### 2026-10-09 — Knockout letters stayed filled on iPad Safari (branch `claude/knockout-safari`)
 
 - Reported by the owner: on an iPad in Safari the knockout letters showed

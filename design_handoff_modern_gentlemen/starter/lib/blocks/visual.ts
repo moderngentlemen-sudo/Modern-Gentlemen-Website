@@ -26,7 +26,27 @@ export const VISUAL_RADII = ["sharp", "subtle", "rounded", "pill"] as const;
 export const VISUAL_SHADOWS = ["none", "subtle", "elevated", "dramatic"] as const;
 export const VISUAL_OPACITIES = [25, 50, 75, 100] as const;
 export const VISUAL_OVERFLOWS = ["visible", "hidden", "auto"] as const;
-export const VISUAL_HOVERS = ["none", "lift", "scale", "glow", "fade"] as const;
+export const VISUAL_HOVERS = [
+  "none",
+  "lift",
+  "sink",
+  "scale",
+  "grow",
+  "tilt",
+  "glow",
+  "fade",
+  "brighten",
+  "underline",
+  "shine",
+] as const;
+/** Hover colours an editor picks: each a validated `#rrggbb`, never free CSS. */
+export const VISUAL_HOVER_COLORS = [
+  "hoverColor",
+  "hoverBackground",
+  "hoverOutline",
+  "hoverGlow",
+] as const;
+const HOVER_HEX = /^#[0-9a-f]{6}$/i;
 export const VISUAL_MOTIONS = ["instant", "snappy", "smooth", "gentle"] as const;
 export const VISUAL_ENTRANCES = [
   "none",
@@ -81,6 +101,14 @@ export interface VisualStyle {
 
 export interface VisualEffects {
   hover?: (typeof VISUAL_HOVERS)[number];
+  /** Text (and icon) colour while hovered. */
+  hoverColor?: string;
+  /** Background colour while hovered. */
+  hoverBackground?: string;
+  /** A 1px outline while hovered; an outline, so nothing shifts. */
+  hoverOutline?: string;
+  /** Colour of the Glow animation, and of the Underline. */
+  hoverGlow?: string;
   motion?: (typeof VISUAL_MOTIONS)[number];
   entrance?: (typeof VISUAL_ENTRANCES)[number];
   revealBehavior?: (typeof VISUAL_REVEAL_BEHAVIORS)[number];
@@ -263,7 +291,16 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
     } else {
       const effects = design.effects as Record<string, unknown>;
       for (const property of Object.keys(effects)) {
-        if (!["hover", "motion", "entrance", "revealBehavior", "revealDelay"].includes(property)) {
+        if (
+          ![
+            "hover",
+            "motion",
+            "entrance",
+            "revealBehavior",
+            "revealDelay",
+            ...VISUAL_HOVER_COLORS,
+          ].includes(property)
+        ) {
           issues.push({
             path: `visual.effects.${property}`,
             message: "Unknown visual effect.",
@@ -275,6 +312,15 @@ export function validateVisualDesign(value: unknown): VisualDesignIssue[] {
         !(VISUAL_HOVERS as readonly unknown[]).includes(effects.hover)
       ) {
         issues.push({ path: "visual.effects.hover", message: "Choose a supported hover effect." });
+      }
+      for (const property of VISUAL_HOVER_COLORS) {
+        const value = effects[property];
+        if (value !== undefined && (typeof value !== "string" || !HOVER_HEX.test(value))) {
+          issues.push({
+            path: `visual.effects.${property}`,
+            message: "Use a six-digit hex colour, such as #123456.",
+          });
+        }
       }
       if (
         effects.motion !== undefined &&
@@ -528,27 +574,82 @@ function rulesForSelector(selector: string, design: VisualElementDesign): string
   // A local style layered over a class must not silently replace that class's
   // motion timing merely because it changes padding or width. Unclassed
   // elements retain the engine's original smooth-transition baseline.
+  const effects = design.effects ?? {};
+  const hex = (value: unknown) =>
+    typeof value === "string" && HOVER_HEX.test(value) ? value : undefined;
+  const hoverColor = hex(effects.hoverColor);
+  const hoverBackground = hex(effects.hoverBackground);
+  const hoverOutline = hex(effects.hoverOutline);
+  const hoverGlow = hex(effects.hoverGlow);
+  const hover = effects.hover;
+  // Colour, outline and the background-drawn effects only join the transition
+  // when an element uses them, so every existing element's CSS is unchanged.
+  const colourMotion =
+    hoverColor || hoverBackground || hoverOutline || hover === "brighten"
+      ? `,color ${duration} ${easing},background-color ${duration} ${easing},outline-color ${duration} ${easing},filter ${duration} ${easing}`
+      : "";
+  const sweepMotion =
+    hover === "underline" || hover === "shine"
+      ? `,background-size ${duration} ${easing},background-position ${duration} ${easing}`
+      : "";
   const transition =
-    !design.styleClass || design.effects?.motion !== undefined
-      ? `transition:transform ${duration} ${easing},opacity ${duration} ${easing},box-shadow ${duration} ${easing}`
+    !design.styleClass || design.effects?.motion !== undefined || colourMotion || sweepMotion
+      ? `transition:transform ${duration} ${easing},opacity ${duration} ${easing},box-shadow ${duration} ${easing}${colourMotion}${sweepMotion}`
       : "";
   const desktopRule = [desktop, transition].filter(Boolean).join(";");
   const rules = [`${selector}{${desktopRule}}`];
   if (tablet) rules.push(`@media(max-width:1024px){${selector}{${tablet}}}`);
   if (mobile) rules.push(`@media(max-width:680px){${selector}{${mobile}}}`);
 
-  const hover = design.effects?.hover;
   if (hover && hover !== "none") {
-    const declaration =
-      hover === "lift"
-        ? "transform:translateY(-4px)"
-        : hover === "scale"
-          ? "transform:scale(1.025)"
-          : hover === "glow"
-            ? "box-shadow:0 18px 55px rgba(200,16,46,.24)"
-            : "opacity:.72";
-    rules.push(`${selector}:hover{${declaration}}`);
+    const glow = hoverGlow ? `${hoverGlow}66` : "rgba(200,16,46,.24)";
+    const line = hoverGlow ?? "var(--mg-accent)";
+    if (hover === "underline") {
+      // A line drawn from the left along the bottom edge, like the site's nav.
+      rules.push(
+        `${selector}{background-image:linear-gradient(${line},${line});background-repeat:no-repeat;background-position:0 100%;background-size:0 2px}`,
+        `${selector}:hover{background-size:100% 2px}`
+      );
+    } else if (hover === "shine") {
+      // A band of light that crosses the element's background once per hover.
+      rules.push(
+        `${selector}{background-image:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.28) 50%,transparent 60%);background-repeat:no-repeat;background-size:250% 100%;background-position:150% 0}`,
+        `${selector}:hover{background-position:-50% 0}`
+      );
+    } else {
+      const declaration =
+        hover === "lift"
+          ? "transform:translateY(-4px)"
+          : hover === "sink"
+            ? "transform:translateY(3px)"
+            : hover === "scale"
+              ? "transform:scale(1.025)"
+              : hover === "grow"
+                ? "transform:scale(1.06)"
+                : hover === "tilt"
+                  ? "transform:perspective(800px) rotateX(4deg) rotateY(-4deg)"
+                  : hover === "glow"
+                    ? `box-shadow:0 18px 55px ${glow}`
+                    : hover === "brighten"
+                      ? "filter:brightness(1.15) saturate(1.1)"
+                      : "opacity:.72";
+      rules.push(`${selector}:hover{${declaration}}`);
+    }
   }
+  if (hoverBackground) rules.push(`${selector}:hover{background-color:${hoverBackground}}`);
+  if (hoverOutline)
+    rules.push(`${selector}:hover{outline:1px solid ${hoverOutline};outline-offset:0}`);
+  if (hoverColor) {
+    // Inline colours on the text inside (a heading's own colour) would win over
+    // a plain rule, and the point of a hover colour is to change what you see.
+    // Text that is transparent on purpose stays transparent: the knockout's
+    // layout copy under its mask, and outlined countdown numerals.
+    rules.push(
+      `${selector}:hover,${selector}:hover :not([data-knockout] p):not([data-outline="true"]){color:${hoverColor}!important}`
+    );
+  }
+  if (hover && hover !== "none" && hover !== "fade")
+    rules.push(`@media(prefers-reduced-motion:reduce){${selector}:hover{transform:none}}`);
 
   for (const state of VISUAL_STATES) {
     const declarations = visualDeclarations(design.states?.[state]);

@@ -12,10 +12,12 @@ import {
   type StageDevice,
   type StagePlacement,
 } from "@/lib/blocks/stage";
+import { STAGE_DESIGN_WIDTH } from "@/lib/blocks/stage";
 import { findBlock } from "@/lib/blocks/traverse";
 import type { BlockNode } from "@/lib/blocks/types";
 
 import { useBuilder, useBuilderStore } from "./StoreContext";
+import { locate } from "./tree";
 
 type Edge = "move" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 type Box = { x: number; y: number; w: number; h: number };
@@ -131,11 +133,52 @@ export function StageControls({
       gesture.current = null;
       onPreview(null);
     },
-    [onPreview, device, node]
+    // The element's identity, not the node object: the first phone drag on a
+    // stacked stage rewrites this node mid-gesture, and that must not end it.
+    [onPreview, device, node._key]
   );
 
-  if (!placement) return null;
+  // Phones stack in reading order until the stage is set to free placement.
+  // A drag there is still welcome: it switches the stage's phones to free
+  // placement first, seeded from where everything sits in the stack.
+  const stacked = !placement && device === "mobile" && !mobileFree;
+  if (!placement && !stacked) return null;
   const locked = node.locked === true;
+
+  /**
+   * Phone placements for every element on this stage, measured from the
+   * stacked layout so nothing moves when the stage switches to free placement.
+   * Stacked elements draw at their phone scale in CSS pixels; placed ones are
+   * scaled with the stage (width / 1440), so the scale is converted to keep
+   * each element the size it was.
+   */
+  function seedPhones(layer: HTMLElement): Record<string, StagePlacement> | null {
+    const state = store.getState();
+    const where = locate(state.tree, node._key);
+    const stage = where?.parentKey ? findBlock(state.tree, where.parentKey) : undefined;
+    if (!stage || stage._type !== "stageLayout") return null;
+    const L = layer.getBoundingClientRect();
+    const perDesignPx = layer.offsetWidth / STAGE_DESIGN_WIDTH;
+    if (L.width < 1 || L.height < 1 || perDesignPx <= 0) return null;
+    const placements: Record<string, StagePlacement> = {};
+    (stage.children ?? []).forEach((child, i) => {
+      const frame = layer.querySelector<HTMLElement>(
+        `:scope > [data-block-key="${CSS.escape(child._key)}"]`
+      );
+      if (!frame) return;
+      const r = frame.getBoundingClientRect();
+      const stackScale = child.visual?.stage?.mobile?.scale ?? 1;
+      const scale = stackScale / perDesignPx;
+      placements[child._key] = boundStage({
+        x: ((r.left - L.left) / L.width) * 100,
+        y: ((r.top - L.top) / L.height) * 100,
+        w: ((r.width / L.width) * 100) / scale,
+        scale,
+        z: child.visual?.stage?.desktop?.z ?? i + 1,
+      });
+    });
+    return placements;
+  }
 
   function start(event: ReactPointerEvent<HTMLElement>, edge: Edge) {
     if (event.button !== 0 || locked) return;
@@ -152,6 +195,16 @@ export function StageControls({
     const frame = event.currentTarget.closest<HTMLElement>("[data-block-key]");
     const layer = frame?.offsetParent;
     if (!frame || !(layer instanceof HTMLElement)) return;
+    let start = placement;
+    if (stacked) {
+      if (edge !== "move") return;
+      const seeded = seedPhones(layer);
+      const parentKey = locate(state.tree, node._key)?.parentKey;
+      if (!seeded || !parentKey || !seeded[node._key]) return;
+      state.placeStageOnPhones(parentKey, seeded);
+      start = seeded[node._key];
+    }
+    if (!start) return;
     const L = layer.getBoundingClientRect();
     if (L.width < 1 || L.height < 1) return;
     const toBox = (r: DOMRect): Box => ({
@@ -171,8 +224,8 @@ export function StageControls({
       width: L.width,
       height: L.height,
       edge,
-      start: placement!,
-      next: placement!,
+      start,
+      next: start,
       box: toBox(frame.getBoundingClientRect()),
       peers,
       layer,
@@ -234,10 +287,19 @@ export function StageControls({
           data-stage-move=""
           className="absolute inset-0 z-[5] cursor-move"
           style={{ touchAction: "none" }}
+          title={stacked ? "Drag to place freely on phones" : undefined}
           {...pointer("move")}
         />
       )}
-      {selected && !locked && (
+      {selected && !locked && stacked && (
+        <div
+          className="pointer-events-none absolute left-0 top-full z-[9] mt-2 whitespace-nowrap bg-[#141414] px-2 py-0.5 font-mono text-[10px] text-white"
+          data-stage-readout=""
+        >
+          {label} · stacked on phones · drag to place freely
+        </div>
+      )}
+      {selected && !locked && shown && placement && (
         <>
           {HANDLES.map((h) => (
             <button
@@ -348,8 +410,8 @@ export function StagePlacementEditor({
   if (!p)
     return (
       <div className="border-b border-mg-bd/20 p-4 text-[12px] text-mg-fg/70">
-        On phones this stage stacks its elements in reading order. Reorder them in Layers, or set
-        the stage&apos;s &ldquo;On phones&rdquo; to place them freely.
+        On phones this stage stacks its elements in reading order. Drag any element on the canvas to
+        place them freely on phones instead — everything starts where it sits now.
       </div>
     );
   const field = (property: "x" | "y" | "w" | "scale" | "z", label: string, step: number) => (
