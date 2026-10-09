@@ -110,6 +110,49 @@ export interface Design {
   scale?: number;
   /** Text direction. "rtl" mirrors the layout for Arabic, Hebrew, Persian and Urdu. */
   direction?: "ltr" | "rtl";
+  /** Named, linked typography: blocks that use a style follow it when it changes. */
+  textStyles?: TextStyleDef[];
+}
+
+export interface LiveBannerItem {
+  id: string;
+  assetId?: string;
+  link?: string;
+  alt?: string;
+  /** Inclusive dates, YYYY-MM-DD (UTC). */
+  from?: string;
+  to?: string;
+}
+
+export interface LiveBannerSettings {
+  /** Public id, assigned the first time it is published. */
+  slug?: string;
+  mode: "schedule" | "rotate";
+  items: LiveBannerItem[];
+  /** Count clicks (no personal data). Off unless turned on. */
+  track?: boolean;
+}
+
+/** A text style: the typography fields of BlockStyle, under a name. */
+export interface TextStyleDef {
+  id: string;
+  name: string;
+  font?: string;
+  fontSize?: number;
+  weight?: number;
+  italic?: boolean;
+  case?: TextCase;
+  lineHeight?: number;
+  tracking?: number;
+  colorRole?: ColorRole;
+  color?: string;
+}
+
+/** A font file uploaded by the user (the file itself lives in the asset store under `key`). */
+export interface CustomFont {
+  family: string;
+  key: string;
+  bytes: number;
 }
 
 export interface AddOns {
@@ -234,6 +277,8 @@ export interface SignatureDoc {
   madeWith?: boolean;
   /** Share details, social links and photo with your saved profile (default on). */
   useProfile?: boolean;
+  /** Brand fonts uploaded for this signature. */
+  customFonts?: CustomFont[];
 }
 
 export type Variant = "full" | "reply";
@@ -264,6 +309,10 @@ export type TextCase = "none" | "upper" | "lower" | "title" | "smallcaps";
 export type ColorRole = "text" | "muted" | "accent";
 
 export interface BlockStyle {
+  /** A text style (Design.textStyles) this block follows; its own fields still win. */
+  textStyle?: string;
+  /** With a custom (uploaded) font: send this text as an image so every inbox shows the font. Default on. */
+  asImage?: boolean;
   color?: string;
   colorRole?: ColorRole;
   /** 300–800. */
@@ -325,6 +374,8 @@ export type Block = BlockBase &
         aspect?: number;
         crop?: { x: number; y: number; zoom: number };
         look?: ImageLook;
+        /** A live banner: more pictures shown on a schedule or in turn; this block's own picture is the fallback. */
+        live?: LiveBannerSettings;
       }
     | { type: "logos"; items: { id: string; assetId?: string; link?: string; alt?: string }[]; height: number; gap: number }
     | { type: "qr"; source: "website" | "digitalCard" | "custom"; url: string; size: number; caption: string }
@@ -357,4 +408,5 @@ export interface BrandKit {
   /** Company name and website, prefilled into new signatures. */
   company?: string;
   website?: string;
+  textStyles?: TextStyleDef[];
 }

@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { FONTS, fontDef, fontStack, type FontDef } from "../core/fonts";
+import { customFontId, FONTS, fontDef, fontStack, isCustomFont, type FontDef } from "../core/fonts";
 import { Field } from "./kit";
 
 const RECENT_KEY = "signet.recentFonts";
@@ -38,6 +38,8 @@ export function FontPicker({
   defaultLabel = "Signature default",
   sample,
   testId,
+  custom = [],
+  onUpload,
 }: {
   label: ReactNode;
   /** Font id, or "" for the signature's default. */
@@ -47,6 +49,10 @@ export function FontPicker({
   /** Preview text; defaults to the font's name. */
   sample?: string;
   testId?: string;
+  /** Uploaded brand font families. */
+  custom?: string[];
+  /** Offer "Upload a font…". */
+  onUpload?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -67,7 +73,7 @@ export function FontPicker({
     if (id) rememberFont(id);
     setOpen(false);
   };
-  const recent = open ? recentFonts().filter((id) => FONTS.some((f) => f.id === id)) : [];
+  const recent = open ? recentFonts().filter((id) => FONTS.some((f) => f.id === id) && !isCustomFont(id)) : [];
   const option = (f: FontDef) => (
     <button key={f.id} type="button" role="option" aria-selected={f.id === value} className="fp-opt" onClick={() => choose(f.id)} data-font={f.id}>
       <span className="fp-sample" style={{ fontFamily: fontStack(f.id) }}>
@@ -75,7 +81,7 @@ export function FontPicker({
       </span>
       <span className="fp-meta">
         {f.label}
-        {!f.safe && <span className="fp-seen"> · most inboxes show {f.seenAs}</span>}
+        {isCustomFont(f.id) ? <span className="fp-seen"> · your font</span> : !f.safe && <span className="fp-seen"> · most inboxes show {f.seenAs}</span>}
       </span>
       {f.id === value && <Check size={14} className="fp-check" />}
     </button>
@@ -93,6 +99,26 @@ export function FontPicker({
               <span className="fp-sample">{defaultLabel}</span>
               {!value && <Check size={14} className="fp-check" />}
             </button>
+            {(custom.length > 0 || onUpload) && (
+              <>
+                <div className="fp-group">Your fonts</div>
+                {custom.map((fam) => option(fontDef(customFontId(fam))))}
+                {onUpload && (
+                  <button
+                    type="button"
+                    className="fp-opt fp-upload"
+                    onClick={() => {
+                      setOpen(false);
+                      onUpload();
+                    }}
+                    data-testid="upload-font"
+                  >
+                    <span className="fp-sample">Upload a brand font…</span>
+                    <span className="fp-meta">WOFF2, WOFF, TTF or OTF · sent as an image in emails</span>
+                  </button>
+                )}
+              </>
+            )}
             {recent.length > 0 && (
               <>
                 <div className="fp-group">Recent</div>

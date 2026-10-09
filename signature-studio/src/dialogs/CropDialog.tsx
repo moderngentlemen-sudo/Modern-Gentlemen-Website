@@ -11,13 +11,14 @@
  * remembers its original, so they can be undone or changed later too.
  */
 import { useEffect, useRef, useState } from "react";
-import { FlipHorizontal2, FlipVertical2, Grid3x3, Loader2, RotateCcw, RotateCw, ScanFace, Scissors, Undo2 } from "lucide-react";
+import { FlipHorizontal2, FlipVertical2, Grid3x3, Loader2, RotateCcw, RotateCw, ScanFace, Scissors, Undo2, Eraser, UserRound } from "lucide-react";
 import { cropRect } from "../core/crop";
 import { framePath, lookMatrix, matrixValues, PRESETS, shapeRadius, straightenScale, type ImageLook, type LookPreset } from "../core/imageLook";
 import type { AssetOrigin } from "../core/types";
 import { readImage, writeImage } from "../builder/imageTarget";
 import { orientAsset, originOf, subjectCenter, trimImage, UploadError } from "../store/assets";
-import { toast, ui, useStudio } from "../store/editor";
+import { cutOutPerson, removeFlatBackground } from "../store/cutout";
+import { toast, ui, undo, useStudio } from "../store/editor";
 import { ColorField, Field, Modal, Segmented, Slider } from "../ui/kit";
 import { previewSource } from "../ui/samples";
 
@@ -108,6 +109,24 @@ export function CropDialog() {
         set({ asset: { ...r.meta, name: meta.name }, crop: { x: 0, y: 0, zoom: 1 } });
         toast("Empty edges trimmed", "success");
       }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Background removal runs on this device; the result is a new transparent PNG (undo restores the original). */
+  const removeBg = async (mode: "flat" | "person") => {
+    if (!meta) return;
+    setBusy(true);
+    try {
+      const out = mode === "flat" ? await removeFlatBackground(meta) : await cutOutPerson(meta);
+      if (!out) toast("No flat background found. For photos, use Cut out person.", "info");
+      else {
+        set({ asset: out });
+        toast("Background removed", "success", { label: "Undo", run: undo });
+      }
+    } catch (e) {
+      toast(e instanceof UploadError ? e.message : "Couldn't remove the background.", "error");
     } finally {
       setBusy(false);
     }
@@ -364,6 +383,23 @@ export function CropDialog() {
               Reset colours
             </button>
           </div>
+          <Field label="Background" hint="runs on this device">
+            <div className="img-tools">
+              <button type="button" className="btn sm" onClick={() => void removeBg("flat")} disabled={busy} data-testid="bg-flat">
+                <Eraser size={14} /> Remove flat background
+              </button>
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() => void removeBg("person")}
+                disabled={busy}
+                title="The first time, this downloads the cut-out tool (about 10 MB). Your photo never leaves this device."
+                data-testid="bg-person"
+              >
+                <UserRound size={14} /> Cut out person
+              </button>
+            </div>
+          </Field>
           {(t.kind === "logo" || meta.mime === "image/png") && (
             <Field label="Logo tools" hint="for transparent logos">
               <div className="img-tools">

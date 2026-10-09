@@ -6,6 +6,8 @@
  */
 import type { SignatureDoc } from "../core/types";
 import type { CardData } from "../core/digitalCard";
+import type { LiveRow } from "../core/liveBanner";
+import type { SuggestRequest } from "../core/aiSuggest";
 
 export interface CloudUser {
   id: string;
@@ -59,6 +61,25 @@ export interface CloudApi {
   saveCard(slug: string, signatureId: string, data: CardData): Promise<{ ok: true } | { ok: false; taken: true }>;
   cardSlugFor(signatureId: string): Promise<string | null>;
   getCard(slug: string): Promise<CardData | null>;
+
+  // Live banners (scheduled / rotating, optional click counts)
+  /** Base URL emails use for live banners (`<base>/banner/<slug>/img|go`). */
+  liveBase(): string;
+  saveLiveBanner(row: LiveBannerRow): Promise<void>;
+  /** Clicks per banner item (-1 = the fallback) since `sinceDays` ago. */
+  bannerClicks(slug: string, sinceDays: number): Promise<Record<number, number>>;
+
+  /** AI design suggestions (raw; validate with core/aiSuggest). */
+  suggestDesigns(request: SuggestRequest): Promise<{ ok: true; data: unknown } | { ok: false; error: SuggestError }>;
+}
+
+export type SuggestError = "not_configured" | "limit" | "sign_in" | "declined" | "busy" | "failed";
+
+export interface LiveBannerRow extends LiveRow {
+  slug: string;
+  signatureId: string;
+  blockId: string;
+  track: boolean;
 }
 
 export class CloudError extends Error {}

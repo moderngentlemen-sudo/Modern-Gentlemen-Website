@@ -12,7 +12,10 @@ import { cardDataFromDoc, cardPageUrl, encodeCard } from "../core/digitalCard";
 import { editSilently, useStudio } from "../store/editor";
 import { derive } from "./derive";
 import { hostFromConfig, verifyPublicImage } from "./host";
-import { publishCard } from "../cloud/account";
+import { publishCard, useAccount } from "../cloud/account";
+import { cloud } from "../cloud";
+import { findBlock, walk } from "../core/blocks";
+import { linkTarget } from "../lib/url";
 
 export type ImageState = "waiting" | "working" | "ready" | "attention" | "failed";
 
@@ -28,8 +31,13 @@ export const usePublish = create<{ statuses: Record<string, ImageStatus>; runnin
 const setStatus = (s: ImageStatus) => usePublish.setState((st) => ({ statuses: { ...st.statuses, [s.key]: s } }));
 const REVERIFY = 6 * 60 * 60 * 1000;
 
+/** Live banners need an account: the endpoint reads them from the cloud. */
+export function liveBase(): string | undefined {
+  return cloud && useAccount.getState().user ? cloud.liveBase() : undefined;
+}
+
 export function emailHtml(doc: SignatureDoc, variant: Variant) {
-  const r = renderSignature(doc, { variant, mode: "email", resolve: (req) => doc.published[req.key]?.url ?? null });
+  const r = renderSignature(doc, { variant, mode: "email", resolve: (req) => doc.published[req.key]?.url ?? null, liveBase: liveBase() });
   const problems = [...r.errors.map((m) => ({ level: "error" as const, message: m })), ...validateEmailHtml(r.html, { allowTestHost: TEST_HOST_ENABLED })];
   return { html: r.html, images: r.images, problems, ready: !problems.some((p) => p.level === "error") };
 }
@@ -139,6 +147,65 @@ async function prepareDigitalCard(force: boolean) {
     });
 }
 
+const randomSlug = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
+
+/**
+ * After the pictures are published: store each live banner (its pictures'
+ * public URLs, dates, links) so the public endpoint can serve it, giving it a
+ * permanent id the first time.
+ */
+async function publishLiveBanners() {
+  if (!cloud || !useAccount.getState().user) return;
+  const doc = useStudio.getState().doc!;
+  // Every tagged request, undeduplicated (two items may share a picture).
+  const reqs = (["full", "reply"] as Variant[]).flatMap((v) =>
+    renderSignature(doc, { variant: v, mode: "email", resolve: () => null }).images.filter((r) => r.live),
+  );
+  const trees = [doc.blocks, doc.replyBlocks].filter((t): t is NonNullable<typeof t> => !!t);
+  const seen = new Set<string>();
+  for (const t of trees)
+    for (const { block: b } of walk(t)) {
+      if (b.type !== "image" || !b.live || seen.has(b.id)) continue;
+      seen.add(b.id);
+      const url = (item: number) => {
+        const r = reqs.find((q) => q.live?.block === b.id && q.live.item === item);
+        return r ? useStudio.getState().doc!.published[r.key]?.url : undefined;
+      };
+      const fallback = url(-1);
+      if (!fallback) continue;
+      const items = b.live.items
+        .map((it, i) => ({ it, image: url(i) }))
+        .filter((x): x is { it: (typeof b.live.items)[number]; image: string } => !!x.image)
+        .map(({ it, image }) => ({ image, link: it.link || undefined, alt: it.alt || undefined, from: it.from || undefined, to: it.to || undefined }));
+      const slug = b.live.slug ?? randomSlug();
+      try {
+        await cloud.saveLiveBanner({
+          slug,
+          signatureId: doc.id,
+          blockId: b.id,
+          mode: b.live.mode,
+          items,
+          fallback: { image: fallback, link: b.link ? (linkTarget(b.link) ?? undefined) : undefined, alt: b.alt },
+          track: !!b.live.track,
+        });
+        if (!b.live.slug)
+          editSilently((d) => {
+            for (const tr of [d.blocks, d.replyBlocks]) {
+              const h = tr ? findBlock(tr, b.id) : null;
+              if (h && h.block.type === "image" && h.block.live) h.block.live.slug = slug;
+            }
+          });
+      } catch {
+        setStatus({
+          key: `live|${b.id}`,
+          label: "Live banner",
+          state: "failed",
+          message: "Couldn't save the live banner. It will go out as its main picture.",
+        });
+      }
+    }
+}
+
 export async function prepareAll(variants: Variant[], force = false) {
   usePublish.setState({ running: true, statuses: {} });
   try {
@@ -147,6 +214,7 @@ export async function prepareAll(variants: Variant[], force = false) {
     const reqs = new Map<string, ImageRequest>();
     for (const v of variants) for (const r of renderSignature(doc, { variant: v, mode: "email", resolve: () => null }).images) reqs.set(r.key, r);
     await pool([...reqs.values()], 3, (r) => publishOne(r, force));
+    await publishLiveBanners();
   } finally {
     usePublish.setState({ running: false });
   }

@@ -55,6 +55,41 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: audit Batch 5 (parity)
+
+From the editor audit, items I4, T3/T4, live banners, click tracking and AI suggestions:
+- **I4 — background removal in the browser, nothing uploaded:**
+  - **Remove flat background** (logos): floods in from the edges through the background colour, feathers the edge, keeps enclosed details (`core/cutout.ts`).
+  - **Cut out person** (photos): Google's MediaPipe selfie segmenter runs on the device. The code and model (~10 MB) come once from pinned URLs (jsDelivr `@mediapipe/tasks-vision@0.10.14`, Google's model store), and the mask orients itself.
+  - Both make a new transparent PNG, so undo restores the original.
+- **T3 — text styles:**
+  - Named, linked typography (`Design.textStyles`, `BlockStyle.textStyle`, `core/textStyles.ts`).
+  - "Save as style" captures a block's look; any text block can use it.
+  - "Update style" pushes a block's changes to every block using it; a block's own settings still win.
+  - The brand kit can carry styles to new signatures.
+- **T4 — brand fonts:**
+  - Upload WOFF2/WOFF/TTF/OTF (checked by magic bytes, ≤ 3 MB). The font is stored on this device and registered with `FontFace`.
+  - It is listed under "Your fonts" in the picker and previews in the editor.
+  - Because no recipient has the font, name and text blocks in it go out as crisp 2× images with the words as alt text ("Send as an image", default on).
+- **Live banners:**
+  - An image block can carry more pictures that show on set dates (UTC; the newest running campaign wins) or rotate daily. The block's own picture is the fallback.
+  - Publishing uploads every picture at the block's size and stores the row (`live_banners`).
+  - The email then points at the public `banner` edge function, which redirects to whichever picture and link are current.
+  - Picking is pure (`core/liveBanner.ts`), shared byte-for-byte with the function and unit-tested.
+  - Without an account the main picture goes out as before.
+- **Opt-in click counts:** per banner and per item, with no personal data (`banner_clicks`). Owners see 30-day counts in the inspector.
+- **AI design suggestions** (Style → Templates → Suggest designs):
+  - Claude Opus 5.5 picks three of Signet's own templates and personalises the accent and fonts; each is previewed with your content and applied in one click (undoable).
+  - Only the job title, company, which pieces exist and the current look are sent, never contact details.
+  - It runs in the `suggest-layout` edge function: signed-in users, 20 a day, with structured output and the server-side refusal fallback. The app re-validates every id and colour.
+  - **It needs `ANTHROPIC_API_KEY` set as a function secret** (not set yet).
+- **Supabase (`wgrbgdvvhciahzhhhret` only):**
+  - Migrations 0002 (live banners and clicks) and 0003 (AI request log) were applied additively, with no drops.
+  - The `banner` (public) and `suggest-layout` (JWT) functions are deployed.
+  - RLS tests cover the new tables, including cascade on account deletion.
+  - The security advisor reports one intentional info item: `ai_requests` has RLS and no policies, so it is service-role only.
+- **Gates:** `npm test` (128), `npm run e2e` (57, incl. `batch5.spec.ts`, which runs the real on-device person cut-out), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio: audit Batch 4 (calmer editor, precise scaling)
 
 From the editor audit, items E1–E3, S1–S5, L1, L2 and B2:

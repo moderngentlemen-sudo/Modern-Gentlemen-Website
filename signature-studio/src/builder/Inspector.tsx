@@ -10,6 +10,7 @@ import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, Design, Detail
 import { edit, toast, ui, useStudio, type Tab, tree, treeOf } from "../store/editor";
 import { ImageDrop } from "../ui/ImageDrop";
 import { ImageStudio } from "./ImageStudio";
+import { LiveBannerEditor } from "./LiveBannerEditor";
 import { LinkableText } from "../ui/LinkableText";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
@@ -145,7 +146,6 @@ function StyleEditor({ b }: { b: Block }) {
   const design = useStudio((s) => s.doc!.design);
   return (
     <>
-      <SectionTitle>Style</SectionTitle>
       {b.type !== "row" && b.type !== "spacer" && (
         <Field label="Alignment">
           <Segmented<Align> label="Alignment" value={st.align ?? "left"} onChange={(v) => setStyle({ align: v })} options={ALIGN} />
@@ -418,6 +418,7 @@ function Content({ b }: { b: Block }) {
           <Slider label="Width" unit="px" min={40} max={640} step={10} value={b.width} onChange={(v) => set({ width: v }, "width")} />
           <TextField label="Link" placeholder="https://…" value={b.link ?? ""} onChange={(v) => set({ link: v }, "link")} />
           <TextField label="Description" hint="for screen readers" value={b.alt ?? ""} onChange={(v) => set({ alt: v }, "alt")} />
+          <LiveBannerEditor b={b} />
         </>
       );
     case "logos":

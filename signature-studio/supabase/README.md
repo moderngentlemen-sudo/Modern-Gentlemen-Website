@@ -42,6 +42,9 @@ CLI, or the Supabase MCP `apply_migration`). It is re-runnable. It creates:
 | `cards` | digital cards behind `/c/<slug>` | anyone reads `slug` + `data`; owner writes |
 | bucket `signet-images` | published images (`<uid>/s/…`) and synced originals (`<uid>/o/…`) | public read; upload/delete only in your own folder; PNG/JPEG/GIF ≤ 5 MB |
 | `delete_my_account()` | removes the login and everything that cascades from it | the signed-in user, for themselves |
+| `live_banners` (migration 0002) | scheduled / rotating banners: picture URLs, links, dates, click-count opt-in | owner only; the `banner` edge function reads it with the service role |
+| `banner_clicks` (0002) | one row per counted click: slug, which banner, time — no IP, user agent or cookie | owner reads their own; only the edge function writes |
+| `ai_requests` (0003) | one row per AI suggestion request, for the daily limit | nobody but the `suggest-layout` edge function |
 
 Test it locally any time: `npm run test:db` (applies it twice on a throwaway
 Postgres, then runs `tests/rls.sql`).
@@ -93,3 +96,25 @@ VITE_SUPABASE_ANON_KEY  = sb_publishable_…   (Project settings → API keys)
 
 Redeploy. Signed-in users then host their images in their own folder, so the
 shared Worker upload key is no longer needed for them.
+
+## 5. Edge functions (audit Batch 5)
+
+Both are deployed to `wgrbgdvvhciahzhhhret` (2026-10-09); their source is in `functions/`.
+
+| Function | JWT | What it does |
+|---|---|---|
+| `banner` | off (email clients can't send one) | `GET /banner/<slug>/img` redirects to the picture that is current; `/go` redirects to its link and, if the owner opted in, counts the click. Pictures must be in this project's `signet-images` bucket. `pick.ts` is a byte-identical copy of `src/core/liveBanner.ts` (a unit test enforces it). |
+| `suggest-layout` | on | AI design suggestions for signed-in users, 20 a day each. Calls Claude Opus 5.5 with structured output and the server-side refusal fallback. |
+
+**To switch AI suggestions on**, add the secret (dashboard → Edge Functions → Secrets, or the CLI):
+
+```
+ANTHROPIC_API_KEY = sk-ant-…
+```
+
+Until then the function answers 503 and the app says suggestions aren't switched on.
+The key never reaches the browser.
+
+Gmail and other inboxes proxy images, and may keep showing a live banner's
+previous picture for a while; the redirect is sent with `no-store` headers to
+keep that short.

@@ -82,7 +82,7 @@ None of these names has been checked for trademarks or domains. Do that before y
 - Delete account.
 - The database schema with row-level security, tested on a local Postgres in CI.
 
-**Still to do in Phase 2:** one-click Gmail install (needs Google verification), live banners, "Send me a test", wallet passes and lead capture, opt-in click analytics.
+**Still to do in Phase 2:** one-click Gmail install (needs Google verification), "Send me a test", wallet passes and lead capture. Live banners (scheduled or rotating) and opt-in click counts shipped in audit Batch 5, along with in-browser background removal, text styles, brand fonts and AI design suggestions (the last needs an Anthropic API key set on the server).
 
 **Original plan:**
 

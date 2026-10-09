@@ -26,7 +26,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { goHome, redo, ui, undo, useStudio, edit, type Tab } from "../store/editor";
+import { goHome, redo, toast, ui, undo, useStudio, edit, type Tab } from "../store/editor";
+import { loadFonts } from "../store/fonts";
 import type { SignatureDoc } from "../core/types";
 import { Segmented, Switch } from "../ui/kit";
 import { previewHtml, SigHtml, useSourcesVersion } from "../ui/SigHtml";
@@ -452,9 +453,21 @@ function Preview() {
   );
 }
 
+/** Register the signature's brand fonts with the page when it opens. */
+function useBrandFonts() {
+  const fonts = useStudio((s) => s.doc?.customFonts);
+  useEffect(() => {
+    if (!fonts?.length) return;
+    void loadFonts(fonts).then((missing) => {
+      if (missing.length) toast(`${missing.join(", ")} isn't on this device. Upload the font again to use it here.`, "info");
+    });
+  }, [fonts]);
+}
+
 export function Editor() {
   const builder = useStudio((s) => s.doc?.mode === "builder");
   const doc = useStudio((s) => s.doc!);
+  useBrandFonts();
   useShortcuts(builder);
   const tab = useStudio((s) => s.tab);
   const quickActive = QUICK_TABS.some((t) => t.id === tab) ? tab : QUICK_TABS[0].id;

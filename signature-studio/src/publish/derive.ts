@@ -180,6 +180,19 @@ export async function derive(
     }
     case "qr":
       return svg(qrSvg(req.value, req.size * DENSITY, req.color), req.size, req.size, true);
+    case "text": {
+      // Brand fonts are registered in this page (store/fonts.ts); wait for the face before drawing.
+      const font = (sz: number) => `${req.italic ? "italic " : ""}${req.weight} ${sz}px ${req.family}`;
+      await document.fonts.load(font(req.size * DENSITY), req.text);
+      const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
+      ctx.font = font(req.size * DENSITY);
+      ctx.fillStyle = req.color;
+      ctx.textBaseline = "middle";
+      if (req.tracking) ctx.letterSpacing = `${req.tracking * req.size * DENSITY}px`;
+      const line = req.size * req.lh * DENSITY;
+      req.text.split("\n").forEach((t, i) => ctx.fillText(t, 2 * DENSITY, line * i + line / 2));
+      return encode(c, false);
+    }
     case "script": {
       await document.fonts.load(`${req.size * DENSITY}px "${SCRIPT_FONT}"`);
       const w = estimateScriptWidth(req.text, req.size);

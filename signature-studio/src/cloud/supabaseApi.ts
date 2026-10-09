@@ -2,7 +2,8 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { SignatureDoc } from "../core/types";
 import type { CardData } from "../core/digitalCard";
-import { CloudError, type CloudApi, type CloudUser, type RemoteDoc, type RemoteMeta, type WriteResult } from "./api";
+import type { SuggestRequest } from "../core/aiSuggest";
+import { CloudError, type CloudApi, type CloudUser, type LiveBannerRow, type SuggestError, type RemoteDoc, type RemoteMeta, type WriteResult } from "./api";
 
 export const BUCKET = "signet-images";
 
@@ -20,7 +21,10 @@ export class SupabaseApi implements CloudApi {
   readonly kind = "supabase" as const;
   private sb: SupabaseClient;
 
-  constructor(url: string, key: string) {
+  constructor(
+    private url: string,
+    key: string,
+  ) {
     this.sb = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" } });
   }
 
@@ -137,5 +141,45 @@ export class SupabaseApi implements CloudApi {
   async getCard(slug: string) {
     const row = check(await this.sb.from("cards").select("data").eq("slug", slug).maybeSingle());
     return (row?.data as CardData | undefined) ?? null;
+  }
+
+  liveBase() {
+    return `${this.url.replace(/\/$/, "")}/functions/v1`;
+  }
+
+  async saveLiveBanner(r: LiveBannerRow) {
+    check(
+      await this.sb.from("live_banners").upsert({
+        slug: r.slug,
+        signature_id: r.signatureId,
+        block_id: r.blockId,
+        mode: r.mode,
+        items: r.items,
+        fallback: r.fallback,
+        track: r.track,
+      }),
+    );
+  }
+
+  async bannerClicks(slug: string, sinceDays: number) {
+    const since = new Date(Date.now() - sinceDays * 86_400_000).toISOString();
+    const rows = check(await this.sb.from("banner_clicks").select("item").eq("slug", slug).gte("at", since).limit(10000));
+    const out: Record<number, number> = {};
+    for (const r of rows as { item: number }[]) out[r.item] = (out[r.item] ?? 0) + 1;
+    return out;
+  }
+
+  async suggestDesigns(request: SuggestRequest) {
+    const { data, error } = await this.sb.functions.invoke("suggest-layout", { body: { request } });
+    if (!error) return { ok: true as const, data };
+    // The function answers with { error: "<reason>" } and a status; read it if we can.
+    let reason: SuggestError = "failed";
+    try {
+      const body = (await (error as { context?: Response }).context?.json()) as { error?: string } | undefined;
+      if (body?.error && ["not_configured", "limit", "sign_in", "declined", "busy"].includes(body.error)) reason = body.error as SuggestError;
+    } catch {
+      /* keep "failed" */
+    }
+    return { ok: false as const, error: reason };
   }
 }

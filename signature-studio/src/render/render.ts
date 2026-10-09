@@ -12,10 +12,12 @@ import { linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebU
 import { cropRect } from "../core/crop";
 import { frameLayout, framePath, isPlainLook, lookKey, lookMatrix, matrixValues, shortHash, type FrameShape, type ImageLook } from "../core/imageLook";
 import { clampScale, scaleDoc } from "../core/scale";
-import { fontStack } from "../core/fonts";
+import { fontDef, fontStack, isCustomFont } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
 import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Design, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
-import { parseRich, type RichNode } from "../core/richtext";
+import { parseRich, plainRich, type RichNode } from "../core/richtext";
+import { resolveBlockStyle } from "../core/textStyles";
+import { pickBanner } from "../core/liveBanner";
 import { getTemplate, type LayoutId } from "../core/templates";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
@@ -26,6 +28,8 @@ import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 interface Base {
   key: string;
   label: string;
+  /** Part of a live banner: which block, and which item (-1 = the fallback). */
+  live?: { block: string; item: number };
 }
 
 export type ImageRequest = Base &
@@ -48,6 +52,19 @@ export type ImageRequest = Base &
     | { kind: "badge"; store: "apple" | "google"; height: number }
     | { kind: "qr"; value: string; size: number; color: string }
     | { kind: "script"; text: string; color: string; size: number }
+    | {
+        kind: "text";
+        text: string;
+        family: string;
+        size: number;
+        weight: number;
+        italic: boolean;
+        color: string;
+        tracking: number;
+        lh: number;
+        w: number;
+        h: number;
+      }
   );
 
 export interface RenderOptions {
@@ -61,6 +78,10 @@ export interface RenderOptions {
   fallbackFonts?: boolean;
   /** Builder canvas: show hidden blocks faded so they can still be selected. */
   editing?: boolean;
+  /** email mode: base URL of the live-banner endpoint; without it live banners go out as their fallback picture. */
+  liveBase?: string;
+  /** Clock for live banners in the preview (tests). */
+  now?: number;
 }
 
 export interface RenderResult {
@@ -1065,6 +1086,138 @@ function cardHtml(c: Ctx, digitalUrl: string | null): string {
 // Builder blocks — rows of columns of blocks, rendered with the same parts
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Live banners
+// ---------------------------------------------------------------------------
+
+/** Mark the request slotImage just added as part of a live banner. */
+function tagLast(c: Ctx, before: number, live: { block: string; item: number }) {
+  for (let i = before; i < c.images.length; i++) c.images[i].live = live;
+}
+
+/**
+ * A banner whose picture changes after the email is sent. Every picture is
+ * published at the block's size; the email shows the live endpoint, which
+ * redirects to whichever is current. The editor shows today's.
+ */
+function liveBannerHtml(c: Ctx, b: Extract<Block, { type: "image" }>, slot: ImageSlot): string {
+  const live = b.live!;
+  const meta = c.doc.assets[b.assetId!];
+  const frame = { ...slot, aspect: slot.aspect ?? meta.width / meta.height, link: undefined };
+  const items = live.items.filter((i) => i.assetId && c.doc.assets[i.assetId]);
+  const label = b.alt || "Banner";
+  if (c.preview) {
+    const today = pickBanner(
+      {
+        mode: live.mode,
+        items: items.map((i) => ({ image: i.assetId!, link: i.link, from: i.from, to: i.to })),
+        fallback: { image: b.assetId!, link: b.link },
+      },
+      c.opts.now ?? Date.now(),
+    );
+    const shown = today.index < 0 ? b : items[today.index];
+    const n = c.images.length;
+    const html = slotImage(c, { ...frame, assetId: shown.assetId, crop: today.index < 0 ? slot.crop : { x: 0, y: 0, zoom: 1 } }, label);
+    tagLast(c, n, { block: b.id, item: today.index < 0 ? -1 : live.items.indexOf(shown as (typeof live.items)[number]) });
+    return link(linkTarget(shown.link ?? b.link) ?? null, html, c.doc.design.accent);
+  }
+  // Email: publish every picture; show the fallback, or the live endpoint once it exists.
+  let n = c.images.length;
+  const main = slotImage(c, frame, label);
+  tagLast(c, n, { block: b.id, item: -1 });
+  live.items.forEach((it, i) => {
+    if (!it.assetId || !c.doc.assets[it.assetId]) return;
+    n = c.images.length;
+    slotImage(c, { ...frame, assetId: it.assetId, crop: { x: 0, y: 0, zoom: 1 } }, `${label} ${i + 1}`);
+    tagLast(c, n, { block: b.id, item: i });
+  });
+  if (!main) return "";
+  if (!c.opts.liveBase || !live.slug) return link(linkTarget(b.link) ?? null, main, c.doc.design.accent);
+  const base = `${c.opts.liveBase.replace(/\/$/, "")}/banner/${live.slug}`;
+  return link(`${base}/go`, main.replace(/src="[^"]*"/, `src="${esc(`${base}/img`)}"`), c.doc.design.accent);
+}
+
+// ---------------------------------------------------------------------------
+// Brand-font text sent as an image
+// ---------------------------------------------------------------------------
+
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+
+/** Width of a line in a CSS font: measured on a canvas in the browser, estimated elsewhere. */
+export function measureLine(line: string, cssFont: string, size: number): number {
+  if (measureCtx === undefined) {
+    try {
+      measureCtx = typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : null;
+    } catch {
+      measureCtx = null;
+    }
+  }
+  if (measureCtx) {
+    measureCtx.font = cssFont;
+    return measureCtx.measureText(line).width;
+  }
+  return line.length * size * 0.56;
+}
+
+const caseText = (s: string, c?: string) =>
+  c === "upper" ? s.toUpperCase() : c === "lower" ? s.toLowerCase() : c === "title" ? s.replace(/\b\p{L}/gu, (m) => m.toUpperCase()) : s;
+
+/**
+ * A name or text block in an uploaded font: no inbox has the font, so the
+ * text goes out as a crisp image (with the words as its alt text).
+ */
+function textImage(c: Ctx, b: Block, sc: string | undefined): string | null {
+  const st = b.style ?? {};
+  const d = c.doc.design;
+  let value: string;
+  let size: number;
+  let weight: number;
+  let lh: number;
+  let href: string | null = null;
+  if (b.type === "name") {
+    value = c.doc.details.name.trim();
+    size = Math.round(d.fontSize * d.nameScale * (b.scale ?? 1));
+    weight = st.weight ?? 700;
+    lh = st.lineHeight ?? 1.2;
+    href = linkTarget(b.link);
+    if (st.case === undefined && (b.upper || d.nameCase === "upper")) value = value.toUpperCase();
+  } else if (b.type === "text") {
+    value = plainRich(b.text).trim();
+    size = b.size ?? st.fontSize ?? d.fontSize;
+    weight = st.weight ?? (b.bold ? 700 : 400);
+    lh = st.lineHeight ?? 1.45;
+    href = linkTarget(b.link);
+  } else return null;
+  if (!value) return null;
+  value = caseText(value, st.case);
+  const family = fontDef(st.font!).family;
+  const italic = !!(st.italic ?? (b.type === "text" && b.italic));
+  const tracking = st.tracking ?? 0;
+  const color = sc ?? (b.type === "text" && b.muted ? d.muted : d.text);
+  const lines = value.split("\n");
+  const cssFont = `${italic ? "italic " : ""}${weight} ${size}px ${family}`;
+  const w = Math.ceil(Math.max(...lines.map((l) => measureLine(l, cssFont, size) + tracking * size * l.length)) + 4);
+  const h = Math.ceil(lines.length * size * lh);
+  const req: ImageRequest = {
+    kind: "text",
+    key: `text|${shortHash([value, family, size, weight, italic, color, tracking, lh, w].join("|"))}`,
+    label: b.type === "name" ? "Name" : "Text",
+    text: value,
+    family,
+    size,
+    weight,
+    italic,
+    color,
+    tracking,
+    lh,
+    w,
+    h,
+  };
+  const src = source(c, req, () => null);
+  if (!src) return "";
+  return link(href, imgTag(src, w, h, value.replace(/\n/g, " ")), color);
+}
+
 /** A block's text colour: a custom colour, else the colour role it follows, else none. */
 export function styleColor(st: BlockStyle | undefined, d: Design): string | undefined {
   if (st?.color) return st.color;
@@ -1185,6 +1338,10 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   const sc = styleColor(b.style, c0.doc.design);
   const align = b.style?.align;
   const empty = (label: string, w = 0, h = 0, round = false) => (c.preview ? placeholder(label, w, h, round) : "");
+  if (!c.preview && isCustomFont(b.style?.font) && b.style?.asImage !== false) {
+    const img = textImage(c, b, sc);
+    if (img !== null) return img;
+  }
   switch (b.type) {
     case "row":
       return rowHtml(c, b, digitalUrl);
@@ -1264,6 +1421,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         aspect: b.aspect,
         look: b.look,
       };
+      if (b.live && b.assetId && c.doc.assets[b.assetId]) return liveBannerHtml(c, b, slot);
       return (b.assetId && c.doc.assets[b.assetId] ? slotImage(c, slot, b.alt || "Image") : "") || empty("Image", Math.min(b.width, 200), 60);
     }
     case "logos": {
@@ -1369,7 +1527,8 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   }
 }
 
-function blockHtml(c: Ctx, b: Block, digitalUrl: string | null, align?: string): string {
+function blockHtml(c: Ctx, b0: Block, digitalUrl: string | null, align?: string): string {
+  const b = resolveBlockStyle(b0, c.doc.design);
   const shown = showsIn(b, c.opts.variant);
   // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
   if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
