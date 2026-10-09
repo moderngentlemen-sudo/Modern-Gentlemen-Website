@@ -223,9 +223,13 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   `zoom`.** `stageLayout` children carry per-device `{x, y, w, scale, z}`
   (`lib/blocks/stage.ts`); every device uses a 1440 design width, and phones
   stack in reading order unless the stage is set to free. Keep `zoom`, not
-  `transform` — the editor's frames and snapping measure the layout box. A
-  knockout's `mix-blend-mode` must sit on the stage **cell** (a stacking
-  context), never inside it. The CS22–CS35 designs are starters built from
+  `transform` — the editor's frames and snapping measure the layout box.
+  ⚠️ **Knockout letters are an SVG mask, never a blend mode**: Safari on iPad
+  and iPhone does not blend an element with a playing `<video>`, so a
+  `screen`/`multiply` knockout showed filled letters there while every other
+  browser (and every test) looked right. Any blend on a stage element must sit
+  on the stage **cell** (a stacking context), and will not blend over video in
+  Safari. The CS22–CS35 designs are starters built from
   ordinary blocks (`lib/blocks/stageStarters.ts`); legacy `comingSoonStudio`
   blocks still render and convert on request, never automatically.
 - **Never commit secrets.** Real values live only in

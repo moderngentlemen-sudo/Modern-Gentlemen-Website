@@ -543,6 +543,34 @@ describe("editable typography and header settings", () => {
     expect(css).toMatch(/--mg-webfont-brand-mono:"JetBrains Mono",ui-monospace/);
   });
 
+  it("lets a family's only static file cover every weight, so bold is never faked", () => {
+    const face = (id: string, family: string, weight: string) => ({
+      id,
+      label: id,
+      family,
+      source: "file" as const,
+      url: `https://cdn.example.com/fonts/${id}.woff2`,
+      fallback: "sans" as const,
+      weight,
+      style: "normal" as const,
+    });
+    const css = themeWebfontFaceCssText({
+      ...DEFAULT_THEME_TYPOGRAPHY,
+      webfonts: [
+        face("gotham-black", "MG Upload abc", "400"),
+        face("brand-regular", "Brand", "400"),
+        face("brand-bold", "Brand", "700"),
+      ],
+    });
+    // The upload is its family's only face: used as drawn for any weight.
+    expect(css).toContain(
+      'font-family:"MG Upload abc";src:url("https://cdn.example.com/fonts/gotham-black.woff2") format("woff2");font-weight:1 1000;'
+    );
+    // A family with two files keeps each weight, so 700 still picks the bold file.
+    expect(css).toContain('brand-regular.woff2") format("woff2");font-weight:400;');
+    expect(css).toContain('brand-bold.woff2") format("woff2");font-weight:700;');
+  });
+
   it("emits a safe font-face for direct files, including variable weights", () => {
     const typography = {
       ...DEFAULT_THEME_TYPOGRAPHY,

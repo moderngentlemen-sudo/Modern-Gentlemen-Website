@@ -1581,9 +1581,29 @@ export function themeWebfontStylesheets(typography: ThemeTypography): string[] {
   );
 }
 
+/**
+ * The weight range a face is declared to cover.
+ *
+ * ⚠️ A static file that is the **only** face of its family covers every
+ * weight. Declared as just its own weight (an upload is recorded as 400), any
+ * request for a heavier weight — a 700 heading, the knockout's default —
+ * makes the browser fake a bold by stroking the outlines, which throws spikes
+ * off every sharp corner: the vertex of an M, the joins in a G. Uploads are
+ * always their own family, so for them the file *is* the whole family and
+ * should be used as drawn. A family with several files keeps each declared
+ * weight, so the right file is still chosen; a variable range is kept as is.
+ */
+function faceWeight(font: ThemeWebfont, facesPerFamily: Map<string, number>) {
+  const single = /^\d+$/.test(font.weight.trim());
+  return single && facesPerFamily.get(font.family) === 1 ? "1 1000" : font.weight;
+}
+
 export function themeWebfontFaceCssText(typography: ThemeTypography): string {
-  return typography.webfonts
-    .filter((font) => font.source === "file")
+  const files = typography.webfonts.filter((font) => font.source === "file");
+  const facesPerFamily = new Map<string, number>();
+  for (const font of files)
+    facesPerFamily.set(font.family, (facesPerFamily.get(font.family) ?? 0) + 1);
+  return files
     .flatMap((font) => {
       const url = safeWebfontUrl(font.url, "file");
       if (!url) return [];
@@ -1595,7 +1615,7 @@ export function themeWebfontFaceCssText(typography: ThemeTypography): string {
             ? "truetype"
             : "opentype";
       return [
-        `@font-face{font-family:${JSON.stringify(font.family)};src:url(${JSON.stringify(url)}) format("${format}");font-weight:${font.weight};font-style:${font.style};font-display:swap}`,
+        `@font-face{font-family:${JSON.stringify(font.family)};src:url(${JSON.stringify(url)}) format("${format}");font-weight:${faceWeight(font, facesPerFamily)};font-style:${font.style};font-display:swap}`,
       ];
     })
     .join("");

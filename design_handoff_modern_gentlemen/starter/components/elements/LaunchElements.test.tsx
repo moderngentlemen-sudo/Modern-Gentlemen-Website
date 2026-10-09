@@ -82,11 +82,34 @@ describe("Launch elements", () => {
     }
   });
 
-  it("knockout text marks the blend the stage applies, light or dark", () => {
-    const { container, rerender } = render(<LaunchKnockout text="SOON" panel="light" />);
-    expect(container.querySelector('[data-knockout="screen"]')?.textContent).toBe("SOON");
-    rerender(<LaunchKnockout text="MG" panel="dark" />);
-    expect(container.querySelector('[data-knockout="multiply"]')).toBeTruthy();
+  it("knockout letters are a mask, not a blend, so Safari cuts them out over video", () => {
+    const { container } = render(<LaunchKnockout text="SOON" panel="light" />);
+    const box = container.querySelector<HTMLElement>("[data-knockout]")!;
+    expect(box.dataset.knockout).toBe("mask");
+    // The real text stays for layout and screen readers, drawn transparent.
+    expect(box.querySelector("p")?.textContent).toBe("SOON");
+    expect(box.style.getPropertyValue("--ko-ink")).toBe("transparent");
+    // The panel is a masked rect; the letters are black (cut) in the mask.
+    const svg = box.querySelector("svg")!;
+    expect(svg.getAttribute("aria-hidden")).toBe("true");
+    const maskId = svg.querySelector("mask")!.id;
+    expect(svg.querySelector(`rect[mask="url(#${maskId})"]`)?.getAttribute("fill")).toBe("#f4f4f4");
+    expect(svg.querySelector("mask text")?.getAttribute("fill")).toBe("#000");
+    expect(svg.querySelector("mask text")?.textContent).toBe("SOON");
+    // Nothing on the stage blends any more.
+    expect(container.innerHTML).not.toMatch(/screen|multiply/);
+  });
+
+  it("knockout headlines keep their explicit line breaks in the mask", () => {
+    const { container } = render(<LaunchKnockout text={"COMING\nSOON"} />);
+    const lines = [...container.querySelectorAll("mask text")].map((t) => [
+      t.textContent,
+      t.getAttribute("y"),
+    ]);
+    expect(lines).toEqual([
+      ["COMING", "25%"],
+      ["SOON", "75%"],
+    ]);
   });
 
   it("every text-bearing element takes an installed font through the theme variable", () => {
@@ -153,19 +176,21 @@ describe("Launch elements", () => {
     expect(bad.hasAttribute("data-blend")).toBe(false);
   });
 
-  it("knockout panels take any colour and opacity, and pick the blend that keeps the letters cut out", () => {
-    const panel = (props: Parameters<typeof LaunchKnockout>[0]) =>
+  it("knockout panels take any colour exactly, and any opacity", () => {
+    const box = (props: Parameters<typeof LaunchKnockout>[0]) =>
       render(<LaunchKnockout {...props} />).container.querySelector<HTMLElement>(
         "[data-knockout]"
       )!;
-    expect(panel({ panel: "dark" }).dataset.knockout).toBe("multiply");
-    const pale = panel({ panelColor: "#f2e6d0", panelOpacity: 80 });
-    expect(pale.dataset.knockout).toBe("screen");
+    const dark = box({ panel: "dark" });
+    expect(dark.style.getPropertyValue("--ko-panel")).toBe("#0d0d0d");
+    const pale = box({ panelColor: "#f2e6d0", panelOpacity: 80 });
     expect(pale.style.getPropertyValue("--ko-panel")).toBe("#f2e6d0");
+    expect(pale.querySelector("rect[mask]")?.getAttribute("fill")).toBe("#f2e6d0");
     expect(pale.style.opacity).toBe("0.8");
-    const deep = panel({ panel: "light", panelColor: "#3a0710" });
-    expect(deep.dataset.knockout).toBe("multiply");
-    expect(deep.style.opacity).toBe("");
+    const mid = box({ panelColor: "#7a1020" });
+    expect(mid.querySelector("rect[mask]")?.getAttribute("fill")).toBe("#7a1020");
+    expect(mid.style.opacity).toBe("");
+    expect(box({ panelColor: "red;x" }).style.getPropertyValue("--ko-panel")).toBe("#f4f4f4");
   });
 
   it("countdown numbers roll the old value out as the new one arrives", () => {
@@ -201,30 +226,27 @@ describe("Launch elements", () => {
   });
 
   it("knockout letters can be cut out, tinted, outlined or solid", () => {
-    const ko = (props: Parameters<typeof LaunchKnockout>[0]) =>
+    const box = (props: Parameters<typeof LaunchKnockout>[0]) =>
       render(<LaunchKnockout {...props} />).container.querySelector<HTMLElement>(
         "[data-knockout]"
       )!;
-    const cut = ko({ panel: "dark" });
-    expect(cut.style.getPropertyValue("--ko-ink")).toBe("#ffffff");
-    expect(cut.hasAttribute("data-letters")).toBe(false);
-    // Tinted on a dark (multiply) panel: white toward the colour.
-    const tinted = ko({
-      panel: "dark",
-      letters: "tinted",
-      letterColor: "#c8102e",
-      letterStrength: 50,
-    });
-    expect(tinted.style.getPropertyValue("--ko-ink")).toBe("#e48897");
-    expect(tinted.dataset.knockout).toBe("multiply");
-    // Outline: the fill matches the panel, so only the stroke is cut out.
-    const outline = ko({ panel: "light", letters: "outline", outlineWidth: 5 });
-    expect(outline.style.getPropertyValue("--ko-ink")).toBe("#f4f4f4");
-    expect(outline.style.getPropertyValue("--ko-stroke")).toBe("5px");
-    expect(outline.style.getPropertyValue("--ko-stroke-color")).toBe("#000000");
-    // Solid: no blend at all, so any colour is exactly that colour.
-    const solid = ko({ panelColor: "#1b2a4a", letters: "solid", letterColor: "#d4af37" });
+    const cutout = box({ panel: "dark" });
+    expect(cutout.hasAttribute("data-letters")).toBe(false);
+    // Tinted: the cut-out plus the letters again, in the colour, at the strength.
+    const tinted = box({ letters: "tinted", letterColor: "#c8102e", letterStrength: 50 });
+    const wash = tinted.querySelector("svg > text")!;
+    expect(wash.getAttribute("fill")).toBe("#c8102e");
+    expect(wash.getAttribute("opacity")).toBe("0.5");
+    // Outline: the letters stay in the mask (white) and only their stroke is cut.
+    const outline = box({ letters: "outline", outlineWidth: 5 });
+    const edge = outline.querySelector("mask text")!;
+    expect(edge.getAttribute("fill")).toBe("#fff");
+    expect(edge.getAttribute("stroke")).toBe("#000");
+    expect(edge.getAttribute("stroke-width")).toBe("5");
+    // Solid: ordinary text on the panel, no mask at all.
+    const solid = box({ panelColor: "#1b2a4a", letters: "solid", letterColor: "#d4af37" });
     expect(solid.dataset.knockout).toBe("none");
+    expect(solid.querySelector("svg")).toBeNull();
     expect(solid.style.getPropertyValue("--ko-ink")).toBe("#d4af37");
     expect(solid.style.getPropertyValue("--ko-panel")).toBe("#1b2a4a");
   });
