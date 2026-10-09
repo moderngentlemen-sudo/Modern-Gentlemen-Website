@@ -1,6 +1,10 @@
 import { FONTS, fontDef } from "../core/fonts";
 import type { ContactIcons, Design } from "../core/types";
-import { edit, useStudio } from "../store/editor";
+import { edit, ui, useStudio } from "../store/editor";
+import { applyBrand } from "../core/apply";
+import { EARLY_ACCESS, entitlements } from "../core/plans";
+import { BRAND } from "../brand";
+import { Palette } from "lucide-react";
 import { ColorField, Segmented, SectionTitle, Select, Slider, Toggle } from "../ui/kit";
 
 const PALETTES: { name: string; accent: string; text: string; muted: string; surface: string }[] = [
@@ -25,14 +29,45 @@ function fontHint(id: string) {
   return f.safe ? "Shows as designed everywhere" : `Most inboxes show ${f.seenAs}`;
 }
 
+/** The "Made with" link switch — shared by the Design panel and the builder. */
+export function MadeWithToggle() {
+  const madeWith = useStudio((s) => s.doc!.madeWith !== false);
+  const canRemove = entitlements().removeBadge;
+  return (
+    <Toggle
+      label={`Show “${BRAND.madeWith}”`}
+      hint={
+        canRemove
+          ? EARLY_ACCESS
+            ? `A small link under new emails that helps others find ${BRAND.name}. Turning it off is free during early access.`
+            : `A small link under new emails that helps others find ${BRAND.name}.`
+          : `Upgrade to Pro to remove it.`
+      }
+      checked={madeWith}
+      onChange={(v) => (v || canRemove) && edit((doc) => void (doc.madeWith = v))}
+      testId="made-with"
+    />
+  );
+}
+
 export function DesignPanel() {
   const d = useStudio((s) => s.doc!.design);
   const reply = useStudio((s) => s.doc!.reply);
+  const brand = useStudio((s) => s.prefs.brand);
   const set = <K extends keyof Design>(k: K, v: Design[K], coalesce = true) => edit((doc) => void (doc.design[k] = v), coalesce ? `design.${k}` : undefined);
   return (
     <>
       <h2>Design</h2>
       <p className="lede">Fine-tune colours, type and spacing.</p>
+      {brand ? (
+        <button className="btn sm" style={{ marginBottom: 6 }} onClick={() => edit((doc) => applyBrand(doc, brand))} data-testid="apply-brand">
+          <Palette size={14} /> Apply my brand kit
+        </button>
+      ) : (
+        <button className="btn sm ghost" style={{ marginBottom: 6 }} onClick={() => ui({ dialog: "brand" })}>
+          <Palette size={14} /> Set up a brand kit
+        </button>
+      )}
       <SectionTitle>Palettes</SectionTitle>
       <div className="palette-grid">
         {PALETTES.map((p) => (
@@ -133,6 +168,9 @@ export function DesignPanel() {
       </div>
       <Slider label="Spacing" unit="×" min={0.7} max={1.6} step={0.05} value={d.spacing} onChange={(v) => set("spacing", v)} />
       <Slider label="Max width" unit="px" min={320} max={640} step={10} value={d.width} onChange={(v) => set("width", v)} />
+
+      <SectionTitle>Footer</SectionTitle>
+      <MadeWithToggle />
 
       <SectionTitle>Reply version</SectionTitle>
       <Toggle

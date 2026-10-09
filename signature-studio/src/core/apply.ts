@@ -1,4 +1,4 @@
-import type { SignatureDoc } from "./types";
+import type { BrandKit, SignatureDoc } from "./types";
 import { getTemplate } from "./templates";
 
 /**
@@ -14,4 +14,24 @@ export function applyTemplate(doc: SignatureDoc, templateId: string, opts: { kee
   doc.images.photo.shape = t.photo.shape;
   doc.images.photo.size = t.photo.size;
   doc.images.logo.size = t.logo.size;
+}
+
+/** Restyle a signature with a brand kit (colours, fonts, logo, company). */
+export function applyBrand(doc: SignatureDoc, brand: BrandKit, opts: { fillEmpty?: boolean } = {}): void {
+  Object.assign(doc.design, {
+    accent: brand.accent,
+    text: brand.text,
+    muted: brand.muted,
+    surface: brand.surface,
+    headingFont: brand.headingFont,
+    bodyFont: brand.bodyFont,
+  });
+  if (brand.logo && (!opts.fillEmpty || !doc.images.logo.assetId)) {
+    doc.assets[brand.logo.id] = brand.logo;
+    doc.images.logo.assetId = brand.logo.id;
+  }
+  if (opts.fillEmpty) {
+    if (brand.company && !doc.details.company.trim()) doc.details.company = brand.company;
+    if (brand.website && !doc.details.website.trim()) doc.details.website = brand.website;
+  }
 }

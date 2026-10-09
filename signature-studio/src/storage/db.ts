@@ -1,6 +1,6 @@
 /** Local persistence (IndexedDB): signatures, uploaded images, preferences. */
 import { createStore, del, entries, get, set, type UseStore } from "idb-keyval";
-import type { SignatureDoc } from "../core/types";
+import type { BrandKit, SignatureDoc } from "../core/types";
 
 let stores: { docs: UseStore; assets: UseStore; prefs: UseStore } | null = null;
 const db = () =>
@@ -29,6 +29,7 @@ export interface Prefs {
   publishConsent: boolean;
   favorites: string[];
   lastDocId?: string;
+  brand?: BrandKit;
 }
 
 export const DEFAULT_PREFS: Prefs = { publishConsent: false, favorites: [] };

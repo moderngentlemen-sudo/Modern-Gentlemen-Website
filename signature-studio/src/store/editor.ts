@@ -6,9 +6,10 @@ import { create } from "zustand";
 import { produce, type Draft } from "immer";
 import type { SignatureDoc, Variant } from "../core/types";
 import { defaultCard } from "../core/defaults";
+import { go } from "../router";
 import { docStore, prefStore, DEFAULT_PREFS, type Prefs } from "../storage/db";
 
-export type Tab = "templates" | "details" | "images" | "social" | "design" | "addons" | "card" | "install";
+export type Tab = "blocks" | "layers" | "templates" | "details" | "images" | "social" | "design" | "addons" | "card" | "install";
 
 export interface Toast {
   id: number;
@@ -33,8 +34,10 @@ interface State {
   saving: "saved" | "saving" | "error";
   prefs: Prefs;
   toasts: Toast[];
-  dialog: null | "install" | "settings" | "crop" | "templates";
+  dialog: null | "install" | "settings" | "crop" | "templates" | "brand";
   dialogArg: string | null;
+  /** Builder: the selected block. */
+  selected: string | null;
 }
 
 const LIMIT = 150;
@@ -60,6 +63,7 @@ export const useStudio = create<State>(() => ({
   toasts: [],
   dialog: null,
   dialogArg: null,
+  selected: null,
 }));
 
 const get = () => useStudio.getState();
@@ -129,9 +133,19 @@ export async function loadAll() {
   set({ docs: docs.map((d) => ({ ...d, card: { ...defaultCard(), ...d.card } })), prefs });
 }
 
-export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details") {
-  set({ doc, past: [], future: [], view: "editor", tab, variant: "full", lastKey: null });
+export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", navigate = true) {
+  set({
+    doc,
+    past: [],
+    future: [],
+    view: "editor",
+    tab: doc.mode === "builder" && tab === "details" ? "blocks" : tab,
+    variant: "full",
+    lastKey: null,
+    selected: null,
+  });
   updatePrefs({ lastDocId: doc.id });
+  if (navigate) go(`/app/s/${doc.id}`);
 }
 
 export async function createDoc(doc: SignatureDoc) {
@@ -143,12 +157,13 @@ export async function createDoc(doc: SignatureDoc) {
 export async function deleteDoc(id: string) {
   await docStore.remove(id);
   set({ docs: get().docs.filter((d) => d.id !== id) });
-  if (get().doc?.id === id) set({ doc: null, view: "home" });
+  if (get().doc?.id === id) goHome();
 }
 
 export function goHome() {
   void flushSave();
-  set({ view: "home", dialog: null });
+  set({ view: "home", dialog: null, selected: null });
+  go("/app");
 }
 
 export function updatePrefs(patch: Partial<Prefs>) {
