@@ -12,5 +12,16 @@ import { Builder } from "./Builder";
  */
 export async function BuilderWithTheme(props: ComponentProps<typeof Builder>) {
   const theme = await getPublishedThemeSettings();
-  return <Builder {...props} styleClasses={theme.styleClasses} tokenAliases={theme.tokenAliases} />;
+  return (
+    <Builder
+      {...props}
+      styleClasses={theme.styleClasses}
+      tokenAliases={theme.tokenAliases}
+      installedFonts={theme.typography.webfonts.map(({ id, label, family }) => ({
+        id,
+        label,
+        family,
+      }))}
+    />
+  );
 }

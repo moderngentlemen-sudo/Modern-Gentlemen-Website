@@ -14,6 +14,11 @@ const HEX = /^#[0-9a-f]{6}$/i;
 const JUSTIFY = { left: "flex-start", center: "center", right: "flex-end" } as const;
 const colour = (value: string | undefined, name: string) =>
   value && HEX.test(value) ? { [name]: value } : {};
+/** An element's own font: `--el-font` on its root, read by its CSS with the theme role as fallback. */
+const fontVar = (font: string | undefined): Record<string, string> => {
+  const stack = libraryFontStack(font);
+  return stack ? { "--el-font": stack } : {};
+};
 const within = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 
@@ -24,6 +29,7 @@ export function LaunchSocial({
   gap = 24,
   color,
   align = "center",
+  font,
 }: {
   links?: { network: string; href: string; label: string }[];
   style?: "icons" | "text" | "both";
@@ -31,6 +37,7 @@ export function LaunchSocial({
   gap?: number;
   color?: string;
   align?: "left" | "center" | "right";
+  font?: string;
 }) {
   const safe = links.filter((link) => studyHref(link.href));
   if (safe.length === 0) return null;
@@ -44,9 +51,11 @@ export function LaunchSocial({
           justifyContent: JUSTIFY[align] ?? "center",
           "--so-size": `${within(size, 10, 120, 22)}px`,
           ...colour(color, "--so-color"),
+          ...fontVar(font),
         } as CSSProperties
       }
     >
+      <FontStylesheet font={font} />
       {safe.map((link, index) => (
         <a
           key={`${link.network}-${index}`}
@@ -70,6 +79,7 @@ export function LaunchLogo({
   accentColor = "#c8102e",
   sealText = "MODERN GENTLEMEN · COMING SOON · ",
   align = "left",
+  font,
 }: {
   variant?: "wordmark" | "monogram" | "seal";
   size?: number;
@@ -79,12 +89,14 @@ export function LaunchLogo({
   accentColor?: string;
   sealText?: string;
   align?: "left" | "center" | "right";
+  font?: string;
 }) {
   const ringId = `ring${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const vars = {
     "--lg-size": `${within(size, 8, 600, 32)}px`,
     ...colour(color, "--lg-color"),
     ...colour(accentColor, "--lg-accent"),
+    ...(variant === "seal" ? fontVar(font) : {}),
     justifyContent: JUSTIFY[align] ?? "flex-start",
   } as CSSProperties;
   const mark =
@@ -114,6 +126,7 @@ export function LaunchLogo({
   const link = studyHref(href);
   return (
     <div className={styles.logo} style={vars}>
+      {variant === "seal" && <FontStylesheet font={font} />}
       {link ? (
         <a href={link} aria-label={label || "Modern Gentlemen"}>
           {mark}

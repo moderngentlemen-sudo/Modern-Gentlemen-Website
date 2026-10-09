@@ -139,6 +139,41 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
   Gmail acceptance has not been performed.
 
+### 2026-10-09 — Coming Soon pages support the site's installed fonts (branch `claude/coming-soon-fonts`)
+
+- Asked by the owner: every coming-soon page should support the fonts
+  installed on the website (Theme → Typography webfonts, including the
+  uploaded fonts from PR #132).
+- **One reference shape: `webfont:<id>`**, exactly what the theme's own
+  roles store. `lib/domain/fontLibrary.ts` resolves it to
+  `var(--mg-webfont-<id>,var(--font-body))`; `themeDesignCssText` publishes a
+  `--mg-webfont-<id>` for **every** installed font, assigned to a role or
+  not. The root layout already loads every installed webfont, so a block
+  carries neither a family nor a URL: renaming a font in the theme updates
+  every block, and deleting one falls back to the body font. The id regex
+  (`[a-z][a-z0-9-]{0,39}`) matches the theme's own, so nothing can escape
+  the CSS value. `field.font` validation now accepts these (`isFontValue`).
+- **The builder's font picker lists installed fonts first** ("Installed on
+  this site"), fed by `BuilderWithTheme` through `InstalledFontsProvider`
+  (`components/admin/fields/InstalledFonts.tsx`). A font removed from the
+  theme stays visible as "Removed font (id) — uses the body font".
+- **Stage elements:** Heading, Text, Countdown and Knockout already had
+  font pickers; Email signup, Social links and the Logo's seal text gained
+  one (`--el-font`, falling back to the theme label font, so unset is a
+  visual no-op).
+- **The 35 original designs (CS01–CS35, After Hours included):** a new
+  "Fonts" group on Coming Soon Studio (headline, accent, body, label). Every
+  design reads the theme roles (`--font-heading` …), so the overrides sit on
+  a `display: contents` wrapper that is **only rendered when a font is
+  set** — untouched pages keep their DOM. "Convert to editable layout"
+  carries these choices onto the elements that followed those roles,
+  including elements whose font is unset (`IMPLIED_ROLE` in
+  `stageStarters.ts`).
+- Verified in Chromium against the live theme's uploaded font
+  (`custom-dbd14…`): it loads, and the legacy headline and a stage
+  countdown both compute to it. Gates: format, lint, typecheck, 4,090 unit
+  tests.
+
 ### 2026-10-08 — Coming Soon remade as editable Stage layouts (branch `claude/coming-soon-composable`)
 
 - The owner asked for the CS22–CS35 coming-soon pages to be fully editable in

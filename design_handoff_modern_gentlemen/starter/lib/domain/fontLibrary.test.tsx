@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { FONT_LIBRARY, libraryFont, libraryFontStack, libraryFontStylesheet } from "./fontLibrary";
+import {
+  FONT_LIBRARY,
+  installedFontId,
+  isFontValue,
+  libraryFont,
+  libraryFontStack,
+  libraryFontStylesheet,
+} from "./fontLibrary";
 import { NativeText } from "@/components/elements/NativeElements";
 import { normalizeBlock } from "@/lib/blocks/normalize";
 import { manifestFor } from "@/lib/blocks/manifests";
@@ -47,5 +54,23 @@ describe("expanded font library", () => {
     expect(html).toContain("font-weight:500");
     expect(html).toContain("font-style:italic");
     expect(html).not.toContain("Roboto");
+  });
+});
+
+describe("installed fonts in the font library", () => {
+  it("resolves an installed font through the variable the theme publishes", () => {
+    expect(libraryFontStack("webfont:brand-serif")).toBe(
+      "var(--mg-webfont-brand-serif,var(--font-body))"
+    );
+    expect(installedFontId("webfont:brand-serif")).toBe("brand-serif");
+  });
+
+  it("accepts library fonts and well-formed installed ids, nothing else", () => {
+    expect(isFontValue("google:Lora")).toBe(true);
+    expect(isFontValue("theme:heading")).toBe(true);
+    expect(isFontValue("webfont:brand-serif")).toBe(true);
+    for (const bad of ["webfont:", "webfont:Brand", "webfont:a;b", "webfont:x)}body{", "Lora"])
+      expect(isFontValue(bad)).toBe(false);
+    expect(libraryFontStack("webfont:x)}body{")).toBeUndefined();
   });
 });

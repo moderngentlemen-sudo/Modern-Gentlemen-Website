@@ -140,6 +140,10 @@ export const nativeSignup = defineBlock({
     }),
     color: field.color({ label: "Text and line colour" }),
     accentColor: field.color({ label: "Button colour", default: "#c8102e" }),
+    font: field.font({
+      label: "Font",
+      help: "For the field and the button. Leave unset to follow the theme's label font.",
+    }),
     align: field.select({ label: "Alignment", default: "center", options: ALIGN }),
     consent: field.text({
       label: "Consent note",
@@ -188,6 +192,10 @@ export const nativeSocial = defineBlock({
     size: field.number({ label: "Icon size (px)", default: 22, min: 10, max: 120 }),
     gap: field.number({ label: "Spacing (px)", default: 24, min: 0, max: 160 }),
     color: field.color({ label: "Colour" }),
+    font: field.font({
+      label: "Font",
+      help: "For profile names. Leave unset to follow the theme's label font.",
+    }),
     align: field.select({ label: "Alignment", default: "center", options: ALIGN }),
   },
   insertDefaults: {
@@ -227,6 +235,10 @@ export const nativeLogo = defineBlock({
       label: "Seal text",
       default: "MODERN GENTLEMEN · COMING SOON · ",
       help: "Runs around the seal style.",
+    }),
+    font: field.font({
+      label: "Seal text font",
+      help: "Leave unset to follow the theme's label font.",
     }),
     align: field.select({ label: "Alignment", default: "left", options: ALIGN }),
   },

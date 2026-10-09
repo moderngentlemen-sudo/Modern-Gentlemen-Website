@@ -2,6 +2,8 @@
 
 import { useId, type CSSProperties } from "react";
 
+import { libraryFontStack } from "@/lib/domain/fontLibrary";
+import { FontStylesheet } from "../ui/FontStylesheet";
 import { SIGNUP_MESSAGE, useNewsletterSignup } from "../ui/useNewsletterSignup";
 import styles from "./LaunchElements.module.css";
 
@@ -18,6 +20,7 @@ export function LaunchSignup({
   align = "center",
   consent,
   accessibleLabel = "Email address",
+  font,
 }: {
   buttonLabel?: string;
   placeholder?: string;
@@ -27,6 +30,7 @@ export function LaunchSignup({
   align?: "left" | "center" | "right";
   consent?: string;
   accessibleLabel?: string;
+  font?: string;
 }) {
   const { email, setEmail, state, submit } = useNewsletterSignup("newsletter");
   const id = useId();
@@ -34,9 +38,11 @@ export function LaunchSignup({
     ...(color && HEX.test(color) ? { "--su-color": color } : {}),
     "--su-accent": HEX.test(accentColor) ? accentColor : "#c8102e",
     textAlign: align,
+    ...(libraryFontStack(font) ? { "--el-font": libraryFontStack(font) } : {}),
   } as CSSProperties;
   return (
     <div className={styles.signup} data-style={style} style={vars}>
+      <FontStylesheet font={font} />
       {state === "done" ? (
         <p role="status" className={styles.signupStatus}>
           {SIGNUP_MESSAGE.done}

@@ -1,10 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FONT_LIBRARY, libraryFont, libraryFontStack } from "@/lib/domain/fontLibrary";
+import {
+  FONT_LIBRARY,
+  installedFontId,
+  isFontValue,
+  libraryFont,
+  libraryFontStack,
+} from "@/lib/domain/fontLibrary";
 import { TextInput } from "@/components/admin/ui/Input";
 import { Select } from "@/components/admin/ui/Select";
 import { FontStylesheet } from "@/components/ui/FontStylesheet";
+import { useInstalledFonts } from "./InstalledFonts";
+
+const INSTALLED = "Installed on this site";
 
 const FAVOURITES_KEY = "mg-builder-font-favourites";
 export function FontPicker({
@@ -30,27 +39,59 @@ export function FontPicker({
   const [category, setCategory] = useState("");
   const [favourites, setFavourites] = useState<string[]>([]);
   const [onlyFavourites, setOnlyFavourites] = useState(false);
+  const installed = useInstalledFonts();
+  // Installed fonts lead the list: they are the brand's own, already loaded on
+  // every page, and the reason an editor opens this picker most of the time.
+  const library = useMemo(
+    () => [
+      ...installed.map((font) => ({
+        value: `webfont:${font.id}`,
+        label: font.label || font.family,
+        category: INSTALLED,
+        variants: "",
+        source: "installed",
+      })),
+      ...FONT_LIBRARY,
+    ],
+    [installed]
+  );
   useEffect(() => {
     try {
       const stored: unknown = JSON.parse(localStorage.getItem(FAVOURITES_KEY) ?? "[]");
       if (Array.isArray(stored))
         setFavourites(
-          stored.filter((v): v is string => typeof v === "string" && !!libraryFont(v)).slice(0, 200)
+          stored.filter((v): v is string => typeof v === "string" && isFontValue(v)).slice(0, 200)
         );
     } catch {
       /* Device storage is optional. */
     }
   }, []);
-  const selected = libraryFont(value);
+  const removedId = installedFontId(value);
+  const selected =
+    library.find((font) => font.value === value) ??
+    libraryFont(value) ??
+    // A font removed from the theme still shows, so the field never looks empty
+    // while the page quietly falls back to the body font.
+    (removedId
+      ? {
+          value: value,
+          label: installed.length
+            ? `Removed font (${removedId}) — uses the body font`
+            : `Site font (${removedId})`,
+          category: INSTALLED,
+          variants: "",
+          source: "installed",
+        }
+      : undefined);
   const matches = useMemo(
     () =>
-      FONT_LIBRARY.filter(
+      library.filter(
         (font) =>
           (!category || font.category === category) &&
           (!onlyFavourites || favourites.includes(font.value)) &&
           font.label.toLowerCase().includes(query.trim().toLowerCase())
       ),
-    [query, category, onlyFavourites, favourites]
+    [library, query, category, onlyFavourites, favourites]
   );
   // Keep the current choice visible when a filter excludes it, without changing it.
   const choices = selected && !matches.includes(selected) ? [selected, ...matches] : matches;
@@ -81,7 +122,7 @@ export function FontPicker({
         onChange={setCategory}
         disabled={disabled}
         placeholder="All categories"
-        options={[...new Set(FONT_LIBRARY.map((f) => f.category))].map((c) => ({
+        options={[...new Set(library.map((f) => f.category))].map((c) => ({
           value: c,
           label: c,
         }))}
@@ -138,7 +179,7 @@ export function FontPicker({
         </div>
       )}
       <p className="text-xs text-mg-fg/70">
-        {matches.length} matching fonts · {FONT_LIBRARY.length} available
+        {matches.length} matching fonts · {library.length} available
       </p>
       <button
         type="button"
