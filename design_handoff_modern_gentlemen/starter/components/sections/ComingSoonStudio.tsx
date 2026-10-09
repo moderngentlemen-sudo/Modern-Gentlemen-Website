@@ -1,4 +1,8 @@
+import type { CSSProperties } from "react";
+
 import type { AfterHoursConfig } from "@/lib/blocks/afterHours";
+import { libraryFontStack } from "@/lib/domain/fontLibrary";
+import { FontStylesheet } from "../ui/FontStylesheet";
 import { AfterHoursLanding } from "./AfterHoursLanding";
 import { ReelLanding } from "./ReelLanding";
 import {
@@ -13,8 +17,13 @@ import { MediaImage } from "../ui/MediaImage";
 import { StudySignup } from "./StudySignup";
 import styles from "./ComingSoonStudio.module.css";
 
+type FontRole = "heading" | "editorial" | "body" | "label";
+const FONT_ROLES: readonly FontRole[] = ["heading", "editorial", "body", "label"];
+
 export interface ComingSoonProps {
   variant?: string;
+  /** Per-page font roles; each unset role keeps the site theme's font. */
+  fonts?: Partial<Record<FontRole, string>>;
   afterHours?: AfterHoursConfig;
   reel?: ReelConfig;
   socialLinks?: { network: string; label: string; href: string }[];
@@ -35,7 +44,32 @@ export interface ComingSoonProps {
   imagePosition?: "center" | "top" | "bottom";
   height?: "screen" | "content";
 }
-export function ComingSoonStudio({
+/**
+ * Every design reads the theme's font roles (`--font-heading`, …), so one
+ * override on a wrapper re-fonts all thirty-five of them, After Hours included.
+ * The wrapper is `display: contents` (no box, no layout change) and is only
+ * rendered when a font is actually set, so an untouched page keeps its DOM.
+ */
+export function ComingSoonStudio({ fonts, ...props }: ComingSoonProps) {
+  const chosen = FONT_ROLES.flatMap((role) => {
+    const stack = libraryFontStack(fonts?.[role]);
+    return stack ? [[role, fonts![role]!, stack] as const] : [];
+  });
+  if (chosen.length === 0) return <ComingSoonDesign {...props} />;
+  const vars = Object.fromEntries(
+    chosen.map(([role, , stack]) => [`--font-${role}`, stack])
+  ) as CSSProperties;
+  return (
+    <div data-coming-soon-fonts="" style={{ ...vars, display: "contents" }}>
+      {chosen.map(([role, font]) => (
+        <FontStylesheet key={role} font={font} />
+      ))}
+      <ComingSoonDesign {...props} />
+    </div>
+  );
+}
+
+function ComingSoonDesign({
   variant = "01",
   afterHours,
   reel,
@@ -56,7 +90,7 @@ export function ComingSoonStudio({
   mobileOrder = "textFirst",
   imagePosition = "center",
   height = "screen",
-}: ComingSoonProps) {
+}: Omit<ComingSoonProps, "fonts">) {
   if (variant === "21")
     return (
       <AfterHoursLanding

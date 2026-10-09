@@ -33,7 +33,28 @@ export const FONT_LIBRARY = [
 ];
 const byId = new Map(FONT_LIBRARY.map((font) => [font.value, font]));
 export const libraryFont = (value: string | undefined) => (value ? byId.get(value) : undefined);
+
+/**
+ * A font installed on the site under Theme → Typography, referenced by its
+ * stable id exactly as the theme's own roles reference it (`webfont:<id>`).
+ *
+ * A block never carries the family name or URL: the root layout already loads
+ * every installed webfont and publishes each as `--mg-webfont-<id>`
+ * (`themeDesignCssText`), so the block resolves to that variable. Renaming a
+ * family in the theme therefore updates every block using it, and deleting the
+ * font falls back to the body font rather than to a browser default.
+ */
+const INSTALLED_FONT = /^webfont:([a-z][a-z0-9-]{0,39})$/;
+export const installedFontId = (value: string | undefined) =>
+  value ? INSTALLED_FONT.exec(value)?.[1] : undefined;
+export const installedFontVariable = (id: string) => `--mg-webfont-${id}`;
+/** True for a library font or a well-formed installed-font reference. */
+export const isFontValue = (value: string | undefined) =>
+  !!libraryFont(value) || !!installedFontId(value);
+
 export function libraryFontStack(value: string | undefined): string | undefined {
+  const installed = installedFontId(value);
+  if (installed) return `var(${installedFontVariable(installed)},var(--font-body))`;
   const font = libraryFont(value);
   if (!font) return undefined;
   if (font.source === "theme") return THEME_FONTS[font.value];

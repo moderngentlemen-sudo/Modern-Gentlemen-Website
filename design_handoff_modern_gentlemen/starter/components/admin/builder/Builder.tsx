@@ -25,6 +25,10 @@ import { areaNameOf } from "@/lib/blocks/areas";
 import { findBlock } from "@/lib/blocks/traverse";
 
 import { BuilderStoreProvider, useBuilder } from "./StoreContext";
+import {
+  InstalledFontsProvider,
+  type InstalledFont,
+} from "@/components/admin/fields/InstalledFonts";
 import { PatternsProvider } from "./PatternsContext";
 import { AreaSwitcher } from "./AreaSwitcher";
 import { EditorExperience, EditorExperienceSwitch, useEditorExperience } from "./EditorExperience";
@@ -176,6 +180,7 @@ export function Builder({
   templateOverride,
   previewContexts = [],
   tokenAliases = [],
+  installedFonts = [],
 }: {
   init: BuilderInit;
   actions: BuilderServerActions;
@@ -185,6 +190,8 @@ export function Builder({
   styleClasses?: readonly ThemeStyleClass[];
   previewContexts?: PreviewContextOption[];
   tokenAliases?: readonly ThemeTokenAlias[];
+  /** Fonts installed under Theme → Typography; every font picker offers them first. */
+  installedFonts?: readonly InstalledFont[];
   templateOverride?: {
     state: TemplateOverrideState;
     action: TemplateOverrideAction;
@@ -236,17 +243,19 @@ export function Builder({
       */}
       <EditorExperience>
         <PatternsProvider patterns={allPatterns}>
-          <BuilderLayout
-            callbacks={callbacks}
-            identityAction={actions.savePageIdentity}
-            canPublish={canPublish}
-            canPreview={canPreview}
-            patterns={allPatterns}
-            styleClasses={styleClasses}
-            templateOverride={templateOverride}
-            previewContexts={previewContexts}
-            tokenAliases={tokenAliases}
-          />
+          <InstalledFontsProvider fonts={installedFonts}>
+            <BuilderLayout
+              callbacks={callbacks}
+              identityAction={actions.savePageIdentity}
+              canPublish={canPublish}
+              canPreview={canPreview}
+              patterns={allPatterns}
+              styleClasses={styleClasses}
+              templateOverride={templateOverride}
+              previewContexts={previewContexts}
+              tokenAliases={tokenAliases}
+            />
+          </InstalledFontsProvider>
         </PatternsProvider>
       </EditorExperience>
     </BuilderStoreProvider>

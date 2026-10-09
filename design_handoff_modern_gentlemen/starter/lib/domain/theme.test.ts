@@ -525,6 +525,24 @@ describe("editable typography and header settings", () => {
     );
   });
 
+  it("publishes every installed font as a variable, assigned to a role or not", () => {
+    const font = {
+      id: "brand-mono",
+      label: "Brand Mono",
+      family: "JetBrains Mono",
+      source: "stylesheet" as const,
+      url: "https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap",
+      fallback: "mono" as const,
+      weight: "400",
+      style: "normal" as const,
+    };
+    const css = themeDesignCssText({
+      ...DEFAULT_THEME_SETTINGS,
+      typography: { ...DEFAULT_THEME_TYPOGRAPHY, webfonts: [font] },
+    });
+    expect(css).toMatch(/--mg-webfont-brand-mono:"JetBrains Mono",ui-monospace/);
+  });
+
   it("emits a safe font-face for direct files, including variable weights", () => {
     const typography = {
       ...DEFAULT_THEME_TYPOGRAPHY,

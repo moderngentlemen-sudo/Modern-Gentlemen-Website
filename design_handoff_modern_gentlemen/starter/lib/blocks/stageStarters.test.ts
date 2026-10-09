@@ -73,6 +73,21 @@ describe("Converting an existing Coming Soon block", () => {
     expect(JSON.stringify(all)).toContain("instagram.com/mg");
   });
 
+  it("carries the page's font choices onto the elements that used those roles", () => {
+    const tree = stageFromComingSoon({
+      ...block,
+      fonts: { heading: "webfont:brand-serif", label: "google:Lora" },
+    })!;
+    expect(validateTree(tree).issues).toEqual([]);
+    const fonts = flattenBlocks(tree).flatMap((n) =>
+      ["fontFamily", "font", "labelFont"].map((k) => n.settings?.[k]).filter(Boolean)
+    );
+    expect(fonts).toContain("webfont:brand-serif");
+    expect(fonts).toContain("google:Lora");
+    expect(fonts).not.toContain("theme:heading");
+    expect(fonts).not.toContain("theme:label");
+  });
+
   it("refuses designs that are not sizzle-reel designs", () => {
     expect(stageFromComingSoon({ variant: "05" })).toBeNull();
   });

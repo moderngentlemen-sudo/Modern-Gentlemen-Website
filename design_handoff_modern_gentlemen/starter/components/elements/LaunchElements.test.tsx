@@ -89,6 +89,30 @@ describe("Launch elements", () => {
     expect(container.querySelector('[data-knockout="multiply"]')).toBeTruthy();
   });
 
+  it("every text-bearing element takes an installed font through the theme variable", () => {
+    const font = "webfont:brand-serif";
+    const stack = "var(--mg-webfont-brand-serif,var(--font-body))";
+    const target = "2027-01-15T18:00:00Z";
+    const roots = [
+      render(<LaunchSignup font={font} />).container,
+      render(
+        <LaunchSocial
+          font={font}
+          links={[{ network: "x", label: "X", href: "https://x.com/mg" }]}
+        />
+      ).container,
+      render(<LaunchLogo variant="seal" font={font} />).container,
+    ];
+    for (const root of roots)
+      expect((root.firstElementChild as HTMLElement).style.getPropertyValue("--el-font")).toBe(
+        stack
+      );
+    const cd = render(<LaunchCountdown target={target} font={font} labelFont={font} />).container;
+    expect((cd.firstElementChild as HTMLElement).style.getPropertyValue("--cd-font")).toBe(stack);
+    const ko = render(<LaunchKnockout font={font} />).container;
+    expect(ko.innerHTML).toContain("--mg-webfont-brand-serif");
+  });
+
   it("shapes are decorative", () => {
     const { container } = render(<LaunchShape shape="ring" />);
     expect(container.firstElementChild?.getAttribute("aria-hidden")).toBe("true");

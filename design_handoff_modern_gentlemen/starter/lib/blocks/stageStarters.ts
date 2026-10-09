@@ -1,3 +1,4 @@
+import { isFontValue } from "@/lib/domain/fontLibrary";
 import { countdownParts } from "./afterHours";
 import {
   REEL_DEFAULTS,
@@ -774,7 +775,7 @@ export function stageFromComingSoon(settings: Record<string, unknown>): BlockTre
   const details = Array.isArray(settings.details)
     ? (settings.details as StarterContent["details"])
     : undefined;
-  return stageStarter(
+  const tree = stageStarter(
     variant as ReelDesignId,
     {
       title: str(settings.title),
@@ -795,4 +796,48 @@ export function stageFromComingSoon(settings: Record<string, unknown>): BlockTre
     },
     false
   );
+  return withFonts(tree, (settings.fonts ?? {}) as Record<string, unknown>);
+}
+
+/** Which theme role each element's font follows while it is unset. */
+const IMPLIED_ROLE: Record<string, Record<string, string>> = {
+  nativeHeading: { fontFamily: "heading" },
+  nativeText: { fontFamily: "body" },
+  nativeCountdown: { font: "heading", labelFont: "label" },
+  nativeKnockout: { font: "heading" },
+  nativeSignup: { font: "label" },
+  nativeSocial: { font: "label" },
+  nativeLogo: { font: "label" },
+};
+
+/**
+ * The legacy block's per-page font roles become each element's own font, so a
+ * converted page keeps its typography. An element following a role the page
+ * overrode, explicitly (`theme:heading`) or by leaving its font unset, takes
+ * the override; a font the starter chose outright is left alone.
+ */
+function withFonts(tree: BlockTree, fonts: Record<string, unknown>): BlockTree {
+  const override = new Map<string, string>();
+  for (const role of ["heading", "editorial", "body", "label"]) {
+    const value = fonts[role];
+    if (typeof value === "string" && isFontValue(value)) override.set(role, value);
+  }
+  if (override.size === 0) return tree;
+  return tree.map((stage) => ({
+    ...stage,
+    children: stage.children?.map((child) => {
+      const settings = { ...(child.settings ?? {}) } as Record<string, unknown>;
+      for (const [key, implied] of Object.entries(IMPLIED_ROLE[child._type] ?? {})) {
+        const current = settings[key];
+        const role =
+          current === undefined
+            ? implied
+            : typeof current === "string" && current.startsWith("theme:")
+              ? current.slice(6)
+              : undefined;
+        if (role && override.has(role)) settings[key] = override.get(role);
+      }
+      return { ...child, settings };
+    }),
+  }));
 }

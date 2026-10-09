@@ -1670,6 +1670,13 @@ export function themeDesignCssText(settings: ThemeSettings): string {
     (role) =>
       `${FONT_ROLE_VAR[role]}:${fontStackForSelection(settings.typography[role], settings.typography.webfonts)}`
   );
+  // Every installed font, whether or not a role uses it, so a block can pick
+  // one by id (`libraryFontStack("webfont:<id>")`).
+  for (const font of settings.typography.webfonts) {
+    declarations.push(
+      `--mg-webfont-${font.id}:${fontStackForSelection(`webfont:${font.id}`, settings.typography.webfonts)}`
+    );
+  }
   declarations.push(`--font-base-size:${settings.typography.baseSize}px`);
   const announcementHeight = settings.header.announcementText ? 28 : 0;
   declarations.push(`--header-height:${settings.header.height + announcementHeight}px`);

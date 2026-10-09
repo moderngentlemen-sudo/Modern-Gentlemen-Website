@@ -96,3 +96,26 @@ describe("Reel designs and the After Hours launch date", () => {
     expect(document.body.textContent).not.toMatch(/––/);
   });
 });
+
+describe("Coming-soon fonts", () => {
+  it("adds nothing until a font is chosen, then re-fonts every design through the theme roles", () => {
+    const { container, rerender } = render(<ComingSoonStudio variant="05" title="Soon" />);
+    expect(container.querySelector("[data-coming-soon-fonts]")).toBeNull();
+    for (const variant of ["05", "21", "28"]) {
+      rerender(
+        <ComingSoonStudio
+          variant={variant}
+          title="Soon"
+          fonts={{ heading: "webfont:brand-serif", label: "google:Lora", body: "not-a-font" }}
+        />
+      );
+      const wrapper = container.querySelector<HTMLElement>("[data-coming-soon-fonts]")!;
+      expect(wrapper.style.getPropertyValue("--font-heading")).toBe(
+        "var(--mg-webfont-brand-serif,var(--font-body))"
+      );
+      expect(wrapper.style.getPropertyValue("--font-label")).toContain('"Lora"');
+      expect(wrapper.style.getPropertyValue("--font-body")).toBe("");
+      expect(wrapper.style.display).toBe("contents");
+    }
+  });
+});

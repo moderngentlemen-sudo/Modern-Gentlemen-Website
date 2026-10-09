@@ -18,7 +18,7 @@
  */
 
 import { z, type ZodTypeAny } from "zod";
-import { libraryFont } from "@/lib/domain/fontLibrary";
+import { isFontValue } from "@/lib/domain/fontLibrary";
 
 export interface FieldBase {
   /** Human name shown by the properties panel. Never empty — conformance checks. */
@@ -171,7 +171,7 @@ export function fieldToZod(f: Field, strict = false): ZodTypeAny {
 function baseSchema(f: Field, strict: boolean): ZodTypeAny {
   switch (f.kind) {
     case "font":
-      return z.string().refine((value) => !!libraryFont(value), "Choose a font from the library.");
+      return z.string().refine(isFontValue, "Choose a font from the library.");
     case "color":
       return z.string().regex(/^#[0-9a-f]{6}$/i, "Use a six-digit hex colour, such as #123456.");
     case "text":

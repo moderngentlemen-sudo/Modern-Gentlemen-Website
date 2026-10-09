@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FontPicker } from "./FontPicker";
+import { InstalledFontsProvider } from "./InstalledFonts";
 
 describe("font picker", () => {
   it("searches by name and filters by category without dropping the current font", () => {
@@ -28,5 +29,28 @@ describe("font picker", () => {
     expect(screen.getByText(/1 matching fonts/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Font family"), { target: { value: "" } });
     expect(change).toHaveBeenCalledWith("");
+  });
+  it("offers the site's installed fonts first and keeps a removed one visible", () => {
+    const change = vi.fn();
+    const fonts = [{ id: "brand-serif", label: "Brand Serif", family: "Playfair Display" }];
+    const { rerender } = render(
+      <InstalledFontsProvider fonts={fonts}>
+        <FontPicker label="Font family" value="" onChange={change} />
+      </InstalledFontsProvider>
+    );
+    const options = Array.from(
+      (screen.getByLabelText("Font family") as HTMLSelectElement).options
+    ).filter((o) => o.value);
+    expect(options[0]).toHaveTextContent("Brand Serif");
+    fireEvent.change(screen.getByLabelText("Font family"), {
+      target: { value: "webfont:brand-serif" },
+    });
+    expect(change).toHaveBeenCalledWith("webfont:brand-serif");
+    rerender(
+      <InstalledFontsProvider fonts={fonts}>
+        <FontPicker label="Font family" value="webfont:old-sans" onChange={change} />
+      </InstalledFontsProvider>
+    );
+    expect(screen.getByRole("option", { name: /Removed font \(old-sans\)/ })).toBeInTheDocument();
   });
 });

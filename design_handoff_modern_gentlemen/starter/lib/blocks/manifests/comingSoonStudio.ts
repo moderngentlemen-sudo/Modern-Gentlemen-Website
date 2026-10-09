@@ -20,6 +20,19 @@ export const comingSoonStudio = defineBlock({
         label: `CS${value} · ${label}`,
       })),
     }),
+    fonts: field.group({
+      label: "Fonts",
+      help: "Any font in the library or installed on the site (Theme → Typography). Leave a role empty to follow the site theme. Applies to every design, CS01–CS35.",
+      fields: {
+        heading: field.font({ label: "Headline font" }),
+        editorial: field.font({
+          label: "Accent font",
+          help: "Eyebrows, italics, pull quotes and the countdown numerals in most designs.",
+        }),
+        body: field.font({ label: "Body font" }),
+        label: field.font({ label: "Label font", help: "Small capitals, counts and meta." }),
+      },
+    }),
     afterHours: afterHoursFields,
     reel: reelFields,
     socialLinks: field.list({
