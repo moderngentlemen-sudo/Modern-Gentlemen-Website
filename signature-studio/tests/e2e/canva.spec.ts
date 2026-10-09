@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { canvaPng, configureTestHost, shot } from "./helpers";
 
 test("a Canva signature design becomes a clickable, pixel-exact Gmail signature", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/app");
   await shot(page, "01-home");
   await page.getByTestId("canva-signature").click();
   await expect(page.getByRole("heading", { name: "Canva design" })).toBeVisible();

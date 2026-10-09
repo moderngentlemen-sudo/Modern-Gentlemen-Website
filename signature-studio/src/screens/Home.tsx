@@ -1,19 +1,33 @@
 import { useMemo, useState } from "react";
-import { Copy, CreditCard, Mail, MousePointerClick, Palette, Plus, Search, Settings, Sparkles, Trash2, Upload, Wand2 } from "lucide-react";
-import { applyTemplate } from "../core/apply";
+import { Blocks, Copy, CreditCard, LayoutTemplate, Palette, Plus, Search, Settings, Trash2, Upload } from "lucide-react";
+import { BRAND } from "../brand";
+import { applyBrand, applyTemplate } from "../core/apply";
+import { block, col } from "../core/blocks";
 import { newDoc, SAMPLE_DETAILS, SAMPLE_SOCIALS } from "../core/defaults";
 import { ARTISTIC_CATEGORIES, BUSINESS_CATEGORIES, DEFAULT_TEMPLATE, getTemplate, TEMPLATES, type TemplateGroup } from "../core/templates";
-import type { SignatureDoc } from "../core/types";
+import type { BrandKit, SignatureDoc } from "../core/types";
 import { uid } from "../lib/id";
+import { go } from "../router";
 import { createDoc, deleteDoc, openDoc, toast, ui, useStudio } from "../store/editor";
-import { Segmented } from "../ui/kit";
+import { Segmented, Switch } from "../ui/kit";
 import { sampleDoc } from "../ui/samples";
 import { Thumb } from "../ui/SigHtml";
 
+export interface CreateOptions {
+  /** Start from an imported Canva design. */
+  canva?: "signature" | "card";
+  /** Start with an empty drag-and-drop canvas. */
+  blank?: boolean;
+  /** Restyle with this brand kit. */
+  brand?: BrandKit;
+}
+
 /** New signature from a template, carrying over the user's own details if they have any. */
-export async function createFromTemplate(templateId: string, opts: { canva?: "signature" | "card" } = {}) {
+export async function createFromTemplate(templateId: string, opts: CreateOptions = {}) {
   const t = getTemplate(templateId);
-  const doc = newDoc(t.id, t.design, opts.canva === "signature" ? "My Canva signature" : opts.canva === "card" ? "My business card" : `${t.name} signature`);
+  const name =
+    opts.canva === "signature" ? "My Canva signature" : opts.canva === "card" ? "My business card" : opts.blank ? "My signature" : `${t.name} signature`;
+  const doc = newDoc(t.id, t.design, name);
   applyTemplate(doc, t.id);
   const last = useStudio.getState().docs.find((d) => d.details.name.trim());
   if (last) {
@@ -32,12 +46,25 @@ export async function createFromTemplate(templateId: string, opts: { canva?: "si
     doc.details = { ...SAMPLE_DETAILS, custom: [] };
     doc.socials = SAMPLE_SOCIALS();
   }
+  if (opts.brand) {
+    applyBrand(doc, opts.brand, { fillEmpty: true });
+    // Sample content isn't the user's: their brand's company and website win.
+    if (!last && !opts.canva) {
+      if (opts.brand.company) doc.details.company = opts.brand.company;
+      if (opts.brand.website) doc.details.website = opts.brand.website;
+    }
+  }
   if (opts.canva) {
     Object.assign(doc.card, { enabled: true, kind: opts.canva, cardOnly: opts.canva === "signature" });
     if (opts.canva === "signature") Object.assign(doc.card, { digitalLink: false, inReplies: true, radius: 0, width: 600 });
   }
+  if (opts.blank) {
+    doc.mode = "builder";
+    doc.blocks = col([block("name"), block("title"), block("divider", { width: 220 }), block("contacts"), block("socials")], { gap: 8 });
+  }
   await createDoc(doc);
   if (opts.canva) ui({ tab: "card" });
+  if (opts.blank) ui({ tab: "blocks" });
 }
 
 function duplicate(doc: SignatureDoc) {
@@ -55,10 +82,13 @@ function ago(t: number) {
 
 export function Home() {
   const docs = useStudio((s) => s.docs);
+  const brand = useStudio((s) => s.prefs.brand);
   const [group, setGroup] = useState<"All" | TemplateGroup>("All");
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [inBrand, setInBrand] = useState(true);
   const base = docs.find((d) => d.details.name.trim()) ?? null;
+  const useBrand = brand && inBrand ? brand : undefined;
 
   const categories = group === "Business" ? BUSINESS_CATEGORIES : group === "Artistic" ? ARTISTIC_CATEGORIES : [...BUSINESS_CATEGORIES, ...ARTISTIC_CATEGORIES];
   const list = useMemo(() => {
@@ -68,61 +98,89 @@ export function Home() {
         (group === "All" || t.group === group) &&
         (!category || t.category === category) &&
         (!q || `${t.name} ${t.category} ${t.description} ${t.group}`.toLowerCase().includes(q)),
-    );
-  }, [group, category, query]);
+    ).map((t) => {
+      const sample = sampleDoc(t.id, base);
+      if (!useBrand) return { t, sample };
+      const branded = structuredClone(sample);
+      applyBrand(branded, useBrand, { fillEmpty: true });
+      return { t, sample: branded };
+    });
+  }, [group, category, query, base, useBrand]);
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const start = [
+    {
+      id: "blank",
+      icon: <Blocks size={20} />,
+      title: "Start from scratch",
+      text: "An empty canvas in the drag-and-drop builder.",
+      run: () => createFromTemplate(DEFAULT_TEMPLATE, { blank: true, brand: brand }),
+    },
+    {
+      id: "template",
+      icon: <LayoutTemplate size={20} />,
+      title: "Pick a template",
+      text: `${TEMPLATES.length} designs for every industry and style.`,
+      run: () => scrollTo("templates"),
+    },
+    {
+      id: "canva-signature",
+      icon: <Upload size={20} />,
+      title: "Canva signature",
+      text: "Bring in a signature you designed in Canva.",
+      run: () => createFromTemplate(DEFAULT_TEMPLATE, { canva: "signature" }),
+    },
+    {
+      id: "canva-card",
+      icon: <CreditCard size={20} />,
+      title: "Business card",
+      text: "A clickable card plus a shareable digital card.",
+      run: () => createFromTemplate(DEFAULT_TEMPLATE, { canva: "card" }),
+    },
+  ];
 
   return (
     <div className="home">
-      <header className="home-top">
-        <div className="logo">
-          <span className="logo-mark">
-            <Sparkles size={18} />
+      <header className="app-top">
+        <a
+          className="logo"
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            go("/");
+          }}
+        >
+          <span className="logo-mark" aria-hidden="true">
+            S
           </span>
-          Signature Studio
+          {BRAND.name}
+        </a>
+        <div className="row">
+          <button className="btn ghost sm" onClick={() => ui({ dialog: "brand" })} data-testid="open-brand">
+            <Palette size={16} /> Brand kit
+          </button>
+          <button className="btn ghost sm" onClick={() => ui({ dialog: "settings" })}>
+            <Settings size={16} /> <span className="desktop-only">Settings</span>
+          </button>
         </div>
-        <button className="btn ghost sm" onClick={() => ui({ dialog: "settings" })}>
-          <Settings size={16} /> Settings
-        </button>
       </header>
 
-      <section className="hero">
-        <div>
-          <h1>
-            Email signatures that <em>get noticed.</em>
-          </h1>
-          <p>
-            Pick from {TEMPLATES.length} designer templates for every industry and style, make it yours in minutes, and add it to Gmail with one copy and paste.
-          </p>
-          <div className="row" style={{ flexWrap: "wrap" }}>
-            <button className="btn primary" onClick={() => scrollTo("templates")} data-testid="browse-templates">
-              <Palette size={18} /> Choose a template
+      <section className="dash-intro">
+        <h1>{docs.length ? "Your signatures" : "Let's make your signature"}</h1>
+        <p>Pick a template, build your own with drag and drop, or bring a design from Canva.</p>
+        <div className="start-grid">
+          {start.map((s) => (
+            <button
+              key={s.id}
+              className="start-card"
+              onClick={() => void s.run()}
+              data-testid={s.id === "canva-signature" ? "canva-signature" : s.id === "canva-card" ? "canva-card" : `start-${s.id}`}
+            >
+              <span className="start-ico">{s.icon}</span>
+              <strong>{s.title}</strong>
+              <span>{s.text}</span>
             </button>
-            <button className="btn" onClick={() => void createFromTemplate(DEFAULT_TEMPLATE, { canva: "signature" })} data-testid="start-canva">
-              <Upload size={18} /> Import from Canva
-            </button>
-          </div>
-          <div className="hero-points">
-            <span>
-              <Mail size={15} /> Gmail-ready in one paste
-            </span>
-            <span>
-              <MousePointerClick size={15} /> Canva designs, clickable in Gmail
-            </span>
-            <span>
-              <Wand2 size={15} /> No account needed
-            </span>
-          </div>
-        </div>
-        <div className="hero-visual" aria-hidden="true">
-          <div className="blob" />
-          <div className="hero-card a">
-            <Thumb doc={sampleDoc("corporate-classic", base)} width={420} height={150} />
-          </div>
-          <div className="hero-card b">
-            <Thumb doc={sampleDoc("art-neon", base)} width={420} height={150} />
-          </div>
+          ))}
         </div>
       </section>
 
@@ -130,12 +188,6 @@ export function Home() {
         <section className="section">
           <h2>My signatures</h2>
           <div className="sig-grid">
-            <button className="new-tile" onClick={() => scrollTo("templates")}>
-              <span>
-                <Plus size={22} />
-              </span>
-              New signature
-            </button>
             {docs.map((d) => (
               <div
                 key={d.id}
@@ -151,10 +203,10 @@ export function Home() {
                   <div style={{ minWidth: 0 }}>
                     <strong>{d.name}</strong>
                     <div className="muted">
-                      {getTemplate(d.templateId).name} · {ago(d.updatedAt)}
+                      {d.mode === "builder" ? "Custom layout" : getTemplate(d.templateId).name} · {ago(d.updatedAt)}
                     </div>
                   </div>
-                  {d.card.enabled && <span className="badge brand">Card</span>}
+                  {d.card.enabled && <span className="badge brand">{d.card.kind === "signature" ? "Canva" : "Card"}</span>}
                 </div>
                 <div className="tile-actions">
                   <button
@@ -182,42 +234,26 @@ export function Home() {
                 </div>
               </div>
             ))}
+            <button className="new-tile" onClick={() => void createFromTemplate(DEFAULT_TEMPLATE, { blank: true, brand })}>
+              <span>
+                <Plus size={22} />
+              </span>
+              Blank signature
+            </button>
           </div>
         </section>
       )}
-
-      <section className="section">
-        <h2>Designed in Canva?</h2>
-        <p className="muted" style={{ margin: "-6px 0 14px", maxWidth: 720 }}>
-          Bring your design in exactly as you made it. We keep it pixel-perfect, make your phone, email, website and social icons clickable, and get it ready
-          for Gmail.
-        </p>
-        <div className="sig-grid">
-          <button
-            className="sig-tile canva-tile"
-            onClick={() => void createFromTemplate(DEFAULT_TEMPLATE, { canva: "signature" })}
-            data-testid="canva-signature"
-          >
-            <span className="canva-ico">
-              <Mail size={22} />
-            </span>
-            <strong>Email signature design</strong>
-            <span className="muted">Your whole signature, designed in Canva. Recipients see exactly your design.</span>
-          </button>
-          <button className="sig-tile canva-tile" onClick={() => void createFromTemplate(DEFAULT_TEMPLATE, { canva: "card" })} data-testid="canva-card">
-            <span className="canva-ico">
-              <CreditCard size={22} />
-            </span>
-            <strong>Business card</strong>
-            <span className="muted">A clickable card in your signature, plus a shareable digital card with Save Contact.</span>
-          </button>
-        </div>
-      </section>
 
       <section className="section" id="templates">
         <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Templates</h2>
           <div className="row" style={{ flexWrap: "wrap" }}>
+            {brand && (
+              <label className="chip" title="Show templates in your brand colours and fonts">
+                <Palette size={14} /> My brand
+                <Switch checked={inBrand} onChange={setInBrand} label="Preview templates in my brand" />
+              </label>
+            )}
             <Segmented
               inline
               label="Template group"
@@ -256,9 +292,15 @@ export function Home() {
           ))}
         </div>
         <div className="sig-grid">
-          {list.map((t) => (
-            <button key={t.id} className="sig-tile" onClick={() => void createFromTemplate(t.id)} data-testid={`template-${t.id}`} title={t.description}>
-              <Thumb doc={sampleDoc(t.id, base)} />
+          {list.map(({ t, sample }) => (
+            <button
+              key={t.id}
+              className="sig-tile"
+              onClick={() => void createFromTemplate(t.id, { brand: useBrand })}
+              data-testid={`template-${t.id}`}
+              title={t.description}
+            >
+              <Thumb doc={sample} />
               <div className="tile-meta">
                 <div style={{ minWidth: 0 }}>
                   <strong>{t.name}</strong>

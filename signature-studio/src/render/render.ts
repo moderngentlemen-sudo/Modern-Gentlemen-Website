@@ -5,12 +5,14 @@
  * preview: local images (object URLs / inline SVG), never sent anywhere.
  * email:   every image must resolve to a verified public URL, or it's an error.
  */
+import { BRAND } from "../brand";
+import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
 import { mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
 import { fontStack } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
-import type { Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import type { Block, BlockStyle, BlockType, Box, Column, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
 import { getTemplate, type LayoutId } from "../core/templates";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
@@ -224,15 +226,17 @@ function nameHtml(c: Ctx, o: { size?: number; color?: string; align?: string; up
   });
 }
 
-function titleHtml(c: Ctx, o: { color?: string; align?: string; separate?: boolean; upper?: boolean } = {}): string {
+function titleHtml(c: Ctx, o: { color?: string; align?: string; separate?: boolean; upper?: boolean; italic?: boolean; titleOnly?: boolean } = {}): string {
   const d = c.doc.details;
-  const parts = [d.title, d.department, d.company].map((s) => s.trim()).filter(Boolean);
+  const parts = (o.titleOnly ? [d.title] : [d.title, d.department, d.company]).map((s) => s.trim()).filter(Boolean);
   if (!parts.length) return "";
   const color = o.color ?? c.doc.design.muted;
   return text(c, parts.map(esc).join(` <span style="color:${esc(mix(color, "#ffffff", 0.4))};">|</span> `), {
     color,
     align: o.align,
     upper: o.upper,
+    italic: o.italic,
+    role: o.italic ? "heading" : undefined,
     tracking: o.upper ? 0.08 : undefined,
     size: o.upper ? c.doc.design.fontSize - 2 : undefined,
   });
@@ -423,6 +427,71 @@ function stack(c: Ctx, blocks: string[], gap = 6, align?: string): string {
   );
 }
 
+function contactsGrid(c: Ctx): string {
+  const items = contactItems(c);
+  const d = c.doc.design;
+  const gridRows: string[] = [];
+  // Two contacts per row (reuse contactsHtml styling by rendering each item alone).
+  for (let i = 0; i < items.length; i += 2) {
+    const pair = items.slice(i, i + 2).map((it) => {
+      const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
+      const lab = icon
+        ? `${inlineImg(icon, d.fontSize, d.fontSize, it.word)}&nbsp;&nbsp;`
+        : d.contactIcons === "none"
+          ? ""
+          : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(d.contactIcons === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
+      return cell(
+        text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }),
+        `padding:${i ? sp(c, 4) : 0}px ${sp(c, 18)}px 0 0;vertical-align:top;`,
+      );
+    });
+    gridRows.push(row(pair.join("") + (pair.length < 2 ? cell("") : "")));
+  }
+  return gridRows.length ? table(gridRows.join("")) : "";
+}
+
+function contactsChips(c: Ctx): string {
+  const d = c.doc.design;
+  const items = contactItems(c);
+  const chip = (it: ContactItem) => {
+    const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
+    const lab = icon ? `${inlineImg(icon, d.fontSize - 1, d.fontSize - 1, it.word)}&nbsp;` : "";
+    return table(
+      row(
+        cell(
+          text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { size: d.fontSize - 1, nowrap: true }),
+          `background-color:${d.surface};padding:${sp(c, 4)}px ${sp(c, 10)}px;border-radius:14px;`,
+          `bgcolor="${esc(d.surface)}"`,
+        ),
+      ),
+    );
+  };
+  const rows: string[] = [];
+  for (let i = 0; i < items.length; i += 2)
+    rows.push(
+      row(
+        items
+          .slice(i, i + 2)
+          .map((it) => cell(chip(it), `padding:0 ${sp(c, 6)}px ${sp(c, 6)}px 0;`))
+          .join(""),
+      ),
+    );
+  return rows.length ? table(rows.join("")) : "";
+}
+
+function monogramTile(c: Ctx, size: number): string {
+  const d = c.doc.design;
+  return table(
+    row(
+      cell(
+        text(c, esc(initials(c.doc.details.name)), { role: "heading", size: Math.round(size * 0.38), weight: 700, color: "#ffffff", align: "center", lh: 1 }),
+        `width:${size}px;height:${size}px;background-color:${d.accent};border-radius:${Math.round(size / 2)}px;text-align:center;vertical-align:middle;`,
+        `width="${size}" height="${size}" bgcolor="${esc(d.accent)}" align="center" valign="middle"`,
+      ),
+    ),
+  );
+}
+
 function initials(name: string): string {
   return (
     name
@@ -549,18 +618,7 @@ const L: Record<LayoutId, Layout> = {
     return stack(c, [company, name, title, hRule(c, 320), contactsHtml(c, { inline: true }), socialsHtml(c), logoHtml(c, 90)], 6);
   },
   monogram: (c) => {
-    const d = c.doc.design;
-    const size = Math.round(64 * d.spacing);
-    const tile = table(
-      row(
-        cell(
-          text(c, esc(initials(c.doc.details.name)), { role: "heading", size: Math.round(size * 0.38), weight: 700, color: "#ffffff", align: "center", lh: 1 }),
-          `width:${size}px;height:${size}px;background-color:${d.accent};border-radius:${Math.round(size / 2)}px;text-align:center;vertical-align:middle;`,
-          `width="${size}" height="${size}" bgcolor="${esc(d.accent)}" align="center" valign="middle"`,
-        ),
-      ),
-    );
-    const left = photoHtml(c) || tile;
+    const left = photoHtml(c) || monogramTile(c, Math.round(64 * c.doc.design.spacing));
     return table(
       row(
         cell(left, `vertical-align:top;padding-right:${sp(c, 16)}px;`) +
@@ -575,26 +633,7 @@ const L: Record<LayoutId, Layout> = {
     return table(row(vRule(c).cells(cell(left, "vertical-align:top;"), cell(right, "vertical-align:top;"))));
   },
   grid: (c) => {
-    const items = contactItems(c);
-    const d = c.doc.design;
-    const gridRows: string[] = [];
-    // Two contacts per row (reuse contactsHtml styling by rendering each item alone).
-    for (let i = 0; i < items.length; i += 2) {
-      const pair = items.slice(i, i + 2).map((it) => {
-        const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
-        const lab = icon
-          ? `${inlineImg(icon, d.fontSize, d.fontSize, it.word)}&nbsp;&nbsp;`
-          : d.contactIcons === "none"
-            ? ""
-            : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(d.contactIcons === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
-        return cell(
-          text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }),
-          `padding:${i ? sp(c, 4) : 0}px ${sp(c, 18)}px 0 0;vertical-align:top;`,
-        );
-      });
-      gridRows.push(row(pair.join("") + (pair.length < 2 ? cell("") : "")));
-    }
-    const grid = gridRows.length ? table(gridRows.join("")) : "";
+    const grid = contactsGrid(c);
     const main = stack(c, [stack(c, [nameHtml(c), titleHtml(c)], 2), hRule(c), grid, socialsHtml(c)], 8);
     const side = photoHtml(c) || logoHtml(c);
     return side ? table(row(cell(main, "vertical-align:top;") + cell(side, `vertical-align:top;padding-left:${sp(c, 18)}px;`))) : main;
@@ -609,38 +648,14 @@ const L: Record<LayoutId, Layout> = {
     return side ? table(row(cell(side, `vertical-align:top;padding-right:${sp(c, 18)}px;`) + cell(body, "vertical-align:top;"))) : body;
   },
   chips: (c) => {
-    const d = c.doc.design;
-    const items = contactItems(c);
-    const chip = (it: ContactItem) => {
-      const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
-      const lab = icon ? `${inlineImg(icon, d.fontSize - 1, d.fontSize - 1, it.word)}&nbsp;` : "";
-      return table(
-        row(
-          cell(
-            text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { size: d.fontSize - 1, nowrap: true }),
-            `background-color:${d.surface};padding:${sp(c, 4)}px ${sp(c, 10)}px;border-radius:14px;`,
-            `bgcolor="${esc(d.surface)}"`,
-          ),
-        ),
-      );
-    };
-    const rows: string[] = [];
-    for (let i = 0; i < items.length; i += 2)
-      rows.push(
-        row(
-          items
-            .slice(i, i + 2)
-            .map((it) => cell(chip(it), `padding:0 ${sp(c, 6)}px ${sp(c, 6)}px 0;`))
-            .join(""),
-        ),
-      );
+    const chipRows = contactsChips(c);
     const top = table(
       row(
         (logoHtml(c, 56) ? cell(logoHtml(c, 56), `vertical-align:middle;padding-right:${sp(c, 12)}px;`) : "") +
           cell(stack(c, [nameHtml(c), titleHtml(c)], 2), "vertical-align:middle;"),
       ),
     );
-    return stack(c, [photoHtml(c), top, rows.length ? table(rows.join("")) : "", socialsHtml(c)], 10);
+    return stack(c, [photoHtml(c), top, chipRows, socialsHtml(c)], 10);
   },
 };
 
@@ -678,26 +693,139 @@ function button(c: Ctx, label: string, href: string | null, style: "solid" | "ou
   );
 }
 
-function addonsTop(c: Ctx): string {
-  const s = c.doc.addons.signOff;
-  if (!c.show.addons || !s.enabled || !s.text.trim()) return "";
+function signOffHtml(c: Ctx, value: string, script: boolean): string {
+  if (!value.trim()) return "";
   const d = c.doc.design;
-  if (!s.script) return text(c, escText(s.text), { color: d.text });
+  if (!script) return text(c, escText(value), { color: d.text });
   const size = Math.round(d.fontSize * 2.1);
-  const req: ImageRequest = { kind: "script", key: `script|${s.text}|${d.text}|${size}`, label: "Sign-off", text: s.text, color: d.text, size };
+  const req: ImageRequest = { kind: "script", key: `script|${value}|${d.text}|${size}`, label: "Sign-off", text: value, color: d.text, size };
   if (c.preview) {
     c.images.push(req);
-    return `<div style="font-family:'${SCRIPT_FONT}',cursive;font-size:${size}px;line-height:${Math.round(size * 1.15)}px;color:${esc(d.text)};">${escText(s.text)}</div>`;
+    return `<div style="font-family:'${SCRIPT_FONT}',cursive;font-size:${size}px;line-height:${Math.round(size * 1.15)}px;color:${esc(d.text)};">${escText(value)}</div>`;
   }
   const src = source(c, req, () => null);
   if (!src) return "";
   // Approximate width: the derivative reports exact size; keep aspect via height only.
-  const w = estimateScriptWidth(s.text, size);
-  return imgTag(src, w, Math.round(size * 1.35), s.text);
+  const w = estimateScriptWidth(value, size);
+  return imgTag(src, w, Math.round(size * 1.35), value);
+}
+
+function addonsTop(c: Ctx): string {
+  const s = c.doc.addons.signOff;
+  if (!c.show.addons || !s.enabled) return "";
+  return signOffHtml(c, s.text, s.script);
 }
 
 export function estimateScriptWidth(text: string, size: number): number {
   return Math.max(40, Math.round(text.length * size * 0.42 + size * 0.4));
+}
+
+function buttonsRow(c: Ctx, buttons: string[]): string {
+  const list = buttons.filter(Boolean);
+  if (!list.length) return "";
+  return table(row(list.map((b, i) => cell(b, i ? `padding-left:${sp(c, 8)}px;` : "")).join("")));
+}
+
+function quoteHtml(c: Ctx, quote: string, author: string): string {
+  if (!quote.trim()) return "";
+  const d = c.doc.design;
+  return table(
+    row(
+      cell(
+        text(c, `&ldquo;${escText(quote)}&rdquo;`, { italic: true, color: d.text, role: "heading" }) +
+          (author.trim() ? text(c, `&mdash; ${esc(author)}`, { size: d.fontSize - 2, color: d.muted }) : ""),
+        `border-left:3px solid ${d.accent};padding-left:${sp(c, 10)}px;`,
+      ),
+    ),
+  );
+}
+
+function reviewsHtml(c: Ctx, rating: number, label: string, url: string): string {
+  const d = c.doc.design;
+  const n = Math.max(0, Math.min(5, Math.round(rating)));
+  const stars = Array.from({ length: 5 }, (_, i) => {
+    const src = glyphImg(c, "star", 15, i < n ? "#f5a623" : mix(d.muted, "#ffffff", 0.6));
+    return src ? cell(imgTag(src, 15, 15, i < n ? "★" : "☆"), "padding-right:2px;") : "";
+  }).join("");
+  const tail = label.trim()
+    ? cell(
+        text(c, link(url ? normalizeWebUrl(url) : null, esc(label), d.accent), { size: d.fontSize - 1, weight: 600 }),
+        `padding-left:${sp(c, 8)}px;vertical-align:middle;`,
+      )
+    : "";
+  return table(row(stars + tail));
+}
+
+function videoHtml(c: Ctx, assetId: string | undefined, url: string, title: string): string {
+  if (!assetId || !c.doc.assets[assetId]) return "";
+  const d = c.doc.design;
+  const meta = c.doc.assets[assetId];
+  const w = 240;
+  const h = 135;
+  const rect = cropRect(meta.width, meta.height, w / h, { x: 0, y: 0, zoom: 1 });
+  const req: ImageRequest = { kind: "video", key: `video|${meta.hash}|${w}x${h}`, label: "Video thumbnail", assetId, w, h, rect };
+  let thumb: string;
+  if (c.preview) {
+    c.images.push(req);
+    const src = c.opts.sourceUrl?.(assetId) ?? "";
+    const play = svgDataUrl(glyphSvg("play", 44, "#ffffff"));
+    thumb = `<div style="width:${w}px;height:${h}px;position:relative;border-radius:8px;overflow:hidden;background:url('${esc(src)}') center/cover;"><img src="${play}" width="44" height="44" alt="" style="position:absolute;left:${(w - 44) / 2}px;top:${(h - 44) / 2}px;opacity:.92;"></div>`;
+  } else {
+    const src = source(c, req, () => null);
+    thumb = src ? imgTag(src, w, h, title || "Video") : "";
+  }
+  if (!thumb) return "";
+  const href = url ? normalizeWebUrl(url) : null;
+  return stack(
+    c,
+    [link(href, thumb, d.accent), title.trim() ? text(c, link(href, `&#9654;&nbsp;${esc(title)}`, d.accent), { size: d.fontSize - 1, weight: 600 }) : ""],
+    4,
+  );
+}
+
+function appsHtml(c: Ctx, appStore: string, googlePlay: string): string {
+  const cells: string[] = [];
+  for (const [store, url] of [
+    ["apple", appStore],
+    ["google", googlePlay],
+  ] as const) {
+    if (!url.trim()) continue;
+    const height = 34;
+    const req: ImageRequest = {
+      kind: "badge",
+      key: `badge|${store}|${height}`,
+      label: store === "apple" ? "App Store badge" : "Google Play badge",
+      store,
+      height,
+    };
+    const src = source(c, req, () => svgDataUrl(badgeSvg(store, height)));
+    if (src) cells.push(cell(link(normalizeWebUrl(url), imgTag(src, Math.round(height * 3.1), height, req.label), c.doc.design.accent), "padding-right:8px;"));
+  }
+  return cells.length ? table(row(cells.join(""))) : "";
+}
+
+function digitalCardLinkHtml(c: Ctx, digitalUrl: string | null): string {
+  const d = c.doc.design;
+  const url = digitalUrl ?? (c.preview ? "https://example.com/card" : null);
+  if (!url) return "";
+  const qrReq: ImageRequest = { kind: "qr", key: `qr|${url}|64|${d.text}`, label: "Digital card QR code", value: url, size: 64, color: d.text };
+  const qr = source(c, qrReq, () => svgDataUrl(qrSvg(url, 64, d.text)));
+  return table(
+    row(
+      (qr ? cell(link(url, imgTag(qr, 64, 64, "QR code to my digital business card"), d.accent), `padding-right:${sp(c, 10)}px;vertical-align:middle;`) : "") +
+        cell(
+          text(c, link(url, "View my digital business card&nbsp;&rarr;", d.accent), { weight: 600, color: d.accent }) +
+            text(c, "Save my contact in one tap", { size: d.fontSize - 2, color: d.muted }),
+          "vertical-align:middle;",
+        ),
+    ),
+  );
+}
+
+function smallPrint(c: Ctx, value: string, color?: string, prefix = ""): string {
+  if (!value.trim()) return "";
+  const d = c.doc.design;
+  return `<div style="max-width:${Math.min(d.width, 520)}px;">${text(c, `${prefix}${escText(value)}`, { size: Math.max(9, d.fontSize - 3), color: color ?? d.muted, lh: 1.45 })}</div>`;
 }
 
 function addonsBottom(c: Ctx, digitalUrl: string | null): string[] {
@@ -705,102 +833,16 @@ function addonsBottom(c: Ctx, digitalUrl: string | null): string[] {
   const a = c.doc.addons;
   const d = c.doc.design;
   const out: string[] = [];
-  const buttons: string[] = [];
-  if (a.cta.enabled && a.cta.text.trim())
-    buttons.push(button(c, a.cta.text, a.cta.url ? normalizeWebUrl(a.cta.url) : websiteHref(c.doc.details.website), a.cta.style));
-  if (a.meeting.enabled && a.meeting.text.trim())
-    buttons.push(button(c, a.meeting.text, a.meeting.url ? normalizeWebUrl(a.meeting.url) : null, "outline", "calendar"));
-  if (buttons.filter(Boolean).length)
-    out.push(
-      table(
-        row(
-          buttons
-            .filter(Boolean)
-            .map((b, i) => cell(b, i ? `padding-left:${sp(c, 8)}px;` : ""))
-            .join(""),
-        ),
-      ),
-    );
-  if (a.quote.enabled && a.quote.text.trim()) {
-    out.push(
-      table(
-        row(
-          cell(
-            text(c, `&ldquo;${escText(a.quote.text)}&rdquo;`, { italic: true, color: d.text, role: "heading" }) +
-              (a.quote.author.trim() ? text(c, `&mdash; ${esc(a.quote.author)}`, { size: d.fontSize - 2, color: d.muted }) : ""),
-            `border-left:3px solid ${d.accent};padding-left:${sp(c, 10)}px;`,
-          ),
-        ),
-      ),
-    );
-  }
-  if (a.reviews.enabled) {
-    const n = Math.max(0, Math.min(5, Math.round(a.reviews.rating)));
-    const stars = Array.from({ length: 5 }, (_, i) => {
-      const src = glyphImg(c, "star", 15, i < n ? "#f5a623" : mix(d.muted, "#ffffff", 0.6));
-      return src ? cell(imgTag(src, 15, 15, i < n ? "★" : "☆"), "padding-right:2px;") : "";
-    }).join("");
-    const label = a.reviews.text.trim()
-      ? cell(
-          text(c, link(a.reviews.url ? normalizeWebUrl(a.reviews.url) : null, esc(a.reviews.text), d.accent), { size: d.fontSize - 1, weight: 600 }),
-          `padding-left:${sp(c, 8)}px;vertical-align:middle;`,
-        )
-      : "";
-    out.push(table(row(stars + label)));
-  }
-  if (a.video.enabled && a.video.assetId && c.doc.assets[a.video.assetId]) {
-    const meta = c.doc.assets[a.video.assetId];
-    const w = 240;
-    const h = 135;
-    const rect = cropRect(meta.width, meta.height, w / h, { x: 0, y: 0, zoom: 1 });
-    const req: ImageRequest = { kind: "video", key: `video|${meta.hash}|${w}x${h}`, label: "Video thumbnail", assetId: a.video.assetId, w, h, rect };
-    let thumb: string;
-    if (c.preview) {
-      c.images.push(req);
-      const src = c.opts.sourceUrl?.(a.video.assetId) ?? "";
-      const play = svgDataUrl(glyphSvg("play", 44, "#ffffff"));
-      thumb = `<div style="width:${w}px;height:${h}px;position:relative;border-radius:8px;overflow:hidden;background:url('${esc(src)}') center/cover;"><img src="${play}" width="44" height="44" alt="" style="position:absolute;left:${(w - 44) / 2}px;top:${(h - 44) / 2}px;opacity:.92;"></div>`;
-    } else {
-      const src = source(c, req, () => null);
-      thumb = src ? imgTag(src, w, h, a.video.title || "Video") : "";
-    }
-    if (thumb)
-      out.push(
-        stack(
-          c,
-          [
-            link(a.video.url ? normalizeWebUrl(a.video.url) : null, thumb, d.accent),
-            a.video.title.trim()
-              ? text(c, link(a.video.url ? normalizeWebUrl(a.video.url) : null, `&#9654;&nbsp;${esc(a.video.title)}`, d.accent), {
-                  size: d.fontSize - 1,
-                  weight: 600,
-                })
-              : "",
-          ],
-          4,
-        ),
-      );
-  }
-  if (a.apps.enabled && (a.apps.appStore.trim() || a.apps.googlePlay.trim())) {
-    const cells: string[] = [];
-    for (const [store, url] of [
-      ["apple", a.apps.appStore],
-      ["google", a.apps.googlePlay],
-    ] as const) {
-      if (!url.trim()) continue;
-      const height = 34;
-      const req: ImageRequest = {
-        kind: "badge",
-        key: `badge|${store}|${height}`,
-        label: store === "apple" ? "App Store badge" : "Google Play badge",
-        store,
-        height,
-      };
-      const src = source(c, req, () => svgDataUrl(badgeSvg(store, height)));
-      if (src) cells.push(cell(link(normalizeWebUrl(url), imgTag(src, Math.round(height * 3.1), height, req.label), d.accent), "padding-right:8px;"));
-    }
-    if (cells.length) out.push(table(row(cells.join(""))));
-  }
+  out.push(
+    buttonsRow(c, [
+      a.cta.enabled && a.cta.text.trim() ? button(c, a.cta.text, a.cta.url ? normalizeWebUrl(a.cta.url) : websiteHref(c.doc.details.website), a.cta.style) : "",
+      a.meeting.enabled && a.meeting.text.trim() ? button(c, a.meeting.text, a.meeting.url ? normalizeWebUrl(a.meeting.url) : null, "outline", "calendar") : "",
+    ]),
+  );
+  if (a.quote.enabled) out.push(quoteHtml(c, a.quote.text, a.quote.author));
+  if (a.reviews.enabled) out.push(reviewsHtml(c, a.reviews.rating, a.reviews.text, a.reviews.url));
+  if (a.video.enabled) out.push(videoHtml(c, a.video.assetId, a.video.url, a.video.title));
+  if (a.apps.enabled) out.push(appsHtml(c, a.apps.appStore, a.apps.googlePlay));
   if (a.banner.enabled && a.banner.assetId && c.doc.assets[a.banner.assetId]) {
     const slot: ImageSlot = {
       assetId: a.banner.assetId,
@@ -811,34 +853,10 @@ function addonsBottom(c: Ctx, digitalUrl: string | null): string[] {
     };
     out.push(slotImage(c, slot, a.banner.alt || "Banner"));
   }
-  if (c.doc.card.enabled && c.doc.card.digitalLink && c.doc.card.assetId && c.show.card) {
-    const url = digitalUrl ?? (c.preview ? "https://example.com/card" : null);
-    if (url) {
-      const qrReq: ImageRequest = { kind: "qr", key: `qr|${url}|64|${d.text}`, label: "Digital card QR code", value: url, size: 64, color: d.text };
-      const qr = source(c, qrReq, () => svgDataUrl(qrSvg(url, 64, d.text)));
-      out.push(
-        table(
-          row(
-            (qr
-              ? cell(link(url, imgTag(qr, 64, 64, "QR code to my digital business card"), d.accent), `padding-right:${sp(c, 10)}px;vertical-align:middle;`)
-              : "") +
-              cell(
-                text(c, link(url, "View my digital business card&nbsp;&rarr;", d.accent), { weight: 600, color: d.accent }) +
-                  text(c, "Save my contact in one tap", { size: d.fontSize - 2, color: d.muted }),
-                "vertical-align:middle;",
-              ),
-          ),
-        ),
-      );
-    }
-  }
-  if (a.disclaimer.enabled && a.disclaimer.text.trim())
-    out.push(
-      `<div style="max-width:${Math.min(d.width, 520)}px;">${text(c, escText(a.disclaimer.text), { size: Math.max(9, d.fontSize - 3), color: d.muted, lh: 1.45 })}</div>`,
-    );
-  if (a.green.enabled && a.green.text.trim())
-    out.push(text(c, `&#127807;&nbsp;${escText(a.green.text)}`, { size: Math.max(9, d.fontSize - 3), color: "#3f8f4f" }));
-  return out;
+  if (c.doc.card.enabled && c.doc.card.digitalLink && c.doc.card.assetId && c.show.card) out.push(digitalCardLinkHtml(c, digitalUrl));
+  if (a.disclaimer.enabled) out.push(smallPrint(c, a.disclaimer.text));
+  if (a.green.enabled) out.push(smallPrint(c, a.green.text, "#3f8f4f", "&#127807;&nbsp;"));
+  return out.filter(Boolean);
 }
 
 // ---------------------------------------------------------------------------
@@ -959,6 +977,217 @@ function cardHtml(c: Ctx, digitalUrl: string | null): string {
 }
 
 // ---------------------------------------------------------------------------
+// Builder blocks — rows of columns of blocks, rendered with the same parts
+// ---------------------------------------------------------------------------
+
+/** Apply a block's style overrides to the design its parts read. */
+function withStyle(c: Ctx, st?: BlockStyle): Ctx {
+  if (!st || (!st.color && !st.accent && !st.font && !st.fontSize)) return c;
+  const d = c.doc.design;
+  const design = {
+    ...d,
+    text: st.color ?? d.text,
+    accent: st.accent ?? d.accent,
+    headingFont: st.font ?? d.headingFont,
+    bodyFont: st.font ?? d.bodyFont,
+    fontSize: st.fontSize ?? d.fontSize,
+  };
+  return { ...c, doc: { ...c.doc, design } };
+}
+
+function boxed(html: string, box?: Box): string {
+  if (!html || !box || !(box.padding || box.background || box.borderWidth)) return html;
+  const side = box.borderSide ?? "all";
+  const border = box.borderWidth ? `${box.borderWidth}px solid ${box.borderColor ?? "#dddddd"}` : undefined;
+  const style = css({
+    "background-color": box.background,
+    padding: box.padding ? `${box.padding}px` : undefined,
+    "border-radius": box.radius ? `${box.radius}px` : undefined,
+    border: side === "all" ? border : undefined,
+    "border-left": side === "left" ? border : undefined,
+    "border-top": side === "top" ? border : undefined,
+    "border-bottom": side === "bottom" ? border : undefined,
+  });
+  return table(row(cell(html, style, box.background ? `bgcolor="${esc(box.background)}"` : "")), box.radius ? "border-collapse:separate;" : "");
+}
+
+/** What an empty block looks like while editing (never in email). */
+function placeholder(label: string, w = 0, h = 0, round = false): string {
+  const size = w ? `width:${w}px;height:${h || w}px;` : "padding:8px 12px;";
+  return `<div style="${size}display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1.5px dashed #c9c4ee;border-radius:${round ? "50%" : "8px"};color:#8a84bd;font:600 11px/1.3 system-ui,sans-serif;text-align:center;background:#faf9ff;">${esc(label)}</div>`;
+}
+
+function showsIn(b: Block, variant: Variant): boolean {
+  return !b.visibility || b.visibility === "both" || b.visibility === variant;
+}
+
+function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
+  const c = withStyle(c0, b.style);
+  const d = c.doc.design;
+  const align = b.style?.align;
+  const empty = (label: string, w = 0, h = 0, round = false) => (c.preview ? placeholder(label, w, h, round) : "");
+  switch (b.type) {
+    case "row":
+      return rowHtml(c, b, digitalUrl);
+    case "name": {
+      const n = nameHtml(c, { size: Math.round(d.fontSize * d.nameScale * (b.scale ?? 1)), upper: b.upper, align });
+      if (!b.underline || !n) return n;
+      return table(row(cell(n, `border-bottom:4px solid ${d.accent};padding-bottom:${sp(c, 4)}px;`)));
+    }
+    case "title":
+      return titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: b.style?.color }) || empty("Job title");
+    case "field": {
+      const v = c.doc.details[b.field].trim();
+      if (!v) return empty(`Add your ${b.field}`);
+      const href =
+        b.field === "email" ? mailtoHref(v) : b.field === "website" ? websiteHref(v) : b.field === "phone" || b.field === "mobile" ? telHref(v) : null;
+      const shown = b.field === "website" ? displayWebUrl(v) : v;
+      return text(c, link(href, esc(shown), b.style?.color ?? (b.upper ? d.accent : d.text)), {
+        upper: b.upper,
+        tracking: b.upper ? 0.2 : undefined,
+        weight: b.upper ? 600 : undefined,
+        size: b.upper ? d.fontSize - 2 : undefined,
+        color: b.style?.color ?? (b.upper ? d.accent : d.text),
+        align,
+      });
+    }
+    case "text":
+      if (!b.text.trim()) return empty("Text");
+      return text(c, escText(b.text).replace(/\n/g, "<br>"), {
+        size: b.size,
+        weight: b.bold ? 700 : undefined,
+        italic: b.italic,
+        color: b.style?.color ?? (b.muted ? d.muted : d.text),
+        align,
+        lh: 1.45,
+      });
+    case "contacts": {
+      const html =
+        b.layout === "grid"
+          ? contactsGrid(c)
+          : b.layout === "chips"
+            ? contactsChips(c)
+            : contactsHtml(c, { inline: b.layout === "inline", align, iconBg: b.iconBg });
+      return html || empty("Contact details");
+    }
+    case "socials":
+      if (!c.show.social) return "";
+      return socialsHtml(c, { align, size: b.size }) || empty("Social icons");
+    case "photo":
+      if (!c.show.photo) return "";
+      return photoHtml(c, b.size) || empty("Photo", b.size ?? c.doc.images.photo.size, 0, c.doc.images.photo.shape === "circle");
+    case "logo":
+      if (!c.show.logo) return "";
+      return logoHtml(c, b.size) || empty("Logo", b.size ?? c.doc.images.logo.size, Math.round((b.size ?? c.doc.images.logo.size) / 3));
+    case "image": {
+      const slot: ImageSlot = {
+        assetId: b.assetId,
+        size: b.width,
+        shape: b.radius ? "rounded" : "square",
+        crop: { x: 0, y: 0, zoom: 1 },
+        link: b.link || undefined,
+      };
+      return (b.assetId && c.doc.assets[b.assetId] ? slotImage(c, slot, b.alt || "Image") : "") || empty("Image", Math.min(b.width, 200), 60);
+    }
+    case "monogram":
+      return monogramTile(c, b.size);
+    case "divider": {
+      const color = d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6);
+      const t = b.thickness ?? (d.divider === "accent" ? 2 : 1);
+      const style = d.divider === "dots" ? "dotted" : "solid";
+      return table(
+        row(cell("&nbsp;", `border-top:${t}px ${style} ${color};font-size:1px;line-height:1px;height:1px;`)),
+        b.width ? `width:${b.width}px;` : "width:100%;",
+        b.width ? `width="${b.width}"` : 'width="100%"',
+      );
+    }
+    case "spacer":
+      return `<div style="height:${b.height}px;line-height:${b.height}px;font-size:1px;">&nbsp;</div>`;
+    case "button":
+      if (!b.text.trim()) return empty("Button");
+      return button(c, b.text, b.url ? normalizeWebUrl(b.url) : websiteHref(c.doc.details.website), b.buttonStyle, b.icon || undefined);
+    case "signOff":
+      return signOffHtml(c, b.text, b.script) || empty("Sign-off");
+    case "quote":
+      return quoteHtml(c, b.text, b.author) || empty("Quote");
+    case "reviews":
+      return reviewsHtml(c, b.rating, b.text, b.url);
+    case "video":
+      return videoHtml(c, b.assetId, b.url, b.title) || empty("Video thumbnail", 240, 135);
+    case "apps":
+      return appsHtml(c, b.appStore, b.googlePlay) || empty("App store badges");
+    case "digitalCard":
+      return c.doc.card.assetId ? digitalCardLinkHtml(c, digitalUrl) : empty("Digital card (add a card design first)");
+    case "canva": {
+      const card = c.doc.card;
+      if (!card.assetId || !c.doc.assets[card.assetId]) return empty("Canva design");
+      // The block itself decides placement, so the card is always shown here.
+      return cardHtml({ ...c, show: { ...c.show, card: true }, doc: { ...c.doc, card: { ...card, enabled: true } } }, digitalUrl);
+    }
+  }
+}
+
+function blockHtml(c: Ctx, b: Block, digitalUrl: string | null): string {
+  if (!showsIn(b, c.opts.variant)) return "";
+  const html = boxed(leafHtml(c, b, digitalUrl), b.style?.box);
+  if (!c.preview) return html;
+  return `<div data-block="${esc(b.id)}">${html}</div>`;
+}
+
+function columnHtml(c: Ctx, col: Column, digitalUrl: string | null): string {
+  const inner = stack(
+    c,
+    col.blocks.map((b) => blockHtml(c, b, digitalUrl)),
+    col.gap,
+    col.align === "center" ? "center" : col.align === "right" ? "right" : undefined,
+  );
+  if (!c.preview) return boxed(inner, col.box);
+  const body = inner || placeholder("Drop blocks here");
+  return `<div data-col="${esc(col.id)}" style="min-width:${inner ? 0 : 120}px;">${boxed(body, col.box)}</div>`;
+}
+
+function rowHtml(c: Ctx, b: Extract<Block, { type: "row" }>, digitalUrl: string | null): string {
+  const d = c.doc.design;
+  const gap = sp(c, b.gap);
+  const cols = b.columns.map((col) => ({ col, html: columnHtml(c, col, digitalUrl) })).filter((x) => x.html || c.preview);
+  if (!cols.length) return "";
+  const cells: string[] = [];
+  cols.forEach(({ col, html }, i) => {
+    if (i) {
+      if (b.divider) {
+        const color = d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6);
+        cells.push(cell("&nbsp;", `width:${Math.round(gap / 2)}px;font-size:1px;`));
+        cells.push(cell("&nbsp;", `border-left:${d.divider === "accent" ? 2 : 1}px solid ${color};font-size:1px;`));
+        cells.push(cell("&nbsp;", `width:${Math.round(gap / 2)}px;font-size:1px;`));
+      } else cells.push(cell("&nbsp;", `width:${gap}px;font-size:1px;`, `width="${gap}"`));
+    }
+    cells.push(cell(html, css({ "vertical-align": b.valign, width: col.width ? `${col.width}px` : undefined }), col.width ? `width="${col.width}"` : ""));
+  });
+  return table(row(cells.join("")));
+}
+
+/** True when a builder layout contains a block of the given type. */
+export function hasBlock(root: Column | undefined, type: BlockType): boolean {
+  if (!root) return false;
+  return root.blocks.some((b) => b.type === type || (b.type === "row" && b.columns.some((col) => hasBlock(col, type))));
+}
+
+// ---------------------------------------------------------------------------
+// "Made with" link — free signatures carry a small, quiet credit
+// ---------------------------------------------------------------------------
+
+/** New-email signatures only (replies stay clean), unless the user turned it off. */
+export function showsMadeWith(doc: SignatureDoc, variant: Variant): boolean {
+  return variant === "full" && doc.madeWith !== false;
+}
+
+function madeWithHtml(c: Ctx): string {
+  const d = c.doc.design;
+  const color = mix(d.muted, "#ffffff", 0.25);
+  return text(c, link(BRAND.url, esc(BRAND.madeWith), color), { size: Math.max(9, d.fontSize - 4), color, role: "body" });
+}
+
+// ---------------------------------------------------------------------------
 // Entry
 // ---------------------------------------------------------------------------
 
@@ -984,13 +1213,24 @@ export function renderSignature(doc: SignatureDoc, opts: RenderOptions): RenderR
   const digitalUrl = doc.digitalCardUrl ?? null;
   const cardOnly = doc.card.enabled && doc.card.cardOnly && doc.card.assetId && c.show.card;
   // A reply that keeps the design uses it as-is, without the compact text layout.
-  const main = cardOnly ? cardHtml(c, digitalUrl) : (compact ? L.compact : L[template.layout])(c);
-  const blocks = [addonsTop(c), main, cardOnly ? "" : cardHtml(c, digitalUrl), ...addonsBottom(c, digitalUrl)];
+  const builder = doc.mode === "builder" && doc.blocks && !compact;
+  const main = builder ? columnHtml(c, doc.blocks!, digitalUrl) : cardOnly ? cardHtml(c, digitalUrl) : (compact ? L.compact : L[template.layout])(c);
+  // In the builder every add-on is a block the user placed; nothing is appended.
+  const blocks = builder ? [main] : [addonsTop(c), main, cardOnly ? "" : cardHtml(c, digitalUrl), ...addonsBottom(c, digitalUrl)];
   const align = doc.design.align === "center" && !compact ? "center" : "left";
-  const body = stack(c, blocks, 12, align === "center" ? "center" : undefined);
-  const html = body
-    ? `<table ${TABLE} style="border-collapse:collapse;"><tr><td style="font-family:${font(c, "body")};font-size:${doc.design.fontSize}px;color:${esc(doc.design.text)};text-align:${align};">${body}</td></tr></table>`
-    : "";
+  const wrap = (parts: string[]) => {
+    const body = stack(c, parts, 12, align === "center" ? "center" : undefined);
+    return body
+      ? `<table ${TABLE} style="border-collapse:collapse;"><tr><td style="font-family:${font(c, "body")};font-size:${doc.design.fontSize}px;color:${esc(doc.design.text)};text-align:${align};">${body}</td></tr></table>`
+      : "";
+  };
+  let html = wrap(blocks);
+  if (main && showsMadeWith(doc, opts.variant)) {
+    // The credit is a guest: it never pushes a signature past Gmail's limit.
+    // (Only the email HTML counts — previews inline their icons, so they run long.)
+    const withCredit = wrap([...blocks, madeWithHtml(c)]);
+    if (c.preview || withCredit.length <= GMAIL_SIGNATURE_LIMIT) html = withCredit;
+  }
   const seen = new Set<string>();
   const images = c.images.filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true)));
   return { html, images, errors: [...new Set(c.errors)] };

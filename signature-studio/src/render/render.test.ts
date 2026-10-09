@@ -195,3 +195,45 @@ describe("digital card", () => {
     await expect(decodeCard("not-a-card")).rejects.toThrow();
   });
 });
+
+describe("Made with link", () => {
+  it("is a small, public link under new-email signatures by default", () => {
+    const doc = fullDoc("corporate-classic");
+    const full = renderSignature(doc, { variant: "full", mode: "email", resolve: hosted }).html;
+    expect(full).toContain(">Made with Signet</a>");
+    expect(full).toContain('href="https://modern-gentlemen-website.pages.dev/?ref=signature"');
+    expect(validateEmailHtml(full).filter((p) => p.level === "error")).toEqual([]);
+  });
+
+  it("stays out of replies and disappears when switched off", () => {
+    const doc = fullDoc("corporate-classic");
+    expect(renderSignature(doc, { variant: "reply", mode: "email", resolve: hosted }).html).not.toContain("Made with");
+    doc.madeWith = false;
+    expect(renderSignature(doc, { variant: "full", mode: "email", resolve: hosted }).html).not.toContain("Made with");
+  });
+
+  it("is dropped rather than push a signature past Gmail's limit", () => {
+    const doc = fullDoc("corporate-classic");
+    const size = (credit: boolean) => renderSignature({ ...doc, madeWith: credit }, { variant: "full", mode: "email", resolve: hosted }).html.length;
+    // Grow the signature until it fits on its own but not with the credit.
+    let n = 0;
+    doc.details.custom.push({ id: "f", label: "O", value: "Line" });
+    while (size(false) < GMAIL_SIGNATURE_LIMIT - 1500) doc.details.custom.push({ id: `f${n}`, label: "O", value: `Line ${n++}` });
+    // Pad the last line so the signature sits 50 characters under the limit.
+    const last = doc.details.custom[doc.details.custom.length - 1];
+    last.value += "x".repeat(GMAIL_SIGNATURE_LIMIT - 50 - size(false));
+    expect(size(false)).toBe(GMAIL_SIGNATURE_LIMIT - 50);
+    const html = renderSignature(doc, { variant: "full", mode: "email", resolve: hosted }).html;
+    expect(html).not.toContain("Made with");
+    expect(html.length).toBeLessThanOrEqual(GMAIL_SIGNATURE_LIMIT);
+  });
+
+  it("is never added to an empty signature", () => {
+    const doc = fullDoc("corporate-classic");
+    doc.details = { ...doc.details, name: "", title: "", company: "", phone: "", mobile: "", email: "", website: "", address: "" };
+    doc.socials = [];
+    doc.images = { photo: { ...doc.images.photo, assetId: undefined }, logo: { ...doc.images.logo, assetId: undefined } };
+    Object.values(doc.addons).forEach((a) => (a.enabled = false));
+    expect(renderSignature(doc, { variant: "full", mode: "email", resolve: hosted }).html).toBe("");
+  });
+});

@@ -40,7 +40,7 @@ async function exportAll() {
 
 async function importAll(file: File) {
   const data = JSON.parse(await file.text()) as { schema?: string; docs?: SignatureDoc[]; assets?: Record<string, string> };
-  if (data.schema !== EXPORT_SCHEMA || !Array.isArray(data.docs)) throw new Error("This isn't a Signature Studio backup file.");
+  if (data.schema !== EXPORT_SCHEMA || !Array.isArray(data.docs)) throw new Error("This isn't a signature backup file.");
   for (const [id, url] of Object.entries(data.assets ?? {})) if (typeof url === "string" && url.startsWith("data:image/")) await ingestDataUrl(id, url);
   for (const d of data.docs) if (d?.schema === "signature-studio.v3" && d.id) await docStore.put(d);
   await loadAll();
