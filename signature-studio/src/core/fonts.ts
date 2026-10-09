@@ -160,7 +160,7 @@ export const FONTS: FontDef[] = [
     fallback: SANS,
     category: "sans",
     safe: false,
-    google: "Space+Grotesk:wght@400;500;600",
+    google: "Space+Grotesk:wght@300;400;500;600;700",
     seenAs: "Helvetica or Arial",
   },
   {
@@ -184,6 +184,28 @@ export const FONTS: FontDef[] = [
     seenAs: "Courier New",
   },
 ];
+
+FONTS.push(
+  {
+    id: "instrument-serif",
+    label: "Instrument Serif",
+    family: "'Instrument Serif'",
+    fallback: SERIF,
+    category: "serif",
+    safe: false,
+    google: "Instrument+Serif:ital@0;1",
+    seenAs: "Georgia",
+  },
+  {
+    id: "futura",
+    label: "Futura",
+    family: "Futura",
+    fallback: "'Century Gothic', 'Trebuchet MS', sans-serif",
+    category: "sans",
+    safe: false,
+    seenAs: "Trebuchet MS",
+  },
+);
 
 export const FONT_MAP: Record<string, FontDef> = Object.fromEntries(FONTS.map((f) => [f.id, f]));
 

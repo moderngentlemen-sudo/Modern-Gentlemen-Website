@@ -55,6 +55,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: links, multi-select, versions, reply layouts, offline app, seasonal library, RTL, 22 templates
+
+- **Templates** (`core/blockTemplates.ts`): 12 **Modern** and 10 **Modern Gentlemen** designs. They are block recipes that open in the builder (D43).
+  - The MG set follows the site's tokens: red `#C8102E`, ink `#141414`, Space Grotesk, Instrument Serif italic, IBM Plex Mono labels, sharp corners, square red buttons.
+  - Instrument Serif and Futura were added to the font library. Square button and tag styles were added too.
+- **Text links and hover:**
+  - `[words](target)` inline links via ⌘K (`ui/LinkableText.tsx`, also in the canvas editor).
+  - Block-level `link` on text, name, title and field blocks, and a `hover` tooltip (D41, D42).
+  - Link checks accept emails and phone numbers.
+- **Multi-select** (`ui.multi`, `actions.selectedIds/updateSelected/wrapSelected`): Shift- or ⌘-click to select several blocks, with a group inspector.
+- **Drop beside:** `placeBeside`/`moveBeside` place blocks side by side, with a vertical drop guide (D44).
+- **Version history** (`core/versions.ts`, `dialogs/HistoryDialog.tsx`, IndexedDB `ss3-versions`; D45).
+- **Reply layout:** `reply.custom` + `replyBlocks`. The store's `tree()`/`treeOf` give the builder the active tree (D46).
+- **PWA** (`public/manifest.webmanifest`, `public/sw.js`, `src/pwa.ts`, icons rendered by `scripts/make-icons.mjs`; D47).
+  - Verified offline against `vite preview`: the dashboard and deep links load with the network off.
+- **Seasonal library** (`core/seasonal.ts`, `dialogs/BannerDialog.tsx`): 14 banners and sign-off presets (D48).
+- **Right-to-left:** `design.direction` and `render.mirrorRtl` (D49), plus a check that suggests it.
+- **Fix:** Duplicate (⌘D) threw inside an edit, because `structuredClone` can't copy an Immer draft. `cloneBlock`/`cloneColumn` now use `current()`.
+- **Gates:** `npm test` (61), `npm run e2e` (26), `npm run build`.
+
 ### 2026-10-09 — Signature Studio: checks, quick start, my templates, exports, snapping
 
 - **Live checks** (`core/checks.ts`, pure):

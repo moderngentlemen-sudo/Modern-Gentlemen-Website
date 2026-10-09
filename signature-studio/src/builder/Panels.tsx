@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, RotateCcw, Search } from "lucide-react";
 import type { Block, Column } from "../core/types";
-import { ui, useStudio } from "../store/editor";
-import { addBlock, nudgeBlock, resetLayout, toggleHidden } from "./actions";
+import { ui, useStudio, treeOf } from "../store/editor";
+import { addBlock, nudgeBlock, resetLayout, toggleHidden, toggleInSelection } from "./actions";
 import { blockLabel, CATALOG, type CatalogItem } from "./catalog";
 import { armDrag } from "./dnd";
 
@@ -71,15 +71,16 @@ export function BlocksPanel() {
 
 function LayerRows({ column, depth }: { column: Column; depth: number }) {
   const selected = useStudio((s) => s.selected);
+  const multi = useStudio((s) => s.multi);
   return (
     <>
       {column.blocks.map((b: Block) => (
         <div key={b.id}>
           <button
             className={`layer${b.visibility === "hidden" ? " is-hidden" : ""}`}
-            aria-current={selected === b.id}
+            aria-current={multi.length ? multi.includes(b.id) : selected === b.id}
             style={{ paddingLeft: 10 + depth * 16 }}
-            onClick={() => ui({ selected: b.id })}
+            onClick={(e) => (e.shiftKey || e.metaKey || e.ctrlKey ? toggleInSelection(b.id) : ui({ selected: b.id }))}
             data-testid="layer"
           >
             {b.type === "row" ? <ChevronRight size={13} style={{ transform: "rotate(90deg)" }} /> : <span style={{ width: 13 }} />}
@@ -133,7 +134,7 @@ function LayerRows({ column, depth }: { column: Column; depth: number }) {
 }
 
 export function LayersPanel() {
-  const root = useStudio((s) => s.doc?.blocks);
+  const root = useStudio(treeOf);
   return (
     <>
       <h2>Layers</h2>

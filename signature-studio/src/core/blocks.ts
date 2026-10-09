@@ -3,6 +3,7 @@
  * template (plus its enabled add-ons) into an editable block layout.
  * Pure functions — no React, no I/O.
  */
+import { current, isDraft } from "immer";
 import { uid } from "../lib/id";
 import type { Block, BlockType, Column, SignatureDoc } from "./types";
 import { getTemplate, type LayoutId } from "./templates";
@@ -72,12 +73,14 @@ export function* walk(root: Column): Generator<{ block: Block; parent: Column; i
   }
 }
 
-export function findBlock(root: Column, id: string): { block: Block; parent: Column; index: number } | null {
+export function findBlock(root: Column | undefined, id: string): { block: Block; parent: Column; index: number } | null {
+  if (!root) return null;
   for (const hit of walk(root)) if (hit.block.id === id) return hit;
   return null;
 }
 
-export function findColumn(root: Column, id: string): Column | null {
+export function findColumn(root: Column | undefined, id: string): Column | null {
+  if (!root) return null;
   if (root.id === id) return root;
   for (const { block } of walk(root)) if (block.type === "row") for (const c of block.columns) if (c.id === id) return c;
   return null;
@@ -126,9 +129,39 @@ export function moveBlock(root: Column, id: string, columnId: string, index: num
   return true;
 }
 
+/**
+ * Put `b` beside the block `targetId` (left or right). If the target already
+ * sits alone in a column of a row with room, the row gains a column;
+ * otherwise the target is wrapped in a new two-column row.
+ */
+export function placeBeside(root: Column, b: Block, targetId: string, side: "left" | "right"): boolean {
+  const hit = findBlock(root, targetId);
+  if (!hit || hit.block.id === b.id) return false;
+  const row = rowOfColumn(root, hit.parent.id);
+  if (row && hit.parent.blocks.length === 1 && row.columns.length < 4) {
+    const at = row.columns.indexOf(hit.parent) + (side === "right" ? 1 : 0);
+    row.columns.splice(at, 0, col([b], { align: hit.parent.align }));
+    return true;
+  }
+  const align = hit.block.style?.align;
+  const pair = side === "left" ? [col([b]), col([hit.block])] : [col([hit.block]), col([b])];
+  hit.parent.blocks.splice(hit.index, 1, rowOf(pair, { valign: "middle" }));
+  if (align && align !== "left") pair.forEach((c) => (c.align = align));
+  return true;
+}
+
+/** Move an existing block beside another. Refuses to move a row beside its own contents. */
+export function moveBeside(root: Column, id: string, targetId: string, side: "left" | "right"): boolean {
+  if (id === targetId || isWithin(root, id, targetId)) return false;
+  const moving = removeBlock(root, id);
+  if (!moving) return false;
+  return placeBeside(root, moving, targetId, side);
+}
+
 /** Deep copy with fresh ids. */
 export function cloneBlock(b: Block): Block {
-  const copy = structuredClone(b);
+  // Inside an edit `b` may be an Immer draft, which structuredClone can't copy.
+  const copy = structuredClone(isDraft(b) ? current(b) : b);
   const renew = (x: Block) => {
     x.id = uid("b");
     if (x.type === "row")
@@ -139,6 +172,12 @@ export function cloneBlock(b: Block): Block {
   };
   renew(copy);
   return copy;
+}
+
+/** Deep copy of a whole column (e.g. a layout) with fresh ids. */
+export function cloneColumn(c: Column): Column {
+  const src = isDraft(c) ? current(c) : c;
+  return { ...structuredClone(src), id: uid("c"), blocks: src.blocks.map(cloneBlock) };
 }
 
 export function duplicateBlock(root: Column, id: string): Block | null {
@@ -301,6 +340,6 @@ export function addonBlocks(doc: SignatureDoc): { top: Block[]; bottom: Block[] 
 export function blocksFromDoc(doc: SignatureDoc): Column {
   const t = getTemplate(doc.templateId);
   const { top, bottom } = addonBlocks(doc);
-  const main = doc.card.enabled && doc.card.cardOnly && doc.card.assetId ? [B("canva")] : layoutBlocks(t.layout, doc);
+  const main = doc.card.enabled && doc.card.cardOnly && doc.card.assetId ? [B("canva")] : t.blocks ? t.blocks(doc) : layoutBlocks(t.layout, doc);
   return col([...top, ...main, ...bottom], { gap: 12, align: doc.design.align === "center" ? "center" : "left" });
 }

@@ -34,7 +34,7 @@ None of these names has been checked for trademarks or domains. Do that before y
 - **New visual identity.** Warm paper, ink and a signal-coral accent, with Instrument Serif and Geist fonts.
 - **Marketing site at `/`.** The app lives at `/app`, and the editor at `/app/s/<id>`.
 - **Brand kit.** Colours, fonts, logo, company and website. It applies to new signatures, and template previews can be shown in your brand.
-- **60 templates.** 30 for business sectors and 30 artistic.
+- **60 templates.** 30 for business sectors and 30 artistic (82 since Phase 1c).
 
 ### Phase 1b — Quality of life (built)
 
@@ -52,13 +52,24 @@ None of these names has been checked for trademarks or domains. Do that before y
 - **My templates**: save any design without your personal details, and reuse it.
 - **Exports**: a PNG image, and a print sheet for business cards with crop marks (save it as a PDF). HTML is in the install dialog.
 
+### Phase 1c — Power features (built)
+
+- **Text links and hover text:**
+  - Link selected words with ⌘K. Text, name, title and detail blocks can also link as a whole.
+  - Tooltips on links and images. Gmail strips hover styles, so real hover effects live on the digital card page.
+- **Multi-select** with group styling, plus drop-beside with a vertical guide.
+- **Version history:** named snapshots per signature. Restore is undoable and keeps an automatic copy of what it replaced.
+- **Reply layouts:** compact, same design, or a separate builder layout.
+- **Installable offline app (PWA).**
+- **Seasonal library:** 14 banners and ready-made sign-offs.
+- **Right-to-left signatures.**
+- **22 new templates:** 12 Modern and 10 inspired by the Modern Gentlemen website (82 in total).
+
 ### Ideas not yet built (no accounts needed)
 
-- Select several blocks at once, and full alignment guides while dragging.
-- Version history with named snapshots.
-- A separate layout for replies (today replies are the same layout or a compact text version).
-- An installable app that works offline.
-- Seasonal sign-off and banner library, and right-to-left text.
+- Smart alignment guides between blocks in different columns (today: snapping on resize, column edges, and drop indicators).
+- Template previews in right-to-left.
+- More banner artwork (photo-based), and per-banner date reminders ("swap your holiday banner on Jan 2").
 
 ### Phase 2 — Accounts and cloud (next)
 

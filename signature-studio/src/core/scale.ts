@@ -73,5 +73,6 @@ export function scaleDoc(doc: SignatureDoc, s: number): SignatureDoc {
     card: { ...doc.card, width: r(doc.card.width, s) },
     addons: { ...doc.addons, banner: { ...doc.addons.banner, width: r(doc.addons.banner.width, s) } },
     blocks: doc.blocks ? column(doc.blocks, s) : undefined,
+    replyBlocks: doc.replyBlocks ? column(doc.replyBlocks, s) : undefined,
   };
 }

@@ -6,6 +6,7 @@
 import { rowOfColumn, walk } from "../core/blocks";
 import type { Block, Column, SignatureDoc } from "../core/types";
 import { blockLabel } from "./catalog";
+import { tree } from "../store/editor";
 
 export interface Snap {
   value: number;
@@ -44,9 +45,10 @@ function fontSize(b: Block): number | undefined {
 
 /** Snap a resize value for block `id`. `kind` is "px" for image-like sizes, "font" for text. */
 export function snapResize(doc: SignatureDoc, id: string, value: number, kind: "px" | "font" | "none", tolerance = kind === "font" ? 0.6 : 4): Snap {
-  if (kind === "none" || !doc.blocks) return { value };
+  const root = tree(doc);
+  if (kind === "none" || !root) return { value };
   const candidates: { v: number; label: string }[] = [];
-  for (const { block } of walk(doc.blocks)) {
+  for (const { block } of walk(root)) {
     if (block.id === id) continue;
     const v = kind === "px" ? (PX_TYPES.has(block.type) ? pxSize(block, doc) : undefined) : fontSize(block);
     if (v) candidates.push({ v, label: blockLabel(block) });

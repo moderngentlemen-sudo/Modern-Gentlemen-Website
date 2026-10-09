@@ -73,3 +73,23 @@ describe("runChecks", () => {
     expect(long).toBeGreaterThan(short);
   });
 });
+
+describe("checks for this batch", () => {
+  it("suggests right-to-left for Arabic or Hebrew details, and stops once it's set", () => {
+    const d = mk();
+    d.details.name = "דנה כהן";
+    expect(runChecks(d).some((i) => i.id === "rtl")).toBe(true);
+    d.design.direction = "rtl";
+    expect(runChecks(d).some((i) => i.id === "rtl")).toBe(false);
+  });
+
+  it("flags broken links on text, but accepts emails and phone numbers", () => {
+    const d = mk();
+    d.mode = "builder";
+    d.blocks = blocksFromDoc(d);
+    d.blocks.blocks.push(block("text", { text: "Call [me](+1 416 555 0100) or [write](hi@example.com) or [see](not a link)" }));
+    const issues = runChecks(d).filter((i) => i.id.startsWith("link-"));
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain("“see”");
+  });
+});

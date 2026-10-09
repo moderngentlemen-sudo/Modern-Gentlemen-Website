@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { findBlock } from "../core/blocks";
 import { cropRect } from "../core/crop";
 import type { SignatureDoc } from "../core/types";
-import { edit, ui, useStudio } from "../store/editor";
+import { edit, ui, useStudio, tree } from "../store/editor";
 import { Field, Modal, Segmented, Slider } from "../ui/kit";
 import { previewSource } from "../ui/samples";
 
@@ -26,7 +26,7 @@ function target(doc: SignatureDoc, arg: string): Target | null {
     };
   }
   const id = arg.replace(/^block:/, "");
-  const hit = doc.blocks ? findBlock(doc.blocks, id) : null;
+  const hit = tree(doc) ? findBlock(tree(doc), id) : null;
   if (!hit || hit.block.type !== "image") return null;
   return { assetId: hit.block.assetId, crop: hit.block.crop ?? { x: 0, y: 0, zoom: 1 }, aspect: hit.block.aspect, round: false, title: "Adjust image" };
 }
@@ -40,7 +40,7 @@ function write(arg: string, patch: { crop?: Partial<Crop>; aspect?: number | nul
       };
       if (arg === "photo" || arg === "logo") apply(d.images[arg]);
       else {
-        const hit = d.blocks ? findBlock(d.blocks, arg.replace(/^block:/, "")) : null;
+        const hit = tree(d) ? findBlock(tree(d), arg.replace(/^block:/, "")) : null;
         if (hit && hit.block.type === "image") apply(hit.block);
       }
     },

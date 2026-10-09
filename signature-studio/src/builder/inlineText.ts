@@ -4,6 +4,8 @@ import type { Block, DetailKey, SignatureDoc } from "../core/types";
 export interface InlineTarget {
   value: string;
   multiline: boolean;
+  /** Supports `[words](link)` via ⌘K. */
+  linkable?: boolean;
   /** Write the new text (inside an edit recipe). */
   apply: (doc: SignatureDoc, block: Block, value: string) => void;
 }
@@ -25,6 +27,7 @@ export function inlineTarget(b: Block, doc: SignatureDoc): InlineTarget | null {
     return {
       value: b.text,
       multiline: b.type === "text" || b.type === "quote",
+      linkable: b.type === "text",
       apply: (_d, x, v) => {
         if ("text" in x) (x as { text: string }).text = v;
       },

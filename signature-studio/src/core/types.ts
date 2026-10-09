@@ -104,6 +104,8 @@ export interface Design {
   nameCase: "normal" | "upper";
   /** Overall size of the signature (1 = as designed). Scales text, images, icons and spacing together. */
   scale?: number;
+  /** Text direction. "rtl" mirrors the layout for Arabic, Hebrew, Persian and Urdu. */
+  direction?: "ltr" | "rtl";
 }
 
 export interface AddOns {
@@ -165,6 +167,8 @@ export interface ReplySettings {
   keepPhoto: boolean;
   keepLogo: boolean;
   keepSocial: boolean;
+  /** Builder: replies use their own layout (`replyBlocks`) instead of the main one. */
+  custom?: boolean;
 }
 
 export interface AssetMeta {
@@ -205,6 +209,8 @@ export interface SignatureDoc {
   /** "quick": template + forms. "builder": the drag-and-drop layout in `blocks`. */
   mode?: "quick" | "builder";
   blocks?: Column;
+  /** Builder: the reply layout, used when `reply.custom` is on. */
+  replyBlocks?: Column;
   /** Show the small "Made with …" link under new-email signatures (default on). */
   madeWith?: boolean;
   /** Share details, social links and photo with your saved profile (default on). */
@@ -257,17 +263,19 @@ interface BlockBase {
   /** Which signature version shows the block (default: both); "hidden" keeps it but never shows it. */
   visibility?: "both" | "full" | "reply" | "hidden";
   style?: BlockStyle;
+  /** Hover text: shown when someone points at the block's links or images. */
+  hover?: string;
 }
 
-export type ButtonStyle = "solid" | "outline" | "pill" | "link";
+export type ButtonStyle = "solid" | "outline" | "pill" | "link" | "square" | "squareOutline";
 
 export type Block = BlockBase &
   (
     | { type: "row"; columns: Column[]; gap: number; valign: VAlign; divider: boolean }
-    | { type: "name"; scale?: number; upper?: boolean; underline?: boolean }
-    | { type: "title"; upper?: boolean; italic?: boolean; titleOnly?: boolean }
-    | { type: "field"; field: DetailKey; upper?: boolean }
-    | { type: "text"; text: string; size?: number; bold?: boolean; italic?: boolean; muted?: boolean }
+    | { type: "name"; scale?: number; upper?: boolean; underline?: boolean; link?: string }
+    | { type: "title"; upper?: boolean; italic?: boolean; titleOnly?: boolean; link?: string }
+    | { type: "field"; field: DetailKey; upper?: boolean; link?: string }
+    | { type: "text"; text: string; size?: number; bold?: boolean; italic?: boolean; muted?: boolean; upper?: boolean; link?: string }
     | { type: "contacts"; layout: "stacked" | "inline" | "grid" | "chips"; iconBg?: boolean }
     | { type: "socials"; size?: number }
     | { type: "photo"; size?: number }
@@ -285,7 +293,7 @@ export type Block = BlockBase &
     | { type: "logos"; items: { id: string; assetId?: string; link?: string; alt?: string }[]; height: number; gap: number }
     | { type: "qr"; source: "website" | "digitalCard" | "custom"; url: string; size: number; caption: string }
     | { type: "iconText"; icon: string; text: string; url: string; iconBg?: boolean }
-    | { type: "tag"; text: string; url: string; filled: boolean }
+    | { type: "tag"; text: string; url: string; filled: boolean; square?: boolean }
     | { type: "monogram"; size: number }
     | { type: "divider"; width?: number; thickness?: number }
     | { type: "spacer"; height: number }

@@ -477,6 +477,8 @@ a {
   font-weight: 700;
   background: var(--panel-2);
   color: var(--ink-2);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge.ok {
@@ -2594,4 +2596,218 @@ body.is-col-resizing * {
   box-shadow: var(--shadow-3);
   resize: none;
   outline: none;
+}
+
+/* ---- Text links: the "link these words" popover ---- */
+.link-pop {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--paper, #fff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
+  box-shadow: var(--shadow-3);
+}
+
+.link-pop .row {
+  display: flex;
+  gap: 6px;
+}
+
+.link-pop .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ov-link-pop {
+  position: absolute;
+  z-index: 7;
+  width: 300px;
+  pointer-events: auto;
+}
+
+.ov-link-pop .link-pop {
+  margin: 0;
+}
+
+/* ---- Digital card: hover feedback (cards are web pages, so hover works) ---- */
+.dc-save {
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    filter 0.2s var(--ease);
+}
+
+.dc-save:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 14px 30px -12px var(--dc-accent);
+}
+
+.dc-action {
+  transition:
+    background 0.2s var(--ease),
+    transform 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.dc-action:hover {
+  border-color: var(--dc-accent);
+}
+
+.dc-socials a {
+  transition:
+    background 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+
+.dc-socials a:hover,
+.dc-socials a:focus-visible {
+  background: var(--dc-accent);
+  transform: translateY(-2px) scale(1.06);
+}
+
+.dc-flip:hover .dc-face {
+  box-shadow: 0 50px 90px -30px rgba(0, 0, 0, 0.9);
+}
+
+.dc-face img {
+  transition: transform 0.6s var(--ease);
+}
+
+.dc-flip:not(.flipped):hover .dc-face:not(.dc-back) img {
+  transform: scale(1.015);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-save,
+  .dc-action,
+  .dc-socials a,
+  .dc-face img {
+    transition: none;
+  }
+}
+
+/* ---- Multi-select and side-by-side drop ---- */
+.ov-select.multi {
+  border-style: dashed;
+}
+
+.dnd-line.v {
+  width: 3px;
+  height: auto;
+}
+
+/* ---- Version history ---- */
+.versions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 760px) {
+  .versions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}
+
+.version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 380px;
+  overflow: auto;
+}
+
+.version-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.version-list li.on {
+  border-color: var(--violet);
+}
+
+.version-pick {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 2px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.version-pick strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-peek {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: auto;
+  max-height: 380px;
+}
+
+/* ---- Banner library ---- */
+.banner-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 14px;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 760px) {
+  .banner-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.banner-pick {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: 600 13px/1.3 var(--ui);
+  color: var(--ink);
+  transition:
+    border-color 0.15s,
+    transform 0.15s var(--ease);
+}
+
+.banner-pick:hover:not(:disabled) {
+  border-color: var(--violet);
+  transform: translateY(-1px);
+}
+
+.banner-pick img {
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+  display: block;
 }

@@ -1,5 +1,6 @@
 import type { BrandKit, SignatureDoc } from "./types";
 import { getTemplate } from "./templates";
+import { blocksFromDoc } from "./blocks";
 
 /**
  * Apply a template's layout and look. Content (details, images, social links,
@@ -14,6 +15,11 @@ export function applyTemplate(doc: SignatureDoc, templateId: string, opts: { kee
   doc.images.photo.shape = t.photo.shape;
   doc.images.photo.size = t.photo.size;
   doc.images.logo.size = t.logo.size;
+  // Block-made templates open in the builder; the others keep the current mode.
+  if (t.blocks) {
+    doc.mode = "builder";
+    doc.blocks = blocksFromDoc(doc);
+  } else if (doc.mode === "builder") doc.blocks = blocksFromDoc(doc);
 }
 
 /** Restyle a signature with a brand kit (colours, fonts, logo, company). */

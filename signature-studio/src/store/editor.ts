@@ -8,7 +8,9 @@ import type { SignatureDoc, Variant } from "../core/types";
 import { defaultCard } from "../core/defaults";
 import { go } from "../router";
 import { applyProfile, isLinked, isSampleOnly, profileFromDoc, sameProfile } from "../core/profile";
-import { docStore, prefStore, DEFAULT_PREFS, type Prefs } from "../storage/db";
+import { docStore, versionStore, prefStore, DEFAULT_PREFS, type Prefs } from "../storage/db";
+import { addVersion, defaultVersionName, restoreInto, type Version } from "../core/versions";
+import { uid } from "../lib/id";
 
 export type Tab = "blocks" | "layers" | "templates" | "details" | "images" | "social" | "design" | "addons" | "card" | "install";
 
@@ -35,10 +37,12 @@ interface State {
   saving: "saved" | "saving" | "error";
   prefs: Prefs;
   toasts: Toast[];
-  dialog: null | "install" | "settings" | "crop" | "templates" | "brand" | "wizard" | "saveTemplate";
+  dialog: null | "install" | "settings" | "crop" | "templates" | "brand" | "wizard" | "saveTemplate" | "history" | "banners";
   dialogArg: string | null;
   /** Builder: the selected block. */
   selected: string | null;
+  /** Builder: every selected block when two or more are (Shift/⌘-click); otherwise empty. */
+  multi: string[];
   /** Canvas zoom (view only — never changes the signature). */
   zoom: number;
 }
@@ -67,6 +71,7 @@ export const useStudio = create<State>(() => ({
   dialog: null,
   dialogArg: null,
   selected: null,
+  multi: [],
   zoom: 1,
 }));
 
@@ -178,6 +183,7 @@ export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", naviga
     variant: "full",
     lastKey: null,
     selected: null,
+    multi: [],
   });
   updatePrefs({ lastDocId: doc.id });
   if (navigate) go(`/app/s/${doc.id}`);
@@ -191,13 +197,14 @@ export async function createDoc(doc: SignatureDoc) {
 
 export async function deleteDoc(id: string) {
   await docStore.remove(id);
+  await versionStore.remove(id);
   set({ docs: get().docs.filter((d) => d.id !== id) });
   if (get().doc?.id === id) goHome();
 }
 
 export function goHome() {
   void flushSave();
-  set({ view: "home", dialog: null, selected: null });
+  set({ view: "home", dialog: null, selected: null, multi: [] });
   go("/app");
 }
 
@@ -213,6 +220,51 @@ export function toast(message: string, tone: Toast["tone"] = "info", action?: To
   setTimeout(() => set({ toasts: get().toasts.filter((t) => t.id !== id) }), action ? 7000 : 3800);
 }
 
+/** Builder edits go to the reply layout while it is shown and has its own design. */
+export function editsReply(s: { variant: Variant; doc: SignatureDoc | null }): boolean {
+  return s.variant === "reply" && s.doc?.mode === "builder" && !!s.doc.reply.custom && !!s.doc.replyBlocks;
+}
+
+/** The block tree being edited: the main layout, or the reply layout. */
+export function tree<D extends { blocks?: unknown; replyBlocks?: unknown }>(d: D): D["blocks"] {
+  return (editsReply(get()) ? d.replyBlocks : d.blocks) as D["blocks"];
+}
+
+/** Selector form of `tree` for components. */
+export const treeOf = (s: { variant: Variant; doc: SignatureDoc | null }) => (editsReply(s) ? s.doc!.replyBlocks : s.doc?.blocks);
+
 export function ui(patch: Partial<State>) {
+  // Picking a single block ends a multi-selection unless the patch says otherwise.
+  if ("selected" in patch && !("multi" in patch)) patch = { ...patch, multi: [] };
   set(patch);
+}
+
+// ---------------------------------------------------------------------------
+// Version history
+// ---------------------------------------------------------------------------
+
+/** Snapshot the open signature. */
+export async function saveVersion(name?: string, auto = false): Promise<Version | null> {
+  const { doc } = get();
+  if (!doc) return null;
+  const list = await versionStore.list(doc.id);
+  const v: Version = { id: uid("v"), name: name?.trim() || defaultVersionName(list.length), at: Date.now(), auto, doc: structuredClone(doc) };
+  await versionStore.put(doc.id, addVersion(list, v));
+  return v;
+}
+
+/** Bring a snapshot back. Undoable, and the current state is snapshotted first. */
+export async function restoreVersion(v: Version) {
+  await saveVersion(`Before restoring “${v.name}”`, true);
+  edit((d) => restoreInto(d as SignatureDoc, v.doc));
+  set({ selected: null, multi: [] });
+  toast(`Restored “${v.name}”`, "success", { label: "Undo", run: undo });
+}
+
+export async function deleteVersion(docId: string, id: string) {
+  const list = await versionStore.list(docId);
+  await versionStore.put(
+    docId,
+    list.filter((v) => v.id !== id),
+  );
 }

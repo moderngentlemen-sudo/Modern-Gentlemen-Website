@@ -1,6 +1,6 @@
 /** Editor "More" menu: save as template and exports. */
 import { useEffect, useRef, useState } from "react";
-import { BookmarkPlus, Code2, Image as ImageIcon, MoreHorizontal, Printer } from "lucide-react";
+import { BookmarkPlus, Code2, History, Image as ImageIcon, MoreHorizontal, Printer } from "lucide-react";
 import { templateFromDoc, type SavedTemplate } from "../core/myTemplates";
 import { exportPng, printCard } from "../publish/exports";
 import { toast, ui, updatePrefs, useStudio } from "../store/editor";
@@ -31,6 +31,7 @@ export function MoreMenu() {
     }
   };
   const items = [
+    { icon: <History size={16} />, label: "Version history…", run: () => ui({ dialog: "history" }), id: "open-history" },
     { icon: <BookmarkPlus size={16} />, label: "Save as my template", run: () => ui({ dialog: "saveTemplate" }), id: "save-template" },
     {
       icon: <ImageIcon size={16} />,

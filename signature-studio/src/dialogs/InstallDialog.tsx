@@ -200,7 +200,7 @@ export function InstallDialog() {
   const list = Object.values(statuses);
   const done = !running && list.length > 0 && list.every((s) => s.state === "ready");
   const blocked = !running && list.some((s) => s.state !== "ready");
-  const hasReply = !!doc?.reply.compact;
+  const hasReply = !!doc?.reply.compact || (doc?.mode === "builder" && !!doc.reply.custom);
 
   useEffect(() => {
     if (!open) return;

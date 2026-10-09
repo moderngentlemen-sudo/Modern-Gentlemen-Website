@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Blocks, Copy, Wand2, CreditCard, Palette, Plus, Search, Settings, Trash2, Upload } from "lucide-react";
+import { Blocks, Copy, Wand2, CreditCard, Download, Palette, Plus, Search, Settings, Trash2, Upload } from "lucide-react";
 import { BRAND } from "../brand";
 import { applyBrand, applyTemplate } from "../core/apply";
 import { applyProfile } from "../core/profile";
 import { block, col } from "../core/blocks";
 import { newDoc, SAMPLE_DETAILS, SAMPLE_SOCIALS } from "../core/defaults";
-import { ARTISTIC_CATEGORIES, BUSINESS_CATEGORIES, DEFAULT_TEMPLATE, getTemplate, TEMPLATES, type TemplateGroup } from "../core/templates";
+import { ARTISTIC_CATEGORIES, BUSINESS_CATEGORIES, MODERN_CATEGORIES, DEFAULT_TEMPLATE, getTemplate, TEMPLATES, type TemplateGroup } from "../core/templates";
 import type { BrandKit, SignatureDoc } from "../core/types";
 import { uid } from "../lib/id";
 import { go } from "../router";
@@ -14,6 +14,7 @@ import { docFromTemplate, type SavedTemplate } from "../core/myTemplates";
 import { Segmented, Switch } from "../ui/kit";
 import { sampleDoc } from "../ui/samples";
 import { Thumb } from "../ui/SigHtml";
+import { install, isIos, usePwa } from "../pwa";
 
 const NO_TEMPLATES: SavedTemplate[] = [];
 
@@ -94,6 +95,27 @@ function ago(t: number) {
   return new Date(t).toLocaleDateString();
 }
 
+/** "Install app": the browser's own prompt where there is one, instructions on iPhone/iPad. */
+function InstallAppButton() {
+  const prompt = usePwa((s) => s.prompt);
+  const installed = usePwa((s) => s.installed);
+  if (installed || (!prompt && !isIos())) return null;
+  return (
+    <button
+      className="btn ghost sm"
+      data-testid="install-app"
+      title="Use it like an app — it works offline"
+      onClick={() =>
+        prompt
+          ? void install().then((ok) => ok && toast(`${BRAND.name} is installed`, "success"))
+          : toast("In Safari, tap Share, then “Add to Home Screen”.", "info")
+      }
+    >
+      <Download size={16} /> <span className="desktop-only">Install app</span>
+    </button>
+  );
+}
+
 export function Home() {
   const docs = useStudio((s) => s.docs);
   const brand = useStudio((s) => s.prefs.brand);
@@ -104,7 +126,16 @@ export function Home() {
   const base = docs.find((d) => d.details.name.trim()) ?? null;
   const useBrand = brand && inBrand ? brand : undefined;
 
-  const categories = group === "Business" ? BUSINESS_CATEGORIES : group === "Artistic" ? ARTISTIC_CATEGORIES : [...BUSINESS_CATEGORIES, ...ARTISTIC_CATEGORIES];
+  const categories =
+    group === "Business"
+      ? BUSINESS_CATEGORIES
+      : group === "Artistic"
+        ? ARTISTIC_CATEGORIES
+        : group === "Modern"
+          ? MODERN_CATEGORIES
+          : group === "Modern Gentlemen"
+            ? []
+            : [...new Set([...BUSINESS_CATEGORIES, ...ARTISTIC_CATEGORIES, ...MODERN_CATEGORIES])];
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
     return TEMPLATES.filter(
@@ -169,6 +200,7 @@ export function Home() {
           {BRAND.name}
         </a>
         <div className="row">
+          <InstallAppButton />
           <button className="btn ghost sm" onClick={() => ui({ dialog: "brand" })} data-testid="open-brand">
             <Palette size={16} /> Brand kit
           </button>
@@ -276,6 +308,8 @@ export function Home() {
                 { value: "All", label: "All" },
                 { value: "Business", label: "Business" },
                 { value: "Artistic", label: "Artistic" },
+                { value: "Modern", label: "Modern" },
+                { value: "Modern Gentlemen", label: "Modern Gentlemen" },
               ]}
             />
             <div style={{ position: "relative" }}>
@@ -316,7 +350,7 @@ export function Home() {
                   <strong>{t.name}</strong>
                   <div className="muted">{t.description}</div>
                 </div>
-                <span className={`badge ${t.group === "Artistic" ? "brand" : ""}`}>{t.category}</span>
+                <span className={`badge ${t.group === "Business" ? "" : "brand"}`}>{t.category}</span>
               </div>
             </button>
           ))}

@@ -14,6 +14,8 @@ export interface Indicator {
   x: number;
   y: number;
   width: number;
+  /** Set for a vertical line (dropping beside a block). */
+  height?: number;
   /** Outline of the receiving column. */
   box: { x: number; y: number; w: number; h: number };
 }

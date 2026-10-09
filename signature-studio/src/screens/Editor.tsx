@@ -171,7 +171,8 @@ function Preview() {
   const zoom = useStudio((s) => s.zoom);
   const html = previewHtml(doc, variant, fallbackFonts, builder);
   const setZoom = (z: number) => ui({ zoom: Math.round(Math.min(2, Math.max(0.5, z)) * 100) / 100 });
-  const editable = builder && !(variant === "reply" && doc.reply.compact);
+  const ownReply = builder && !!doc.reply.custom && !!doc.replyBlocks;
+  const editable = builder && !(variant === "reply" && doc.reply.compact && !ownReply);
   return (
     <main
       className="preview-area"
@@ -196,7 +197,7 @@ function Preview() {
           inline
           label="Signature version"
           value={variant}
-          onChange={(v) => ui({ variant: v })}
+          onChange={(v) => ui({ variant: v, selected: null })}
           options={[
             { value: "full", label: "New email" },
             { value: "reply", label: "Reply" },
@@ -259,13 +260,15 @@ function Preview() {
       </div>
       <SizeMeter />
       <p className="preview-note">
-        {editable
-          ? "Click to select · drag to move · drop blocks into columns to place them side by side."
-          : variant === "reply"
-            ? doc.reply.compact
-              ? "The reply version is a compact text signature. Turn it off in Design to use your layout in replies."
-              : "The reply version is lighter, so long threads stay tidy."
-            : "Links and buttons work in the preview. What you see is what recipients get."}
+        {editable && variant === "reply" && ownReply
+          ? "You're editing the reply layout. Switch to New email to edit the main one."
+          : editable
+            ? "Click to select · drag to move · drop blocks into columns to place them side by side."
+            : variant === "reply"
+              ? doc.reply.compact
+                ? "The reply version is a compact text signature. Turn it off in Design to use your layout in replies."
+                : "The reply version is lighter, so long threads stay tidy."
+              : "Links and buttons work in the preview. What you see is what recipients get."}
       </p>
     </main>
   );

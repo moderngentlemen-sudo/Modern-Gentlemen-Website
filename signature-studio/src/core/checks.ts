@@ -8,6 +8,7 @@ import { PLATFORM_MAP } from "./social";
 import type { Column, SignatureDoc } from "./types";
 import { GMAIL_SIGNATURE_LIMIT } from "../render/validate";
 import { renderSignature } from "../render/render";
+import { INLINE_LINK } from "../lib/url";
 
 export type CheckLevel = "error" | "warning" | "tip";
 
@@ -123,6 +124,15 @@ export function runChecks(doc: SignatureDoc, opts: { size?: number } = {}): Chec
   if (!d.name.trim() && !(doc.card.enabled && doc.card.kind === "signature"))
     add({ id: "name", level: "warning", message: "Add your name — it's the first thing people look for.", fix: details });
 
+  // Arabic, Hebrew, Syriac, Thaana, N'Ko… read right to left.
+  if (/[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/.test(`${d.name} ${d.title} ${d.company}`) && design.direction !== "rtl")
+    add({
+      id: "rtl",
+      level: "tip",
+      message: "Your details look right-to-left. Switch the text direction so they line up naturally.",
+      fix: { tab: "design", label: "Set direction" },
+    });
+
   const em = emailProblem(d.email);
   if (em) add({ id: "email", level: "error", message: `Email ${em}`, fix: details });
   for (const k of ["phone", "mobile"] as const) {
@@ -212,6 +222,15 @@ function checkBlocks(doc: SignatureDoc, root: Column, add: (i: CheckIssue) => vo
       const lp = url ? linkProblem(url) : null;
       if (lp) add({ id: `link-${b.id}-${what}`, level: "error", message: `${what} link ${lp}`, fix: fixB(b.id, "Fix link") });
     };
+    // Text links may also be an email address or a phone number.
+    const badTarget = (raw: string | undefined, what: string) => {
+      const s = raw?.trim();
+      if (!s) return;
+      const lp = /^[^\s@]+@[^\s@]+$/.test(s) ? emailProblem(s) : /^\+?[\d\s().-]{6,}$/.test(s) ? null : linkProblem(s);
+      if (lp) add({ id: `link-${b.id}-${what}`, level: "error", message: `${what} ${lp}`, fix: fixB(b.id, "Fix link") });
+    };
+    if ("link" in b && b.type !== "image") badTarget(b.link, "The link on this block");
+    if (b.type === "text") for (const m of b.text.matchAll(INLINE_LINK)) badTarget(m[2], `The link on “${m[1].slice(0, 24)}”`);
     switch (b.type) {
       case "button":
         badLink(b.url, `“${b.text || "Button"}”`);

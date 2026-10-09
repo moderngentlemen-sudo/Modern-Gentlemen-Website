@@ -36,6 +36,28 @@ describe("templates", () => {
     expect(new Set(TEMPLATES.map((t) => t.layout)).size).toBeGreaterThanOrEqual(14);
   });
 
+  it("includes 12 modern and 10 Modern Gentlemen designs that open in the builder", () => {
+    const modern = TEMPLATES.filter((t) => t.group === "Modern");
+    const mg = TEMPLATES.filter((t) => t.group === "Modern Gentlemen");
+    expect(modern.length).toBeGreaterThanOrEqual(12);
+    expect(mg).toHaveLength(10);
+    for (const t of mg) {
+      expect(t.design.accent === "#c8102e" || t.design.accent === "#141414", t.id).toBe(true);
+      expect(t.design.headingFont, t.id).toBe("space-grotesk");
+    }
+    for (const t of [...modern, ...mg]) {
+      const doc = fullDoc(t.id);
+      expect(doc.mode, t.id).toBe("builder");
+      const html = renderSignature(doc, { variant: "full", mode: "email", resolve: hosted }).html;
+      expect(html, t.id).toContain("Jordan Ellis");
+    }
+    // The MG look: Instrument Serif accents and IBM Plex Mono labels.
+    const ed = renderSignature(fullDoc("mg-editorial"), { variant: "full", mode: "email", resolve: hosted }).html;
+    expect(ed).toContain("'Instrument Serif'");
+    expect(ed).toContain("'IBM Plex Mono'");
+    expect(ed).toContain("text-transform:uppercase");
+  });
+
   it("every template renders valid, Gmail-sized HTML in Full and Reply", () => {
     for (const t of TEMPLATES) {
       const doc = fullDoc(t.id);
@@ -235,5 +257,48 @@ describe("Made with link", () => {
     doc.images = { photo: { ...doc.images.photo, assetId: undefined }, logo: { ...doc.images.logo, assetId: undefined } };
     Object.values(doc.addons).forEach((a) => (a.enabled = false));
     expect(renderSignature(doc, { variant: "full", mode: "email", resolve: hosted }).html).toBe("");
+  });
+});
+
+describe("separate reply layout", () => {
+  it("renders replyBlocks for replies when the reply has its own layout", async () => {
+    const { blocksFromDoc, block, col } = await import("../core/blocks");
+    const d = newDoc(TEMPLATES[0].id, TEMPLATES[0].design);
+    d.details.name = "Jordan Ellis";
+    d.mode = "builder";
+    d.blocks = blocksFromDoc(d);
+    d.replyBlocks = col([block("text", { text: "Thanks — J." })]);
+    const opts = { mode: "email" as const, resolve: () => "https://img.example.com/a.png" };
+    expect(renderSignature(d, { ...opts, variant: "reply" }).html).toContain("Jordan Ellis");
+    d.reply.custom = true;
+    const reply = renderSignature(d, { ...opts, variant: "reply" }).html;
+    expect(reply).toContain("Thanks — J.");
+    expect(reply).not.toContain("Jordan Ellis");
+    expect(renderSignature(d, { ...opts, variant: "full" }).html).toContain("Jordan Ellis");
+  });
+});
+
+describe("right-to-left", () => {
+  it("mirrors alignment, paddings and borders and marks the signature rtl", async () => {
+    const { mirrorRtl } = await import("./render");
+    const out = mirrorRtl(
+      '<table style="x"><tr><td style="text-align:left;padding-left:8px;border-left:3px solid red;padding:0 6px 4px 0;" align="left">a</td></tr></table>',
+    );
+    expect(out).toContain('<table dir="rtl" style="direction:rtl;x"');
+    expect(out).toContain("text-align:right;padding-right:8px;border-right:3px solid red;padding:0 0 4px 6px;");
+    expect(out).toContain('align="right"');
+    // Latin text keeps its order; Arabic text is left to the bidi algorithm.
+    expect(mirrorRtl("<table><tr><td>+1 416 555 0182</td><td>ليلى 1</td></tr></table>")).toContain(
+      '<td><span dir="ltr">+1 416 555 0182</span></td><td>ليلى 1</td>',
+    );
+  });
+
+  it("renders a whole signature right-to-left and still passes the email checks", () => {
+    const d = fullDoc(TEMPLATES[0].id);
+    d.details.name = "ليلى حداد";
+    d.design.direction = "rtl";
+    const { html } = renderSignature(d, { variant: "full", mode: "email", resolve: hosted });
+    expect(html.startsWith('<table dir="rtl"')).toBe(true);
+    expect(validateEmailHtml(html).filter((p) => p.level === "error")).toEqual([]);
   });
 });

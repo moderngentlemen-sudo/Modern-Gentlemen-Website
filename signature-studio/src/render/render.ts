@@ -8,12 +8,12 @@
 import { BRAND } from "../brand";
 import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
-import { mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
+import { INLINE_LINK, linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
 import { clampScale, scaleDoc } from "../core/scale";
 import { fontStack } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
-import type { Block, BlockStyle, BlockType, Box, Column, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
 import { getTemplate, type LayoutId } from "../core/templates";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
@@ -215,7 +215,7 @@ export function hotspotHref(doc: SignatureDoc, h: Hotspot, digitalUrl: string | 
 // Parts
 // ---------------------------------------------------------------------------
 
-function nameHtml(c: Ctx, o: { size?: number; color?: string; align?: string; upper?: boolean } = {}): string {
+function nameHtml(c: Ctx, o: { size?: number; color?: string; align?: string; upper?: boolean; href?: string | null } = {}): string {
   const d = c.doc.details;
   const design = c.doc.design;
   const value = d.name.trim() || (c.preview ? "Your Name" : "");
@@ -224,7 +224,8 @@ function nameHtml(c: Ctx, o: { size?: number; color?: string; align?: string; up
   const pron = d.pronouns.trim()
     ? ` <span style="font-size:${design.fontSize - 1}px;font-weight:400;color:${esc(design.muted)};">(${esc(d.pronouns)})</span>`
     : "";
-  return text(c, `${esc(value)}${pron}`, {
+  const color = o.color ?? design.text;
+  return text(c, `${link(o.href ?? null, esc(value), color)}${pron}`, {
     role: "heading",
     size,
     weight: 700,
@@ -236,12 +237,15 @@ function nameHtml(c: Ctx, o: { size?: number; color?: string; align?: string; up
   });
 }
 
-function titleHtml(c: Ctx, o: { color?: string; align?: string; separate?: boolean; upper?: boolean; italic?: boolean; titleOnly?: boolean } = {}): string {
+function titleHtml(
+  c: Ctx,
+  o: { color?: string; align?: string; separate?: boolean; upper?: boolean; italic?: boolean; titleOnly?: boolean; href?: string | null } = {},
+): string {
   const d = c.doc.details;
   const parts = (o.titleOnly ? [d.title] : [d.title, d.department, d.company]).map((s) => s.trim()).filter(Boolean);
   if (!parts.length) return "";
   const color = o.color ?? c.doc.design.muted;
-  return text(c, parts.map(esc).join(` <span style="color:${esc(mix(color, "#ffffff", 0.4))};">|</span> `), {
+  return text(c, link(o.href ?? null, parts.map(esc).join(` <span style="color:${esc(mix(color, "#ffffff", 0.4))};">|</span> `), color), {
     color,
     align: o.align,
     upper: o.upper,
@@ -673,7 +677,7 @@ const L: Record<LayoutId, Layout> = {
 // Add-ons
 // ---------------------------------------------------------------------------
 
-function button(c: Ctx, label: string, href: string | null, style: "solid" | "outline" | "pill" | "link", iconName?: string): string {
+function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, iconName?: string): string {
   const d = c.doc.design;
   const safe = safeHref(href);
   if (!safe) {
@@ -681,7 +685,7 @@ function button(c: Ctx, label: string, href: string | null, style: "solid" | "ou
     if (!c.preview) return "";
   }
   if (style === "link") return text(c, link(safe, `${esc(label)}&nbsp;&rarr;`, d.accent), { weight: 600, color: d.accent });
-  const solid = style !== "outline";
+  const solid = style !== "outline" && style !== "squareOutline";
   const icon = iconName ? glyphImg(c, iconName, d.fontSize, solid ? "#ffffff" : d.accent) : "";
   const inner = `${icon ? `${inlineImg(icon, d.fontSize, d.fontSize, "")}&nbsp;&nbsp;` : ""}${esc(label)}`;
   const color = solid ? "#ffffff" : d.accent;
@@ -693,7 +697,7 @@ function button(c: Ctx, label: string, href: string | null, style: "solid" | "ou
         css({
           "background-color": solid ? d.accent : undefined,
           border: solid ? undefined : `1.5px solid ${d.accent}`,
-          "border-radius": style === "pill" ? "999px" : "6px",
+          "border-radius": style === "pill" ? "999px" : style === "square" || style === "squareOutline" ? undefined : "6px",
           padding: `${sp(c, 8)}px ${sp(c, 16)}px`,
         }),
         solid ? `bgcolor="${esc(d.accent)}"` : "",
@@ -1034,6 +1038,28 @@ function showsIn(b: Block, variant: Variant): boolean {
   return !b.visibility || b.visibility === "both" || b.visibility === variant;
 }
 
+/** Text with `[words](where)` links; everything else escaped, newlines kept. */
+function richText(raw: string, linkColor: string): string {
+  let out = "";
+  let last = 0;
+  for (const m of raw.matchAll(INLINE_LINK)) {
+    out += escText(raw.slice(last, m.index));
+    const href = linkTarget(m[2]);
+    out += href ? link(href, escText(m[1]), linkColor) : escText(m[0]);
+    last = (m.index ?? 0) + m[0].length;
+  }
+  out += escText(raw.slice(last));
+  return out.replace(/\n/g, "<br>");
+}
+
+/** Hover text on every link and image a block produced (unless they have one). */
+function withHover(html: string, hover: string | undefined): string {
+  const t = hover?.trim();
+  if (!t) return html;
+  const title = ` title="${esc(t)}"`;
+  return html.replace(/<a (?![^>]*\btitle=)/g, `<a${title} `).replace(/<img (?![^>]*\btitle=)/g, `<img${title} `);
+}
+
 function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   const c = withStyle(c0, b.style);
   const d = c.doc.design;
@@ -1043,17 +1069,26 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     case "row":
       return rowHtml(c, b, digitalUrl);
     case "name": {
-      const n = nameHtml(c, { size: Math.round(d.fontSize * d.nameScale * (b.scale ?? 1)), upper: b.upper, align });
+      const n = nameHtml(c, { size: Math.round(d.fontSize * d.nameScale * (b.scale ?? 1)), upper: b.upper, align, href: linkTarget(b.link) });
       if (!b.underline || !n) return n;
       return table(row(cell(n, `border-bottom:4px solid ${d.accent};padding-bottom:${sp(c, 4)}px;`)));
     }
     case "title":
-      return titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: b.style?.color }) || empty("Job title");
+      return (
+        titleHtml(c, { upper: b.upper, italic: b.italic, titleOnly: b.titleOnly, align, color: b.style?.color, href: linkTarget(b.link) }) || empty("Job title")
+      );
     case "field": {
       const v = c.doc.details[b.field].trim();
       if (!v) return empty(`Add your ${b.field}`);
-      const href =
-        b.field === "email" ? mailtoHref(v) : b.field === "website" ? websiteHref(v) : b.field === "phone" || b.field === "mobile" ? telHref(v) : null;
+      const href = b.link?.trim()
+        ? linkTarget(b.link)
+        : b.field === "email"
+          ? mailtoHref(v)
+          : b.field === "website"
+            ? websiteHref(v)
+            : b.field === "phone" || b.field === "mobile"
+              ? telHref(v)
+              : null;
       const shown = b.field === "website" ? displayWebUrl(v) : v;
       return text(c, link(href, esc(shown), b.style?.color ?? (b.upper ? d.accent : d.text)), {
         upper: b.upper,
@@ -1066,10 +1101,12 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     }
     case "text":
       if (!b.text.trim()) return empty("Text");
-      return text(c, escText(b.text).replace(/\n/g, "<br>"), {
+      return text(c, b.link ? link(linkTarget(b.link), escText(b.text).replace(/\n/g, "<br>"), b.style?.color ?? d.text) : richText(b.text, d.accent), {
         size: b.size,
         weight: b.bold ? 700 : undefined,
         italic: b.italic,
+        upper: b.upper,
+        tracking: b.upper ? 0.14 : undefined,
         color: b.style?.color ?? (b.muted ? d.muted : d.text),
         align,
         lh: 1.45,
@@ -1158,7 +1195,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
             css({
               "background-color": b.filled ? d.accent : undefined,
               border: b.filled ? undefined : `1.5px solid ${d.accent}`,
-              "border-radius": "999px",
+              "border-radius": b.square ? undefined : "999px",
               padding: `${sp(c, 3)}px ${sp(c, 10)}px`,
             }),
             b.filled ? `bgcolor="${esc(d.accent)}"` : "",
@@ -1206,19 +1243,24 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
   }
 }
 
-function blockHtml(c: Ctx, b: Block, digitalUrl: string | null): string {
+function blockHtml(c: Ctx, b: Block, digitalUrl: string | null, align?: string): string {
   const shown = showsIn(b, c.opts.variant);
   // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
   if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
-  const html = boxed(leafHtml(c, b, digitalUrl), b.style?.box);
+  const html = boxed(withHover(leafHtml(c, b, digitalUrl), b.hover), b.style?.box);
   if (!c.preview) return html;
-  return `<div data-block="${esc(b.id)}"${shown ? "" : ' style="opacity:.3;"'}>${html}</div>`;
+  // The editor's wrapper must not stop centred/right-aligned columns from aligning their blocks.
+  const place = align === "center" ? "display:table;margin-left:auto;margin-right:auto;" : align === "right" ? "display:table;margin-left:auto;" : "";
+  const style = `${place}${shown ? "" : "opacity:.3;"}`;
+  const inner =
+    align && align !== "left" && html.startsWith("<table ") && !html.startsWith("<table align") ? html.replace("<table ", `<table align="${align}" `) : html;
+  return `<div data-block="${esc(b.id)}"${style ? ` style="${style}"` : ""}>${inner}</div>`;
 }
 
 function columnHtml(c: Ctx, col: Column, digitalUrl: string | null): string {
   const inner = stack(
     c,
-    col.blocks.map((b) => blockHtml(c, b, digitalUrl)),
+    col.blocks.map((b) => blockHtml(c, b, digitalUrl, col.align)),
     col.gap,
     col.align === "center" ? "center" : col.align === "right" ? "right" : undefined,
   );
@@ -1272,11 +1314,40 @@ function madeWithHtml(c: Ctx): string {
 // Entry
 // ---------------------------------------------------------------------------
 
+const SWAP: Record<string, string> = { left: "right", right: "left" };
+
+/**
+ * Right-to-left: mark the signature `dir="rtl"` (which also reverses table
+ * columns) and mirror every explicit left/right — alignment, padding, margins
+ * and borders — so gaps and accent lines land on the correct side.
+ */
+export function mirrorRtl(html: string): string {
+  const body = html
+    .replace(/\b(padding|margin|border)-(left|right)\b/g, (_, p: string, side: string) => `${p}-${SWAP[side]}`)
+    .replace(/\b(text-align|float):\s*(left|right)\b/g, (_, p: string, side: string) => `${p}:${SWAP[side]}`)
+    .replace(/\balign="(left|right)"/g, (_, side: string) => `align="${SWAP[side]}"`)
+    // Four-value shorthands are top right bottom left: swap right and left.
+    .replace(
+      /\b(padding|margin):\s*([^;"\s]+)\s+([^;"\s]+)\s+([^;"\s]+)\s+([^;"\s]+)/g,
+      (_, p: string, t: string, r: string, b: string, l: string) => `${p}:${t} ${l} ${b} ${r}`,
+    );
+  // Latin runs (phone numbers, emails, addresses) keep their own order inside the
+  // right-to-left layout — otherwise "+1 416 555 0182" shows as "0182 555 416 1+".
+  const isolated = body.replace(/>([^<>]*[A-Za-z0-9][^<>]*)</g, (m, text: string) =>
+    RTL_CHARS.test(text) || !text.trim() ? m : `>${text.replace(/^(\s*)(.*?)(\s*)$/s, '$1<span dir="ltr">$2</span>$3')}<`,
+  );
+  return isolated.replace(/^<table /, '<table dir="rtl" ').replace(/^(<table [^>]*style=")/, "$1direction:rtl;");
+}
+
+const RTL_CHARS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+
 export function renderSignature(input: SignatureDoc, opts: RenderOptions): RenderResult {
   const k = clampScale(input.design.scale);
   const doc = scaleDoc(input, k);
   const reply = opts.variant === "reply";
-  const compact = reply && doc.reply.compact;
+  // Builder signatures can give replies a layout of their own.
+  const replyTree = reply && doc.mode === "builder" && doc.reply.custom ? doc.replyBlocks : undefined;
+  const compact = reply && doc.reply.compact && !replyTree;
   const c: Ctx = {
     doc,
     opts,
@@ -1285,9 +1356,9 @@ export function renderSignature(input: SignatureDoc, opts: RenderOptions): Rende
     preview: opts.mode === "preview",
     compact,
     show: {
-      photo: !reply || doc.reply.keepPhoto,
-      logo: !reply || doc.reply.keepLogo,
-      social: !reply || doc.reply.keepSocial,
+      photo: !reply || !!replyTree || doc.reply.keepPhoto,
+      logo: !reply || !!replyTree || doc.reply.keepLogo,
+      social: !reply || !!replyTree || doc.reply.keepSocial,
       addons: !reply,
       card: !reply || doc.card.inReplies,
     },
@@ -1297,8 +1368,9 @@ export function renderSignature(input: SignatureDoc, opts: RenderOptions): Rende
   const digitalUrl = doc.digitalCardUrl ?? null;
   const cardOnly = doc.card.enabled && doc.card.cardOnly && doc.card.assetId && c.show.card;
   // A reply that keeps the design uses it as-is, without the compact text layout.
-  const builder = doc.mode === "builder" && doc.blocks && !compact;
-  const main = builder ? columnHtml(c, doc.blocks!, digitalUrl) : cardOnly ? cardHtml(c, digitalUrl) : (compact ? L.compact : L[template.layout])(c);
+  const tree = replyTree ?? doc.blocks;
+  const builder = doc.mode === "builder" && tree && !compact;
+  const main = builder ? columnHtml(c, tree!, digitalUrl) : cardOnly ? cardHtml(c, digitalUrl) : (compact ? L.compact : L[template.layout])(c);
   // In the builder every add-on is a block the user placed; nothing is appended.
   const blocks = builder ? [main] : [addonsTop(c), main, cardOnly ? "" : cardHtml(c, digitalUrl), ...addonsBottom(c, digitalUrl)];
   const align = doc.design.align === "center" && !compact ? "center" : "left";
@@ -1315,6 +1387,7 @@ export function renderSignature(input: SignatureDoc, opts: RenderOptions): Rende
     const withCredit = wrap([...blocks, madeWithHtml(c)]);
     if (c.preview || withCredit.length <= GMAIL_SIGNATURE_LIMIT) html = withCredit;
   }
+  if (doc.design.direction === "rtl") html = mirrorRtl(html);
   const seen = new Set<string>();
   const images = c.images.filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true)));
   return { html, images, errors: [...new Set(c.errors)] };
