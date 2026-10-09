@@ -4,6 +4,7 @@
  *   PUT  /s/<sha256>.<png|jpg|gif>   upload (Authorization: Bearer <UPLOAD_KEY>)
  *   GET  /s/<sha256>.<ext>           public, immutable, CORS-enabled
  *   HEAD /s/<sha256>.<ext>
+ *   GET  /admin/backup.tar           every image as one .tar (Authorization: Bearer <UPLOAD_KEY>)
  *
  * Guarantees:
  *  - Keys are content hashes: the body must hash to the key, so objects are
@@ -56,12 +57,78 @@ function cors(req: Request, env: Env, write = false): Record<string, string> {
   };
 }
 
+function authorized(req: Request, env: Env): boolean {
+  return !!env.UPLOAD_KEY && timingSafeEqual(req.headers.get("Authorization") ?? "", `Bearer ${env.UPLOAD_KEY}`);
+}
+
+/** One ustar header block for a file. */
+function tarHeader(name: string, size: number, mtime: number): Uint8Array {
+  const h = new Uint8Array(512);
+  const put = (str: string, offset: number) => {
+    for (let i = 0; i < str.length; i++) h[offset + i] = str.charCodeAt(i);
+  };
+  const oct = (n: number, len: number) => n.toString(8).padStart(len - 1, "0") + "\0";
+  put(name, 0);
+  put(oct(0o644, 8), 100);
+  put(oct(0, 8), 108);
+  put(oct(0, 8), 116);
+  put(oct(size, 12), 124);
+  put(oct(Math.floor(mtime / 1000), 12), 136);
+  put("        ", 148);
+  put("0", 156);
+  put("ustar\0", 257);
+  put("00", 263);
+  const sum = h.reduce((a, b) => a + b, 0);
+  put(sum.toString(8).padStart(6, "0") + "\0 ", 148);
+  return h;
+}
+
+/** Stream every stored image as a .tar archive (upload key required). */
+async function backup(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const headers = cors(req, env, true);
+  if (!authorized(req, env)) return new Response("Unauthorized", { status: 401, headers });
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const write = async () => {
+    const w = writable.getWriter();
+    try {
+      let cursor: string | undefined;
+      do {
+        const page = await env.IMAGES.list({ prefix: "s/", cursor });
+        for (const o of page.objects) {
+          const obj = await env.IMAGES.get(o.key);
+          if (!obj) continue;
+          const data = new Uint8Array(await obj.arrayBuffer());
+          await w.write(tarHeader(o.key.slice(2), data.length, o.uploaded.getTime()));
+          await w.write(data);
+          const pad = (512 - (data.length % 512)) % 512;
+          if (pad) await w.write(new Uint8Array(pad));
+        }
+        cursor = page.truncated ? page.cursor : undefined;
+      } while (cursor);
+      await w.write(new Uint8Array(1024));
+      await w.close();
+    } catch (err) {
+      await w.abort(err);
+    }
+  };
+  ctx.waitUntil(write());
+  return new Response(readable, {
+    headers: {
+      ...headers,
+      "Content-Type": "application/x-tar",
+      "Content-Disposition": `attachment; filename="signature-images-${new Date().toISOString().slice(0, 10)}.tar"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const m = PATH.exec(url.pathname);
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req, env, true) });
+    if (url.pathname === "/admin/backup.tar" && req.method === "GET") return backup(req, env, ctx);
     if (!m) return new Response("Not found", { status: 404 });
     const [, hash, ext] = m;
     const key = `s/${hash}.${ext}`;
@@ -81,8 +148,7 @@ export default {
     }
 
     if (req.method !== "PUT") return new Response("Method not allowed", { status: 405 });
-    const auth = req.headers.get("Authorization") ?? "";
-    if (!env.UPLOAD_KEY || !timingSafeEqual(auth, `Bearer ${env.UPLOAD_KEY}`)) {
+    if (!authorized(req, env)) {
       return new Response("Unauthorized", { status: 401, headers: cors(req, env, true) });
     }
     const len = Number(req.headers.get("Content-Length") ?? "0");

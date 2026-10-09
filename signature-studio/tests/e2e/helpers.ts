@@ -1,37 +1,40 @@
-import { expect, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
-export async function startWithSample(page: Page, mode: "simple" | "advanced" = "advanced") {
-  await page.goto("/");
-  await page.getByTestId("ob-sample").click();
-  await expect(page.getByTestId("stage")).toBeVisible();
-  if (mode === "advanced") await page.getByRole("button", { name: "Advanced", exact: true }).click();
+/** A Canva-style PNG export: a design on a white page with empty margins. */
+export async function canvaPng(page: Page, opts: { width: number; height: number; margin: number }): Promise<Buffer> {
+  const dataUrl = await page.evaluate(({ width, height, margin }) => {
+    const c = document.createElement("canvas");
+    c.width = width;
+    c.height = height;
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#ffffff";
+    g.fillRect(0, 0, width, height);
+    const w = width - margin * 2;
+    const h = height - margin * 2;
+    const grad = g.createLinearGradient(margin, 0, margin + w, 0);
+    grad.addColorStop(0, "#1d1b2c");
+    grad.addColorStop(1, "#5b4cf0");
+    g.fillStyle = grad;
+    g.beginPath();
+    g.roundRect(margin, margin, w, h, 24);
+    g.fill();
+    g.fillStyle = "#ffffff";
+    g.font = `bold ${Math.round(h / 6)}px sans-serif`;
+    g.fillText("Jordan Ellis", margin + w * 0.06, margin + h * 0.32);
+    g.font = `${Math.round(h / 12)}px sans-serif`;
+    g.fillText("jordan@example.com", margin + w * 0.55, margin + h * 0.62);
+    g.fillText("example.com", margin + w * 0.55, margin + h * 0.8);
+    return c.toDataURL("image/png");
+  }, opts);
+  return Buffer.from(dataUrl.split(",")[1], "base64");
 }
 
-export const stage = (page: Page) => page.locator("[data-testid=stage] .stage-host");
-
-export async function stageText(page: Page): Promise<string> {
-  return stage(page).evaluate((h) => h.shadowRoot?.textContent ?? "");
+export async function shot(page: Page, name: string) {
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/${name}.png` });
 }
 
-export async function dragTo(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
-  await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
-  await page.mouse.move(from.x + 12, from.y + 12, { steps: 4 });
-  await page.mouse.move(to.x, to.y, { steps: 12 });
-  await page.mouse.up();
-}
-
+/** Point the app at the local test image host and accept hosting. */
 export async function configureTestHost(page: Page) {
-  await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByLabel("Image host address").fill("http://localhost:8787");
-  await page.getByLabel("Upload key").fill("dev-key");
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-}
-
-/** A small valid PNG (solid colour) for upload tests. */
-export function pngBuffer(): Buffer {
-  return Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAIAAAAt/+nTAAAAKUlEQVR4nO3OMQ0AAAgDoNk/9K3hAQkQnlS7HQAAAAAAAAAAAAAAAOD7GD8AAWG1ImEAAAAASUVORK5CYII=",
-    "base64",
-  );
+  await page.getByTestId("host-endpoint").fill("http://localhost:8787");
+  await page.getByTestId("host-token").fill("dev-key");
 }

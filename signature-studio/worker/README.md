@@ -33,6 +33,16 @@ Then, in Signature Studio, open **Settings** (gear icon) and set:
 
 Alternatively, set `VITE_ASSET_HOST` at build time so the address is pre-filled. Never put the upload key in a build variable.
 
+## Backups
+
+`GET /admin/backup.tar` with `Authorization: Bearer <UPLOAD_KEY>` downloads every stored image as one `.tar` archive. In the app, use **Settings → Download backup of published images**.
+
+If you deployed through the dashboard before backups existed, update the code once: in **Workers & Pages → your Worker → Edit code**, replace it with the latest [`dashboard-worker.js`](dashboard-worker.js) and click **Deploy**. Your bindings and variables stay as they are.
+
+## ALLOWED_ORIGINS must match the app's address exactly
+
+Uploads and backups only work from addresses listed in `ALLOWED_ORIGINS`, comma-separated. Each entry needs `https://` and no trailing slash. Use the app's **permanent** address, such as `https://modern-gentlemen-website.pages.dev`. Per-deployment snapshot addresses like `https://aa8871b7.….pages.dev` change with every build, so don't list them.
+
 ## Before accounts exist
 
 The upload key is a single shared secret for one workspace, such as Modern Gentlemen's own deployment. Once accounts exist (Phase 5), uploads will require a signed-in session token instead and the shared key will be retired.
