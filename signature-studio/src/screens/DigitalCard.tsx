@@ -6,6 +6,7 @@ import { BRAND } from "../brand";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { CalendarDays, Globe, Mail, MapPin, Phone, RotateCw, Share2, Smartphone, UserPlus } from "lucide-react";
 import { decodeCard, vcard, type CardData } from "../core/digitalCard";
+import { cloud } from "../cloud";
 import { PLATFORM_MAP } from "../core/social";
 import { downloadFile, safeFileName } from "../lib/download";
 import { mailtoHref, safeHref, telHref } from "../lib/url";
@@ -21,19 +22,28 @@ function Action({ href, icon, label }: { href: string | null; icon: ReactNode; l
   );
 }
 
-export function DigitalCard({ token }: { token: string }) {
+/** A card from a `?card=` link (data in the link) or a `/c/<slug>` short link (data in the account). */
+async function loadCard(source: { token: string } | { slug: string }): Promise<CardData> {
+  if ("token" in source) return decodeCard(source.token);
+  const d = cloud ? await cloud.getCard(source.slug) : null;
+  if (!d || d.v !== 1 || typeof d.n !== "string") throw new Error("Card not found");
+  return d;
+}
+
+export function DigitalCard(props: { token: string } | { slug: string }) {
+  const key = "token" in props ? props.token : props.slug;
   const [data, setData] = useState<CardData | null>(null);
   const [error, setError] = useState(false);
   const [flipped, setFlipped] = useState(false);
 
   useEffect(() => {
-    decodeCard(token)
+    loadCard(props)
       .then((d) => {
         setData(d);
         document.title = `${d.n}${d.c ? ` · ${d.c}` : ""}`;
       })
       .catch(() => setError(true));
-  }, [token]);
+  }, [key]);
 
   if (error)
     return (

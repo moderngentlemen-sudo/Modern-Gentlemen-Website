@@ -31,11 +31,9 @@ function SlotEditor({ slot }: { slot: Slot }) {
           <span className="hint">{slot === "photo" ? "A friendly, well-lit photo works best." : "PNG with a transparent background is ideal."}</span>
           {has && (
             <div className="row" style={{ gap: 4 }}>
-              {slot === "photo" && (
-                <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: slot })}>
-                  <Crop size={14} /> Adjust
-                </button>
-              )}
+              <button className="btn sm" onClick={() => ui({ dialog: "crop", dialogArg: slot })} data-testid={`adjust-${slot}`}>
+                <Crop size={14} /> Zoom &amp; crop
+              </button>
               <button className="btn sm ghost danger" onClick={() => edit((d) => void (d.images[slot].assetId = undefined))}>
                 <Trash2 size={14} /> Remove
               </button>

@@ -34,9 +34,57 @@ None of these names has been checked for trademarks or domains. Do that before y
 - **New visual identity.** Warm paper, ink and a signal-coral accent, with Instrument Serif and Geist fonts.
 - **Marketing site at `/`.** The app lives at `/app`, and the editor at `/app/s/<id>`.
 - **Brand kit.** Colours, fonts, logo, company and website. It applies to new signatures, and template previews can be shown in your brand.
-- **60 templates.** 30 for business sectors and 30 artistic.
+- **60 templates.** 30 for business sectors and 30 artistic (82 since Phase 1c).
 
-### Phase 2 — Accounts and cloud (next)
+### Phase 1b — Quality of life (built)
+
+- Canvas tools:
+  - Resize handles that snap to matching sizes. Hold Alt to resize freely.
+  - Column edges you drag, snapping to even splits and to the neighbouring column.
+  - A drag grip, canvas zoom, and text you edit right on the canvas (double-click).
+  - Copy and paste, and layers with hide/show and move up/down.
+- New blocks: QR code, logo row, icon line and tag, plus six ready-made combinations.
+- Zoom & crop with frame shapes for the photo, the logo and image blocks.
+- An overall-size control for the whole signature.
+- A saved profile shared by linked signatures.
+- **Live checks** for email typos, numbers phones can't dial, broken links, unreadable colours, small text, missing image descriptions and logos that vanish in dark mode. Each one has a "Fix" button, and a size meter shows the Gmail character budget.
+- **Quick start**: three questions, then three designs made with your details. You can paste your old signature or import a contact card (.vcf).
+- **My templates**: save any design without your personal details, and reuse it.
+- **Exports**: a PNG image, and a print sheet for business cards with crop marks (save it as a PDF). HTML is in the install dialog.
+
+### Phase 1c — Power features (built)
+
+- **Text links and hover text:**
+  - Link selected words with ⌘K. Text, name, title and detail blocks can also link as a whole.
+  - Tooltips on links and images. Gmail strips hover styles, so real hover effects live on the digital card page.
+- **Multi-select** with group styling, plus drop-beside with a vertical guide.
+- **Version history:** named snapshots per signature. Restore is undoable and keeps an automatic copy of what it replaced.
+- **Reply layouts:** compact, same design, or a separate builder layout.
+- **Installable offline app (PWA).**
+- **Seasonal library:** 14 banners and ready-made sign-offs.
+- **Right-to-left signatures.**
+- **22 new templates:** 12 Modern and 10 inspired by the Modern Gentlemen website (82 in total).
+
+### Ideas not yet built (no accounts needed)
+
+- Smart alignment guides between blocks in different columns (today: snapping on resize, column edges, and drop indicators).
+- Template previews in right-to-left.
+- More banner artwork (photo-based), and per-banner date reminders ("swap your holiday banner on Jan 2").
+
+### Phase 2 — Accounts and cloud (in progress)
+
+**Built (code, tested; goes live once the Signet Supabase project exists — see `supabase/README.md`):**
+
+- Sign-in with an emailed link or Google. Accounts are optional; without them the app is local-only.
+- Cloud sync of signatures, their images, saved profile, brand kit, my templates and favourites, with conflict-safe merging.
+- Per-user image hosting, which replaces the shared upload key for signed-in users.
+- Short digital-card links (`/c/<slug>`) that update when the signature does.
+- Delete account.
+- The database schema with row-level security, tested on a local Postgres in CI.
+
+**Still to do in Phase 2:** one-click Gmail install (needs Google verification), live banners, "Send me a test", wallet passes and lead capture, opt-in click analytics.
+
+**Original plan:**
 
 - **A separate Supabase project.** It never touches the website's production database.
   - Auth: magic link, plus Google sign-in.
@@ -48,6 +96,9 @@ None of these names has been checked for trademarks or domains. Do that before y
 - **One-click "Install to Gmail".**
   - Uses Gmail API `users.settings.sendAs.update` with the `gmail.settings.basic` scope.
   - That is a *sensitive* scope, so Google requires OAuth app verification: a privacy policy, a demo video and a security review. Plan on weeks.
+- **Live banners**: the image's link stays the same while you change the picture behind it, so one change updates every installed signature. A strong Pro feature.
+- **"Send me a test"**: emails the signature to yourself, to check it in a real inbox.
+- **Digital-card extras**: Apple Wallet and Google Wallet, a "share your contact back" form that collects leads, and writing the card to an NFC tag on Android.
 - **Optional click analytics** through redirect links. Off by default and disclosed.
 
 ### Phase 3 — Teams and paid plans

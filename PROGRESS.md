@@ -55,6 +55,90 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio Phase 2 (accounts & cloud) — code built, project pending
+
+- **PR:** [moderngentlemen-sudo/Modern-Gentlemen-Website#134](https://github.com/moderngentlemen-sudo/Modern-Gentlemen-Website/pull/134). It carries the three earlier batches plus this one.
+- **Supabase:**
+  - Signet gets a separate Supabase project in its **own organisation** (owner's choice). The "modern gentlemen" org is on the Free plan with both slots in use.
+  - The new org isn't visible to the Supabase connector yet. Once it is, create the project, apply `signature-studio/supabase/migrations/20261009000001_signet_schema.sql`, and follow `signature-studio/supabase/README.md`.
+  - **Never apply this migration to the website's project.** The website CI's migration step only covers `design_handoff_modern_gentlemen/starter/supabase`.
+- **Schema:**
+  - Tables `profiles`, `signatures` (server-bumped `revision`, soft delete) and `cards` (public `slug` + `data` only).
+  - Bucket `signet-images`, writable only in your own folder.
+  - `delete_my_account()`.
+  - Every statement is re-runnable. `npm run test:db` applies it twice on a local Postgres and runs `supabase/tests/rls.sql`; the Signature Studio CI runs this too.
+- **Client** (`src/cloud/`):
+  - A `CloudApi` interface with two implementations: Supabase, and an in-memory fake enabled in test builds via `localStorage["signet.fakeCloud"]`.
+  - A pure sync planner (`plan.ts`), the engine (`engine.ts`, two-device unit tests), and the account store with scheduling (`account.ts`).
+  - Sign-in UI is in `ui/Account.tsx`.
+  - Without `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` nothing changes for users.
+- **Hosting and cards:** `CloudAssetHost` is used when signed in, unless the user set their own host. `/c/<slug>` short links (`core/cardSlug.ts`) are refreshed after each sync.
+- **Fixed during development:** preference sync initially dropped keys between devices; it now merges key by key (D54).
+- **Gates:** `npm test` (unit), `npm run e2e` (including `cloud.spec.ts`), `npm run test:db`, `npm run build`.
+
+### 2026-10-09 — Signature Studio: links, multi-select, versions, reply layouts, offline app, seasonal library, RTL, 22 templates
+
+- **Templates** (`core/blockTemplates.ts`): 12 **Modern** and 10 **Modern Gentlemen** designs. They are block recipes that open in the builder (D43).
+  - The MG set follows the site's tokens: red `#C8102E`, ink `#141414`, Space Grotesk, Instrument Serif italic, IBM Plex Mono labels, sharp corners, square red buttons.
+  - Instrument Serif and Futura were added to the font library. Square button and tag styles were added too.
+- **Text links and hover:**
+  - `[words](target)` inline links via ⌘K (`ui/LinkableText.tsx`, also in the canvas editor).
+  - Block-level `link` on text, name, title and field blocks, and a `hover` tooltip (D41, D42).
+  - Link checks accept emails and phone numbers.
+- **Multi-select** (`ui.multi`, `actions.selectedIds/updateSelected/wrapSelected`): Shift- or ⌘-click to select several blocks, with a group inspector.
+- **Drop beside:** `placeBeside`/`moveBeside` place blocks side by side, with a vertical drop guide (D44).
+- **Version history** (`core/versions.ts`, `dialogs/HistoryDialog.tsx`, IndexedDB `ss3-versions`; D45).
+- **Reply layout:** `reply.custom` + `replyBlocks`. The store's `tree()`/`treeOf` give the builder the active tree (D46).
+- **PWA** (`public/manifest.webmanifest`, `public/sw.js`, `src/pwa.ts`, icons rendered by `scripts/make-icons.mjs`; D47).
+  - Verified offline against `vite preview`: the dashboard and deep links load with the network off.
+- **Seasonal library** (`core/seasonal.ts`, `dialogs/BannerDialog.tsx`): 14 banners and sign-off presets (D48).
+- **Right-to-left:** `design.direction` and `render.mirrorRtl` (D49), plus a check that suggests it.
+- **Fix:** Duplicate (⌘D) threw inside an edit, because `structuredClone` can't copy an Immer draft. `cloneBlock`/`cloneColumn` now use `current()`.
+- **Gates:** `npm test` (61), `npm run e2e` (26), `npm run build`.
+
+### 2026-10-09 — Signature Studio: checks, quick start, my templates, exports, snapping
+
+- **Live checks** (`core/checks.ts`, pure):
+  - Email typos, phone numbers that can't be dialled, and bad links.
+  - Contrast (WCAG), including text on its own panel background.
+  - Small text and missing image descriptions.
+  - A size estimate using realistic hosted image addresses.
+  - `store/assets.darkModeRisk` flags logos that are dark on a transparent background.
+  - UI: a status chip with an issue list whose "Fix" buttons jump to the right tab or block, plus a size meter under the preview (`ui/Checks.tsx`).
+- **Quick start wizard** (`dialogs/WizardDialog.tsx`):
+  - Typed details, a pasted old signature, or a `.vcf` contact card (parsers in `core/importDetails.ts`).
+  - Then photo, industry and colour, then three suggestions in different layouts.
+  - It saves the result as the profile.
+- **My templates** (`core/myTemplates.ts`): stored in `prefs.myTemplates`, with no details, social links or photo (D39). Saved from the editor's ⋯ menu and listed on the dashboard.
+- **Exports** (`publish/exports.ts`): a 2× PNG via html-to-image (falls back to system fonts), and a business-card print sheet at 3.5×2 in with crop marks (D40).
+- **Canvas:**
+  - Resize snapping and column-edge handles with snapping and a guide line (`builder/snap.ts`). Alt turns snapping off.
+  - Double-click inline text editing (`builder/inlineText.ts`).
+- **Fix:** a `?? []` inside a store selector made an infinite render loop. Use a stable `NO_TEMPLATES` constant instead.
+- **Gates:** `npm test` (47), `npm run e2e` (17), `npm run build`.
+
+### 2026-10-09 — Signature Studio: quality-of-life features
+
+- **Builder:**
+  - Resize handles; what they change depends on the block (`src/builder/resize.ts`), and they edit real size properties, not CSS transforms (D37).
+  - A side drag grip, canvas zoom (`ui.zoom`; view only), and double-click to edit.
+  - Copy/paste with ⌘C/⌘V, using an in-memory clipboard.
+  - Layers with hide/show and move up/down.
+  - Search in the block palette.
+- **Hidden blocks:** a block whose `visibility` is `"hidden"` is never sent, but shows faded on the canvas so it can still be selected.
+- **New blocks:**
+  - `qr`, `logos`, `iconText` and `tag`.
+  - Ten more glyphs in `ICON_CHOICES`.
+  - Six ready-made palette entries.
+  - Tap-to-add on a selected panel now goes after the panel. It used to nest inside it.
+- **Zoom & crop:** the photo, the logo and image blocks each have `crop`/`aspect`. The crop dialog supports drag to pan, scroll to zoom, and choosing a frame shape.
+- **Overall size:** `design.scale` (0.7–1.5). `core/scale.ts` scales the stored sizes, and the renderer passes its built-in sizes through `z()` (D36).
+- **Saved profile:** `prefs.profile` holds the details, social links and photo.
+  - Linked signatures (`useProfile`, on by default) sync on save, and refresh from the profile when opened.
+  - New signatures start from the profile.
+  - Untouched sample content is never saved as a profile (D35).
+- **Gates:** `npm test` (31), `npm run e2e` (12), `npm run build`.
+
 ### 2026-10-09 — "Made with Signet" link on free signatures
 
 - The owner chose this over ads (D34). The renderer adds a small muted link under

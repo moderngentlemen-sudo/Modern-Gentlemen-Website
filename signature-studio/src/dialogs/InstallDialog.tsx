@@ -5,6 +5,8 @@ import { copyRich, copyText } from "../lib/clipboard";
 import { downloadFile, safeFileName } from "../lib/download";
 import { TEST_HOST_ENABLED } from "../lib/url";
 import { hostFromConfig } from "../publish/host";
+import { cloudEnabled } from "../cloud";
+import { useAccount } from "../cloud/account";
 import { emailHtml, prepareAll, usePublish, type ImageStatus } from "../publish/prepare";
 import { GMAIL_SIGNATURE_LIMIT, htmlDocument, htmlToPlainText } from "../render/validate";
 import { toast, ui, updatePrefs, useStudio } from "../store/editor";
@@ -196,11 +198,12 @@ export function InstallDialog() {
   const [step, setStep] = useState(0);
   const [client, setClient] = useState<Client>("gmail");
   const close = () => ui({ dialog: null });
+  useAccount((s) => s.user); // re-pick the host when someone signs in
   const host = hostFromConfig(prefs.host);
   const list = Object.values(statuses);
   const done = !running && list.length > 0 && list.every((s) => s.state === "ready");
   const blocked = !running && list.some((s) => s.state !== "ready");
-  const hasReply = !!doc?.reply.compact;
+  const hasReply = !!doc?.reply.compact || (doc?.mode === "builder" && !!doc.reply.custom);
 
   useEffect(() => {
     if (!open) return;
@@ -289,6 +292,11 @@ export function InstallDialog() {
               <XCircle size={16} />
               <span>
                 Image hosting isn't set up yet.{" "}
+                {cloudEnabled && (
+                  <button className="btn sm primary" onClick={() => ui({ dialog: "account" })} data-testid="install-sign-in">
+                    Sign in to host images
+                  </button>
+                )}{" "}
                 <button className="btn sm" onClick={() => ui({ dialog: "settings", dialogArg: "from-install" })}>
                   Open Settings
                 </button>

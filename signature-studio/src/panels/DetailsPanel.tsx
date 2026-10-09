@@ -1,8 +1,9 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Link2, Plus, Trash2 } from "lucide-react";
+import { applyProfile } from "../core/profile";
 import type { DetailKey } from "../core/types";
 import { uid } from "../lib/id";
 import { edit, useStudio } from "../store/editor";
-import { SectionTitle, TextField } from "../ui/kit";
+import { SectionTitle, TextField, Toggle } from "../ui/kit";
 
 const FIELDS: { key: DetailKey; label: string; placeholder: string; type?: string; half?: boolean }[] = [
   { key: "name", label: "Full name", placeholder: "Jordan Ellis" },
@@ -49,12 +50,46 @@ function Fields({ list }: { list: typeof FIELDS }) {
   );
 }
 
+/** Saved-profile link: details typed once, shared by every linked signature. */
+export function ProfileLink() {
+  const linked = useStudio((s) => s.doc!.useProfile !== false);
+  const profile = useStudio((s) => s.prefs.profile);
+  const others = useStudio((s) => s.docs.filter((d) => d.id !== s.doc!.id && d.useProfile !== false).length);
+  return (
+    <div className={`callout ${linked ? "ok" : ""}`} style={{ marginBottom: 16, display: "block" }} data-testid="profile-link">
+      <Toggle
+        label={
+          <>
+            <Link2 size={14} style={{ verticalAlign: -2 }} /> Use my saved details
+          </>
+        }
+        hint={
+          linked
+            ? others
+              ? `Changes here update your ${others} other linked signature${others === 1 ? "" : "s"} too.`
+              : "Saved for every signature you make next."
+            : "This signature keeps its own copy. Turn on to use your saved details again."
+        }
+        checked={linked}
+        onChange={(v) =>
+          edit((d) => {
+            d.useProfile = v;
+            if (v && profile) applyProfile(d, profile);
+          })
+        }
+        testId="use-profile"
+      />
+    </div>
+  );
+}
+
 export function DetailsPanel() {
   const custom = useStudio((s) => s.doc!.details.custom);
   return (
     <>
       <h2>Your details</h2>
       <p className="lede">Leave anything blank and it simply won't appear.</p>
+      <ProfileLink />
       <Fields list={FIELDS} />
       <SectionTitle>Contact</SectionTitle>
       <Fields list={CONTACT} />

@@ -4,8 +4,10 @@ import { edit, ui, useStudio } from "../store/editor";
 import { applyBrand } from "../core/apply";
 import { EARLY_ACCESS, entitlements } from "../core/plans";
 import { BRAND } from "../brand";
+import { MAX_SCALE, MIN_SCALE } from "../core/scale";
+import { cloneColumn } from "../core/blocks";
 import { Palette } from "lucide-react";
-import { ColorField, Segmented, SectionTitle, Select, Slider, Toggle } from "../ui/kit";
+import { ColorField, Field, Segmented, SectionTitle, Select, Slider, Toggle } from "../ui/kit";
 
 const PALETTES: { name: string; accent: string; text: string; muted: string; surface: string }[] = [
   { name: "Violet", accent: "#5b4cf0", text: "#1d1b2c", muted: "#6b6880", surface: "#f4f2ff" },
@@ -29,6 +31,40 @@ function fontHint(id: string) {
   return f.safe ? "Shows as designed everywhere" : `Most inboxes show ${f.seenAs}`;
 }
 
+/** One control for the size of the whole signature — text, images, icons and spacing together. */
+export function ScaleControl() {
+  const scale = useStudio((s) => s.doc!.design.scale ?? 1);
+  const set = (v: number) => edit((d) => void (d.design.scale = Math.round(v * 100) / 100), "design.scale");
+  return (
+    <Field label="Overall size" hint={`${Math.round(scale * 100)}%`}>
+      <div className="row">
+        <button className="btn sm" onClick={() => set(Math.max(MIN_SCALE, scale - 0.05))} aria-label="Smaller">
+          A−
+        </button>
+        <input
+          type="range"
+          min={MIN_SCALE}
+          max={MAX_SCALE}
+          step={0.01}
+          value={scale}
+          onChange={(e) => set(Number(e.target.value))}
+          style={{ flex: 1, accentColor: "var(--brand)" }}
+          aria-label="Overall size"
+          data-testid="scale"
+        />
+        <button className="btn sm" onClick={() => set(Math.min(MAX_SCALE, scale + 0.05))} aria-label="Bigger">
+          A+
+        </button>
+        {scale !== 1 && (
+          <button className="btn sm ghost" onClick={() => set(1)}>
+            Reset
+          </button>
+        )}
+      </div>
+    </Field>
+  );
+}
+
 /** The "Made with" link switch — shared by the Design panel and the builder. */
 export function MadeWithToggle() {
   const madeWith = useStudio((s) => s.doc!.madeWith !== false);
@@ -47,6 +83,80 @@ export function MadeWithToggle() {
       onChange={(v) => (v || canRemove) && edit((doc) => void (doc.madeWith = v))}
       testId="made-with"
     />
+  );
+}
+
+/** Left-to-right or right-to-left (Arabic, Hebrew, Persian, Urdu). */
+export function DirectionControl() {
+  const dir = useStudio((s) => s.doc!.design.direction ?? "ltr");
+  return (
+    <Field label="Text direction">
+      <Segmented
+        label="Text direction"
+        value={dir}
+        onChange={(v) => edit((d) => void (d.design.direction = v === "rtl" ? "rtl" : undefined))}
+        options={[
+          { value: "ltr", label: "Left to right" },
+          { value: "rtl", label: "Right to left" },
+        ]}
+      />
+    </Field>
+  );
+}
+
+type ReplyMode = "compact" | "same" | "own";
+
+/** How replies look: a compact text version, the same design, or (builder) a layout of their own. */
+export function ReplyControl() {
+  const doc = useStudio((s) => s.doc!);
+  const builder = doc.mode === "builder";
+  const mode: ReplyMode = builder && doc.reply.custom ? "own" : doc.reply.compact ? "compact" : "same";
+  // Clone from the committed doc: an Immer draft can't be structured-cloned.
+  const copyMain = () => (doc.blocks ? cloneColumn(doc.blocks) : undefined);
+  const choose = (m: ReplyMode) => {
+    const copy = m === "own" && !doc.replyBlocks ? copyMain() : undefined;
+    edit((d) => {
+      d.reply.compact = m === "compact";
+      d.reply.custom = m === "own" ? true : undefined;
+      if (copy) d.replyBlocks = copy;
+    });
+    // Show the reply straight away, so its layout is what's being edited.
+    if (m === "own") ui({ variant: "reply", selected: null });
+  };
+  return (
+    <>
+      <Field label="Replies use">
+        <Segmented<ReplyMode>
+          label="Reply version"
+          value={mode}
+          onChange={choose}
+          options={[
+            { value: "compact", label: "Compact" },
+            { value: "same", label: "Same design" },
+            ...(builder ? [{ value: "own" as const, label: "Own layout" }] : []),
+          ]}
+        />
+      </Field>
+      <p className="hint" data-testid="reply-hint">
+        {mode === "compact"
+          ? "A light, text-only version keeps long threads tidy."
+          : mode === "own"
+            ? "Switch the preview to Reply to edit the reply layout — it's separate from your main one."
+            : "Replies show your full design, minus add-ons."}
+      </p>
+      {mode === "own" && (
+        <button
+          className="btn sm ghost"
+          onClick={() => {
+            const copy = copyMain();
+            if (copy) edit((d) => void (d.replyBlocks = copy));
+          }}
+          data-testid="reply-reset"
+        >
+          Copy the main layout again
+        </button>
+      )}
+    </>
   );
 }
 
@@ -167,18 +277,15 @@ export function DesignPanel() {
         />
       </div>
       <Slider label="Spacing" unit="×" min={0.7} max={1.6} step={0.05} value={d.spacing} onChange={(v) => set("spacing", v)} />
+      <ScaleControl />
+      <DirectionControl />
       <Slider label="Max width" unit="px" min={320} max={640} step={10} value={d.width} onChange={(v) => set("width", v)} />
 
       <SectionTitle>Footer</SectionTitle>
       <MadeWithToggle />
 
       <SectionTitle>Reply version</SectionTitle>
-      <Toggle
-        label="Use a compact reply signature"
-        hint="Recommended — keeps long threads light"
-        checked={reply.compact}
-        onChange={(v) => edit((doc) => void (doc.reply.compact = v))}
-      />
+      <ReplyControl />
       <Toggle label="Photo in replies" checked={reply.keepPhoto} onChange={(v) => edit((doc) => void (doc.reply.keepPhoto = v))} />
       <Toggle label="Logo in replies" checked={reply.keepLogo} onChange={(v) => edit((doc) => void (doc.reply.keepLogo = v))} />
       <Toggle label="Social icons in replies" checked={reply.keepSocial} onChange={(v) => edit((doc) => void (doc.reply.keepSocial = v))} />

@@ -7,7 +7,10 @@ import { produce, type Draft } from "immer";
 import type { SignatureDoc, Variant } from "../core/types";
 import { defaultCard } from "../core/defaults";
 import { go } from "../router";
-import { docStore, prefStore, DEFAULT_PREFS, type Prefs } from "../storage/db";
+import { applyProfile, isLinked, isSampleOnly, profileFromDoc, sameProfile } from "../core/profile";
+import { docStore, versionStore, prefStore, DEFAULT_PREFS, type Prefs } from "../storage/db";
+import { addVersion, defaultVersionName, restoreInto, type Version } from "../core/versions";
+import { uid } from "../lib/id";
 
 export type Tab = "blocks" | "layers" | "templates" | "details" | "images" | "social" | "design" | "addons" | "card" | "install";
 
@@ -34,10 +37,14 @@ interface State {
   saving: "saved" | "saving" | "error";
   prefs: Prefs;
   toasts: Toast[];
-  dialog: null | "install" | "settings" | "crop" | "templates" | "brand";
+  dialog: null | "install" | "settings" | "crop" | "templates" | "brand" | "wizard" | "saveTemplate" | "history" | "banners" | "account" | "deleteAccount";
   dialogArg: string | null;
   /** Builder: the selected block. */
   selected: string | null;
+  /** Builder: every selected block when two or more are (Shift/⌘-click); otherwise empty. */
+  multi: string[];
+  /** Canvas zoom (view only — never changes the signature). */
+  zoom: number;
 }
 
 const LIMIT = 150;
@@ -64,6 +71,8 @@ export const useStudio = create<State>(() => ({
   dialog: null,
   dialogArg: null,
   selected: null,
+  multi: [],
+  zoom: 1,
 }));
 
 const get = () => useStudio.getState();
@@ -95,7 +104,7 @@ export function editSilently(recipe: (d: Draft<SignatureDoc>) => void) {
 export function undo() {
   const { past, future, doc } = get();
   if (!past.length || !doc) return;
-  const prev = { ...past[past.length - 1], published: doc.published, digitalCardUrl: doc.digitalCardUrl };
+  const prev = { ...past[past.length - 1], published: doc.published, digitalCardUrl: doc.digitalCardUrl, cardSlug: doc.cardSlug, cardImages: doc.cardImages };
   set({ doc: prev, past: past.slice(0, -1), future: [doc, ...future], lastKey: null });
   scheduleSave();
 }
@@ -103,7 +112,7 @@ export function undo() {
 export function redo() {
   const { past, future, doc } = get();
   if (!future.length || !doc) return;
-  const next = { ...future[0], published: doc.published, digitalCardUrl: doc.digitalCardUrl };
+  const next = { ...future[0], published: doc.published, digitalCardUrl: doc.digitalCardUrl, cardSlug: doc.cardSlug, cardImages: doc.cardImages };
   set({ doc: next, past: [...past, doc], future: future.slice(1), lastKey: null });
   scheduleSave();
 }
@@ -114,6 +123,10 @@ function scheduleSave() {
   saveTimer = setTimeout(() => void flushSave(), 500);
 }
 
+/** Called after anything is saved or deleted locally (cloud sync listens). */
+export const localChangeListeners = new Set<() => void>();
+const changed = () => localChangeListeners.forEach((fn) => fn());
+
 export async function flushSave() {
   const { doc } = get();
   if (!doc) return;
@@ -122,10 +135,36 @@ export async function flushSave() {
     await docStore.put(saved);
     const docs = get().docs.filter((d) => d.id !== saved.id);
     set({ saving: "saved", docs: [saved, ...docs] });
+    await syncProfile(saved);
+    changed();
   } catch {
     set({ saving: "error" });
     toast("Couldn't save in this browser. Export a backup from Settings.", "error");
   }
+}
+
+/**
+ * A linked signature's details, social links and photo are the user's saved
+ * profile: when they change, the profile and every other linked signature
+ * follow.
+ */
+async function syncProfile(source: SignatureDoc) {
+  if (!isLinked(source)) return;
+  const current = get().prefs.profile;
+  const next = profileFromDoc(source);
+  if (current ? sameProfile(current, next) : isSampleOnly(next)) return;
+  updatePrefs({ profile: next });
+  const updated: SignatureDoc[] = [];
+  for (const d of get().docs) {
+    if (d.id === source.id || !isLinked(d) || sameProfile(profileFromDoc(d), next)) continue;
+    const copy = structuredClone(d);
+    applyProfile(copy, next);
+    updated.push(copy);
+  }
+  if (!updated.length) return;
+  await Promise.all(updated.map((d) => docStore.put(d)));
+  const byId = new Map(updated.map((d) => [d.id, d]));
+  set({ docs: get().docs.map((d) => byId.get(d.id) ?? d) });
 }
 
 export async function loadAll() {
@@ -134,6 +173,12 @@ export async function loadAll() {
 }
 
 export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", navigate = true) {
+  // A linked signature always opens with the latest saved profile.
+  const profile = get().prefs.profile;
+  if (profile && isLinked(doc) && !sameProfile(profileFromDoc(doc), profile)) {
+    doc = structuredClone(doc);
+    applyProfile(doc, profile);
+  }
   set({
     doc,
     past: [],
@@ -143,6 +188,7 @@ export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", naviga
     variant: "full",
     lastKey: null,
     selected: null,
+    multi: [],
   });
   updatePrefs({ lastDocId: doc.id });
   if (navigate) go(`/app/s/${doc.id}`);
@@ -151,18 +197,21 @@ export function openDoc(doc: SignatureDoc, tab: State["tab"] = "details", naviga
 export async function createDoc(doc: SignatureDoc) {
   await docStore.put(doc);
   set({ docs: [doc, ...get().docs] });
+  changed();
   openDoc(doc, "details");
 }
 
 export async function deleteDoc(id: string) {
   await docStore.remove(id);
+  await versionStore.remove(id);
+  changed();
   set({ docs: get().docs.filter((d) => d.id !== id) });
   if (get().doc?.id === id) goHome();
 }
 
 export function goHome() {
   void flushSave();
-  set({ view: "home", dialog: null, selected: null });
+  set({ view: "home", dialog: null, selected: null, multi: [] });
   go("/app");
 }
 
@@ -170,6 +219,7 @@ export function updatePrefs(patch: Partial<Prefs>) {
   const prefs = { ...get().prefs, ...patch };
   set({ prefs });
   void prefStore.put(prefs);
+  changed();
 }
 
 export function toast(message: string, tone: Toast["tone"] = "info", action?: Toast["action"]) {
@@ -178,6 +228,51 @@ export function toast(message: string, tone: Toast["tone"] = "info", action?: To
   setTimeout(() => set({ toasts: get().toasts.filter((t) => t.id !== id) }), action ? 7000 : 3800);
 }
 
+/** Builder edits go to the reply layout while it is shown and has its own design. */
+export function editsReply(s: { variant: Variant; doc: SignatureDoc | null }): boolean {
+  return s.variant === "reply" && s.doc?.mode === "builder" && !!s.doc.reply.custom && !!s.doc.replyBlocks;
+}
+
+/** The block tree being edited: the main layout, or the reply layout. */
+export function tree<D extends { blocks?: unknown; replyBlocks?: unknown }>(d: D): D["blocks"] {
+  return (editsReply(get()) ? d.replyBlocks : d.blocks) as D["blocks"];
+}
+
+/** Selector form of `tree` for components. */
+export const treeOf = (s: { variant: Variant; doc: SignatureDoc | null }) => (editsReply(s) ? s.doc!.replyBlocks : s.doc?.blocks);
+
 export function ui(patch: Partial<State>) {
+  // Picking a single block ends a multi-selection unless the patch says otherwise.
+  if ("selected" in patch && !("multi" in patch)) patch = { ...patch, multi: [] };
   set(patch);
+}
+
+// ---------------------------------------------------------------------------
+// Version history
+// ---------------------------------------------------------------------------
+
+/** Snapshot the open signature. */
+export async function saveVersion(name?: string, auto = false): Promise<Version | null> {
+  const { doc } = get();
+  if (!doc) return null;
+  const list = await versionStore.list(doc.id);
+  const v: Version = { id: uid("v"), name: name?.trim() || defaultVersionName(list.length), at: Date.now(), auto, doc: structuredClone(doc) };
+  await versionStore.put(doc.id, addVersion(list, v));
+  return v;
+}
+
+/** Bring a snapshot back. Undoable, and the current state is snapshotted first. */
+export async function restoreVersion(v: Version) {
+  await saveVersion(`Before restoring “${v.name}”`, true);
+  edit((d) => restoreInto(d as SignatureDoc, v.doc));
+  set({ selected: null, multi: [] });
+  toast(`Restored “${v.name}”`, "success", { label: "Undo", run: undo });
+}
+
+export async function deleteVersion(docId: string, id: string) {
+  const list = await versionStore.list(docId);
+  await versionStore.put(
+    docId,
+    list.filter((v) => v.id !== id),
+  );
 }

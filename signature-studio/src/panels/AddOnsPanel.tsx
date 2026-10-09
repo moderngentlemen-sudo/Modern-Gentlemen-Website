@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { CalendarDays, Leaf, MousePointerClick, PenLine, Play, Quote, ScrollText, Smartphone, Star, Image as ImageIcon } from "lucide-react";
+import { CalendarDays, Leaf, MousePointerClick, PenLine, Play, Quote, ScrollText, Smartphone, Sparkles, Star, Image as ImageIcon } from "lucide-react";
 import type { AddOns } from "../core/types";
-import { edit, useStudio } from "../store/editor";
+import { edit, ui, useStudio } from "../store/editor";
+import { SIGN_OFFS } from "../core/seasonal";
 import { ImageDrop } from "../ui/ImageDrop";
-import { Segmented, Slider, Switch, TextField, Toggle } from "../ui/kit";
+import { Segmented, Select, Slider, Switch, TextField, Toggle } from "../ui/kit";
 
 type Key = keyof AddOns;
 
@@ -35,6 +36,12 @@ export function AddOnsPanel() {
 
       <AddOn k="signOff" icon={<PenLine size={18} />} title="Sign-off" desc="A handwritten-style closing line">
         <TextField label="Text" value={a.signOff.text} onChange={(v) => set("signOff", { text: v }, "text")} />
+        <Select
+          label="Ready-made"
+          value=""
+          onChange={(v) => v && set("signOff", { text: v })}
+          options={[{ value: "", label: "Choose a sign-off…" }, ...SIGN_OFFS.flatMap((g) => g.items.map((t) => ({ value: t, label: `${g.label} · ${t}` })))]}
+        />
         <Toggle
           label="Handwritten script"
           hint="Rendered as an image so it looks the same everywhere"
@@ -79,6 +86,9 @@ export function AddOnsPanel() {
           />
           <span className="hint">Wide images work best (about 600 × 150).</span>
         </div>
+        <button className="btn sm" onClick={() => ui({ dialog: "banners", dialogArg: "addon" })} data-testid="open-banners">
+          <Sparkles size={14} /> Seasonal &amp; promo banners
+        </button>
         <TextField label="Link" placeholder="https://…" value={a.banner.url} onChange={(v) => set("banner", { url: v }, "url")} />
         <TextField label="Description" hint="for screen readers" value={a.banner.alt} onChange={(v) => set("banner", { alt: v }, "alt")} />
         <Slider label="Width" unit="px" min={200} max={600} step={10} value={a.banner.width} onChange={(v) => set("banner", { width: v }, "width")} />

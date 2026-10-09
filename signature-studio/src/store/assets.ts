@@ -224,3 +224,37 @@ export async function trimImage(assetId: string, mime: string): Promise<TrimResu
 export function designDisplayWidth(naturalWidth: number): number {
   return Math.max(160, Math.min(600, naturalWidth >= 640 ? Math.round(naturalWidth / 2) : naturalWidth));
 }
+
+const darkRisk = new Map<string, boolean>();
+
+/**
+ * Would this logo vanish in dark mode? True for transparent images whose
+ * visible pixels are mostly dark — dark text on nothing, which dark inboxes
+ * put on a near-black background.
+ */
+export async function darkModeRisk(assetId: string): Promise<boolean> {
+  if (darkRisk.has(assetId)) return darkRisk.get(assetId)!;
+  const src = sourceUrl(assetId);
+  if (!src) return false;
+  const img = await loadImage(src);
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0, size, size);
+  const data = ctx.getImageData(0, 0, size, size).data;
+  let clear = 0;
+  let opaque = 0;
+  let lum = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 40) clear++;
+    else {
+      opaque++;
+      lum += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+    }
+  }
+  const risk = clear / (size * size) > 0.2 && opaque > 0 && lum / opaque < 0.25;
+  darkRisk.set(assetId, risk);
+  return risk;
+}

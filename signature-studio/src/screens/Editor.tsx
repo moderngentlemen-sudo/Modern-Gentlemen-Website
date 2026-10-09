@@ -19,6 +19,8 @@ import {
   Type,
   Undo2,
   User,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { goHome, redo, ui, undo, useStudio, edit, type Tab } from "../store/editor";
 import { Segmented, Switch } from "../ui/kit";
@@ -33,7 +35,9 @@ import { CardPanel } from "../panels/CardPanel";
 import { BlocksPanel, LayersPanel } from "../builder/Panels";
 import { Inspector } from "../builder/Inspector";
 import { DragLayer, Stage } from "../builder/Stage";
-import { duplicateSelected, enterBuilder, enterQuick, nudgeSelected, removeSelected } from "../builder/actions";
+import { ChecksChip, SizeMeter } from "../ui/Checks";
+import { MoreMenu } from "../ui/MoreMenu";
+import { copySelected, duplicateSelected, enterBuilder, enterQuick, nudgeSelected, pasteBlock, removeSelected } from "../builder/actions";
 
 type NavItem = { id: Tab; label: string; icon: ReactNode };
 
@@ -87,6 +91,7 @@ function useShortcuts(builder: boolean) {
       if (!builder || useStudio.getState().dialog) return;
       const sel = useStudio.getState().selected;
       if (k === "escape") ui({ selected: null });
+      if (mod && k === "v" && pasteBlock()) return e.preventDefault();
       if (!sel) return;
       if (k === "delete" || k === "backspace") {
         e.preventDefault();
@@ -94,6 +99,8 @@ function useShortcuts(builder: boolean) {
       } else if (mod && k === "d") {
         e.preventDefault();
         duplicateSelected();
+      } else if (mod && k === "c") {
+        if (copySelected()) e.preventDefault();
       } else if (e.altKey && (k === "arrowup" || k === "arrowdown")) {
         e.preventDefault();
         nudgeSelected(k === "arrowup" ? -1 : 1);
@@ -145,6 +152,7 @@ function Topbar() {
       <button className="icon-btn desktop-only" onClick={() => ui({ dialog: "settings" })} aria-label="Settings" title="Settings">
         <Settings size={18} />
       </button>
+      <MoreMenu />
       <button className="btn accent" onClick={() => ui({ dialog: "install" })} data-testid="open-install">
         <Mail size={17} /> <span className="desktop-only">Add to Gmail</span>
       </button>
@@ -159,9 +167,12 @@ function Preview() {
   const device = useStudio((s) => s.device);
   const dark = useStudio((s) => s.darkPreview);
   const fallbackFonts = useStudio((s) => s.fallbackFonts);
-  const html = previewHtml(doc, variant, fallbackFonts);
   const builder = doc.mode === "builder";
-  const editable = builder && !(variant === "reply" && doc.reply.compact);
+  const zoom = useStudio((s) => s.zoom);
+  const html = previewHtml(doc, variant, fallbackFonts, builder);
+  const setZoom = (z: number) => ui({ zoom: Math.round(Math.min(2, Math.max(0.5, z)) * 100) / 100 });
+  const ownReply = builder && !!doc.reply.custom && !!doc.replyBlocks;
+  const editable = builder && !(variant === "reply" && doc.reply.compact && !ownReply);
   return (
     <main
       className="preview-area"
@@ -186,7 +197,7 @@ function Preview() {
           inline
           label="Signature version"
           value={variant}
-          onChange={(v) => ui({ variant: v })}
+          onChange={(v) => ui({ variant: v, selected: null })}
           options={[
             { value: "full", label: "New email" },
             { value: "reply", label: "Reply" },
@@ -196,6 +207,18 @@ function Preview() {
           <Moon size={14} /> Dark
           <Switch checked={dark} onChange={(v) => ui({ darkPreview: v })} label="Dark mode preview" />
         </label>
+        <ChecksChip />
+        <div className="zoom-ctl" role="group" aria-label="Zoom">
+          <button onClick={() => setZoom(zoom - 0.1)} aria-label="Zoom out" title="Zoom out">
+            <ZoomOut size={15} />
+          </button>
+          <button onClick={() => setZoom(1)} title="Actual size" data-testid="zoom-level" style={{ minWidth: 46 }}>
+            {Math.round(zoom * 100)}%
+          </button>
+          <button onClick={() => setZoom(zoom + 0.1)} aria-label="Zoom in" title="Zoom in">
+            <ZoomIn size={15} />
+          </button>
+        </div>
         <label className="chip desktop-only" title="Show the fonts most recipients will actually see">
           <Type size={14} /> Inbox fonts
           <Switch checked={fallbackFonts} onChange={(v) => ui({ fallbackFonts: v })} label="Inbox fonts preview" />
@@ -227,20 +250,25 @@ function Preview() {
           {editable ? (
             <Stage html={html} />
           ) : html ? (
-            <SigHtml html={html} className="sig-host" testId="preview" />
+            <div style={{ zoom }}>
+              <SigHtml html={html} className="sig-host" testId="preview" />
+            </div>
           ) : (
             <p className="muted">Add your name in Details to see your signature.</p>
           )}
         </div>
       </div>
+      <SizeMeter />
       <p className="preview-note">
-        {editable
-          ? "Click to select · drag to move · drop blocks into columns to place them side by side."
-          : variant === "reply"
-            ? doc.reply.compact
-              ? "The reply version is a compact text signature. Turn it off in Design to use your layout in replies."
-              : "The reply version is lighter, so long threads stay tidy."
-            : "Links and buttons work in the preview. What you see is what recipients get."}
+        {editable && variant === "reply" && ownReply
+          ? "You're editing the reply layout. Switch to New email to edit the main one."
+          : editable
+            ? "Click to select · drag to move · drop blocks into columns to place them side by side."
+            : variant === "reply"
+              ? doc.reply.compact
+                ? "The reply version is a compact text signature. Turn it off in Design to use your layout in replies."
+                : "The reply version is lighter, so long threads stay tidy."
+              : "Links and buttons work in the preview. What you see is what recipients get."}
       </p>
     </main>
   );

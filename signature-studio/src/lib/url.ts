@@ -85,3 +85,20 @@ export function isTestHostUrl(src: string): boolean {
 export function isAcceptableImageUrl(src: string, allowTestHost = TEST_HOST_ENABLED): boolean {
   return isPublicImageUrl(src) || (allowTestHost && isTestHostUrl(src));
 }
+
+/**
+ * Where a user-typed link should go: an email becomes mailto:, a phone number
+ * becomes tel:, anything else a web address. Returns null if it can't be made
+ * safe.
+ */
+export function linkTarget(raw: string | undefined | null): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return safeHref(v);
+  if (/^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(v)) return mailtoHref(v);
+  if (/^\+?[\d\s().-]{6,}$/.test(v)) return telHref(v);
+  return safeHref(normalizeWebUrl(v));
+}
+
+/** `[words](where)` links inside a line of text. */
+export const INLINE_LINK = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;

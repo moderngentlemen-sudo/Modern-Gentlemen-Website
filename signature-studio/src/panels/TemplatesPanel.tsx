@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { applyTemplate } from "../core/apply";
-import { TEMPLATES, type TemplateGroup } from "../core/templates";
+import { getTemplate, TEMPLATES, type TemplateGroup } from "../core/templates";
 import type { SignatureDoc } from "../core/types";
 import { edit, toast, undo, useStudio } from "../store/editor";
 import { blocksFromDoc } from "../core/blocks";
@@ -15,7 +15,7 @@ function withTemplate(doc: SignatureDoc, id: string, keepColors: boolean): Signa
 
 export function TemplatesPanel() {
   const doc = useStudio((s) => s.doc!);
-  const [group, setGroup] = useState<TemplateGroup>(() => (doc.templateId.startsWith("art-") ? "Artistic" : "Business"));
+  const [group, setGroup] = useState<TemplateGroup>(() => getTemplate(doc.templateId).group);
   const [keepColors, setKeepColors] = useState(false);
   // Thumbnails show *your* content in each template.
   const content = useMemo(() => doc, [doc.details, doc.images, doc.socials, doc.assets, doc.design.accent, doc.design.text, keepColors]);
@@ -38,6 +38,8 @@ export function TemplatesPanel() {
         options={[
           { value: "Business", label: "Business" },
           { value: "Artistic", label: "Artistic" },
+          { value: "Modern", label: "Modern" },
+          { value: "Modern Gentlemen", label: "MG", title: "Modern Gentlemen" },
         ]}
       />
       <div style={{ height: 10 }} />

@@ -2,7 +2,8 @@
  * Template catalog. A template = a layout + a look. Templates never contain
  * the user's content, so switching is always safe.
  */
-import type { Design, IconShape, ImageShape } from "./types";
+import type { Block, Design, IconShape, ImageShape, SignatureDoc } from "./types";
+import { MG_SPECS, MODERN_SPECS } from "./blockTemplates";
 import { DEFAULT_DESIGN } from "./defaults";
 
 export type LayoutId =
@@ -21,7 +22,10 @@ export type LayoutId =
   | "bold"
   | "chips";
 
-export type TemplateGroup = "Business" | "Artistic";
+export type TemplateGroup = "Business" | "Artistic" | "Modern" | "Modern Gentlemen";
+
+/** A layout built from builder blocks — for designs the fixed layouts can't express. */
+export type BlockRecipe = (doc: SignatureDoc) => Block[];
 
 export interface Template {
   id: string;
@@ -33,9 +37,11 @@ export interface Template {
   design: Design;
   photo: { shape: ImageShape; size: number };
   logo: { size: number };
+  /** When set, the template opens as a builder layout made of these blocks. */
+  blocks?: BlockRecipe;
 }
 
-interface Spec {
+export interface Spec {
   id: string;
   name: string;
   group: TemplateGroup;
@@ -45,9 +51,10 @@ interface Spec {
   design?: Partial<Omit<Design, "social">> & { social?: Partial<Design["social"]> };
   photo?: { shape?: ImageShape; size?: number };
   logo?: { size?: number };
+  blocks?: BlockRecipe;
 }
 
-const icon = (shape: IconShape, colorMode: Design["social"]["colorMode"] = "accent", size = 22) => ({ shape, colorMode, size });
+export const icon = (shape: IconShape, colorMode: Design["social"]["colorMode"] = "accent", size = 22) => ({ shape, colorMode, size });
 
 const SPECS: Spec[] = [
   // ── Business sectors ──────────────────────────────────────────────────────
@@ -972,6 +979,8 @@ const SPECS: Spec[] = [
       social: icon("outline", "accent", 18),
     },
   },
+  ...MODERN_SPECS,
+  ...MG_SPECS,
 ];
 
 function build(spec: Spec): Template {
@@ -985,6 +994,7 @@ function build(spec: Spec): Template {
     design: { ...DEFAULT_DESIGN, ...spec.design, social: { ...DEFAULT_DESIGN.social, ...spec.design?.social } } as Design,
     photo: { shape: spec.photo?.shape ?? "circle", size: spec.photo?.size ?? 84 },
     logo: { size: spec.logo?.size ?? 110 },
+    blocks: spec.blocks,
   };
 }
 
@@ -997,4 +1007,6 @@ export function getTemplate(id: string): Template {
 }
 
 export const BUSINESS_CATEGORIES = [...new Set(TEMPLATES.filter((t) => t.group === "Business").map((t) => t.category))];
+export const MODERN_CATEGORIES = [...new Set(TEMPLATES.filter((t) => t.group === "Modern").map((t) => t.category))];
+export const TEMPLATE_GROUPS: TemplateGroup[] = ["Business", "Artistic", "Modern", "Modern Gentlemen"];
 export const ARTISTIC_CATEGORIES = [...new Set(TEMPLATES.filter((t) => t.group === "Artistic").map((t) => t.category))];
