@@ -22,6 +22,11 @@ Signatures paste straight into Gmail. Product plan and name shortlist:
 - **Zoom & crop** for the photo, the logo and any image block: drag to reposition, scroll to zoom, choose a frame shape.
 - **Overall size:** scale a whole signature from 70% to 150% with one control.
 - **Saved details:** contact details, social links and photo are entered once and shared by every linked signature.
+- **Live checks:** email typos, numbers phones can't dial, broken links, hard-to-read colours, small text, missing image descriptions and logos that vanish in dark mode. Each check has a "Fix" button, and a size meter shows the Gmail character budget.
+- **Quick start:** three questions, then three designs made with your details. You can paste your old signature or import a contact card (.vcf).
+- **My templates:** save any design (without personal details) and reuse it.
+- **Exports:** a PNG image, a print-ready business card (save it as a PDF from the print dialog), and HTML.
+- **Snapping:** resize handles and column edges snap to matching sizes and even splits. Hold Alt to resize freely. Double-click text on the canvas to edit it in place.
 - **Routes:** `/` marketing site, `/app` dashboard, `/app/s/<id>` editor,
   `?card=…` digital card.
 

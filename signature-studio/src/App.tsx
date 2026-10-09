@@ -10,6 +10,8 @@ import { InstallDialog } from "./dialogs/InstallDialog";
 import { SettingsDialog } from "./dialogs/SettingsDialog";
 import { CropDialog } from "./dialogs/CropDialog";
 import { BrandDialog } from "./dialogs/BrandDialog";
+import { WizardDialog } from "./dialogs/WizardDialog";
+import { SaveTemplateDialog } from "./ui/MoreMenu";
 import { Toasts } from "./ui/kit";
 
 const cardToken = new URLSearchParams(location.search).get("card");
@@ -54,6 +56,8 @@ function Studio() {
       <SettingsDialog />
       <CropDialog />
       <BrandDialog />
+      <WizardDialog />
+      <SaveTemplateDialog />
       <Toasts />
     </>
   );

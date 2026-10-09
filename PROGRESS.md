@@ -55,6 +55,27 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: checks, quick start, my templates, exports, snapping
+
+- **Live checks** (`core/checks.ts`, pure):
+  - Email typos, phone numbers that can't be dialled, and bad links.
+  - Contrast (WCAG), including text on its own panel background.
+  - Small text and missing image descriptions.
+  - A size estimate using realistic hosted image addresses.
+  - `store/assets.darkModeRisk` flags logos that are dark on a transparent background.
+  - UI: a status chip with an issue list whose "Fix" buttons jump to the right tab or block, plus a size meter under the preview (`ui/Checks.tsx`).
+- **Quick start wizard** (`dialogs/WizardDialog.tsx`):
+  - Typed details, a pasted old signature, or a `.vcf` contact card (parsers in `core/importDetails.ts`).
+  - Then photo, industry and colour, then three suggestions in different layouts.
+  - It saves the result as the profile.
+- **My templates** (`core/myTemplates.ts`): stored in `prefs.myTemplates`, with no details, social links or photo (D39). Saved from the editor's ⋯ menu and listed on the dashboard.
+- **Exports** (`publish/exports.ts`): a 2× PNG via html-to-image (falls back to system fonts), and a business-card print sheet at 3.5×2 in with crop marks (D40).
+- **Canvas:**
+  - Resize snapping and column-edge handles with snapping and a guide line (`builder/snap.ts`). Alt turns snapping off.
+  - Double-click inline text editing (`builder/inlineText.ts`).
+- **Fix:** a `?? []` inside a store selector made an infinite render loop. Use a stable `NO_TEMPLATES` constant instead.
+- **Gates:** `npm test` (47), `npm run e2e` (17), `npm run build`.
+
 ### 2026-10-09 — Signature Studio: quality-of-life features
 
 - **Builder:**

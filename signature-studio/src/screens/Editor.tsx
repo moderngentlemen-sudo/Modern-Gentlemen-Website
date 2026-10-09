@@ -35,6 +35,8 @@ import { CardPanel } from "../panels/CardPanel";
 import { BlocksPanel, LayersPanel } from "../builder/Panels";
 import { Inspector } from "../builder/Inspector";
 import { DragLayer, Stage } from "../builder/Stage";
+import { ChecksChip, SizeMeter } from "../ui/Checks";
+import { MoreMenu } from "../ui/MoreMenu";
 import { copySelected, duplicateSelected, enterBuilder, enterQuick, nudgeSelected, pasteBlock, removeSelected } from "../builder/actions";
 
 type NavItem = { id: Tab; label: string; icon: ReactNode };
@@ -150,6 +152,7 @@ function Topbar() {
       <button className="icon-btn desktop-only" onClick={() => ui({ dialog: "settings" })} aria-label="Settings" title="Settings">
         <Settings size={18} />
       </button>
+      <MoreMenu />
       <button className="btn accent" onClick={() => ui({ dialog: "install" })} data-testid="open-install">
         <Mail size={17} /> <span className="desktop-only">Add to Gmail</span>
       </button>
@@ -203,6 +206,7 @@ function Preview() {
           <Moon size={14} /> Dark
           <Switch checked={dark} onChange={(v) => ui({ darkPreview: v })} label="Dark mode preview" />
         </label>
+        <ChecksChip />
         <div className="zoom-ctl" role="group" aria-label="Zoom">
           <button onClick={() => setZoom(zoom - 0.1)} aria-label="Zoom out" title="Zoom out">
             <ZoomOut size={15} />
@@ -253,6 +257,7 @@ function Preview() {
           )}
         </div>
       </div>
+      <SizeMeter />
       <p className="preview-note">
         {editable
           ? "Click to select · drag to move · drop blocks into columns to place them side by side."

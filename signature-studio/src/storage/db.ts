@@ -2,6 +2,7 @@
 import { createStore, del, entries, get, set, type UseStore } from "idb-keyval";
 import type { BrandKit, SignatureDoc } from "../core/types";
 import type { Profile } from "../core/profile";
+import type { SavedTemplate } from "../core/myTemplates";
 
 let stores: { docs: UseStore; assets: UseStore; prefs: UseStore } | null = null;
 const db = () =>
@@ -33,6 +34,8 @@ export interface Prefs {
   brand?: BrandKit;
   /** Saved contact information shared by linked signatures. */
   profile?: Profile;
+  /** Designs saved for reuse. */
+  myTemplates?: SavedTemplate[];
 }
 
 export const DEFAULT_PREFS: Prefs = { publishConsent: false, favorites: [] };

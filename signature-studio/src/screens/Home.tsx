@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Blocks, Copy, CreditCard, LayoutTemplate, Palette, Plus, Search, Settings, Trash2, Upload } from "lucide-react";
+import { Blocks, Copy, Wand2, CreditCard, Palette, Plus, Search, Settings, Trash2, Upload } from "lucide-react";
 import { BRAND } from "../brand";
 import { applyBrand, applyTemplate } from "../core/apply";
 import { applyProfile } from "../core/profile";
@@ -9,10 +9,13 @@ import { ARTISTIC_CATEGORIES, BUSINESS_CATEGORIES, DEFAULT_TEMPLATE, getTemplate
 import type { BrandKit, SignatureDoc } from "../core/types";
 import { uid } from "../lib/id";
 import { go } from "../router";
-import { createDoc, deleteDoc, openDoc, toast, ui, useStudio } from "../store/editor";
+import { createDoc, deleteDoc, openDoc, toast, ui, updatePrefs, useStudio } from "../store/editor";
+import { docFromTemplate, type SavedTemplate } from "../core/myTemplates";
 import { Segmented, Switch } from "../ui/kit";
 import { sampleDoc } from "../ui/samples";
 import { Thumb } from "../ui/SigHtml";
+
+const NO_TEMPLATES: SavedTemplate[] = [];
 
 export interface CreateOptions {
   /** Start from an imported Canva design. */
@@ -118,21 +121,20 @@ export function Home() {
     });
   }, [group, category, query, base, useBrand]);
 
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const start = [
+    {
+      id: "wizard",
+      icon: <Wand2 size={20} />,
+      title: "Quick start",
+      text: "Answer three questions, get three designs made with your details.",
+      run: async () => ui({ dialog: "wizard" }),
+    },
     {
       id: "blank",
       icon: <Blocks size={20} />,
       title: "Start from scratch",
       text: "An empty canvas in the drag-and-drop builder.",
       run: () => createFromTemplate(DEFAULT_TEMPLATE, { blank: true, brand: brand }),
-    },
-    {
-      id: "template",
-      icon: <LayoutTemplate size={20} />,
-      title: "Pick a template",
-      text: `${TEMPLATES.length} designs for every industry and style.`,
-      run: () => scrollTo("templates"),
     },
     {
       id: "canva-signature",
@@ -181,12 +183,7 @@ export function Home() {
         <p>Pick a template, build your own with drag and drop, or bring a design from Canva.</p>
         <div className="start-grid">
           {start.map((s) => (
-            <button
-              key={s.id}
-              className="start-card"
-              onClick={() => void s.run()}
-              data-testid={s.id === "canva-signature" ? "canva-signature" : s.id === "canva-card" ? "canva-card" : `start-${s.id}`}
-            >
+            <button key={s.id} className="start-card" onClick={() => void s.run()} data-testid={s.id.startsWith("canva-") ? s.id : `start-${s.id}`}>
               <span className="start-ico">{s.icon}</span>
               <strong>{s.title}</strong>
               <span>{s.text}</span>
@@ -254,6 +251,8 @@ export function Home() {
           </div>
         </section>
       )}
+
+      <MyTemplates />
 
       <section className="section" id="templates">
         <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", marginBottom: 12 }}>
@@ -328,5 +327,78 @@ export function Home() {
         Your signatures are saved in this browser. Back them up from Settings.
       </footer>
     </div>
+  );
+}
+
+/** A signature from one of your saved templates, with your saved details. */
+async function createFromSaved(t: SavedTemplate) {
+  const doc = docFromTemplate(t);
+  const profile = useStudio.getState().prefs.profile;
+  if (profile) applyProfile(doc, profile);
+  else {
+    doc.details = { ...SAMPLE_DETAILS, custom: [] };
+    doc.socials = SAMPLE_SOCIALS();
+  }
+  await createDoc(doc);
+  if (doc.mode === "builder") ui({ tab: "blocks" });
+}
+
+function MyTemplates() {
+  const mine = useStudio((s) => s.prefs.myTemplates) ?? NO_TEMPLATES;
+  const profile = useStudio((s) => s.prefs.profile);
+  const previews = useMemo(
+    () =>
+      mine.map((t) => {
+        const d = docFromTemplate(t);
+        if (profile) applyProfile(d, profile);
+        else {
+          d.details = { ...SAMPLE_DETAILS, custom: [] };
+          d.socials = SAMPLE_SOCIALS();
+        }
+        return { t, d };
+      }),
+    [mine, profile],
+  );
+  if (!mine.length) return null;
+  return (
+    <section className="section">
+      <h2>My templates</h2>
+      <div className="sig-grid">
+        {previews.map(({ t, d }) => (
+          <div
+            key={t.id}
+            className="sig-tile"
+            role="button"
+            tabIndex={0}
+            onClick={() => void createFromSaved(t)}
+            onKeyDown={(e) => e.key === "Enter" && void createFromSaved(t)}
+            data-testid="my-template"
+          >
+            <Thumb doc={d} />
+            <div className="tile-meta">
+              <div style={{ minWidth: 0 }}>
+                <strong>{t.name}</strong>
+                <div className="muted">Saved {new Date(t.createdAt).toLocaleDateString()}</div>
+              </div>
+              <span className="badge brand">Mine</span>
+            </div>
+            <div className="tile-actions">
+              <button
+                className="icon-btn sm"
+                title="Delete template"
+                aria-label={`Delete template ${t.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete the template “${t.name}”? Signatures made from it stay.`))
+                    updatePrefs({ myTemplates: mine.filter((x) => x.id !== t.id) });
+                }}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

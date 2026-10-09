@@ -35,7 +35,7 @@ interface State {
   saving: "saved" | "saving" | "error";
   prefs: Prefs;
   toasts: Toast[];
-  dialog: null | "install" | "settings" | "crop" | "templates" | "brand";
+  dialog: null | "install" | "settings" | "crop" | "templates" | "brand" | "wizard" | "saveTemplate";
   dialogArg: string | null;
   /** Builder: the selected block. */
   selected: string | null;

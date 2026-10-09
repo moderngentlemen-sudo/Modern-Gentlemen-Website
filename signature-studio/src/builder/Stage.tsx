@@ -7,6 +7,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ArrowUpLeft, Copy, GripVertical, Trash2 } from "lucide-react";
 import { resizeSpec } from "./resize";
+import { resizeKind, snapColumn, snapResize } from "./snap";
+import { inlineTarget } from "./inlineText";
+import { updateColumn } from "./actions";
 import { findBlock, isWithin, rowOfColumn, walk } from "../core/blocks";
 import type { Column } from "../core/types";
 import { edit, ui, useStudio } from "../store/editor";
@@ -38,6 +41,9 @@ export function Stage({ html, className }: { html: string; className?: string })
   const zoom = useStudio((s) => s.zoom);
   const [tip, setTip] = useState<{ x: number; y: number; label: string } | null>(null);
   const [rects, setRects] = useState<Record<string, Rect>>({});
+  const [colRects, setColRects] = useState<Record<string, Rect>>({});
+  const [guide, setGuide] = useState<{ x: number; y: number; h: number } | null>(null);
+  const [inline, setInline] = useState<{ id: string; value: string; multiline: boolean } | null>(null);
   const [hover, setHover] = useState<string | null>(null);
 
   const shadow = () => hostRef.current?.shadowRoot ?? null;
@@ -53,6 +59,13 @@ export function Stage({ html, className }: { html: string; className?: string })
       next[el.dataset.block!] = { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
     });
     setRects(next);
+    const cols: Record<string, Rect> = {};
+    sr.querySelectorAll<HTMLElement>("[data-col]").forEach((el) => {
+      // The column's cell, so the edge sits where the column really ends.
+      const r = (el.closest("td") ?? el).getBoundingClientRect();
+      cols[el.dataset.col!] = { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
+    });
+    setColRects(cols);
   }, []);
 
   useLayoutEffect(() => {
@@ -144,6 +157,7 @@ export function Stage({ html, className }: { html: string; className?: string })
   const canParent = !!(sel && root && rowOfColumn(root, sel.parent.id));
   const doc = useStudio((s) => s.doc);
   const spec = sel && selRect && doc ? resizeSpec(sel.block, doc, selRect.w / zoom) : null;
+  const row = sel && root ? (sel.block.type === "row" ? sel.block : rowOfColumn(root, sel.parent.id)) : null;
 
   return (
     <div ref={stageRef} className={`stage ${className ?? ""}`} data-testid="stage">
@@ -153,8 +167,16 @@ export function Stage({ html, className }: { html: string; className?: string })
         data-testid="preview"
         style={{ zoom }}
         onDoubleClick={(e) => {
-          if (!hit(e)) return;
-          // Jump straight to the first thing to edit in the inspector.
+          const id = hit(e);
+          if (!id) return;
+          const st = useStudio.getState();
+          const b = st.doc?.blocks ? findBlock(st.doc.blocks, id)?.block : null;
+          const target = b && st.doc ? inlineTarget(b, st.doc) : null;
+          if (target) {
+            ui({ selected: id });
+            return setInline({ id, value: target.value, multiline: target.multiline });
+          }
+          // Otherwise jump straight to the first thing to edit in the inspector.
           requestAnimationFrame(() =>
             document.querySelector<HTMLElement>(".inspector textarea, .inspector input:not([type=checkbox]):not([type=range]), .inspector select")?.focus(),
           );
@@ -170,6 +192,70 @@ export function Stage({ html, className }: { html: string; className?: string })
         }}
       />
       <div className="stage-overlay" aria-hidden={!sel}>
+        {guide && <div className="ov-guide" style={{ left: guide.x, top: guide.y, height: guide.h }} />}
+        {!dragging &&
+          row &&
+          row.columns.slice(0, -1).map((c) => {
+            const r = colRects[c.id];
+            const rr = rects[row.id];
+            if (!r || !rr) return null;
+            return (
+              <button
+                key={c.id}
+                className="ov-col"
+                style={{ left: r.x + r.w - 4, top: rr.y, height: rr.h }}
+                title="Drag to set the column width · double-click for auto"
+                aria-label="Column width"
+                data-testid="col-handle"
+                onDoubleClick={() => updateColumn(c.id, { width: undefined })}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const x0 = e.clientX;
+                  const start = c.width ?? r.w / zoom;
+                  const rowWidth = rr.w / zoom;
+                  document.body.classList.add("is-col-resizing");
+                  const move = (ev: PointerEvent) => {
+                    const raw = Math.max(24, Math.min(rowWidth - 24, start + (ev.clientX - x0) / zoom));
+                    const snap = ev.altKey ? { value: Math.round(raw) } : snapColumn(useStudio.getState().doc!.blocks!, c.id, raw, rowWidth);
+                    updateColumn(c.id, { width: snap.value }, "w");
+                    const edge = r.x + snap.value * zoom;
+                    setGuide({ x: edge, y: rr.y - 8, h: rr.h + 16 });
+                    const st = stageRef.current!.getBoundingClientRect();
+                    setTip({ x: ev.clientX - st.left + 14, y: ev.clientY - st.top + 14, label: `${snap.value}px${snap.match ? ` · ${snap.match}` : ""}` });
+                  };
+                  const up = () => {
+                    window.removeEventListener("pointermove", move);
+                    window.removeEventListener("pointerup", up);
+                    window.removeEventListener("pointercancel", up);
+                    document.body.classList.remove("is-col-resizing");
+                    setGuide(null);
+                    setTip(null);
+                  };
+                  window.addEventListener("pointermove", move);
+                  window.addEventListener("pointerup", up);
+                  window.addEventListener("pointercancel", up);
+                }}
+              />
+            );
+          })}
+        {inline && rects[inline.id] && (
+          <InlineEditor
+            rect={rects[inline.id]}
+            value={inline.value}
+            multiline={inline.multiline}
+            onDone={(v) => {
+              const id = inline.id;
+              setInline(null);
+              if (v === null) return;
+              edit((d) => {
+                const h = d.blocks ? findBlock(d.blocks, id) : null;
+                const t = h ? inlineTarget(h.block, d) : null;
+                if (h && t) t.apply(d, h.block, v);
+              });
+            }}
+          />
+        )}
         {tip && (
           <div className="ov-tip" style={{ left: tip.x, top: tip.y }}>
             {tip.label}
@@ -213,14 +299,21 @@ export function Stage({ html, className }: { html: string; className?: string })
                   const clamp = (v: number) => Math.min(spec.max, Math.max(spec.min, v));
                   document.body.classList.add("is-resizing");
                   const move = (ev: PointerEvent) => {
-                    const v =
+                    const raw =
                       spec.axis === "y" ? clamp(spec.start + (ev.clientY - y0) / zoom) : clamp(spec.start * Math.max(0.05, (w0 + ev.clientX - x0) / w0));
+                    // Hold Alt to resize freely without snapping.
+                    const snap = ev.altKey ? { value: raw } : snapResize(useStudio.getState().doc!, id, raw, resizeKind(sel.block));
+                    const v = snap.value;
                     edit((d) => {
                       const h = d.blocks ? findBlock(d.blocks, id) : null;
                       if (h) spec.patch(v)(d, h.block);
                     }, `resize.${id}`);
                     const st = stageRef.current!.getBoundingClientRect();
-                    setTip({ x: ev.clientX - st.left + 14, y: ev.clientY - st.top + 14, label: spec.label(v) });
+                    setTip({
+                      x: ev.clientX - st.left + 14,
+                      y: ev.clientY - st.top + 14,
+                      label: snap.match ? `${spec.label(v)} · matches ${snap.match}` : spec.label(v),
+                    });
                   };
                   const up = () => {
                     window.removeEventListener("pointermove", move);
@@ -301,4 +394,37 @@ export function DragLayer() {
     </>,
     document.body,
   );
+}
+
+/** Edit a block's text in place: Enter (or ⌘Enter for paragraphs) saves, Esc cancels. */
+function InlineEditor({ rect, value, multiline, onDone }: { rect: Rect; value: string; multiline: boolean; onDone: (v: string | null) => void }) {
+  const [v, setV] = useState(value);
+  const done = useRef(false);
+  const finish = (out: string | null) => {
+    if (done.current) return;
+    done.current = true;
+    onDone(out);
+  };
+  const props = {
+    className: "ov-inline",
+    value: v,
+    autoFocus: true,
+    "aria-label": "Edit text",
+    "data-testid": "inline-editor",
+    style: { left: rect.x - 4, top: rect.y - 4, width: Math.max(180, rect.w + 8), minHeight: rect.h + 8 },
+    onFocus: (e: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) => e.currentTarget.select(),
+    onChange: (e: { target: { value: string } }) => setV(e.target.value),
+    onBlur: () => finish(v),
+    onPointerDown: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+    onKeyDown: (e: { key: string; shiftKey: boolean; metaKey: boolean; ctrlKey: boolean; preventDefault: () => void }) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        finish(null);
+      } else if (e.key === "Enter" && (!multiline || e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault();
+        finish(v);
+      }
+    },
+  };
+  return multiline ? <textarea {...props} rows={Math.max(2, v.split("\n").length)} /> : <input {...props} />;
 }
