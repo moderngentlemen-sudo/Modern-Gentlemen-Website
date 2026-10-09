@@ -101,6 +101,19 @@ export function isWithin(root: Column, ancestorId: string, id: string): boolean 
   return hit.block.columns.some((c) => c.id === id || !!findBlock(c, id));
 }
 
+/**
+ * The block before or after `id` in reading order, skipping rows (their
+ * contents are what people read). From a row, moves to the first block
+ * inside it going down, or the last block before it going up.
+ */
+export function adjacentBlockId(root: Column, id: string, dir: 1 | -1): string | null {
+  const order = [...walk(root)].map((w) => w.block);
+  const at = order.findIndex((b) => b.id === id);
+  if (at < 0) return null;
+  for (let i = at + dir; i >= 0 && i < order.length; i += dir) if (order[i].type !== "row") return order[i].id;
+  return null;
+}
+
 export function removeBlock(root: Column, id: string): Block | null {
   const hit = findBlock(root, id);
   if (!hit) return null;

@@ -55,6 +55,33 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: audit Batch 1 (fix what's broken)
+
+From the editor audit (https://claude.ai/artifact/2Ah4jUeZcrgc9rmtLGE2oM), items B1, B3–B7 and I6:
+- **B1 — phone top bar:**
+  - Add to Gmail stays on screen.
+  - Quick/Builder, Redo and Settings move into ⋯ below 600px (`.wide-only` / `.narrow-only`).
+  - The name truncates with an ellipsis.
+- **B3 — toolbar placement:** the block toolbar goes above or below the selection, whichever covers fewer other blocks (`builder/toolbar.ts`, unit-tested).
+- **B4 — double-click** on a block with no inline text does its main action (`Stage.primaryAction`):
+  - photo or logo: crop, or the Images tab when empty;
+  - image: crop, or upload;
+  - contacts: Details, with the phone field focused;
+  - socials: the Social tab.
+
+  It no longer lands in a colour picker.
+- **B5 — inspector layout:** "Show in" uses short labels (New emails → "New") and fits. The Hover text hint became a placeholder.
+- **B6 — preview toolbar:** device, dark mode and inbox fonts moved into a "View" menu, so the toolbar is one row. The button shows which options are on.
+- **B7 — keyboard:**
+  - ↑/↓ select the previous or next block (`adjacentBlockId`).
+  - Enter steps into a row, or edits the block in place (falling back to its main action).
+  - Esc goes out to the columns, then deselects.
+- **I6 — animated GIFs keep moving:**
+  - GIFs are no longer converted to PNG at upload, unless they are larger than 2400px.
+  - Publishing sends the original GIF when there's no crop, rounding or shape and it's ≤1 MB (`core/gif.ts`, `derive`). Otherwise it goes out as a still, and a live check explains why.
+  - Quick-mode banners that are GIFs keep square corners.
+- **Gates:** `npm test` (85), `npm run e2e` (36, incl. `batch1.spec.ts`), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signet Supabase project created and schema applied
 
 - **Project:** `signet` (ref `wgrbgdvvhciahzhhhret`, `ca-central-1`) in the separate **Signet** organisation, on the Free plan. The website's project was not touched.

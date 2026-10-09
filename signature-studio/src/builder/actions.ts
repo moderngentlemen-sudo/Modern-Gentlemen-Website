@@ -13,6 +13,7 @@ import {
   panel,
   placeBeside,
   removeBlock,
+  adjacentBlockId,
   rowOf,
   rowOfColumn,
   walk,
@@ -191,6 +192,45 @@ export function nudgeSelected(by: -1 | 1) {
   const to = hit.index + (by > 0 ? 2 : -1);
   if (to < 0 || to > hit.parent.blocks.length) return;
   moveTo(id, { columnId: hit.parent.id, index: to });
+}
+
+/** ↑/↓: select the previous or next block in reading order. */
+export function selectAdjacent(dir: 1 | -1) {
+  const d = doc();
+  const id = useStudio.getState().selected;
+  const root = d ? tree(d) : undefined;
+  if (!root) return;
+  if (!id) {
+    const first = [...walk(root)].find((w) => w.block.type !== "row");
+    if (first) ui({ selected: first.block.id });
+    return;
+  }
+  const next = adjacentBlockId(root, id, dir);
+  if (next) ui({ selected: next });
+}
+
+/** Esc: from a block inside columns select the columns; otherwise deselect. */
+export function selectOutward() {
+  const st = useStudio.getState();
+  if (st.multi.length) return ui({ selected: null });
+  const root = st.doc ? tree(st.doc) : undefined;
+  const hit = root && st.selected ? findBlock(root, st.selected) : null;
+  const row = hit && root ? rowOfColumn(root, hit.parent.id) : null;
+  ui({ selected: row ? row.id : null });
+}
+
+/** Enter: step into a row, or start editing the selected block (the canvas listens). */
+export function enterSelected() {
+  const st = useStudio.getState();
+  const root = st.doc ? tree(st.doc) : undefined;
+  const hit = root && st.selected ? findBlock(root, st.selected) : null;
+  if (!hit) return;
+  if (hit.block.type === "row") {
+    const first = hit.block.columns.flatMap((c) => [...walk(c)]).find((w) => w.block.type !== "row");
+    if (first) ui({ selected: first.block.id });
+    return;
+  }
+  window.dispatchEvent(new CustomEvent("signet:edit-block", { detail: hit.block.id }));
 }
 
 /** Select the row that contains the selection. */

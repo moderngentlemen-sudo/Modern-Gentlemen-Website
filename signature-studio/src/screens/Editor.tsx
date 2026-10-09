@@ -1,8 +1,9 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   Blocks,
   Check,
+  Eye,
   CreditCard,
   Image as ImageIcon,
   Layers,
@@ -37,7 +38,18 @@ import { Inspector } from "../builder/Inspector";
 import { DragLayer, Stage } from "../builder/Stage";
 import { ChecksChip, SizeMeter } from "../ui/Checks";
 import { MoreMenu } from "../ui/MoreMenu";
-import { copySelected, duplicateSelected, enterBuilder, enterQuick, nudgeSelected, pasteBlock, removeSelected } from "../builder/actions";
+import {
+  copySelected,
+  duplicateSelected,
+  enterBuilder,
+  enterQuick,
+  enterSelected,
+  nudgeSelected,
+  pasteBlock,
+  removeSelected,
+  selectAdjacent,
+  selectOutward,
+} from "../builder/actions";
 
 type NavItem = { id: Tab; label: string; icon: ReactNode };
 
@@ -90,7 +102,15 @@ function useShortcuts(builder: boolean) {
       }
       if (!builder || useStudio.getState().dialog) return;
       const sel = useStudio.getState().selected;
-      if (k === "escape") ui({ selected: null });
+      if (k === "escape") {
+        selectOutward();
+        return;
+      }
+      if (!mod && !e.altKey && (k === "arrowup" || k === "arrowdown")) {
+        e.preventDefault();
+        selectAdjacent(k === "arrowup" ? -1 : 1);
+        return;
+      }
       if (mod && k === "v" && pasteBlock()) return e.preventDefault();
       if (!sel) return;
       if (k === "delete" || k === "backspace") {
@@ -99,6 +119,9 @@ function useShortcuts(builder: boolean) {
       } else if (mod && k === "d") {
         e.preventDefault();
         duplicateSelected();
+      } else if (k === "enter" && !mod && !t.closest("button, a, [role=button], [role=menuitem]")) {
+        e.preventDefault();
+        enterSelected();
       } else if (mod && k === "c") {
         if (copySelected()) e.preventDefault();
       } else if (e.altKey && (k === "arrowup" || k === "arrowdown")) {
@@ -135,7 +158,7 @@ function Topbar() {
         )}
       </span>
       <div className="grow" />
-      <div className="mode-switch" role="group" aria-label="Editor mode">
+      <div className="mode-switch wide-only" role="group" aria-label="Editor mode">
         <button aria-pressed={!builder} onClick={() => builder && enterQuick()} data-testid="mode-quick" title="Simple forms">
           Quick
         </button>
@@ -146,17 +169,87 @@ function Topbar() {
       <button className="icon-btn" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (⌘Z)">
         <Undo2 size={18} />
       </button>
-      <button className="icon-btn" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
+      <button className="icon-btn wide-only" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
         <Redo2 size={18} />
       </button>
       <button className="icon-btn desktop-only" onClick={() => ui({ dialog: "settings" })} aria-label="Settings" title="Settings">
         <Settings size={18} />
       </button>
       <MoreMenu />
-      <button className="btn accent" onClick={() => ui({ dialog: "install" })} data-testid="open-install">
+      <button
+        className="btn accent install-btn"
+        onClick={() => ui({ dialog: "install" })}
+        data-testid="open-install"
+        aria-label="Add to Gmail"
+        title="Add to Gmail"
+      >
         <Mail size={17} /> <span className="desktop-only">Add to Gmail</span>
       </button>
     </header>
+  );
+}
+
+/** Device, dark mode and inbox fonts: occasional checks, kept in one menu so the toolbar stays on one row. */
+function ViewMenu() {
+  const device = useStudio((s) => s.device);
+  const dark = useStudio((s) => s.darkPreview);
+  const fallbackFonts = useStudio((s) => s.fallbackFonts);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const active = [device === "mobile" && "Phone", dark && "Dark", fallbackFonts && "Inbox fonts"].filter(Boolean) as string[];
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button
+        className={`chip view-btn${active.length ? " on" : ""}`}
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        title="Preview on a phone, in dark mode, or with the fonts most inboxes show"
+        data-testid="view-menu"
+      >
+        <Eye size={14} /> {active.length ? active.join(" · ") : "View"}
+      </button>
+      {open && (
+        <div className="menu view-menu" role="dialog" aria-label="Preview options">
+          <div className="view-row">
+            <span>Device</span>
+            <Segmented
+              inline
+              label="Device"
+              value={device}
+              onChange={(v) => ui({ device: v })}
+              options={[
+                { value: "desktop", label: <Monitor size={16} />, title: "Desktop" },
+                { value: "mobile", label: <Smartphone size={16} />, title: "Phone" },
+              ]}
+            />
+          </div>
+          <label className="view-row" title="Approximate how dark-mode inboxes recolour it">
+            <span>
+              <Moon size={14} /> Dark mode
+            </span>
+            <Switch checked={dark} onChange={(v) => ui({ darkPreview: v })} label="Dark mode preview" />
+          </label>
+          <label className="view-row" title="Show the fonts most recipients will actually see">
+            <span>
+              <Type size={14} /> Inbox fonts
+            </span>
+            <Switch checked={fallbackFonts} onChange={(v) => ui({ fallbackFonts: v })} label="Inbox fonts preview" />
+          </label>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -185,16 +278,6 @@ function Preview() {
       <div className="preview-tools">
         <Segmented
           inline
-          label="Device"
-          value={device}
-          onChange={(v) => ui({ device: v })}
-          options={[
-            { value: "desktop", label: <Monitor size={16} />, title: "Desktop" },
-            { value: "mobile", label: <Smartphone size={16} />, title: "Phone" },
-          ]}
-        />
-        <Segmented
-          inline
           label="Signature version"
           value={variant}
           onChange={(v) => ui({ variant: v, selected: null })}
@@ -203,10 +286,6 @@ function Preview() {
             { value: "reply", label: "Reply" },
           ]}
         />
-        <label className="chip" title="Approximate how dark-mode inboxes recolour it">
-          <Moon size={14} /> Dark
-          <Switch checked={dark} onChange={(v) => ui({ darkPreview: v })} label="Dark mode preview" />
-        </label>
         <ChecksChip />
         <div className="zoom-ctl" role="group" aria-label="Zoom">
           <button onClick={() => setZoom(zoom - 0.1)} aria-label="Zoom out" title="Zoom out">
@@ -219,10 +298,7 @@ function Preview() {
             <ZoomIn size={15} />
           </button>
         </div>
-        <label className="chip desktop-only" title="Show the fonts most recipients will actually see">
-          <Type size={14} /> Inbox fonts
-          <Switch checked={fallbackFonts} onChange={(v) => ui({ fallbackFonts: v })} label="Inbox fonts preview" />
-        </label>
+        <ViewMenu />
       </div>
       <div className={`mail${device === "mobile" ? " mobile" : ""}${dark ? " dark" : ""}`}>
         <div className="mail-bar">

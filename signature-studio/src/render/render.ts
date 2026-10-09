@@ -864,7 +864,8 @@ function addonsBottom(c: Ctx, digitalUrl: string | null): string[] {
     const slot: ImageSlot = {
       assetId: a.banner.assetId,
       size: Math.min(a.banner.width, d.width),
-      shape: "rounded",
+      // Rounding would freeze an animated GIF, so GIF banners keep square corners.
+      shape: c.doc.assets[a.banner.assetId].mime === "image/gif" ? "square" : "rounded",
       crop: { x: 0, y: 0, zoom: 1 },
       link: a.banner.url || undefined,
     };

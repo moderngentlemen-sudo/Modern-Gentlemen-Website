@@ -279,3 +279,19 @@ describe("copying inside an edit", () => {
     expect(out.blocks[1].id).not.toBe(out.blocks[0].id);
   });
 });
+
+describe("keyboard navigation order", () => {
+  it("steps through blocks in reading order, skipping rows", async () => {
+    const { adjacentBlockId } = await import("./blocks");
+    const a = block("text", { text: "A" });
+    const b = block("text", { text: "B" });
+    const c = block("text", { text: "C" });
+    const row = rowOf([col([b]), col([c])]);
+    const root = col([a, row]);
+    expect(adjacentBlockId(root, a.id, 1)).toBe(b.id);
+    expect(adjacentBlockId(root, b.id, 1)).toBe(c.id);
+    expect(adjacentBlockId(root, c.id, 1)).toBeNull();
+    expect(adjacentBlockId(root, b.id, -1)).toBe(a.id);
+    expect(adjacentBlockId(root, row.id, 1)).toBe(b.id);
+  });
+});

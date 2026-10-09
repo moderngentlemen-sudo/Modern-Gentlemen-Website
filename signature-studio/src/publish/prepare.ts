@@ -50,7 +50,11 @@ async function publishOne(req: ImageRequest, force: boolean): Promise<boolean> {
   }
   try {
     setStatus({ ...base, state: "working", message: "Preparing…" });
-    const out = await derive(req, (id) => doc.assets[id]?.mime);
+    const out = await derive(
+      req,
+      (id) => doc.assets[id]?.mime,
+      (id) => doc.assets[id],
+    );
     const hash = await sha256Hex(out.blob);
     setStatus({ ...base, state: "working", message: "Publishing…" });
     const url = await host.publish(`s/${hash}.${out.ext}`, out.blob, out.mime);

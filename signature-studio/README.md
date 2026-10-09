@@ -42,6 +42,8 @@ Signatures paste straight into Gmail. Product plan and name shortlist:
   - Short digital-card links (`/c/<slug>`) update with the signature.
   - Delete account is self-serve.
   - Needs a separate Signet Supabase project; setup is in [`supabase/README.md`](supabase/README.md). Without it, the app runs local-only and shows no sign-in.
+- **Keyboard:** ↑/↓ select blocks, Enter edits (or steps into columns), Esc steps out, Alt+↑/↓ moves, ⌘D duplicates, Del deletes. Double-click a picture to crop it.
+- **Animated GIFs** stay animated when sent as-is (no crop or rounding, up to 1 MB); a check explains when an edit would freeze one.
 - **Routes:** `/` marketing site, `/app` dashboard, `/app/s/<id>` editor,
   `?card=…` digital card.
 

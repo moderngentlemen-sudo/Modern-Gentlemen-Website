@@ -87,12 +87,14 @@ export async function ingestFile(file: File | Blob, name = "image"): Promise<Ass
     let blob: Blob = file;
     let mime = type;
     const longEdge = Math.max(w, h);
-    if (type === "image/svg+xml" || longEdge > MAX_EDGE || type === "image/gif" || type === "image/webp") {
-      // SVGs and oversized/animated images become a safe, bounded PNG/JPEG.
+    if (type === "image/svg+xml" || longEdge > MAX_EDGE || type === "image/webp") {
+      // SVGs and oversized images become a safe, bounded PNG/JPEG. GIFs within
+      // bounds stay GIFs, so animated banners keep moving (see core/gif.ts).
       const scale = Math.min(1, (type === "image/svg+xml" ? 1600 : MAX_EDGE) / longEdge);
       w = Math.max(1, Math.round(w * scale));
       h = Math.max(1, Math.round(h * scale));
       mime = type === "image/jpeg" ? "image/jpeg" : "image/png";
+      // An oversized GIF can't be resized without losing its frames: it becomes a still.
       blob = await rasterize(img, w, h, mime);
     }
     const hash = await sha256Hex(blob);

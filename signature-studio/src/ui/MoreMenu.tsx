@@ -1,15 +1,17 @@
 /** Editor "More" menu: save as template and exports. */
 import { useEffect, useRef, useState } from "react";
-import { BookmarkPlus, Code2, History, Image as ImageIcon, MoreHorizontal, Printer } from "lucide-react";
+import { Blocks, BookmarkPlus, Code2, History, Redo2, Settings, Image as ImageIcon, MoreHorizontal, Printer } from "lucide-react";
 import { templateFromDoc, type SavedTemplate } from "../core/myTemplates";
 import { exportPng, printCard } from "../publish/exports";
-import { toast, ui, updatePrefs, useStudio } from "../store/editor";
+import { redo, toast, ui, updatePrefs, useStudio } from "../store/editor";
+import { enterBuilder, enterQuick } from "../builder/actions";
 import { Modal, TextField } from "./kit";
 
 const NO_TEMPLATES: SavedTemplate[] = [];
 
 export function MoreMenu() {
   const doc = useStudio((s) => s.doc!);
+  const canRedo = useStudio((s) => s.future.length > 0);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,6 +32,18 @@ export function MoreMenu() {
       setBusy(false);
     }
   };
+  const builder = doc.mode === "builder";
+  // On phones the top bar has room only for the essentials; these move into this menu.
+  const narrow = [
+    {
+      icon: <Blocks size={16} />,
+      label: builder ? "Switch to Quick (simple forms)" : "Switch to Builder (drag and drop)",
+      run: () => (builder ? enterQuick() : enterBuilder()),
+      id: "menu-mode",
+    },
+    { icon: <Redo2 size={16} />, label: "Redo", run: () => redo(), id: "menu-redo", disabled: !canRedo },
+    { icon: <Settings size={16} />, label: "Settings", run: () => ui({ dialog: "settings" }), id: "menu-settings" },
+  ];
   const items = [
     { icon: <History size={16} />, label: "Version history…", run: () => ui({ dialog: "history" }), id: "open-history" },
     { icon: <BookmarkPlus size={16} />, label: "Save as my template", run: () => ui({ dialog: "saveTemplate" }), id: "save-template" },
@@ -51,6 +65,12 @@ export function MoreMenu() {
       </button>
       {open && (
         <div className="menu" role="menu">
+          {narrow.map((it) => (
+            <button key={it.id} role="menuitem" className="narrow-only" onClick={run(it.run)} disabled={it.disabled} data-testid={it.id}>
+              {it.icon}
+              {it.label}
+            </button>
+          ))}
           {items.map((it) => (
             <button key={it.id} role="menuitem" onClick={run(it.run)} data-testid={it.id}>
               {it.icon}

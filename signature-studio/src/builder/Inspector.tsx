@@ -662,7 +662,7 @@ function GroupInspector({ ids }: { ids: string[] }) {
         onChange={(v) => updateSelected((b) => void (b.visibility = v === "both" ? undefined : v))}
         options={[
           { value: "both", label: "Both" },
-          { value: "full", label: "New emails" },
+          { value: "full", label: "New", title: "New emails only" },
           { value: "reply", label: "Replies" },
           { value: "hidden", label: "Hidden" },
         ]}
@@ -705,7 +705,7 @@ export function Inspector() {
           {HOVERABLE.has(hit.block.type) && (
             <TextField
               label="Hover text"
-              hint="shown when someone points at a link or image"
+              placeholder="Shown when someone points at it"
               value={hit.block.hover ?? ""}
               onChange={(v) => updateBlock(hit.block.id, { hover: v || undefined }, "hover")}
               testId="inspector-hover"
@@ -718,7 +718,7 @@ export function Inspector() {
             onChange={(v) => updateBlock(hit.block.id, { visibility: v === "both" ? undefined : v })}
             options={[
               { value: "both", label: "Both" },
-              { value: "full", label: "New emails" },
+              { value: "full", label: "New", title: "New emails only" },
               { value: "reply", label: "Replies" },
               { value: "hidden", label: "Hidden" },
             ]}

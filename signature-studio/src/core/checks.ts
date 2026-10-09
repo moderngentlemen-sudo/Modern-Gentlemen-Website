@@ -9,6 +9,30 @@ import type { Column, SignatureDoc } from "./types";
 import { GMAIL_SIGNATURE_LIMIT } from "../render/validate";
 import { renderSignature } from "../render/render";
 import { INLINE_LINK } from "../lib/url";
+import { gifStillReason } from "./gif";
+import { cropRect } from "./crop";
+import type { AssetMeta } from "./types";
+
+/** A message when an animated GIF will be sent as a still image, else null. */
+export function gifIssue(
+  meta: AssetMeta | undefined,
+  aspect?: number,
+  crop: { x: number; y: number; zoom: number } = { x: 0, y: 0, zoom: 1 },
+  shape: "square" | "rounded" | "circle" = "square",
+): string | null {
+  if (!meta || meta.mime !== "image/gif") return null;
+  const rect = cropRect(meta.width, meta.height, aspect ?? meta.width / meta.height, crop);
+  switch (gifStillReason(meta, { rect, shape })) {
+    case "shaped":
+      return "Rounded corners stop a GIF from animating. Turn them off to keep it moving.";
+    case "cropped":
+      return "Cropping stops a GIF from animating. Reset the crop to keep it moving.";
+    case "too-big":
+      return "This GIF is over 1 MB, so it will be sent as a still image. Use a smaller GIF to keep it moving.";
+    default:
+      return null;
+  }
+}
 
 export type CheckLevel = "error" | "warning" | "tip";
 
@@ -172,6 +196,8 @@ export function runChecks(doc: SignatureDoc, opts: { size?: number } = {}): Chec
       add({ id: "cta", level: "error", message: `Your button link ${linkProblem(a.cta.url)}`, fix: { tab: "addons", label: "Edit add-ons" } });
     if (a.meeting.enabled && !a.meeting.url.trim())
       add({ id: "meeting", level: "warning", message: "“Book a meeting” has no link yet.", fix: { tab: "addons", label: "Edit add-ons" } });
+    const bannerGif = a.banner.enabled && a.banner.assetId ? gifIssue(doc.assets[a.banner.assetId]) : null;
+    if (bannerGif) add({ id: "gif-banner", level: "tip", message: bannerGif, fix: { tab: "addons", label: "Edit add-ons" } });
     if (a.banner.enabled && a.banner.assetId && !a.banner.alt.trim())
       add({ id: "banner-alt", level: "tip", message: "Describe your banner for people who can't see images.", fix: { tab: "addons", label: "Edit add-ons" } });
   }
@@ -237,12 +263,15 @@ function checkBlocks(doc: SignatureDoc, root: Column, add: (i: CheckIssue) => vo
         if (!b.url.trim() && !doc.details.website.trim())
           add({ id: `btn-${b.id}`, level: "warning", message: `“${b.text || "Button"}” has no link.`, fix: fixB(b.id, "Add a link") });
         break;
-      case "image":
+      case "image": {
         badLink(b.link, "Image");
+        const gif = b.assetId ? gifIssue(doc.assets[b.assetId], b.aspect, b.crop, b.radius ? "rounded" : "square") : null;
+        if (gif) add({ id: `gif-${b.id}`, level: "tip", message: gif, fix: fixB(b.id, "Select image") });
         if (!b.assetId) add({ id: `img-${b.id}`, level: "warning", message: "An image block is empty.", fix: fixB(b.id, "Add image") });
         else if (!b.alt?.trim())
           add({ id: `alt-${b.id}`, level: "tip", message: "Describe your image for people who can't see it.", fix: fixB(b.id, "Add description") });
         break;
+      }
       case "logos":
         b.items.forEach((it, i) => badLink(it.link, `Logo ${i + 1}`));
         if (b.items.some((it) => it.assetId && !it.alt?.trim()))

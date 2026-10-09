@@ -6,13 +6,15 @@ import { estimateScriptWidth, SCRIPT_FONT } from "../render/render";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "../render/icons";
 import { GLYPH_PATHS } from "../core/iconPaths";
 import { sourceUrl } from "../store/assets";
+import { gifStillReason } from "../core/gif";
+import type { AssetMeta } from "../core/types";
 
 export const DENSITY = 2;
 
 export interface Derivative {
   blob: Blob;
-  mime: "image/png" | "image/jpeg";
-  ext: "png" | "jpg";
+  mime: "image/png" | "image/jpeg" | "image/gif";
+  ext: "png" | "jpg" | "gif";
 }
 
 function load(src: string): Promise<HTMLImageElement> {
@@ -59,9 +61,18 @@ async function svg(markup: string, w: number, h: number, crisp = false): Promise
   return encode(c, false);
 }
 
-export async function derive(req: ImageRequest, mimeOf: (assetId: string) => string | undefined): Promise<Derivative> {
+export async function derive(
+  req: ImageRequest,
+  mimeOf: (assetId: string) => string | undefined,
+  metaOf: (assetId: string) => AssetMeta | undefined = () => undefined,
+): Promise<Derivative> {
   switch (req.kind) {
     case "crop": {
+      // Animated GIFs go out untouched when nothing needs baking in, so they keep moving.
+      if (mimeOf(req.assetId) === "image/gif" && gifStillReason(metaOf(req.assetId), req) === null) {
+        const blob = await (await fetch(asset(req.assetId))).blob();
+        return { blob, mime: "image/gif", ext: "gif" };
+      }
       const img = await load(asset(req.assetId));
       const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
       ctx.beginPath();

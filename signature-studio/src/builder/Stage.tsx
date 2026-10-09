@@ -19,11 +19,12 @@ const DIR_NAME: Record<HandleDir, string> = {
   sw: "bottom left",
 };
 import { resizeKind, snapColumn, snapResize } from "./snap";
+import { toolbarTop } from "./toolbar";
 import { inlineTarget } from "./inlineText";
 import { useLinker } from "../ui/LinkableText";
 import { updateColumn } from "./actions";
 import { findBlock, isWithin, rowOfColumn, walk } from "../core/blocks";
-import type { Column } from "../core/types";
+import type { Block, Column } from "../core/types";
 import { edit, ui, useStudio, tree, treeOf } from "../store/editor";
 import { duplicateSelected, nudgeSelected, removeSelected, selectParent, toggleInSelection } from "./actions";
 import { blockLabel } from "./catalog";
@@ -39,6 +40,44 @@ a[href]:hover{background-color:rgba(108,85,255,.12);outline:1px dashed rgba(108,
 [data-block]{position:relative}
 [data-col]{min-height:24px}
 </style>`;
+
+/** First field worth typing into: never a colour picker, a slider or a switch. */
+const FIRST_FIELD = "textarea, input:not([type=checkbox]):not([type=range]):not([type=color]), select";
+
+const focusFirst = (scope: string) =>
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(scope)?.querySelector<HTMLElement>(FIRST_FIELD)?.focus()));
+
+/**
+ * Double-click on a block without text of its own: do the thing people most
+ * likely want — change or crop an image, edit contact details or social links —
+ * instead of focusing whatever input happens to come first.
+ */
+export function primaryAction(b: Block) {
+  const doc = useStudio.getState().doc;
+  switch (b.type) {
+    case "photo":
+    case "logo": {
+      const has = !!doc?.images[b.type].assetId;
+      if (has) ui({ dialog: "crop", dialogArg: b.type });
+      else ui({ tab: "images" });
+      return;
+    }
+    case "image":
+      if (b.assetId) ui({ dialog: "crop", dialogArg: `block:${b.id}` });
+      else requestAnimationFrame(() => document.querySelector<HTMLElement>(".inspector .image-drop")?.click());
+      return;
+    case "contacts":
+      ui({ tab: "details" });
+      // Land on the contact lines, not the name at the top of the form.
+      requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="field-phone"]')?.focus()));
+      return;
+    case "socials":
+      ui({ tab: "social" });
+      return;
+    default:
+      focusFirst(".inspector");
+  }
+}
 
 function allColumns(root: Column): Column[] {
   const out = [root];
@@ -107,6 +146,21 @@ export function Stage({ html, className }: { html: string; className?: string })
       host.removeEventListener("click", noNav);
     };
   }, [measure]);
+
+  // Enter on a selected block: edit its text in place, or do its main action.
+  useEffect(() => {
+    const onEdit = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      const st = useStudio.getState();
+      const b = st.doc ? findBlock(tree(st.doc), id)?.block : null;
+      if (!b || !st.doc) return;
+      const target = inlineTarget(b, st.doc);
+      if (target) setInline({ id, value: target.value, multiline: target.multiline, linkable: target.linkable });
+      else primaryAction(b);
+    };
+    window.addEventListener("signet:edit-block", onEdit);
+    return () => window.removeEventListener("signet:edit-block", onEdit);
+  }, []);
 
   // Drop targets: the deepest column under the pointer, then the slot between its blocks.
   useEffect(
@@ -209,10 +263,10 @@ export function Stage({ html, className }: { html: string; className?: string })
             ui({ selected: id });
             return setInline({ id, value: target.value, multiline: target.multiline, linkable: target.linkable });
           }
-          // Otherwise jump straight to the first thing to edit in the inspector.
-          requestAnimationFrame(() =>
-            document.querySelector<HTMLElement>(".inspector textarea, .inspector input:not([type=checkbox]):not([type=range]), .inspector select")?.focus(),
-          );
+          if (b) {
+            ui({ selected: id });
+            primaryAction(b);
+          }
         }}
         onPointerMove={(e) => !dragging && setHover(hit(e))}
         onPointerLeave={() => setHover(null)}
@@ -303,7 +357,7 @@ export function Stage({ html, className }: { html: string; className?: string })
         {multi.length > 0 && !dragging && rects[multi[0]] && (
           <div
             className="ov-toolbar"
-            style={{ left: rects[multi[0]].x, top: rects[multi[0]].y < 32 ? rects[multi[0]].y + rects[multi[0]].h + 6 : rects[multi[0]].y - 32 }}
+            style={{ left: rects[multi[0]].x, top: toolbarTop(rects[multi[0]], rects, multi[0]) }}
             role="toolbar"
             aria-label="Selection actions"
           >
@@ -385,12 +439,7 @@ export function Stage({ html, className }: { html: string; className?: string })
                   />
                 );
               })}
-            <div
-              className="ov-toolbar"
-              style={{ left: selRect.x, top: selRect.y < 40 ? selRect.y + selRect.h + 12 : selRect.y - 40 }}
-              role="toolbar"
-              aria-label="Block actions"
-            >
+            <div className="ov-toolbar" style={{ left: selRect.x, top: toolbarTop(selRect, rects, selected!) }} role="toolbar" aria-label="Block actions">
               <button
                 className="ov-handle"
                 title="Drag to move"
