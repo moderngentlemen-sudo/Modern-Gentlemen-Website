@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ArrowUpLeft, Copy, GripVertical, Trash2 } from "lucide-react";
-import { HANDLE_CURSOR, handlesFor, resizeSpec, resizeValue, type HandleDir } from "./resize";
+import { HANDLE_CURSOR, handlesFor, resizeSpec, resizeValue, type HandleDir, type ResizeSpec } from "./resize";
 
 const DIR_NAME: Record<HandleDir, string> = {
   n: "top",
@@ -24,6 +24,7 @@ import { inlineTarget } from "./inlineText";
 import { useLinker, useRichEditing } from "../ui/LinkableText";
 import { updateColumn } from "./actions";
 import { findBlock, isWithin, rowOfColumn, walk } from "../core/blocks";
+import { clampScale } from "../core/scale";
 import type { Block, Column } from "../core/types";
 import { edit, ui, useStudio, tree, treeOf } from "../store/editor";
 import { duplicateSelected, nudgeSelected, placeImageFile, removeSelected, selectParent, toggleInSelection } from "./actions";
@@ -85,6 +86,32 @@ function allColumns(root: Column): Column[] {
   return out;
 }
 
+/** Most phones show about this much of an email's width without shrinking it. */
+export const PHONE_WIDTH = 360;
+
+/** Under the canvas: does the signature fit a phone, and a one-click fix when it doesn't. */
+export function PhoneFit() {
+  const w = useStudio((s) => s.sigWidth);
+  const scale = useStudio((s) => s.doc?.design.scale ?? 1);
+  const guide = useStudio((s) => s.phoneGuide);
+  if (!w) return null;
+  const over = w > PHONE_WIDTH;
+  const fit = clampScale(Math.floor((scale * PHONE_WIDTH * 100) / w) / 100);
+  return (
+    <div className={`phone-fit${over ? " over" : ""}`} data-testid="phone-fit">
+      <span>{over ? `${w}px wide — phones will shrink it to fit.` : `${w}px wide · fits phones.`}</span>
+      {over && fit < scale && (
+        <button className="btn sm" onClick={() => edit((d) => void (d.design.scale = fit))} data-testid="fit-phone">
+          Fit to phone
+        </button>
+      )}
+      <button className="btn sm ghost" aria-pressed={guide} onClick={() => useStudio.setState({ phoneGuide: !guide })}>
+        {guide ? "Hide phone guide" : "Show phone guide"}
+      </button>
+    </div>
+  );
+}
+
 export function Stage({ html, className }: { html: string; className?: string }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -100,6 +127,8 @@ export function Stage({ html, className }: { html: string; className?: string })
   const [inline, setInline] = useState<{ id: string; value: string; multiline: boolean; linkable?: boolean } | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [fileOver, setFileOver] = useState(false);
+  const [sig, setSig] = useState<{ x: number; w: number } | null>(null);
+  const phoneGuide = useStudio((s) => s.phoneGuide);
 
   const shadow = () => hostRef.current?.shadowRoot ?? null;
 
@@ -121,6 +150,14 @@ export function Stage({ html, className }: { html: string; className?: string })
       cols[el.dataset.col!] = { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
     });
     setColRects(cols);
+    const host = hostRef.current;
+    const table = sr.querySelector("table");
+    if (host && table) {
+      const z = useStudio.getState().zoom || 1;
+      const w = Math.round(table.getBoundingClientRect().width / z);
+      setSig({ x: host.getBoundingClientRect().left - base.left, w });
+      if (useStudio.getState().sigWidth !== w) useStudio.setState({ sigWidth: w });
+    }
   }, []);
 
   useLayoutEffect(() => {
@@ -299,6 +336,11 @@ export function Stage({ html, className }: { html: string; className?: string })
         }}
       />
       <div className="stage-overlay" aria-hidden={!sel}>
+        {phoneGuide && sig && (
+          <div className="ov-phone" style={{ left: sig.x + PHONE_WIDTH * zoom }} data-testid="phone-guide">
+            <span>Phone width · {PHONE_WIDTH}px</span>
+          </div>
+        )}
         {guide && <div className="ov-guide" style={{ left: guide.x, top: guide.y, height: guide.h }} />}
         {!dragging &&
           row &&
@@ -428,6 +470,17 @@ export function Stage({ html, className }: { html: string; className?: string })
                       document.body.classList.add("is-resizing");
                       document.body.style.cursor = HANDLE_CURSOR[dir];
                       const move = (ev: PointerEvent) => {
+                        // Image edges change the shape (Shift keeps the proportions).
+                        if (spec.stretch && dir.length === 1 && !ev.shiftKey) {
+                          const r = spec.stretch(dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);
+                          edit((d) => {
+                            const h = tree(d) ? findBlock(tree(d), id) : null;
+                            if (h) r.patch(d, h.block);
+                          }, `resize.${id}`);
+                          const st = stageRef.current!.getBoundingClientRect();
+                          setTip({ x: ev.clientX - st.left + 14, y: ev.clientY - st.top + 14, label: `${r.label} · Shift keeps proportions` });
+                          return;
+                        }
                         const raw = resizeValue(spec, dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);
                         // Hold Alt to resize freely without snapping.
                         const snap = ev.altKey ? { value: raw } : snapResize(useStudio.getState().doc!, id, raw, resizeKind(sel.block));
@@ -471,6 +524,7 @@ export function Stage({ html, className }: { html: string; className?: string })
                 <GripVertical size={14} />
               </button>
               <span className="ov-name">{blockLabel(sel.block)}</span>
+              {spec && <SizeChip spec={spec} id={sel.block.id} />}
               {canParent && (
                 <button onClick={selectParent} title="Select the columns around it" aria-label="Select parent">
                   <ArrowUpLeft size={14} />
@@ -499,6 +553,64 @@ export function Stage({ html, className }: { html: string; className?: string })
 const box = (r: Rect) => ({ left: r.x, top: r.y, width: r.w, height: r.h });
 
 /** Ghost + drop indicator while dragging (portal, viewport coordinates). */
+/** The selected block's size, under it: click to type an exact size or pick a preset. */
+function SizeChip({ spec, id }: { spec: ResizeSpec; id: string }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const apply = (v: number) => {
+    const val = Math.min(spec.max, Math.max(spec.min, v));
+    edit((d) => {
+      const h = tree(d) ? findBlock(tree(d), id) : null;
+      if (h) spec.patch(val)(d, h.block);
+    });
+  };
+  const shown = spec.dims ?? spec.label(spec.start);
+  return (
+    <span className="ov-size" onPointerDown={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className="ov-size-btn"
+        onClick={() => {
+          setDraft(String(Math.round(spec.start * 100) / 100));
+          setOpen(!open);
+        }}
+        aria-expanded={open}
+        title="Exact size · [ and ] resize, Shift for bigger steps"
+        data-testid="size-chip"
+      >
+        {shown}
+      </button>
+      {open && (
+        <div className="ov-size-pop" role="dialog" aria-label="Size">
+          <input
+            className="input sm"
+            autoFocus
+            inputMode="decimal"
+            aria-label="Exact size"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                const n = parseFloat(draft);
+                if (!Number.isNaN(n)) apply(n);
+                setOpen(false);
+              }
+              if (e.key === "Escape") setOpen(false);
+            }}
+            data-testid="size-input"
+          />
+          {spec.presets?.map((p) => (
+            <button key={p.label} type="button" className="btn sm" onClick={() => (apply(p.value), setOpen(false))} title={spec.label(p.value)}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 export function DragLayer() {
   const { source, label, x, y, resolution } = useDrag();
   if (!source) return null;

@@ -55,6 +55,31 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: audit Batch 4 (calmer editor, precise scaling)
+
+From the editor audit, items E1–E3, S1–S5, L1, L2 and B2:
+- **L1 — five-place builder rail:** Add, Layers, Content (Details / Images / Social), Style (Design / Templates), Publish (Add to Gmail, versions, card). Places with several panels show sub-tabs, and each place remembers the panel you left.
+- **L2 — Quick mode is a guided path:**
+  - numbered steps in the rail, ticked when done (template, details, images, social);
+  - a sticky "Step n of 6 · Back · Next" bar under each panel, ending in Add to Gmail.
+- **E1 — calmer inspector:**
+  - Content, Style, Panel and Visibility & hover are foldable sections, remembered per section.
+  - A folded section shows a one-line summary (e.g. "Playfair · 14px · Semibold · Accent").
+  - Panel and Visibility start folded.
+- **E2 — breadcrumb:** Signature › Columns › Column 2 › Name. Each step selects that level, and selecting a column now shows its settings.
+- **E3 — content in the inspector:** name, title/department/company and contact blocks edit their details in place.
+- **S1 — size chip and keyboard:**
+  - The block toolbar shows the size; click it for an exact value and S/M/L presets.
+  - `[` and `]` resize the selection (Shift for ×10).
+- **S2 — image edges unlock the aspect:** side edges change width, top and bottom change height, and the crop fills the new shape. Corners and Shift keep proportions.
+- **S3 — group sizing:** with several blocks selected, Smaller / Larger scale them together, and Match size copies the first one's size to blocks of the same kind.
+- **S4 — phone fit:**
+  - Under the canvas: "339px wide · fits phones", or a warning with **Fit to phone** (sets the signature scale).
+  - An optional 360px phone guide on the canvas.
+- **S5 — text scales from its height:** text corners follow the vertical drag, so long lines resize sensibly.
+- **B2 — phone bottom sheet:** on phones the inspector is a bottom sheet with a grip that folds it down to its header.
+- **Gates:** `npm test` (109), `npm run e2e` (51, incl. `batch4.spec.ts`), `npm run test:db`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio: audit Batch 3 (image studio)
 
 From the editor audit, items I1, I2, I3, I5, I7 and I8:

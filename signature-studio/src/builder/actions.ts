@@ -22,6 +22,7 @@ import {
 import type { AssetMeta, Block, Column } from "../core/types";
 import { uploadImage } from "../ui/ImageDrop";
 import { writeImage } from "./imageTarget";
+import { resizeSpec, stepValue } from "./resize";
 import { edit, toast, ui, undo, useStudio, tree } from "../store/editor";
 
 export interface DropTarget {
@@ -323,4 +324,53 @@ export async function placeImageFile(file: File, onBlockId?: string | null) {
     return;
   }
   addBlock(newBlock("image", { assetId: meta.id, width: Math.min(meta.width, 320) }), defaultTarget(), [meta]);
+}
+
+/** [ / ]: make the selected block one step smaller or larger (ten with Shift). */
+export function resizeSelectedBy(dir: 1 | -1, big = false): boolean {
+  const d = doc();
+  const root = d ? tree(d) : undefined;
+  const id = useStudio.getState().selected;
+  const hit = id && root ? findBlock(root, id) : null;
+  const spec = hit && d ? resizeSpec(hit.block, d, 300) : null;
+  if (!hit || !spec) return false;
+  const v = stepValue(spec, dir, big);
+  edit((x) => {
+    const h = tree(x) ? findBlock(tree(x), hit.block.id) : null;
+    if (h) spec.patch(v)(x, h.block);
+  }, `resize.${hit.block.id}`);
+  return true;
+}
+
+/**
+ * Resize every selected block together: scale by a factor, or match the first
+ * selected block's size (blocks of the same kind only — a photo can't match a text size).
+ */
+export function resizeSelection(mode: { scale: number } | "match"): number {
+  const d = doc();
+  const root = d ? tree(d) : undefined;
+  if (!d || !root) return 0;
+  const ids = selectedIds();
+  const specs = ids.map((id) => {
+    const h = findBlock(root, id);
+    return h ? { id, type: h.block.type, spec: resizeSpec(h.block, d, 300) } : null;
+  });
+  const first = specs.find((x) => x?.spec);
+  const textual = (t: string) => !["photo", "logo", "image", "monogram", "qr", "socials", "logos", "divider", "spacer", "canva", "name"].includes(t);
+  const sameKind = (t: string) => !!first && (t === first.type || (textual(t) && textual(first.type)));
+  let changed = 0;
+  edit((x) => {
+    const r = tree(x);
+    for (const it of specs) {
+      if (!it?.spec) continue;
+      if (mode === "match" && (!sameKind(it.type) || it === first)) continue;
+      const v = mode === "match" ? first!.spec!.start : it.spec.start * mode.scale;
+      const h = r ? findBlock(r, it.id) : null;
+      if (h) {
+        it.spec.patch(Math.min(it.spec.max, Math.max(it.spec.min, v)))(x, h.block);
+        changed++;
+      }
+    }
+  });
+  return changed;
 }

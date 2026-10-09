@@ -1,21 +1,22 @@
-import type { ReactNode } from "react";
-import { Copy, Minus, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChevronRight, Copy, Minus, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { SIGN_OFFS } from "../core/seasonal";
 import { ICON_CHOICES } from "../core/iconPaths";
 import { glyphSvg, svgDataUrl } from "../render/icons";
 import { uid } from "../lib/id";
-import { col, findBlock, findColumn } from "../core/blocks";
-import { FONTS } from "../core/fonts";
-import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, DetailKey } from "../core/types";
-import { edit, ui, useStudio, type Tab, tree, treeOf } from "../store/editor";
+import { col, findBlock, findColumn, pathTo } from "../core/blocks";
+import { FONTS, fontDef } from "../core/fonts";
+import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, Design, DetailKey } from "../core/types";
+import { edit, toast, ui, useStudio, type Tab, tree, treeOf } from "../store/editor";
 import { ImageDrop } from "../ui/ImageDrop";
 import { ImageStudio } from "./ImageStudio";
 import { LinkableText } from "../ui/LinkableText";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
-import { duplicateSelected, removeSelected, updateBlock, updateColumn, updateSelected, wrapSelected } from "./actions";
+import { duplicateSelected, removeSelected, resizeSelection, updateBlock, updateColumn, updateSelected, wrapSelected } from "./actions";
 import { blockLabel } from "./catalog";
 import { TextFormatBar } from "./TextFormatBar";
+import { readTypo, WEIGHTS } from "./typography";
 
 const ALIGN = [
   { value: "left" as const, label: "Left" },
@@ -94,6 +95,12 @@ const HOVERABLE = new Set<Block["type"]>([
   "canva",
 ]);
 
+/** A contact detail edited right in the inspector (the same value the Details tab edits). */
+function DetailField({ k, label, hint }: { k: DetailKey; label: string; hint?: string }) {
+  const value = useStudio((s) => s.doc!.details[k]);
+  return <TextField label={label} hint={hint} value={value} onChange={(v) => edit((d) => void (d.details[k] = v), `details.${k}`)} testId={`detail-${k}`} />;
+}
+
 function LinkField({ value, onChange, hint = "optional" }: { value?: string; onChange: (v: string | undefined) => void; hint?: string }) {
   return (
     <TextField
@@ -164,10 +171,105 @@ function StyleEditor({ b }: { b: Block }) {
           Reset to signature style
         </button>
       )}
-      {b.type !== "row" && <BoxEditor value={st.box} onChange={(box, k) => setStyle({ box }, k ? `box.${k}` : undefined)} />}
     </>
   );
 }
+
+/** One-line description of a block's style, shown when its section is folded. */
+function styleSummary(b: Block, d: Design): string {
+  const st = b.style ?? {};
+  const textual = !["row", "spacer", "divider", "image", "photo", "logo", "canva", "video"].includes(b.type);
+  const parts: string[] = [];
+  if (textual) {
+    const t = readTypo(b, d);
+    parts.push(t.font ? fontDef(t.font).label : "Signature font", `${t.size}px`);
+    if (t.weight) parts.push(WEIGHTS.find((w) => w.value === t.weight)?.label ?? String(t.weight));
+    if (t.role !== "auto")
+      parts.push(t.role === "custom" ? (t.color ?? "").toUpperCase() : t.role === "muted" ? "Muted" : t.role === "accent" ? "Accent" : "Text colour");
+  }
+  if (st.align && st.align !== "left") parts.push(st.align === "center" ? "Centred" : "Right");
+  return parts.join(" · ") || "Signature style";
+}
+
+const SECTION_KEY = "signet.inspector.sections";
+const readOpen = (): Record<string, boolean> => {
+  try {
+    return JSON.parse(localStorage.getItem(SECTION_KEY) ?? "{}") as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+};
+
+/** A foldable inspector section; folded, it shows a summary instead of its controls. Remembered per section. */
+function Section({
+  id,
+  title,
+  summary,
+  defaultOpen = true,
+  children,
+}: {
+  id: string;
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(() => readOpen()[id] ?? defaultOpen);
+  const toggle = () => {
+    setOpen(!open);
+    try {
+      localStorage.setItem(SECTION_KEY, JSON.stringify({ ...readOpen(), [id]: !open }));
+    } catch {
+      /* a convenience only */
+    }
+  };
+  return (
+    <section className={`insp-section${open ? " open" : ""}`}>
+      <button type="button" className="insp-section-head" aria-expanded={open} onClick={toggle} data-testid={`section-${id}`}>
+        <ChevronRight size={14} className="chev" />
+        <span className="insp-section-title">{title}</span>
+        {!open && summary && <span className="insp-section-sum">{summary}</span>}
+      </button>
+      {open && <div className="insp-section-body">{children}</div>}
+    </section>
+  );
+}
+
+/** Where the selected block sits: Signature › Columns › Column 2 › Text. Each step selects that level. */
+function Breadcrumb({ id, label }: { id: string; label: string }) {
+  const root = useStudio(treeOf);
+  if (!root) return null;
+  const path = pathTo(root, id);
+  if (!path.length) return null;
+  return (
+    <nav className="crumbs" aria-label="Where this block is" data-testid="breadcrumb">
+      <button type="button" onClick={() => ui({ selected: null })}>
+        Signature
+      </button>
+      {path.map((p) => (
+        <span key={p.kind === "row" ? p.block.id : p.column.id}>
+          <ChevronRight size={11} aria-hidden="true" />
+          <button type="button" onClick={() => ui({ selected: p.kind === "row" ? p.block.id : p.column.id, multi: [] })}>
+            {p.kind === "row" ? "Columns" : `Column ${p.index}`}
+          </button>
+        </span>
+      ))}
+      <span>
+        <ChevronRight size={11} aria-hidden="true" />
+        <b>{label}</b>
+      </span>
+    </nav>
+  );
+}
+
+/** 0-based position of a column in its row. */
+function columnIndex(root: Column, id: string): number {
+  const path = pathTo(root, id);
+  const row = path.at(-1);
+  return row?.kind === "row" && row.block.type === "row" ? row.block.columns.findIndex((c) => c.id === id) : 0;
+}
+
+const SHOW_IN: Record<string, string> = { both: "New emails & replies", full: "New emails only", reply: "Replies only", hidden: "Hidden" };
 
 function Content({ b }: { b: Block }) {
   const set = (patch: Record<string, unknown>, key?: string) => updateBlock(b.id, patch as Partial<Block>, key);
@@ -218,9 +320,7 @@ function Content({ b }: { b: Block }) {
     case "name":
       return (
         <>
-          <p className="hint">
-            Shows “{details.name || "your name"}”. <GoTo tab="details">Edit details</GoTo>
-          </p>
+          <DetailField k="name" label="Name" />
           <Slider label="Size" unit="×" min={0.7} max={2.2} step={0.05} value={b.scale ?? 1} onChange={(v) => set({ scale: v }, "scale")} />
           <Toggle label="Accent underline" checked={!!b.underline} onChange={(v) => set({ underline: v })} />
           <LinkField value={b.link} onChange={(v) => set({ link: v }, "link")} />
@@ -229,9 +329,13 @@ function Content({ b }: { b: Block }) {
     case "title":
       return (
         <>
-          <p className="hint">
-            Shows your title, department and company. <GoTo tab="details">Edit details</GoTo>
-          </p>
+          <DetailField k="title" label="Job title" />
+          {!b.titleOnly && (
+            <>
+              <DetailField k="department" label="Department" hint="optional" />
+              <DetailField k="company" label="Company" />
+            </>
+          )}
           <Toggle label="Job title only" checked={!!b.titleOnly} onChange={(v) => set({ titleOnly: v })} />
           <LinkField value={b.link} onChange={(v) => set({ link: v }, "link")} />
         </>
@@ -278,8 +382,13 @@ function Content({ b }: { b: Block }) {
             />
           </Field>
           <Toggle label="Filled icon badges" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
+          <DetailField k="phone" label="Phone" />
+          <DetailField k="mobile" label="Mobile" hint="optional" />
+          <DetailField k="email" label="Email" />
+          <DetailField k="website" label="Website" />
+          <DetailField k="address" label="Address" hint="optional" />
           <p className="hint">
-            Icon style is set in Design. <GoTo tab="details">Edit contact details</GoTo>
+            Shared with your saved profile. Icon style is set in Design. <GoTo tab="details">All details</GoTo>
           </p>
         </>
       );
@@ -593,6 +702,23 @@ function GroupInspector({ ids }: { ids: string[] }) {
           Group in a panel
         </button>
       </div>
+      <SectionTitle>Size</SectionTitle>
+      <div className="row" style={{ flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        <button className="btn sm" onClick={() => resizeSelection({ scale: 0.9 })} data-testid="group-smaller">
+          <Minus size={14} /> Smaller
+        </button>
+        <button className="btn sm" onClick={() => resizeSelection({ scale: 1.1 })} data-testid="group-larger">
+          <Plus size={14} /> Larger
+        </button>
+        <button
+          className="btn sm"
+          onClick={() => resizeSelection("match") || toast("Pick blocks of the same kind to match their size", "info")}
+          title="Make them the same size as the first one you selected"
+          data-testid="group-match"
+        >
+          Match size
+        </button>
+      </div>
       <SectionTitle>Style</SectionTitle>
       <Field label="Alignment">
         <Segmented<Align> label="Alignment" value={same((b) => b.style?.align ?? "left") ?? "left"} onChange={(v) => setStyle({ align: v })} options={ALIGN} />
@@ -640,16 +766,42 @@ export function Inspector() {
   const root = useStudio(treeOf);
   const selected = useStudio((s) => s.selected);
   const multi = useStudio((s) => s.multi);
+  const design = useStudio((s) => s.doc!.design);
+  const [peek, setPeek] = useState(false);
+  // Phones: the inspector is a bottom sheet; the grip folds it down to its header and back.
+  const grip = (
+    <button
+      type="button"
+      className="sheet-grip"
+      aria-label={peek ? "Show all settings" : "Fold settings down"}
+      aria-expanded={!peek}
+      onClick={() => setPeek(!peek)}
+      onPointerDown={(e) => {
+        const y0 = e.clientY;
+        const up = (ev: PointerEvent) => {
+          window.removeEventListener("pointerup", up);
+          if (Math.abs(ev.clientY - y0) > 24) setPeek(ev.clientY > y0);
+        };
+        window.addEventListener("pointerup", up);
+      }}
+      data-testid="sheet-grip"
+    >
+      <i />
+    </button>
+  );
+  const sheet = peek ? " sheet-peek" : "";
   if (multi.length > 1 && root)
     return (
-      <aside className="inspector" aria-label="Inspector" data-testid="inspector">
+      <aside className={`inspector${sheet}`} aria-label="Inspector" data-testid="inspector">
+        {grip}
         <GroupInspector ids={multi} />
       </aside>
     );
   const hit = root && selected ? findBlock(root, selected) : null;
   const columnSel = root && selected && !hit ? findColumn(root, selected) : null;
   return (
-    <aside className={`inspector${hit || columnSel ? "" : " idle"}`} aria-label="Inspector" data-testid="inspector">
+    <aside className={`inspector${hit || columnSel ? sheet : " idle"}`} aria-label="Inspector" data-testid="inspector">
+      {(hit || columnSel) && grip}
       {!hit && !columnSel && <SignatureSettings />}
       {hit && (
         <>
@@ -665,29 +817,69 @@ export function Inspector() {
               <X size={15} />
             </button>
           </div>
-          <Content b={hit.block} />
-          <StyleEditor b={hit.block} />
-          {HOVERABLE.has(hit.block.type) && (
-            <TextField
-              label="Hover text"
-              placeholder="Shown when someone points at it"
-              value={hit.block.hover ?? ""}
-              onChange={(v) => updateBlock(hit.block.id, { hover: v || undefined }, "hover")}
-              testId="inspector-hover"
-            />
+          <Breadcrumb id={hit.block.id} label={blockLabel(hit.block)} />
+          <Section id="content" title="Content">
+            <Content b={hit.block} />
+          </Section>
+          <Section id="style" title="Style" summary={styleSummary(hit.block, design)}>
+            <StyleEditor b={hit.block} />
+          </Section>
+          {hit.block.type !== "row" && (
+            <Section
+              id="panel"
+              title="Panel"
+              defaultOpen={false}
+              summary={
+                hit.block.style?.box?.background ? `${hit.block.style.box.background.toUpperCase()} · ${hit.block.style.box.padding ?? 0}px padding` : "None"
+              }
+            >
+              <BoxEditor
+                value={hit.block.style?.box}
+                onChange={(box, k) => updateBlock(hit.block.id, (x) => void (x.style = { ...x.style, box }), k ? `box.${k}` : undefined)}
+              />
+            </Section>
           )}
-          <SectionTitle>Show in</SectionTitle>
-          <Segmented
-            label="Show in"
-            value={hit.block.visibility ?? "both"}
-            onChange={(v) => updateBlock(hit.block.id, { visibility: v === "both" ? undefined : v })}
-            options={[
-              { value: "both", label: "Both" },
-              { value: "full", label: "New", title: "New emails only" },
-              { value: "reply", label: "Replies" },
-              { value: "hidden", label: "Hidden" },
-            ]}
-          />
+          <Section
+            id="more"
+            title="Visibility & hover"
+            defaultOpen={false}
+            summary={[SHOW_IN[hit.block.visibility ?? "both"], hit.block.hover ? "hover text" : ""].filter(Boolean).join(" · ")}
+          >
+            {HOVERABLE.has(hit.block.type) && (
+              <TextField
+                label="Hover text"
+                placeholder="Shown when someone points at it"
+                value={hit.block.hover ?? ""}
+                onChange={(v) => updateBlock(hit.block.id, { hover: v || undefined }, "hover")}
+                testId="inspector-hover"
+              />
+            )}
+            <Field label="Show in">
+              <Segmented
+                label="Show in"
+                value={hit.block.visibility ?? "both"}
+                onChange={(v) => updateBlock(hit.block.id, { visibility: v === "both" ? undefined : v })}
+                options={[
+                  { value: "both", label: "Both" },
+                  { value: "full", label: "New", title: "New emails only" },
+                  { value: "reply", label: "Replies" },
+                  { value: "hidden", label: "Hidden" },
+                ]}
+              />
+            </Field>
+          </Section>
+        </>
+      )}
+      {columnSel && root && (
+        <>
+          <div className="insp-head">
+            <h3 className="insp-title">Column</h3>
+            <button className="icon-btn sm" onClick={() => ui({ selected: null })} aria-label="Deselect" title="Done">
+              <X size={15} />
+            </button>
+          </div>
+          <Breadcrumb id={columnSel.id} label="Column" />
+          <ColumnEditor column={columnSel} index={columnIndex(root, columnSel.id)} />
         </>
       )}
     </aside>

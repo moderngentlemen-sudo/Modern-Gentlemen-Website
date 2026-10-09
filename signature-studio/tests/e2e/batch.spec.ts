@@ -75,6 +75,7 @@ test("edit text on the canvas and drag a column edge with snapping", async ({ pa
   await page.getByTestId("inline-editor").fill("Sam Rivera");
   await page.keyboard.press("Enter");
   await expect(preview(page)).toContainText("Sam Rivera");
+  await page.getByTestId("tab-content").click();
   await page.getByTestId("tab-details").click();
   await expect(page.getByTestId("field-name")).toHaveValue("Sam Rivera");
 

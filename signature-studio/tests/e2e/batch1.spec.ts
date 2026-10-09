@@ -73,6 +73,7 @@ test("double-click opens the useful thing; arrows, Enter and Esc move around the
 test("the Show in control fits the inspector", async ({ page }) => {
   await builder(page);
   await preview(page).getByText("Jordan Ellis").click();
+  await page.getByTestId("section-more").click();
   const over = await page.getByRole("group", { name: "Show in" }).evaluate((g) => g.scrollWidth - g.clientWidth);
   expect(over).toBeLessThanOrEqual(1);
 });

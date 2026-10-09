@@ -79,6 +79,28 @@ export function findBlock(root: Column | undefined, id: string): { block: Block;
   return null;
 }
 
+/**
+ * The chain of rows and columns from the top of the layout down to a block or
+ * column (not including it). Columns carry their 1-based position in the row.
+ */
+export function pathTo(root: Column, id: string): ({ kind: "row"; block: Block } | { kind: "column"; column: Column; index: number })[] {
+  const walkCol = (c: Column, trail: ReturnType<typeof pathTo>): ReturnType<typeof pathTo> | null => {
+    for (const b of c.blocks) {
+      if (b.id === id) return trail;
+      if (b.type === "row")
+        for (let i = 0; i < b.columns.length; i++) {
+          const col = b.columns[i];
+          const next = [...trail, { kind: "row" as const, block: b }];
+          if (col.id === id) return next;
+          const found = walkCol(col, [...next, { kind: "column" as const, column: col, index: i + 1 }]);
+          if (found) return found;
+        }
+    }
+    return null;
+  };
+  return walkCol(root, []) ?? [];
+}
+
 export function findColumn(root: Column | undefined, id: string): Column | null {
   if (!root) return null;
   if (root.id === id) return root;

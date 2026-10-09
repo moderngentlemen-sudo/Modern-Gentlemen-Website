@@ -295,3 +295,18 @@ describe("keyboard navigation order", () => {
     expect(adjacentBlockId(root, row.id, 1)).toBe(b.id);
   });
 });
+
+describe("breadcrumb path", () => {
+  it("lists the rows and columns above a block", async () => {
+    const { pathTo, col, rowOf, block } = await import("./blocks");
+    const t = block("text", { text: "hi" });
+    const inner = col([t]);
+    const r = rowOf([col(), inner]);
+    const root = col([block("name"), r]);
+    const p = pathTo(root, t.id);
+    expect(p.map((x) => x.kind)).toEqual(["row", "column"]);
+    expect(p[1].kind === "column" && p[1].index).toBe(2);
+    expect(pathTo(root, root.blocks[0].id)).toEqual([]);
+    expect(pathTo(root, inner.id).map((x) => x.kind)).toEqual(["row"]);
+  });
+});
