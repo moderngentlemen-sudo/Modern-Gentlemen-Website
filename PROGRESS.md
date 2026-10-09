@@ -8,6 +8,19 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-09 — "Made with Signet" link on free signatures
+
+- The owner chose this over ads (D34). The renderer adds a small muted link under
+  **new-email** signatures (never replies), pointing to `BRAND.url` with
+  `?ref=signature`. Each document has a `madeWith` setting, on by default.
+- **Switch:** "Show Made with Signet", in Design and in the builder's signature
+  settings. `src/core/plans.ts` (`entitlements().removeBadge`) decides who may
+  turn it off. Today that is everyone, because `EARLY_ACCESS` is on; once
+  billing exists, it becomes Pro.
+- The link is dropped automatically if it would push the email HTML past Gmail's
+  10,000 characters. Previews always show it, because they inline their icons.
+- **Gates:** `npm test` (24), `npm run e2e` (6), `npm run build`.
+
 ### 2026-10-09 — Signature Studio → product, Phase 1: drag-and-drop builder + redesign
 
 - **Owner decisions:** build it into a product, with a new name (shortlist in

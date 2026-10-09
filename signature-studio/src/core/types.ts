@@ -201,6 +201,8 @@ export interface SignatureDoc {
   /** "quick": template + forms. "builder": the drag-and-drop layout in `blocks`. */
   mode?: "quick" | "builder";
   blocks?: Column;
+  /** Show the small "Made with …" link under new-email signatures (default on). */
+  madeWith?: boolean;
 }
 
 export type Variant = "full" | "reply";

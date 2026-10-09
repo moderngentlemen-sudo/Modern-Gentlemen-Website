@@ -32,3 +32,16 @@ test("digital business card page decodes its link", async ({ page }) => {
   await expect(page.getByTestId("save-contact")).toBeVisible();
   await shot(page, "05-digital-card");
 });
+
+test("Made with link shows under new emails and can be switched off", async ({ page }) => {
+  await page.goto("/app");
+  await page.getByTestId("template-corporate-classic").click();
+  const preview = page.locator('[data-testid="preview"]');
+  await expect(preview).toContainText("Made with Signet");
+  await page.getByRole("group", { name: "Signature version" }).getByRole("button", { name: "Reply" }).click();
+  await expect(preview).not.toContainText("Made with Signet");
+  await page.getByRole("group", { name: "Signature version" }).getByRole("button", { name: "New email" }).click();
+  await page.getByTestId("tab-design").click();
+  await page.getByTestId("made-with").click();
+  await expect(preview).not.toContainText("Made with Signet");
+});

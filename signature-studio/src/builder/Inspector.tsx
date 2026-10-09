@@ -6,6 +6,7 @@ import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, DetailKey } fr
 import { edit, ui, useStudio, type Tab } from "../store/editor";
 import { ImageDrop } from "../ui/ImageDrop";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
+import { MadeWithToggle } from "../panels/DesignPanel";
 import { duplicateSelected, removeSelected, updateBlock, updateColumn } from "./actions";
 import { blockLabel } from "./catalog";
 
@@ -419,6 +420,8 @@ function SignatureSettings() {
         onChange={(v) => edit((d) => void (d.design.width = v), "design.width")}
       />
       <BoxEditor label="Background panel" value={root.box} onChange={(b, k) => updateColumn(root.id, { box: b }, k)} />
+      <SectionTitle>Footer</SectionTitle>
+      <MadeWithToggle />
       <p className="hint" style={{ marginTop: 14 }}>
         Shortcuts: <kbd>Del</kbd> delete · <kbd>⌘D</kbd> duplicate · <kbd>Alt ↑↓</kbd> move · <kbd>Esc</kbd> deselect · <kbd>⌘Z</kbd> undo
       </p>

@@ -5,6 +5,8 @@
  * preview: local images (object URLs / inline SVG), never sent anywhere.
  * email:   every image must resolve to a verified public URL, or it's an error.
  */
+import { BRAND } from "../brand";
+import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
 import { mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
 import { cropRect } from "../core/crop";
@@ -1171,6 +1173,21 @@ export function hasBlock(root: Column | undefined, type: BlockType): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// "Made with" link — free signatures carry a small, quiet credit
+// ---------------------------------------------------------------------------
+
+/** New-email signatures only (replies stay clean), unless the user turned it off. */
+export function showsMadeWith(doc: SignatureDoc, variant: Variant): boolean {
+  return variant === "full" && doc.madeWith !== false;
+}
+
+function madeWithHtml(c: Ctx): string {
+  const d = c.doc.design;
+  const color = mix(d.muted, "#ffffff", 0.25);
+  return text(c, link(BRAND.url, esc(BRAND.madeWith), color), { size: Math.max(9, d.fontSize - 4), color, role: "body" });
+}
+
+// ---------------------------------------------------------------------------
 // Entry
 // ---------------------------------------------------------------------------
 
@@ -1201,10 +1218,19 @@ export function renderSignature(doc: SignatureDoc, opts: RenderOptions): RenderR
   // In the builder every add-on is a block the user placed; nothing is appended.
   const blocks = builder ? [main] : [addonsTop(c), main, cardOnly ? "" : cardHtml(c, digitalUrl), ...addonsBottom(c, digitalUrl)];
   const align = doc.design.align === "center" && !compact ? "center" : "left";
-  const body = stack(c, blocks, 12, align === "center" ? "center" : undefined);
-  const html = body
-    ? `<table ${TABLE} style="border-collapse:collapse;"><tr><td style="font-family:${font(c, "body")};font-size:${doc.design.fontSize}px;color:${esc(doc.design.text)};text-align:${align};">${body}</td></tr></table>`
-    : "";
+  const wrap = (parts: string[]) => {
+    const body = stack(c, parts, 12, align === "center" ? "center" : undefined);
+    return body
+      ? `<table ${TABLE} style="border-collapse:collapse;"><tr><td style="font-family:${font(c, "body")};font-size:${doc.design.fontSize}px;color:${esc(doc.design.text)};text-align:${align};">${body}</td></tr></table>`
+      : "";
+  };
+  let html = wrap(blocks);
+  if (main && showsMadeWith(doc, opts.variant)) {
+    // The credit is a guest: it never pushes a signature past Gmail's limit.
+    // (Only the email HTML counts — previews inline their icons, so they run long.)
+    const withCredit = wrap([...blocks, madeWithHtml(c)]);
+    if (c.preview || withCredit.length <= GMAIL_SIGNATURE_LIMIT) html = withCredit;
+  }
   const seen = new Set<string>();
   const images = c.images.filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true)));
   return { html, images, errors: [...new Set(c.errors)] };

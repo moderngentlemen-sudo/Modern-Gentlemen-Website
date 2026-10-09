@@ -66,6 +66,14 @@ None of these names has been checked for trademarks or domains. Do that before y
 | Digital card, analytics, remove "Made with" link | — | ✓ | ✓ |
 | Shared brand templates, admin rollout, bulk create | — | — | ✓ |
 
+The "Made with Signet" link is already built (D34).
+
+- **Where it appears:** a small, muted line under new-email signatures, never in replies. It links to `BRAND.url` with `?ref=signature`, so visits it brings in can be counted.
+- **Turning it off:** a switch in Design (and in the builder's signature settings). During early access anyone can use it. Once billing exists, `src/core/plans.ts` makes it a Pro feature.
+- **Gmail's limit:** the renderer drops the link rather than push a signature past 10,000 characters.
+
+Ads were considered and rejected. Ads in signatures would hurt users' professional image and email deliverability, and in-app ads would earn little because people visit rarely.
+
 Everything is free during early access. The landing page says so, and it shows Pro and Teams as "Coming soon" with no prices.
 
 ## Before a public launch
