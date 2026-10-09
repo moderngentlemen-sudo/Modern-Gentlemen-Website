@@ -6,6 +6,7 @@ import { countdownParts } from "@/lib/blocks/afterHours";
 import { libraryFontStack } from "@/lib/domain/fontLibrary";
 import { clsx } from "@/components/ui/clsx";
 import { FontStylesheet } from "../ui/FontStylesheet";
+import { TICKS, TickNumber, tickMs, type Tick, type TickSpeed } from "./TickNumber";
 import styles from "./LaunchElements.module.css";
 
 const UNITS = ["days", "hours", "minutes", "seconds"] as const;
@@ -33,7 +34,8 @@ export interface LaunchCountdownProps {
   unit?: Unit;
   outline?: boolean;
   timeZone?: string;
-  tick?: "none" | "fade" | "rise" | "flip";
+  tick?: Tick;
+  tickSpeed?: TickSpeed;
 }
 
 /** Ticks once a second after mount; `null` on the server so SSR shows dashes, never a stale time. */
@@ -87,7 +89,13 @@ export function LaunchCountdown({
   outline = true,
   timeZone = "Europe/London",
   tick = "none",
+  tickSpeed = "measured",
 }: LaunchCountdownProps) {
+  const motion: Tick = (TICKS as readonly string[]).includes(tick) ? tick : "none";
+  const ms = tickMs(tickSpeed);
+  const num = (value: string, className = styles.num, data?: Record<string, string>) => (
+    <TickNumber value={value} tick={motion} speed={ms} className={className} data={data} />
+  );
   const now = useNow();
   const parts = now === null ? null : countdownParts(target, now);
   const launched = parts !== null && parts.every((v) => v === 0);
@@ -131,9 +139,7 @@ export function LaunchCountdown({
       <div className={styles.grid}>
         {shown.map((u) => (
           <span key={u} className={clsx(styles.unit, accentUnit === u && styles.accent)}>
-            <span key={values[u]} className={styles.num}>
-              {values[u]}
-            </span>
+            {num(values[u])}
             <span className={styles.label}>{label(u)}</span>
           </span>
         ))}
@@ -147,9 +153,7 @@ export function LaunchCountdown({
         <span className={styles.label} style={{ marginTop: 0 }}>
           {label("days")}
         </span>
-        <span key={values.days} className={styles.num}>
-          {values.days}
-        </span>
+        {num(values.days)}
         <span className={styles.clockSmall}>{small}</span>
       </span>
     );
@@ -211,13 +215,7 @@ export function LaunchCountdown({
   } else if (style === "single") {
     body = (
       <span className={styles.unit}>
-        <span
-          key={values[unit]}
-          className={styles.single}
-          data-outline={outline ? "true" : "false"}
-        >
-          {values[unit]}
-        </span>
+        {num(values[unit], styles.single, { "data-outline": outline ? "true" : "false" })}
         <span className={styles.label}>{label(unit)}</span>
       </span>
     );
@@ -232,9 +230,7 @@ export function LaunchCountdown({
               </span>
             )}
             <span className={clsx(styles.unit, accentUnit === u && styles.accent)}>
-              <span key={values[u]} className={styles.num}>
-                {values[u]}
-              </span>
+              {num(values[u])}
               <span className={styles.label}>{label(u)}</span>
             </span>
           </span>
@@ -251,8 +247,8 @@ export function LaunchCountdown({
       className={styles.countdown}
       data-align={align}
       data-countdown-style={style}
-      data-tick={tick === "fade" || tick === "rise" || tick === "flip" ? tick : undefined}
-      style={vars}
+      data-tick={motion === "none" || motion === "scramble" ? undefined : motion}
+      style={{ ...vars, "--cd-tick-ms": `${ms}ms` } as CSSProperties}
     >
       <FontStylesheet font={font} />
       <FontStylesheet font={labelFont} />

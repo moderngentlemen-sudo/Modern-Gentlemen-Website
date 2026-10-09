@@ -168,19 +168,65 @@ describe("Launch elements", () => {
     expect(deep.style.opacity).toBe("");
   });
 
-  it("countdown numbers animate on change only when asked", () => {
+  it("countdown numbers roll the old value out as the new one arrives", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2027-01-14T18:00:00Z"));
     const { container, rerender } = render(<LaunchCountdown target="2027-01-16T18:00:00Z" />);
     expect(container.querySelector("[data-tick]")).toBeNull();
-    rerender(<LaunchCountdown target="2027-01-16T18:00:00Z" tick="flip" />);
+    rerender(<LaunchCountdown target="2027-01-16T18:00:00Z" tick="rise" tickSpeed="slow" />);
     act(() => void vi.advanceTimersByTime(1000));
-    const seconds = () => container.querySelectorAll("[role=timer] [class*=num]")[3];
-    const before = seconds();
-    expect(container.querySelector('[data-tick="flip"]')).toBeTruthy();
-    act(() => void vi.advanceTimersByTime(1000));
-    // Keyed on its value: a new second is a new node, which replays the animation.
-    expect(seconds()).not.toBe(before);
+    const timer = container.querySelector<HTMLElement>('[data-tick="rise"]')!;
+    expect(timer.style.getPropertyValue("--cd-tick-ms")).toBe("900ms");
+    // The clock has gone from 00 to 59 seconds: 00 rolls out as 59 rolls in.
+    const outgoing = () =>
+      [...timer.querySelectorAll("[class*=tickOut]")].map((n) => n.textContent);
+    expect(outgoing()).toContain("00");
+    expect([...timer.querySelectorAll("[data-moving]")].map((n) => n.textContent)).toContain("59");
+    // Gone once the transition has run, leaving one number per unit.
+    act(() => void vi.advanceTimersByTime(950));
+    expect(outgoing()).toEqual([]);
+  });
+
+  it("scramble shuffles the digits, then settles on the real value", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2027-01-14T18:00:00Z"));
+    const { container } = render(
+      <LaunchCountdown target="2027-01-16T18:00:00Z" tick="scramble" tickSpeed="quick" />
+    );
+    act(() => void vi.advanceTimersByTime(2000));
+    act(() => void vi.advanceTimersByTime(400));
+    const nums = container.querySelectorAll("[role=timer] [class*=num]");
+    expect(nums[3].textContent).toBe("58");
+    expect(container.querySelector("[data-tick]")).toBeNull();
+  });
+
+  it("knockout letters can be cut out, tinted, outlined or solid", () => {
+    const ko = (props: Parameters<typeof LaunchKnockout>[0]) =>
+      render(<LaunchKnockout {...props} />).container.querySelector<HTMLElement>(
+        "[data-knockout]"
+      )!;
+    const cut = ko({ panel: "dark" });
+    expect(cut.style.getPropertyValue("--ko-ink")).toBe("#ffffff");
+    expect(cut.hasAttribute("data-letters")).toBe(false);
+    // Tinted on a dark (multiply) panel: white toward the colour.
+    const tinted = ko({
+      panel: "dark",
+      letters: "tinted",
+      letterColor: "#c8102e",
+      letterStrength: 50,
+    });
+    expect(tinted.style.getPropertyValue("--ko-ink")).toBe("#e48897");
+    expect(tinted.dataset.knockout).toBe("multiply");
+    // Outline: the fill matches the panel, so only the stroke is cut out.
+    const outline = ko({ panel: "light", letters: "outline", outlineWidth: 5 });
+    expect(outline.style.getPropertyValue("--ko-ink")).toBe("#f4f4f4");
+    expect(outline.style.getPropertyValue("--ko-stroke")).toBe("5px");
+    expect(outline.style.getPropertyValue("--ko-stroke-color")).toBe("#000000");
+    // Solid: no blend at all, so any colour is exactly that colour.
+    const solid = ko({ panelColor: "#1b2a4a", letters: "solid", letterColor: "#d4af37" });
+    expect(solid.dataset.knockout).toBe("none");
+    expect(solid.style.getPropertyValue("--ko-ink")).toBe("#d4af37");
+    expect(solid.style.getPropertyValue("--ko-panel")).toBe("#1b2a4a");
   });
 
   it("shapes are decorative", () => {

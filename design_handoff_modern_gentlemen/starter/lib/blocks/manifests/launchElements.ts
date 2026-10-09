@@ -74,11 +74,24 @@ export const nativeCountdown = defineBlock({
       default: "none",
       options: [
         { value: "none", label: "Just change" },
-        { value: "fade", label: "Fade in" },
-        { value: "rise", label: "Rise in" },
-        { value: "flip", label: "Flip over" },
+        { value: "fade", label: "Cross-fade" },
+        { value: "rise", label: "Roll up (odometer)" },
+        { value: "drop", label: "Roll down" },
+        { value: "flip", label: "Flip card" },
+        { value: "blur", label: "Focus pull" },
+        { value: "zoom", label: "Zoom through" },
+        { value: "scramble", label: "Scramble, then settle" },
       ],
       help: "Still for visitors who ask for reduced motion.",
+    }),
+    tickSpeed: field.select({
+      label: "Transition speed",
+      default: "measured",
+      options: [
+        { value: "quick", label: "Quick" },
+        { value: "measured", label: "Measured" },
+        { value: "slow", label: "Slow" },
+      ],
     }),
     accentUnit: field.select({
       label: "Accent unit",
@@ -274,6 +287,36 @@ export const nativeKnockout = defineBlock({
     panelColor: field.color({
       label: "Panel colour",
       help: "Optional; replaces the light or dark preset. The letters stay cut out either way. Pale colours lighten the video and deep colours darken it, so white or black give a solid panel and anything between gives a tinted one.",
+    }),
+    letters: field.select({
+      label: "Letters",
+      default: "cutout",
+      options: [
+        { value: "cutout", label: "Cut out — the video shows through" },
+        { value: "tinted", label: "Tinted — the video shows through, coloured" },
+        { value: "outline", label: "Outline — only the edges are cut out" },
+        { value: "solid", label: "Solid colour — no video in the letters" },
+      ],
+    }),
+    letterColor: field.color({
+      label: "Letter colour",
+      default: "#c8102e",
+      help: "Used by Tinted and Solid colour.",
+    }),
+    letterStrength: field.number({
+      label: "Tint strength (%)",
+      default: 60,
+      min: 0,
+      max: 100,
+      integer: true,
+      help: "Tinted only: 0 is a clear cut-out, 100 the full colour over the video.",
+    }),
+    outlineWidth: field.number({
+      label: "Outline width (px)",
+      default: 3,
+      min: 1,
+      max: 40,
+      help: "Outline only, at the stage's design width.",
     }),
     panelOpacity: field.number({
       label: "Panel opacity (%)",

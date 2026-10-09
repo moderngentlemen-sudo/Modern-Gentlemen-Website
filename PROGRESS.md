@@ -167,6 +167,21 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   `[data-stage-cell]`, so editing never waits on the intro.
 - **Countdown:** "When a number changes" — fade, rise or flip. Each number is
   keyed on its value, so a change remounts it and replays the animation.
+- **Knockout letters** (follow-up): Cut out (default), Tinted, Outline or
+  Solid colour. The blend decides what vanishes — black under screen, white
+  under multiply — so Tinted mixes that "clear" colour toward the chosen one
+  by a strength, Outline fills the letters with the panel colour and strokes
+  them in the clear colour (only the edges are cut out), and Solid drops the
+  blend entirely (`data-knockout="none"`), which is the one way to get exact
+  colours on both panel and letters.
+- **Countdown transitions** (follow-up): eight — none, cross-fade, roll up
+  (odometer), roll down, flip card, focus pull, zoom through, scramble — at
+  quick / measured / slow. `components/elements/TickNumber.tsx` keeps the
+  outgoing value for one transition and renders it beside the incoming one,
+  because a roll needs both; scramble shuffles digits on an interval instead.
+  The first value after the dashes never animates. The "One line" style is
+  plain text and does not animate. The old `fade`/`rise`/`flip` values keep
+  working.
 - Every animation stops under `prefers-reduced-motion` (checked in Chromium:
   zero running animations). axe: zero violations on a stage with every effect
   on. Gates: format, lint, typecheck, 4,095 unit tests.
