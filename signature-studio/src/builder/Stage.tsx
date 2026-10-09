@@ -6,7 +6,18 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ArrowUpLeft, Copy, GripVertical, Trash2 } from "lucide-react";
-import { resizeSpec } from "./resize";
+import { HANDLE_CURSOR, handlesFor, resizeSpec, resizeValue, type HandleDir } from "./resize";
+
+const DIR_NAME: Record<HandleDir, string> = {
+  n: "top",
+  s: "bottom",
+  e: "right",
+  w: "left",
+  ne: "top right",
+  nw: "top left",
+  se: "bottom right",
+  sw: "bottom left",
+};
 import { resizeKind, snapColumn, snapResize } from "./snap";
 import { inlineTarget } from "./inlineText";
 import { useLinker } from "../ui/LinkableText";
@@ -310,7 +321,7 @@ export function Stage({ html, className }: { html: string; className?: string })
             <div className="ov-select" style={box(selRect)} />
             <button
               className="ov-grip"
-              style={{ left: selRect.x - 22, top: selRect.y + selRect.h / 2 - 14 }}
+              style={{ left: selRect.x - 30, top: selRect.y + selRect.h / 2 - 14 }}
               title="Drag to move"
               aria-label="Drag to move"
               data-testid="drag-handle"
@@ -321,59 +332,62 @@ export function Stage({ html, className }: { html: string; className?: string })
             >
               <GripVertical size={14} />
             </button>
-            {spec && (
-              <button
-                className={`ov-resize${spec.axis === "y" ? " v" : ""}`}
-                style={
-                  spec.axis === "y"
-                    ? { left: selRect.x + selRect.w / 2 - 9, top: selRect.y + selRect.h - 9 }
-                    : { left: selRect.x + selRect.w - 9, top: selRect.y + selRect.h - 9 }
-                }
-                title="Drag to resize"
-                aria-label="Drag to resize"
-                data-testid="resize-handle"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  const id = sel.block.id;
-                  const x0 = e.clientX;
-                  const y0 = e.clientY;
-                  const w0 = Math.max(8, selRect.w);
-                  const clamp = (v: number) => Math.min(spec.max, Math.max(spec.min, v));
-                  document.body.classList.add("is-resizing");
-                  const move = (ev: PointerEvent) => {
-                    const raw =
-                      spec.axis === "y" ? clamp(spec.start + (ev.clientY - y0) / zoom) : clamp(spec.start * Math.max(0.05, (w0 + ev.clientX - x0) / w0));
-                    // Hold Alt to resize freely without snapping.
-                    const snap = ev.altKey ? { value: raw } : snapResize(useStudio.getState().doc!, id, raw, resizeKind(sel.block));
-                    const v = snap.value;
-                    edit((d) => {
-                      const h = tree(d) ? findBlock(tree(d), id) : null;
-                      if (h) spec.patch(v)(d, h.block);
-                    }, `resize.${id}`);
-                    const st = stageRef.current!.getBoundingClientRect();
-                    setTip({
-                      x: ev.clientX - st.left + 14,
-                      y: ev.clientY - st.top + 14,
-                      label: snap.match ? `${spec.label(v)} · matches ${snap.match}` : spec.label(v),
-                    });
-                  };
-                  const up = () => {
-                    window.removeEventListener("pointermove", move);
-                    window.removeEventListener("pointerup", up);
-                    window.removeEventListener("pointercancel", up);
-                    document.body.classList.remove("is-resizing");
-                    setTip(null);
-                  };
-                  window.addEventListener("pointermove", move);
-                  window.addEventListener("pointerup", up);
-                  window.addEventListener("pointercancel", up);
-                }}
-              />
-            )}
+            {spec &&
+              handlesFor(spec, selRect).map((dir) => {
+                const cx = dir.includes("w") ? selRect.x : dir.includes("e") ? selRect.x + selRect.w : selRect.x + selRect.w / 2;
+                const cy = dir.includes("n") ? selRect.y : dir.includes("s") ? selRect.y + selRect.h : selRect.y + selRect.h / 2;
+                const corner = dir.length === 2;
+                return (
+                  <button
+                    key={dir}
+                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}`}
+                    style={{ left: cx, top: cy, cursor: HANDLE_CURSOR[dir] }}
+                    title="Drag to resize · Alt for free sizing"
+                    aria-label={`Resize from the ${DIR_NAME[dir]}`}
+                    data-testid={dir === "se" ? "resize-handle" : `resize-handle-${dir}`}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      const id = sel.block.id;
+                      const x0 = e.clientX;
+                      const y0 = e.clientY;
+                      const box = { w: selRect.w / zoom, h: selRect.h / zoom };
+                      document.body.classList.add("is-resizing");
+                      document.body.style.cursor = HANDLE_CURSOR[dir];
+                      const move = (ev: PointerEvent) => {
+                        const raw = resizeValue(spec, dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);
+                        // Hold Alt to resize freely without snapping.
+                        const snap = ev.altKey ? { value: raw } : snapResize(useStudio.getState().doc!, id, raw, resizeKind(sel.block));
+                        const v = snap.value;
+                        edit((d) => {
+                          const h = tree(d) ? findBlock(tree(d), id) : null;
+                          if (h) spec.patch(v)(d, h.block);
+                        }, `resize.${id}`);
+                        const st = stageRef.current!.getBoundingClientRect();
+                        setTip({
+                          x: ev.clientX - st.left + 14,
+                          y: ev.clientY - st.top + 14,
+                          label: snap.match ? `${spec.label(v)} · matches ${snap.match}` : spec.label(v),
+                        });
+                      };
+                      const up = () => {
+                        window.removeEventListener("pointermove", move);
+                        window.removeEventListener("pointerup", up);
+                        window.removeEventListener("pointercancel", up);
+                        document.body.classList.remove("is-resizing");
+                        document.body.style.cursor = "";
+                        setTip(null);
+                      };
+                      window.addEventListener("pointermove", move);
+                      window.addEventListener("pointerup", up);
+                      window.addEventListener("pointercancel", up);
+                    }}
+                  />
+                );
+              })}
             <div
               className="ov-toolbar"
-              style={{ left: selRect.x, top: selRect.y < 32 ? selRect.y + selRect.h + 6 : selRect.y - 32 }}
+              style={{ left: selRect.x, top: selRect.y < 40 ? selRect.y + selRect.h + 12 : selRect.y - 40 }}
               role="toolbar"
               aria-label="Block actions"
             >

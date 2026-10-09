@@ -108,3 +108,54 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
       return null;
   }
 }
+
+/** The eight handles around a selected block: corners and edges. */
+export type HandleDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+export const HANDLE_DIRS: HandleDir[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+
+/** Below this frame size (px on screen) an edge handle would sit on top of the corners. */
+const EDGE_ROOM = 48;
+
+/**
+ * Handles that make sense for a spec and frame: a spacer only grows up or
+ * down, and a short or narrow block drops the edge handles that would
+ * overlap its corners.
+ */
+export function handlesFor(spec: ResizeSpec, frame: { w: number; h: number } = { w: Infinity, h: Infinity }): HandleDir[] {
+  if (spec.axis === "y") return ["n", "s"];
+  return HANDLE_DIRS.filter((d) => {
+    if (d === "e" || d === "w") return frame.h >= EDGE_ROOM;
+    if (d === "n" || d === "s") return frame.w >= EDGE_ROOM;
+    return true;
+  });
+}
+
+/**
+ * The new value when a handle moves by (dx, dy) screen px (already divided by
+ * zoom). Blocks keep their proportions, so every handle scales the whole block:
+ * dragging away from the block's centre grows it, towards it shrinks it. A
+ * corner follows whichever direction moved further.
+ */
+export function resizeValue(spec: ResizeSpec, dir: HandleDir, dx: number, dy: number, box: { w: number; h: number }): number {
+  const clamp = (v: number) => Math.min(spec.max, Math.max(spec.min, v));
+  const sx = dir.includes("e") ? 1 : dir.includes("w") ? -1 : 0;
+  const sy = dir.includes("s") ? 1 : dir.includes("n") ? -1 : 0;
+  if (spec.axis === "y") return clamp(spec.start + sy * dy);
+  const w = Math.max(8, box.w);
+  const h = Math.max(8, box.h);
+  const fx = sx ? (w + sx * dx) / w : 1;
+  const fy = sy ? (h + sy * dy) / h : 1;
+  const f = Math.abs(fx - 1) >= Math.abs(fy - 1) ? fx : fy;
+  return clamp(spec.start * Math.max(0.05, f));
+}
+
+export const HANDLE_CURSOR: Record<HandleDir, string> = {
+  n: "ns-resize",
+  s: "ns-resize",
+  e: "ew-resize",
+  w: "ew-resize",
+  ne: "nesw-resize",
+  sw: "nesw-resize",
+  nw: "nwse-resize",
+  se: "nwse-resize",
+};

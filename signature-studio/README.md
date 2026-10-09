@@ -10,7 +10,7 @@ Signatures paste straight into Gmail. Product plan and name shortlist:
   shortcuts, undo; works with touch. Every layout compiles to Gmail-safe tables.
 - **Brand kit:** colours, fonts, logo, company — for new signatures and on demand.
 - **Builder quality of life:**
-  - Canvas handles: resize handles on photos, logos, images, QR codes, text and spacers, and a drag grip.
+  - Canvas handles: resize handles on every corner and edge of photos, logos, images, QR codes, text and more (spacers: top and bottom), plus a drag grip. Blocks keep their proportions; dragging outward grows, inward shrinks.
   - Canvas zoom.
   - Double-click a block to edit it.
   - Copy and paste blocks.

@@ -55,6 +55,16 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   migration. Actual scope matches; no dependency, theme schema version,
   existing design component or live content change.
 
+### 2026-10-09 — Signature Studio: resize handles on every side and corner
+
+- **Handles:** a selected block now has eight handles — four corners and four edges — instead of one bottom-right handle. Pure maths is in `builder/resize.ts` (`resizeValue`, `handlesFor`) and is unit-tested.
+- **How they behave:**
+  - Every handle scales the block in proportion: dragging away from the block grows it, dragging towards it shrinks it. A corner follows whichever direction moved further.
+  - Spacers get only top and bottom handles.
+  - Blocks shorter or narrower than 48px drop the side or top/bottom handles that would cover the corners.
+- **Layout fixes:** the drag grip moved 8px further out, and the block toolbar moved 12px further away, so neither sits over a handle. Both overlaps were found by the new e2e test.
+- **Gates:** `npm test`, `npm run e2e`, `npm run build`.
+
 ### 2026-10-09 — Signature Studio Phase 2 (accounts & cloud) — code built, project pending
 
 - **PR:** [moderngentlemen-sudo/Modern-Gentlemen-Website#134](https://github.com/moderngentlemen-sudo/Modern-Gentlemen-Website/pull/134). It carries the three earlier batches plus this one.
