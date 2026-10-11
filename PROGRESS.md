@@ -39,6 +39,10 @@ From the owner's testing:
 - **Existing signatures unchanged:** a hash of all 82 built-in templates plus 16 contact layout × icon combinations matched the previous code after each step.
 - **Gates:** `npm test` (164), `npm run e2e` (66), `npm run test:db`, `npm run build`.
 
+### 2026-10-11 — Reverted: Stage background behind Safari's toolbars (PR #144)
+
+PR #144 added a Stage `edges` field (`solid`/`bottom`/`both`) and `edgeColor`; `both` scrolled the page 64px on load (`StageRunway`) so Safari would composite the background behind its status bar. **The owner rejected it because the page now scrolls**, and it was reverted in full. Decision: a standalone Coming Soon page must not scroll; the bars stay the solid stage colour. Don't reintroduce a scroll runway. Three old `revisions` rows still carry `edges`/`edgeColor` — restoring one of those would bring back keys the manifest no longer declares.
+
 ### 2026-10-11 — Signature Studio: contact block handles, icons toggle, dividers and spacing
 
 From the owner's testing of the contact block:
