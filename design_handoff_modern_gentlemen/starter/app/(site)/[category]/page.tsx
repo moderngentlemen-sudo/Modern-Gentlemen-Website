@@ -10,6 +10,7 @@ import {
   composePublishedCategory,
   composePublishedPage,
   getPublishedPage,
+  getPublishedHomepage,
   listPublishedPageSlugs,
 } from "@/lib/services/publicContent";
 import { canonicalSiteUrl } from "@/lib/db/env";
@@ -39,9 +40,10 @@ import { publicPathForCategory, publicPathForPage } from "@/lib/domain/routes";
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
+  const homepage = await getPublishedHomepage();
   const [categories, pages] = await Promise.all([
     listPublishedCategorySlugs(),
-    listPublishedPageSlugs(),
+    listPublishedPageSlugs(homepage?.slug),
   ]);
   return [...new Set([...categories, ...pages])].map((category) => ({ category }));
 }
@@ -70,7 +72,8 @@ export async function generateMetadata({
     const page = await getPublishedPage(category.toLowerCase());
     if (!page) return { title: pageTitle("Not found") };
 
-    const url = canonicalUrl(canonicalSiteUrl(), publicPathForPage(page.slug));
+    const homepage = await getPublishedHomepage();
+    const url = canonicalUrl(canonicalSiteUrl(), publicPathForPage(page.slug, homepage?.slug));
     return withPageMetadata(
       {
         title: pageTitle(page.title),

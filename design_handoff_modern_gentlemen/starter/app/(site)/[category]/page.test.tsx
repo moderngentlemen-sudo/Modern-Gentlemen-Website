@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   listPages: vi.fn(),
   getCategory: vi.fn(),
   getPage: vi.fn(),
+  getHomepage: vi.fn(),
   composeCategory: vi.fn(),
   composePage: vi.fn(),
 }));
@@ -32,6 +33,7 @@ vi.mock("@/lib/services/publicEditorial", () => ({
 vi.mock("@/lib/services/publicContent", () => ({
   listPublishedPageSlugs: mocks.listPages,
   getPublishedPage: mocks.getPage,
+  getPublishedHomepage: mocks.getHomepage,
   composePublishedCategory: mocks.composeCategory,
   composePublishedPage: mocks.composePage,
 }));
@@ -47,6 +49,7 @@ describe("the shared root-slug route", () => {
     mocks.listPages.mockResolvedValue([]);
     mocks.getCategory.mockResolvedValue(null);
     mocks.getPage.mockResolvedValue(null);
+    mocks.getHomepage.mockResolvedValue({ id: "home-id", slug: "home" });
     mocks.composeCategory.mockResolvedValue([{ key: "category" }]);
     mocks.composePage.mockResolvedValue([{ key: "page" }]);
   });
@@ -60,6 +63,21 @@ describe("the shared root-slug route", () => {
       { category: "culture" },
       { category: "contact" },
     ]);
+  });
+
+  it("uses the selected homepage's canonical and excludes its alias from static generation", async () => {
+    mocks.getHomepage.mockResolvedValue({ id: "launch-id", slug: "launch" });
+    mocks.getPage.mockResolvedValue({
+      id: "launch-id",
+      slug: "launch",
+      title: "Launch",
+      sections: [],
+    });
+    await expect(generateMetadata({ params: params("launch") })).resolves.toMatchObject({
+      alternates: { canonical: "https://example.com" },
+    });
+    await generateStaticParams();
+    expect(mocks.listPages).toHaveBeenCalledWith("launch");
   });
 
   it("serves a published builder page when the slug is not a category", async () => {

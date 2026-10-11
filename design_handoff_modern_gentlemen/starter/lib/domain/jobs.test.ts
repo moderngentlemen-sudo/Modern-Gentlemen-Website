@@ -68,10 +68,14 @@ describe("pathsToRevalidate", () => {
   it("gives a page its own path, through the home-slug special case", () => {
     expect(pathsToRevalidate([published({ entityType: "page", slug: "about" })])).toEqual([
       "/about",
+      "/",
     ]);
     // `revalidatePath("/home")` would succeed, revalidate nothing, and leave the
     // homepage stale — the whole reason publicPathForPage exists.
-    expect(pathsToRevalidate([published({ entityType: "page", slug: "home" })])).toEqual(["/"]);
+    expect(pathsToRevalidate([published({ entityType: "page", slug: "home" })])).toEqual([
+      "/",
+      "/home",
+    ]);
   });
 
   it("gives an article its own page, the archive and its category", () => {

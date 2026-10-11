@@ -60,6 +60,11 @@ describe("adminPathForDocument", () => {
 });
 
 describe("publicPathForDocument", () => {
+  it("follows homepage identity even after a slug edit or replacement", () => {
+    expect(publicPathForDocument("page", "welcome", true)).toBe("/");
+    expect(publicPathForDocument("page", "renamed-welcome", true)).toBe("/");
+    expect(publicPathForDocument("page", "home", false)).toBe("/home");
+  });
   it("gives the public URL for the four types that have one", () => {
     expect(publicPathForDocument("page", "home")).toBe("/");
     expect(publicPathForDocument("page", "about")).toBe("/about");

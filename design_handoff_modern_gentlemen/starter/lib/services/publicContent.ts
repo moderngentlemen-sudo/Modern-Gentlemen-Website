@@ -19,6 +19,7 @@
  */
 
 import { createPublicClient } from "@/lib/db/public";
+import { getHomepagePageId } from "@/lib/db/repositories/homepage";
 import { collectPatternRefs, expandPatterns } from "@/lib/blocks/expand";
 import { applyTemplate, findContentArea } from "@/lib/blocks/templateContent";
 import { readAreas } from "@/lib/blocks/areas";
@@ -76,6 +77,28 @@ export async function getPublishedPage(slug: string): Promise<PublishedPage | nu
   };
 }
 
+/** A stable page id selects the homepage; legacy sites keep their "home" page. */
+export async function getPublishedHomepage(): Promise<PublishedPage | null> {
+  const db = createPublicClient();
+  const pageId = await getHomepagePageId(db);
+  if (!pageId) return getPublishedPage("home");
+  const { data, error } = await db
+    .from("pages")
+    .select("id, slug, title, published_data, status")
+    .eq("id", pageId)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) throw new Error(`Could not read the published homepage: ${error.message}`);
+  if (!data) return null;
+  return {
+    id: data.id,
+    slug: data.slug,
+    title: data.title,
+    sections: sectionsOf(data.published_data),
+    pageSettings: (data.published_data as Record<string, unknown> | null)?.pageSettings,
+  };
+}
+
 /**
  * Slugs for public, non-home pages.
  *
@@ -83,14 +106,14 @@ export async function getPublishedPage(slug: string): Promise<PublishedPage | nu
  * one-segment route alongside editorial categories, so this list drives both
  * static generation and the sitemap from the same published source of truth.
  */
-export async function listPublishedPageSlugs(): Promise<string[]> {
+export async function listPublishedPageSlugs(homepageSlug = "home"): Promise<string[]> {
   const db = createPublicClient();
 
   const { data, error } = await db
     .from("pages")
     .select("slug")
     .eq("status", "published")
-    .neq("slug", "home")
+    .neq("slug", homepageSlug)
     .order("slug", { ascending: true });
 
   if (error) throw new Error(`Could not list the published pages: ${error.message}`);

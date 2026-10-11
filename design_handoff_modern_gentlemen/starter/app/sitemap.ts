@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
 
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
-import { listPublishedPageSlugs, listNoIndexPageSlugs } from "@/lib/services/publicContent";
+import {
+  getPublishedHomepage,
+  listPublishedPageSlugs,
+  listNoIndexPageSlugs,
+} from "@/lib/services/publicContent";
 import {
   listPublishedArticleSlugs,
   listPublishedCategorySlugs,
@@ -38,9 +42,10 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = canonicalSiteUrl();
   const now = new Date();
+  const homepage = await getPublishedHomepage();
 
   const [pageSlugs, categorySlugs, articleSlugs, products, noIndexSlugs] = await Promise.all([
-    listPublishedPageSlugs(),
+    listPublishedPageSlugs(homepage?.slug),
     listPublishedCategorySlugs(),
     listPublishedArticleSlugs(),
     listPublishedProducts(),
@@ -54,7 +59,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    * which for an editorial site is the category pages (a new lead whenever
    * anything publishes) rather than the articles (written once).
    */
-  const excluded = new Set(noIndexSlugs.map((slug) => canonicalUrl(base, publicPathForPage(slug))));
+  const excluded = new Set(
+    noIndexSlugs.map((slug) => canonicalUrl(base, publicPathForPage(slug, homepage?.slug)))
+  );
   const staticPages: MetadataRoute.Sitemap = [
     { url: canonicalUrl(base, "/"), lastModified: now, changeFrequency: "daily", priority: 1 },
     {
@@ -93,7 +100,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: MetadataRoute.Sitemap = pageSlugs
     .filter((slug) => !categorySlugs.includes(slug))
     .map((slug) => ({
-      url: canonicalUrl(base, publicPathForPage(slug)),
+      url: canonicalUrl(base, publicPathForPage(slug, homepage?.slug)),
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
