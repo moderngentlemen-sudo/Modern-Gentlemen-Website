@@ -351,6 +351,9 @@ interface BlockBase {
   hover?: string;
 }
 
+/** Contact fields whose link can be changed on a contacts block. */
+export type ContactLinkKey = "phone" | "mobile" | "email" | "website" | "address";
+
 export type ContactSeparator = "bar" | "dot" | "slash" | "dash" | "none";
 
 export type ButtonStyle = "solid" | "outline" | "pill" | "link" | "square" | "squareOutline";
@@ -376,6 +379,10 @@ export type Block = BlockBase &
         rowGap?: number;
         /** Space between fields side by side, px (one line, grid, chips). Unset: the layout's default. */
         colGap?: number;
+        /** A line between rows (list and grid). Unset: none. */
+        rowRule?: "solid" | "dashed" | "dotted";
+        /** Per-field links: a link of your own, or false for none. Unset: automatic (call, email, website). */
+        links?: Partial<Record<ContactLinkKey, string | false>>;
       }
     | { type: "socials"; size?: number }
     | { type: "photo"; size?: number }

@@ -242,3 +242,24 @@ test("contacts: the frame covers every line, edges change the spacing, icons and
   await expect.poll(() => shadowHtml(page)).toMatch(/color:#c8102e;padding:0 \d+px;">·<\/span>/);
   await shot(page, "105-contacts");
 });
+
+test("contacts: dividers in a list and a grid, a wide space across, and a link per field", async ({ page }) => {
+  await builder(page);
+  await preview(page).getByText("+1 416 555 0182").click();
+  const insp = page.getByTestId("inspector");
+  // A list: lines between rows.
+  await insp.getByRole("group", { name: "Lines between rows" }).getByRole("button", { name: "Dotted" }).click();
+  await expect.poll(() => shadowHtml(page)).toContain("border-top:1px dotted");
+  // A grid: a symbol between the two columns, and much more space across.
+  await insp.getByRole("group", { name: "Contacts layout" }).getByRole("button", { name: "Grid" }).click();
+  await insp.getByRole("group", { name: "Contact dividers" }).getByRole("button", { name: "Bar" }).click();
+  await insp.getByLabel("Space across value").fill("150");
+  await expect.poll(() => shadowHtml(page)).toContain("75px 0 0;");
+  // Links: the address goes to a map, the phone to nothing.
+  await insp.getByLabel("Address link", { exact: true }).selectOption("custom");
+  await insp.getByTestId("contact-link-address").fill("https://maps.google.com/?q=88+Yorkville");
+  await insp.getByLabel("Phone link", { exact: true }).selectOption("none");
+  await expect.poll(() => shadowHtml(page)).toContain('href="https://maps.google.com/?q=88+Yorkville"');
+  expect(await shadowHtml(page)).not.toContain('href="tel:');
+  await shot(page, "106-contacts-links");
+});

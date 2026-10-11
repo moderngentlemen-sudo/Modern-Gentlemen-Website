@@ -75,3 +75,38 @@ describe("contacts block", () => {
     expect(s.type === "contacts" && [s.rowGap, s.colGap]).toEqual([15, 0]);
   });
 });
+
+describe("contacts block: dividers in every layout, and links per field", () => {
+  it("a list can have lines between rows, with the gap either side", () => {
+    const out = render(block("contacts", { rowRule: "dashed", sepColor: "#c8102e", rowGap: 6 })).out;
+    expect(out).toContain("border-top:1px dashed #c8102e;padding-top:6px;padding-bottom:6px;");
+    expect(out.match(/border-top:1px dashed/g)).toHaveLength(2);
+  });
+
+  it("grid and chips put a divider symbol between the fields side by side", () => {
+    const grid = render(block("contacts", { layout: "grid", separator: "slash", colGap: 40, rowRule: "solid" })).out;
+    expect(grid).toMatch(/<span style="color:#[0-9a-f]{6};">\/<\/span>/);
+    expect(grid).toContain("padding:0px 20px 0 0;");
+    expect(grid).toContain("border-top:1px solid");
+    const chips = render(block("contacts", { layout: "chips", separator: "dot" })).out;
+    expect(chips.match(/>·<\/span>/g)).toHaveLength(1);
+  });
+
+  it("space across goes far wider", () => {
+    expect(render(block("contacts", { layout: "grid", colGap: 180 })).out).toContain("180px 0 0;");
+  });
+
+  it("each field can link somewhere of its own, or nowhere", () => {
+    const out = render(block("contacts", { links: { phone: false, email: "https://cal.com/jordan", website: "x.co/contact" } })).out;
+    expect(out).not.toContain('href="tel:');
+    expect(out).toContain('href="https://cal.com/jordan"');
+    expect(out).toContain('href="https://x.co/contact"');
+    // An address can link to a map.
+    const d = render(block("contacts", { links: { address: "https://maps.google.com/?q=1+Main+St" } }));
+    d.doc.details.address = "1 Main St";
+    const withAddress = renderSignature(d.doc, { variant: "full", mode: "email", resolve: () => "https://img.example.com/x.png" }).html;
+    expect(withAddress).toContain('href="https://maps.google.com/?q=1+Main+St"');
+    // Unsafe schemes are dropped.
+    expect(render(block("contacts", { links: { phone: "javascript:alert(1)" } })).out).not.toContain("javascript:");
+  });
+});

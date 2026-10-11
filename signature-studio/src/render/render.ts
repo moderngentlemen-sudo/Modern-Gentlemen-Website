@@ -22,6 +22,7 @@ import type {
   Box,
   Column,
   ContactIcons,
+  ContactLinkKey,
   ContactSeparator,
   Design,
   Hotspot,
@@ -34,7 +35,7 @@ import { parseRich, plainRich, type RichNode } from "../core/richtext";
 import { resolveBlockStyle } from "../core/textStyles";
 import { pickBanner } from "../core/liveBanner";
 import { getTemplate, type LayoutId } from "../core/templates";
-import { iconModeOf, SEPARATOR_GLYPH } from "../core/contactLayout";
+import { iconModeOf, separatorOf, SEPARATOR_GLYPH } from "../core/contactLayout";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
 // ---------------------------------------------------------------------------
@@ -308,6 +309,8 @@ function titleHtml(
 }
 
 interface ContactItem {
+  /** Set for the standard fields, whose link a contacts block can change. */
+  key?: ContactLinkKey;
   glyph: string;
   letter: string;
   word: string;
@@ -315,14 +318,22 @@ interface ContactItem {
   href: string | null;
 }
 
-function contactItems(c: Ctx): ContactItem[] {
+function contactItems(c: Ctx, links?: ContactOpts["links"]): ContactItem[] {
   const d = c.doc.details;
   const items: ContactItem[] = [];
-  if (d.phone.trim()) items.push({ glyph: "phone", letter: "T", word: "Phone", text: d.phone.trim(), href: telHref(d.phone) });
-  if (d.mobile.trim()) items.push({ glyph: "mobile", letter: "M", word: "Mobile", text: d.mobile.trim(), href: telHref(d.mobile) });
-  if (d.email.trim()) items.push({ glyph: "email", letter: "E", word: "Email", text: d.email.trim(), href: mailtoHref(d.email) });
-  if (d.website.trim()) items.push({ glyph: "website", letter: "W", word: "Web", text: displayWebUrl(d.website), href: websiteHref(d.website) });
-  if (d.address.trim() && !c.compact) items.push({ glyph: "address", letter: "A", word: "Address", text: d.address.trim(), href: null });
+  // A block's own link wins; false means no link at all.
+  const href = (key: ContactLinkKey, auto: string | null) => {
+    const own = links?.[key];
+    return own === false ? null : own?.trim() ? linkTarget(own) : auto;
+  };
+  if (d.phone.trim()) items.push({ key: "phone", glyph: "phone", letter: "T", word: "Phone", text: d.phone.trim(), href: href("phone", telHref(d.phone)) });
+  if (d.mobile.trim())
+    items.push({ key: "mobile", glyph: "mobile", letter: "M", word: "Mobile", text: d.mobile.trim(), href: href("mobile", telHref(d.mobile)) });
+  if (d.email.trim()) items.push({ key: "email", glyph: "email", letter: "E", word: "Email", text: d.email.trim(), href: href("email", mailtoHref(d.email)) });
+  if (d.website.trim())
+    items.push({ key: "website", glyph: "website", letter: "W", word: "Web", text: displayWebUrl(d.website), href: href("website", websiteHref(d.website)) });
+  if (d.address.trim() && !c.compact)
+    items.push({ key: "address", glyph: "address", letter: "A", word: "Address", text: d.address.trim(), href: href("address", null) });
   if (!c.compact)
     for (const cf of d.custom)
       if (cf.value.trim())
@@ -350,7 +361,7 @@ function glyphImg(c: Ctx, name: string, size: number, color: string, bg?: string
  */
 function inlineSeparator(c: Ctx, o: ContactOpts): string {
   const design = c.doc.design;
-  const color = esc(o.sepColor ?? mix(design.muted, "#ffffff", 0.45));
+  const color = esc(sepColorOf(c, o));
   const kind = o.separator ?? "bar";
   const glyph = SEPARATOR_GLYPH[kind] || "&#8203;";
   const plain = `&nbsp;&nbsp;<span style="color:${color};">${glyph}</span>&nbsp;&nbsp;`;
@@ -373,10 +384,29 @@ interface ContactOpts {
   colGap?: number;
   separator?: ContactSeparator;
   sepColor?: string;
+  rowRule?: "solid" | "dashed" | "dotted";
+  links?: Partial<Record<ContactLinkKey, string | false>>;
+}
+
+const sepColorOf = (c: Ctx, o: ContactOpts) => o.sepColor ?? mix(c.doc.design.muted, "#ffffff", 0.45);
+
+/** Padding for row `i` of `n` and, with a line between rows, the line itself: the gap then sits on both sides of it. */
+function rowEdge(c: Ctx, o: ContactOpts, i: number, n: number, gap: number): string {
+  if (!o.rowRule) return i ? `padding-top:${gap}px;` : "";
+  return css({
+    "border-top": i ? `1px ${o.rowRule} ${sepColorOf(c, o)}` : undefined,
+    "padding-top": i ? `${gap}px` : undefined,
+    "padding-bottom": i < n - 1 ? `${gap}px` : undefined,
+  });
+}
+
+/** A divider symbol in its own cell, between two fields side by side. */
+function sepCell(c: Ctx, o: ContactOpts, glyph: string, pad: string): string {
+  return cell(text(c, `<span style="color:${esc(sepColorOf(c, o))};">${glyph}</span>`, { nowrap: true }), pad);
 }
 
 function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: boolean; color?: string } & ContactOpts = {}): string {
-  const items = contactItems(c);
+  const items = contactItems(c, o.links);
   if (!items.length) return "";
   const design = c.doc.design;
   const mode = o.mode ?? design.contactIcons;
@@ -399,7 +429,7 @@ function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: bo
   }
   const gap = o.rowGap ?? sp(c, 3);
   return table(
-    items.map((it, i) => row(cell(text(c, `${label(it)}${value(it)}`, { color, nowrap: true }), i ? `padding-top:${gap}px;` : ""))).join(""),
+    items.map((it, i) => row(cell(text(c, `${label(it)}${value(it)}`, { color, nowrap: true }), rowEdge(c, o, i, items.length, gap)))).join(""),
     "",
     o.align === "center" ? 'align="center"' : "",
   );
@@ -597,33 +627,48 @@ function stack(c: Ctx, blocks: string[], gap = 6, align?: string): string {
 }
 
 function contactsGrid(c: Ctx, o: ContactOpts = {}): string {
-  const items = contactItems(c);
+  const items = contactItems(c, o.links);
   const d = c.doc.design;
   const mode = o.mode ?? d.contactIcons;
+  const glyph = SEPARATOR_GLYPH[o.separator ?? "none"];
+  const col = o.colGap ?? sp(c, 18);
+  const rowGap = o.rowGap ?? sp(c, 4);
+  const rows = Math.ceil(items.length / 2);
   const gridRows: string[] = [];
   // Two contacts per row (reuse contactsHtml styling by rendering each item alone).
   for (let i = 0; i < items.length; i += 2) {
-    const pair = items.slice(i, i + 2).map((it) => {
+    const r = i / 2;
+    // With a line between rows the gap goes on both sides of it; without, rows keep their original padding.
+    const edge = o.rowRule ? rowEdge(c, o, r, rows, rowGap) : "";
+    const top = o.rowRule ? 0 : i ? rowGap : 0;
+    const pair = items.slice(i, i + 2).map((it, k) => {
       const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
       const lab = icon
         ? `${inlineImg(icon, d.fontSize, d.fontSize, it.word)}&nbsp;&nbsp;`
         : mode === "none"
           ? ""
           : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(mode === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
-      return cell(
-        text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }),
-        `padding:${i ? (o.rowGap ?? sp(c, 4)) : 0}px ${o.colGap ?? sp(c, 18)}px 0 0;vertical-align:top;`,
-      );
+      // A divider symbol splits the space across in two, either side of it.
+      const right = glyph && k === 0 ? Math.round(col / 2) : col;
+      return cell(text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }), `padding:${top}px ${right}px 0 0;vertical-align:top;${edge}`);
     });
-    gridRows.push(row(pair.join("") + (pair.length < 2 ? cell("") : "")));
+    const cells = glyph
+      ? [
+          pair[0],
+          sepCell(c, o, pair.length > 1 ? glyph : "", `padding:${top}px ${Math.round(col / 2)}px 0 0;vertical-align:top;${edge}`),
+          pair[1] ?? cell("", edge),
+        ]
+      : [...pair, ...(pair.length < 2 ? [cell("")] : [])];
+    gridRows.push(row(cells.join("")));
   }
   return gridRows.length ? table(gridRows.join("")) : "";
 }
 
 function contactsChips(c: Ctx, o: ContactOpts = {}): string {
   const d = c.doc.design;
-  const items = contactItems(c);
+  const items = contactItems(c, o.links);
   const mode = o.mode ?? d.contactIcons;
+  const glyph = SEPARATOR_GLYPH[o.separator ?? "none"];
   const chip = (it: ContactItem) => {
     const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
     const lab = icon ? `${inlineImg(icon, d.fontSize - 1, d.fontSize - 1, it.word)}&nbsp;` : "";
@@ -637,16 +682,16 @@ function contactsChips(c: Ctx, o: ContactOpts = {}): string {
       ),
     );
   };
+  const col = o.colGap ?? sp(c, 6);
+  const below = o.rowGap ?? sp(c, 6);
   const rows: string[] = [];
-  for (let i = 0; i < items.length; i += 2)
-    rows.push(
-      row(
-        items
-          .slice(i, i + 2)
-          .map((it) => cell(chip(it), `padding:0 ${o.colGap ?? sp(c, 6)}px ${o.rowGap ?? sp(c, 6)}px 0;`))
-          .join(""),
-      ),
-    );
+  for (let i = 0; i < items.length; i += 2) {
+    const pair = items.slice(i, i + 2);
+    const cells = pair.map((it) => cell(chip(it), `padding:0 ${col}px ${below}px 0;`));
+    // A divider symbol sits between the two chips, with the space across before it.
+    if (glyph && cells.length === 2) cells.splice(1, 0, sepCell(c, o, glyph, `padding:0 ${col}px ${below}px 0;`));
+    rows.push(row(cells.join("")));
+  }
   return rows.length ? table(rows.join("")) : "";
 }
 
@@ -1467,8 +1512,10 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         mode: iconModeOf(b, c.doc.design),
         rowGap: b.rowGap,
         colGap: b.colGap,
-        separator: b.separator,
+        separator: separatorOf(b),
         sepColor: b.sepColor,
+        rowRule: b.rowRule,
+        links: b.links,
       };
       const html =
         b.layout === "grid"

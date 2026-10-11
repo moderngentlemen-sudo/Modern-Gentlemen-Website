@@ -4,7 +4,7 @@
  */
 import type { Block, SignatureDoc } from "../core/types";
 import { clampScale } from "../core/scale";
-import { colGapOf, hasColGap, hasRowGap, rowGapOf } from "../core/contactLayout";
+import { colGapOf, hasColGap, hasRowGap, MAX_COL_GAP, MAX_ROW_GAP, rowGapOf } from "../core/contactLayout";
 
 export interface ResizeSpec {
   /** "x": drag sideways scales; "y": drag down grows (spacer). */
@@ -225,11 +225,11 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
         stretch: (dir, sdx, sdy) => {
           const clampGap = (v: number, max: number) => Math.round(Math.min(max, Math.max(0, v)));
           if (dir === "n" || dir === "s") {
-            const v = clampGap(row0 + ((dir === "s" ? 1 : -1) * sdy) / scale / Math.max(1, rows - 1), 40);
+            const v = clampGap(row0 + ((dir === "s" ? 1 : -1) * sdy) / scale / Math.max(1, rows - 1), MAX_ROW_GAP);
             return { patch: (_d, x) => void ((x as typeof b).rowGap = v), label: `${v}px between rows` };
           }
           const gaps = b.layout === "inline" ? Math.max(1, n - 1) : 1;
-          const v = clampGap(col0 + ((dir === "e" ? 1 : -1) * sdx) / scale / gaps, 60);
+          const v = clampGap(col0 + ((dir === "e" ? 1 : -1) * sdx) / scale / gaps, MAX_COL_GAP);
           return { patch: (_d, x) => void ((x as typeof b).colGap = v), label: `${v}px between` };
         },
       };

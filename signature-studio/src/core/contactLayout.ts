@@ -32,4 +32,17 @@ export function iconModeOf(b: Contacts, d: Pick<Design, "contactIcons">): Contac
   return d.contactIcons;
 }
 
+/** The symbol between fields side by side. One line has always shown a bar; the other layouts show none until one is picked. */
+export function separatorOf(b: Contacts): ContactSeparator {
+  return b.separator ?? (b.layout === "inline" ? "bar" : "none");
+}
+
+/** Which divider controls a layout offers: a symbol between fields side by side, a line between rows. */
+export const hasSeparator = (l: Contacts["layout"]) => l !== "stacked";
+export const hasRowRule = (l: Contacts["layout"]) => l === "stacked" || l === "grid";
+
+/** Largest gaps the inspector and the canvas allow. */
+export const MAX_COL_GAP = 200;
+export const MAX_ROW_GAP = 80;
+
 export const SEPARATOR_GLYPH: Record<ContactSeparator, string> = { bar: "|", dot: "·", slash: "/", dash: "–", none: "" };

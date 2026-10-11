@@ -3864,3 +3864,19 @@ body.is-col-resizing * {
 .ai-error {
   color: #b45309;
 }
+
+/* Contacts inspector: each field's link sits under it, tucked in. */
+.contact-field > .field:first-child {
+  margin-bottom: 6px;
+}
+.contact-link {
+  margin: 0 0 14px 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.contact-link .field {
+  margin-bottom: 8px;
+}
+.contact-link .field:last-child {
+  margin-bottom: 0;
+}
