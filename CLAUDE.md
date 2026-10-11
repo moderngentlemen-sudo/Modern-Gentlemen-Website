@@ -229,7 +229,9 @@ These are expensive to rediscover. Break them and something subtle goes wrong.
   `screen`/`multiply` knockout showed filled letters there while every other
   browser (and every test) looked right. Any blend on a stage element must sit
   on the stage **cell** (a stacking context), and will not blend over video in
-  Safari. The CS22–CS35 designs are starters built from
+  Safari. A standalone stage's `edges` field runs its background behind
+  Safari's toolbars; its `both` mode relies on an undocumented Safari scroll
+  behaviour (`StageRunway`) and is labelled experimental on purpose. The CS22–CS35 designs are starters built from
   ordinary blocks (`lib/blocks/stageStarters.ts`); legacy `comingSoonStudio`
   blocks still render and convert on request, never automatically.
 - **Never commit secrets.** Real values live only in

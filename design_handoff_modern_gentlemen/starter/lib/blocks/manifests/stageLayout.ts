@@ -188,6 +188,23 @@ export const stageLayout = defineBlock({
       label: "Hide the site header and footer on this page",
       default: false,
     }),
+    edges: field.select({
+      label: "Behind the phone's status bar and toolbar",
+      default: "solid",
+      options: [
+        { value: "solid", label: "A solid colour" },
+        { value: "bottom", label: "The background runs behind the bottom toolbar" },
+        {
+          value: "both",
+          label: "Behind both bars (experimental)",
+        },
+      ],
+      help: 'Pages without the site header and footer only. "Both" scrolls the page a few pixels on open so Safari shows the background behind the status bar — Safari does not document this, so check it on an iPhone and iPad before you keep it.',
+    }),
+    edgeColor: field.color({
+      label: "Status bar colour",
+      help: "Pages without the site header and footer only. Fills any bar area left solid. Leave unset for the background colour; match the top of your video or photograph to blend it in.",
+    }),
   },
   slot: { label: "Elements", direction: "horizontal", max: 60 },
   insertChildren: ["nativeHeading", "nativeText"],

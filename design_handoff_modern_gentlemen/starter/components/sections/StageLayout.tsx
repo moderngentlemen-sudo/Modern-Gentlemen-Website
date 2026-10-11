@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { stageVariables, type ResponsiveStage } from "@/lib/blocks/stage";
 import { MediaImage } from "../ui/MediaImage";
+import { StageRunway } from "./StageRunway";
 import { StageVideo } from "./StageVideo";
 import styles from "./StageLayout.module.css";
 
@@ -32,6 +33,10 @@ export interface StageProps {
   mobileAlign?: "start" | "center" | "end";
   mobileGap?: number;
   standalone?: boolean;
+  /** Standalone only: what fills the phone's status bar and toolbar areas. */
+  edges?: "solid" | "bottom" | "both";
+  /** Standalone only: the colour of any of those areas left solid. */
+  edgeColor?: string;
   children?: ReactNode;
 }
 
@@ -85,12 +90,16 @@ export function StageLayout({
   mobileAlign = "center",
   mobileGap = 24,
   standalone = false,
+  edges = "solid",
+  edgeColor,
   children,
 }: StageProps) {
   const glow = clampPct(glowStrength, 0);
   const letterbox = Math.min(15, Math.max(0, Number.isFinite(bars) ? bars : 0));
   const introOn = INTROS.includes(intro);
   const stageColor = HEX.test(color) ? color : "#0d0d0d";
+  const canvas = edgeColor && HEX.test(edgeColor) ? edgeColor : stageColor;
+  const bleed = standalone && (edges === "bottom" || edges === "both") ? edges : undefined;
   const style = {
     "--stage-color": stageColor,
     "--stage-scrim": clampPct(scrim, 35) / 100,
@@ -122,12 +131,14 @@ export function StageLayout({
       data-coming-soon-standalone={standalone ? "true" : undefined}
       data-zoom={zoom === "in" || zoom === "out" ? zoom : undefined}
       data-bars={letterbox > 0 ? "" : undefined}
+      data-bleed={bleed}
     >
       {standalone && (
         // The page behind Safari's bars takes the stage's colour (globals.css).
         // The colour is a validated #rrggbb, so nothing else can reach the CSS.
-        <style>{`:root{--mg-standalone-canvas:${stageColor}}`}</style>
+        <style>{`:root{--mg-standalone-canvas:${canvas}}`}</style>
       )}
+      {bleed === "both" && <StageRunway />}
       {video ? (
         <StageVideo src={video} poster={image} className={styles.media} />
       ) : image ? (
