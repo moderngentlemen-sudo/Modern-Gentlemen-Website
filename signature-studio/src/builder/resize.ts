@@ -177,6 +177,16 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
         label: (v) => `${Math.round(v)}px tall`,
       };
     case "divider":
+      // A vertical line grows up and down, like a spacer.
+      if (b.vertical)
+        return {
+          axis: "y",
+          start: b.height ?? 48,
+          min: 8,
+          max: 240,
+          patch: (v) => (_d, x) => void ((x as typeof b).height = Math.round(v)),
+          label: (v) => `${Math.round(v)}px tall`,
+        };
       return { axis: "x", start: b.width ?? width, min: 20, max: 640, patch: (v) => (_d, x) => void ((x as typeof b).width = Math.round(v)), label: px };
     case "spacer":
       return {

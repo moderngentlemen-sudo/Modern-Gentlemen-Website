@@ -382,7 +382,21 @@ export type Block = BlockBase &
     | { type: "iconText"; icon: string; text: string; url: string; iconBg?: boolean }
     | { type: "tag"; text: string; url: string; filled: boolean; square?: boolean }
     | { type: "monogram"; size: number }
-    | { type: "divider"; width?: number; thickness?: number }
+    | {
+        type: "divider";
+        /** Length of a horizontal line (full width when unset). */
+        width?: number;
+        thickness?: number;
+        /** A vertical line, e.g. between side-by-side blocks. */
+        vertical?: boolean;
+        /** Length of a vertical line in px (default 48). */
+        height?: number;
+        /** Space on either side of the line: above and below it, or left and right of a vertical one. */
+        spacing?: number;
+        /** Inset at the line's two ends. */
+        padding?: number;
+        lineStyle?: "solid" | "dashed" | "dotted";
+      }
     | { type: "spacer"; height: number }
     | { type: "button"; text: string; url: string; buttonStyle: ButtonStyle; icon?: "calendar" | "" }
     | { type: "signOff"; text: string; script: boolean }

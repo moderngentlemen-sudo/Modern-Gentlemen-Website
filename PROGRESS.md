@@ -8,6 +8,19 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Signature Studio: divider spacing, padding, direction, style; divider colour fixed
+
+From the owner's testing:
+- **Divider colour now works.** The inspector's colour picker wrote the block's accent, but the divider only ever followed the signature-wide divider setting. It now uses the colour picked on the block. The control is labelled "Line colour" and shows the line's real current colour.
+- **New divider options:**
+  - **Direction:** horizontal or vertical. A vertical divider has its own length (default 48px) and resizes up and down from its handles.
+  - **Line style:** Auto (as the design sets it), solid, dashed or dotted.
+  - **Spacing:** space on either side of the line (above and below, or left and right when vertical).
+  - **Padding:** an inset at the line's ends.
+  - All Gmail-safe table markup. Sizes follow the whole-signature scale, and zero stays zero.
+- **Existing dividers render exactly as before** (a test compares the markup against the previous version).
+- **Gates:** `npm test` (140), `npm run e2e` (61), `npm run build`.
+
 ### 2026-10-11 — Signature Studio: zoom out in the image editor
 
 The owner asked to be able to zoom out when editing an image or logo:

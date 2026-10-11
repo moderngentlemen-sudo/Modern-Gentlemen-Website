@@ -1510,14 +1510,26 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     case "monogram":
       return monogramTile(c, b.size);
     case "divider": {
-      const color = d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6);
+      // A colour picked on the block wins; otherwise the signature's divider style decides.
+      const color = b.style?.accent ?? (d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6));
       const t = b.thickness ?? (d.divider === "accent" ? 2 : 1);
-      const style = d.divider === "dots" ? "dotted" : "solid";
-      return table(
+      const style = b.lineStyle ?? (d.divider === "dots" ? "dotted" : "solid");
+      const space = b.spacing ?? 0;
+      const inset = b.padding ?? 0;
+      if (b.vertical) {
+        const len = b.height ?? 48;
+        const line = table(
+          row(cell("&nbsp;", `border-left:${t}px ${style} ${color};font-size:1px;line-height:1px;width:1px;height:${len}px;`, `height="${len}"`)),
+        );
+        return space || inset ? table(row(cell(line, `padding:${inset}px ${space}px;`))) : line;
+      }
+      const line = table(
         row(cell("&nbsp;", `border-top:${t}px ${style} ${color};font-size:1px;line-height:1px;height:1px;`)),
         b.width ? `width:${b.width}px;` : "width:100%;",
         b.width ? `width="${b.width}"` : 'width="100%"',
       );
+      if (!space && !inset) return line;
+      return table(row(cell(line, `padding:${space}px ${inset}px;`)), b.width ? "" : "width:100%;", b.width ? "" : 'width="100%"');
     }
     case "spacer":
       return `<div style="height:${b.height}px;line-height:${b.height}px;font-size:1px;">&nbsp;</div>`;

@@ -3,6 +3,7 @@ import { ChevronRight, Copy, Minus, Plus, Sparkles, Trash2, X } from "lucide-rea
 import { SIGN_OFFS } from "../core/seasonal";
 import { ICON_CHOICES } from "../core/iconPaths";
 import { glyphSvg, svgDataUrl } from "../render/icons";
+import { mix } from "../render/render";
 import { uid } from "../lib/id";
 import { col, findBlock, findColumn, pathTo } from "../core/blocks";
 import { FONTS, fontDef } from "../core/fonts";
@@ -153,7 +154,12 @@ function StyleEditor({ b }: { b: Block }) {
       )}
       {textual && <TextFormatBar b={b} />}
       {["contacts", "socials", "button", "monogram", "divider", "reviews", "quote", "name"].includes(b.type) && (
-        <ColorField label="Accent colour" value={st.accent ?? design.accent} onChange={(c) => setStyle({ accent: c }, "accent")} extra={[design.accent]} />
+        <ColorField
+          label={b.type === "divider" ? "Line colour" : "Accent colour"}
+          value={st.accent ?? (b.type === "divider" && design.divider !== "accent" ? mix(design.muted, "#ffffff", 0.6) : design.accent)}
+          onChange={(c) => setStyle({ accent: c }, "accent")}
+          extra={[design.accent]}
+        />
       )}
       {(st.color ||
         st.colorRole ||
@@ -524,17 +530,63 @@ function Content({ b }: { b: Block }) {
     case "divider":
       return (
         <>
+          <Field label="Direction">
+            <Segmented
+              label="Divider direction"
+              value={b.vertical ? "vertical" : "horizontal"}
+              onChange={(v) => set({ vertical: v === "vertical" || undefined })}
+              options={[
+                { value: "horizontal", label: "Horizontal" },
+                { value: "vertical", label: "Vertical" },
+              ]}
+            />
+          </Field>
+          {b.vertical ? (
+            <Slider label="Length" unit="px" min={8} max={240} value={b.height ?? 48} onChange={(v) => set({ height: v }, "height")} />
+          ) : (
+            <Slider
+              label="Length"
+              hint={b.width ? undefined : "full width"}
+              unit="px"
+              min={0}
+              max={600}
+              step={10}
+              value={b.width ?? 0}
+              onChange={(v) => set({ width: v || undefined }, "width")}
+            />
+          )}
+          <Slider label="Thickness" unit="px" min={1} max={6} value={b.thickness ?? 1} onChange={(v) => set({ thickness: v }, "thick")} />
+          <Field label="Line">
+            <Segmented
+              label="Line style"
+              value={b.lineStyle ?? "default"}
+              onChange={(v) => set({ lineStyle: v === "default" ? undefined : v })}
+              options={[
+                { value: "default", label: "Auto", title: "As the signature's design sets it" },
+                { value: "solid", label: "Solid" },
+                { value: "dashed", label: "Dashed" },
+                { value: "dotted", label: "Dotted" },
+              ]}
+            />
+          </Field>
           <Slider
-            label="Length"
-            hint={b.width ? undefined : "full width"}
+            label="Spacing"
+            hint={b.vertical ? "left and right" : "above and below"}
             unit="px"
             min={0}
-            max={600}
-            step={10}
-            value={b.width ?? 0}
-            onChange={(v) => set({ width: v || undefined }, "width")}
+            max={40}
+            value={b.spacing ?? 0}
+            onChange={(v) => set({ spacing: v || undefined }, "spacing")}
           />
-          <Slider label="Thickness" unit="px" min={1} max={6} value={b.thickness ?? 1} onChange={(v) => set({ thickness: v }, "thick")} />
+          <Slider
+            label="Padding"
+            hint={b.vertical ? "top and bottom" : "at each end"}
+            unit="px"
+            min={0}
+            max={60}
+            value={b.padding ?? 0}
+            onChange={(v) => set({ padding: v || undefined }, "padding")}
+          />
         </>
       );
     case "spacer":

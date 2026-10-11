@@ -51,7 +51,13 @@ function block(b: Block, s: number): Block {
     case "monogram":
       return { ...base, size: r(base.size, s) };
     case "divider":
-      return { ...base, width: opt(base.width, s) };
+      return {
+        ...base,
+        width: opt(base.width, s),
+        height: opt(base.height, s),
+        spacing: base.spacing ? r(base.spacing, s) : base.spacing,
+        padding: base.padding ? r(base.padding, s) : base.padding,
+      };
     case "spacer":
       return { ...base, height: r(base.height, s) };
     case "logos":

@@ -183,3 +183,26 @@ test("start from scratch opens an empty canvas, with no template or sample detai
   await expect(preview(page).locator("[data-block]")).toHaveCount(1);
   await expect(preview(page)).not.toContainText("Jordan Ellis");
 });
+
+test("dividers: colour, line style, spacing, padding and a vertical direction", async ({ page }) => {
+  await builder(page);
+  await page.getByTestId("palette-divider").scrollIntoViewIfNeeded();
+  await page.getByTestId("palette-divider").click();
+  const insp = page.getByTestId("inspector");
+  // Colour now changes the line.
+  await insp.getByRole("button", { name: /^Line colour:/ }).click();
+  await insp.getByLabel("Line colour hex").fill("#c8102e");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => shadowHtml(page)).toContain("#c8102e");
+  await insp.getByRole("group", { name: "Line style" }).getByRole("button", { name: "Dashed" }).click();
+  await insp.getByLabel("Spacing value").fill("14");
+  await insp.getByLabel("Padding value").fill("24");
+  await expect.poll(() => shadowHtml(page)).toContain("padding:14px 24px;");
+  expect(await shadowHtml(page)).toContain("border-top:1px dashed #c8102e");
+  // Vertical: the handles grow it up and down.
+  await insp.getByRole("group", { name: "Divider direction" }).getByRole("button", { name: "Vertical" }).click();
+  await expect.poll(() => shadowHtml(page)).toContain("border-left:1px dashed #c8102e");
+  await expect(page.getByTestId("size-chip")).toHaveText("48px tall");
+  await expect(page.getByTestId("resize-handle-s")).toBeVisible();
+  await shot(page, "104-divider");
+});
