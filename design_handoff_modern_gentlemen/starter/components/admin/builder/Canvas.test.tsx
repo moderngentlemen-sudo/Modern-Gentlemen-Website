@@ -402,6 +402,13 @@ describe("direct canvas manipulation", () => {
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
+  it("never offers a Stage free move or resize handles", () => {
+    renderCanvas([{ _key: "s", _type: "stageLayout", children: [] }]);
+    fireEvent.mouseDown(document.querySelector<HTMLElement>("[data-block-key='s']")!);
+    expect(screen.queryByRole("button", { name: /^Resize / })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Move freely" })).toBeNull();
+  });
+
   it("resizes the selected element from its canvas edge", () => {
     renderCanvas([{ _key: "a", _type: "pullQuote" }]);
     const frame = document.querySelector<HTMLElement>("[data-block-key='a']")!;
