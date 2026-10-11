@@ -386,7 +386,8 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
   if (!meta) return "";
   const w = o.size ?? slot.size;
   const frame: FrameShape = slot.look?.frame ?? slot.shape;
-  const square = frame === "circle" || label === "Photo";
+  // Photos are square until reshaped (never as a circle).
+  const square = frame === "circle" || (label === "Photo" && !slot.aspect);
   const aspect = square ? 1 : (slot.aspect ?? meta.width / meta.height);
   const h = Math.max(1, Math.round(w / aspect));
   const html = isPlainLook(slot.look) ? plainImage(c, slot, meta, label, w, h, aspect, frame as ImageShape) : styledImage(c, slot, meta, label, w, h, frame);

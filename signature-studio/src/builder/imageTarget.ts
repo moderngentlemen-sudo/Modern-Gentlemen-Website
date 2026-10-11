@@ -35,8 +35,9 @@ export function readImage(doc: SignatureDoc, arg: ImageArg): ImageTarget | null 
       kind: arg,
       assetId: slot.assetId,
       crop: slot.crop,
-      aspect: slot.aspect,
-      fixedAspect: arg === "photo" ? 1 : undefined,
+      aspect: arg === "photo" ? (slot.aspect ?? 1) : slot.aspect,
+      // A circular photo is always square; any other photo frame can be reshaped.
+      fixedAspect: arg === "photo" && (slot.look?.frame ?? slot.shape) === "circle" ? 1 : undefined,
       look: slot.look ?? {},
       frame: slot.look?.frame ?? slot.shape,
       width: slot.size,

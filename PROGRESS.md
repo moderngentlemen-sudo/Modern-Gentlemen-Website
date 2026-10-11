@@ -8,6 +8,20 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Signature Studio: edge handles reshape logos and photos; Start from scratch is empty
+
+Fixes from the owner's testing:
+- **Edge handles reshape, corners scale — now for logos and photos too.**
+  - Before, only image blocks reshaped from their top, bottom, left and right handles; logo and photo blocks scaled as a whole from every handle.
+  - Now a side edge changes only the width and top/bottom only the height, for images, logos and photos (except circular photos, which keep their proportions). The crop fills the new shape, so the picture is never squashed.
+  - A logo or photo's shape is stored on its shared slot (`images.logo/photo.aspect`); photos stay square until reshaped (`render.ts`).
+  - In the crop editor, a non-circular photo can use any crop shape, and "Original" keeps the photo's own proportions.
+- **Side handles appear on short logos.** They used to be hidden below 48px so they didn't overlap the corners; a typical 37px-tall logo had none. They now shrink to a compact size and fit from 30px (touch screens keep 48px).
+- **The selection frame hugs the block's own content.** It used to measure the wrapper, which spans the column, so handles sat at the column edge instead of on the logo or image.
+- **Edge drags follow the whole-signature scale.** Screen pixels are converted to stored sizes, as corner drags already were.
+- **"Start from scratch" / "Blank signature" is truly empty:** an empty builder canvas, no starter layout, no sample details and no add-ons. Your saved profile still fills blocks you add.
+- **Gates:** `npm test` (129), `npm run e2e` (incl. new logo-edge and empty-canvas tests), `npm run build`.
+
 ### 2026-10-08 — Custom font upload (branch `feat/custom-font-upload`)
 
 - `/admin/theme` → Webfonts now accepts WOFF, WOFF2, TTF and OTF uploads up to

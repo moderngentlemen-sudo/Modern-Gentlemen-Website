@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { shot } from "./helpers";
+import { canvaPng, shot } from "./helpers";
 
 const preview = (page: Page) => page.locator('[data-testid="preview"]');
 const shadowHtml = (page: Page) => preview(page).evaluate((el) => el.shadowRoot!.innerHTML);
@@ -136,4 +136,50 @@ test("phone: the inspector is a bottom sheet that folds down", async ({ page }) 
   await expect(insp).toHaveClass(/sheet-peek/);
   await expect.poll(async () => (await insp.boundingBox())!.height).toBeLessThan(tall);
   await shot(page, "99-phone-sheet");
+});
+
+test("a logo's side edge changes only its width, and the top edge only its height", async ({ page }) => {
+  await builder(page);
+  await page.getByTestId("tab-content").click();
+  await page.getByTestId("tab-images").click();
+  const png = await canvaPng(page, { width: 600, height: 200, margin: 0 });
+  await page.getByTestId("upload-logo").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await preview(page).locator('img[alt$="logo"]').first().click();
+  const chip = page.getByTestId("size-chip");
+  await expect(chip).toHaveText(/^\d+ × \d+$/);
+  const size = async () => (await chip.innerText()).split(" × ").map(Number);
+  const drag = async (dir: string, dx: number, dy: number) => {
+    const h = (await page.getByTestId(`resize-handle-${dir}`).boundingBox())!;
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h.x + h.width / 2 + dx, h.y + h.height / 2 + dy, { steps: 5 });
+    await page.mouse.up();
+  };
+  const [w0, h0] = await size();
+  await drag("e", 40, 0);
+  const [w1, h1] = await size();
+  expect(w1).toBeGreaterThan(w0);
+  expect(Math.abs(h1 - h0)).toBeLessThanOrEqual(1);
+  await drag("n", 0, -20);
+  const [w2, h2] = await size();
+  expect(Math.abs(w2 - w1)).toBeLessThanOrEqual(1);
+  expect(h2).toBeGreaterThan(h1);
+  // The rendered logo's frame really has that shape; the picture is cropped to fill it, never squashed.
+  const frame = preview(page).locator('img[alt$="logo"]').first().locator("xpath=..");
+  const box = (await frame.boundingBox())!;
+  expect(Math.abs(box.width / box.height - w2 / h2)).toBeLessThan(0.05);
+  const img = (await preview(page).locator('img[alt$="logo"]').first().boundingBox())!;
+  expect(Math.abs(img.width / img.height - 3)).toBeLessThan(0.05);
+});
+
+test("start from scratch opens an empty canvas, with no template or sample details", async ({ page }) => {
+  await page.goto("/app");
+  await page.getByTestId("start-blank").click();
+  await expect(page.getByTestId("mode-builder")).toHaveAttribute("aria-pressed", "true");
+  await expect(preview(page)).toContainText("Drop blocks here");
+  await expect(preview(page).locator("[data-block]")).toHaveCount(0);
+  // Adding a block shows the person's own (here: empty) details, not a sample name.
+  await page.getByTestId("palette-name").click();
+  await expect(preview(page).locator("[data-block]")).toHaveCount(1);
+  await expect(preview(page)).not.toContainText("Jordan Ellis");
 });

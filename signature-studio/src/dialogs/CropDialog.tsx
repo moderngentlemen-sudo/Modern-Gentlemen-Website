@@ -319,7 +319,13 @@ export function CropDialog() {
               <Segmented
                 label="Crop shape"
                 value={String(t.aspect ? (ASPECTS.find((a) => Math.abs(Number(a.value) - t.aspect!) < 0.01)?.value ?? "0") : "0")}
-                onChange={(v) => set({ aspect: v === "0" ? null : Number(v), crop: { x: 0, y: 0 } })}
+                onChange={(v) =>
+                  set({
+                    // Photos are square by default, so "Original" stores the photo's own shape.
+                    aspect: v !== "0" ? Number(v) : t.kind === "photo" ? Math.round((meta.width / meta.height) * 1000) / 1000 : null,
+                    crop: { x: 0, y: 0 },
+                  })
+                }
                 options={ASPECTS}
               />
             </Field>
