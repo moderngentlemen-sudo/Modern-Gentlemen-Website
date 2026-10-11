@@ -206,3 +206,39 @@ test("dividers: colour, line style, spacing, padding and a vertical direction", 
   await expect(page.getByTestId("resize-handle-s")).toBeVisible();
   await shot(page, "104-divider");
 });
+
+test("contacts: the frame covers every line, edges change the spacing, icons and dividers can be changed", async ({ page }) => {
+  await builder(page);
+  await preview(page).getByText("+1 416 555 0182").click();
+  // The selection reaches past the longest line (the email), so the side handle isn't on top of it.
+  const email = (await preview(page).getByText("jordan@moderngentlemen.co").first().boundingBox())!;
+  const se = (await page.getByTestId("resize-handle").boundingBox())!;
+  expect(se.x + se.width / 2).toBeGreaterThanOrEqual(email.x + email.width - 1);
+  // A list has no side handles; its bottom edge spreads the rows.
+  await expect(page.getByTestId("resize-handle-e")).toHaveCount(0);
+  const before = await shadowHtml(page);
+  const s = (await page.getByTestId("resize-handle-s").boundingBox())!;
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2 + 30, { steps: 5 });
+  await page.mouse.up();
+  const insp = page.getByTestId("inspector");
+  await expect(insp.getByLabel("Space between rows value")).not.toHaveValue("3");
+  await expect(page.getByTestId("size-chip")).toContainText("px text");
+  expect(await shadowHtml(page)).not.toBe(before);
+
+  // Icons off.
+  await expect(preview(page).locator('img[alt="Phone"]')).toHaveCount(1);
+  await insp.getByTestId("contact-icons").click();
+  await expect(preview(page).locator('img[alt="Phone"]')).toHaveCount(0);
+
+  // One line: a dot divider in red, more space.
+  await insp.getByRole("group", { name: "Contacts layout" }).getByRole("button", { name: "One line" }).click();
+  await insp.getByRole("group", { name: "Contact dividers" }).getByRole("button", { name: "Dot" }).click();
+  await insp.getByRole("button", { name: /^Divider colour:/ }).click();
+  await insp.getByLabel("Divider colour hex").fill("#c8102e");
+  await page.keyboard.press("Enter");
+  await insp.getByLabel("Space between value").fill("30");
+  await expect.poll(() => shadowHtml(page)).toMatch(/color:#c8102e;padding:0 \d+px;">·<\/span>/);
+  await shot(page, "105-contacts");
+});

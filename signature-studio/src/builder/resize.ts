@@ -4,6 +4,7 @@
  */
 import type { Block, SignatureDoc } from "../core/types";
 import { clampScale } from "../core/scale";
+import { colGapOf, hasColGap, hasRowGap, rowGapOf } from "../core/contactLayout";
 
 export interface ResizeSpec {
   /** "x": drag sideways scales; "y": drag down grows (spacer). */
@@ -23,6 +24,8 @@ export interface ResizeSpec {
   presets?: { label: string; value: number }[];
   /** "W × H" for blocks whose shape can change. */
   dims?: string;
+  /** Which edge handles to offer (default both). Contacts: a list has no side-by-side gap to drag. */
+  edges?: { x: boolean; y: boolean };
 }
 
 const px = (v: number) => `${Math.round(v)}px`;
@@ -210,9 +213,29 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
       return { ...font(b.size ?? b.style?.fontSize ?? d.fontSize), patch: (v) => (_d, x) => void ((x as typeof b).size = Math.round(v)) };
     case "canva":
       return { axis: "x", start: doc.card.width, min: 160, max: 700, patch: (v) => (dd) => void (dd.card.width = Math.round(v)), label: px };
+    case "contacts": {
+      // Corners scale the text; edges change the spacing between the fields.
+      const n = contactCount(doc);
+      const rows = b.layout === "stacked" ? n : Math.ceil(n / 2);
+      const row0 = rowGapOf(b, d);
+      const col0 = colGapOf(b, d);
+      return {
+        ...font(b.style?.fontSize ?? d.fontSize),
+        edges: { x: hasColGap(b.layout), y: hasRowGap(b.layout) },
+        stretch: (dir, sdx, sdy) => {
+          const clampGap = (v: number, max: number) => Math.round(Math.min(max, Math.max(0, v)));
+          if (dir === "n" || dir === "s") {
+            const v = clampGap(row0 + ((dir === "s" ? 1 : -1) * sdy) / scale / Math.max(1, rows - 1), 40);
+            return { patch: (_d, x) => void ((x as typeof b).rowGap = v), label: `${v}px between rows` };
+          }
+          const gaps = b.layout === "inline" ? Math.max(1, n - 1) : 1;
+          const v = clampGap(col0 + ((dir === "e" ? 1 : -1) * sdx) / scale / gaps, 60);
+          return { patch: (_d, x) => void ((x as typeof b).colGap = v), label: `${v}px between` };
+        },
+      };
+    }
     case "title":
     case "field":
-    case "contacts":
     case "button":
     case "iconText":
     case "tag":
@@ -222,6 +245,13 @@ export function resizeSpec(b: Block, doc: SignatureDoc, width: number): ResizeSp
     default:
       return null;
   }
+}
+
+/** How many lines the contacts block shows (the canvas is never the compact reply view). */
+function contactCount(doc: SignatureDoc): number {
+  const d = doc.details;
+  const base = [d.phone, d.mobile, d.email, d.website, d.address].filter((v) => v.trim()).length;
+  return base + d.custom.filter((c) => c.value.trim()).length;
 }
 
 /** The eight handles around a selected block: corners and edges. */
@@ -239,8 +269,8 @@ const EDGE_ROOM = 48;
 export function handlesFor(spec: ResizeSpec, frame: { w: number; h: number } = { w: Infinity, h: Infinity }, room = EDGE_ROOM): HandleDir[] {
   if (spec.axis === "y") return ["n", "s"];
   return HANDLE_DIRS.filter((d) => {
-    if (d === "e" || d === "w") return frame.h >= room;
-    if (d === "n" || d === "s") return frame.w >= room;
+    if (d === "e" || d === "w") return frame.h >= room && (spec.edges?.x ?? true);
+    if (d === "n" || d === "s") return frame.w >= room && (spec.edges?.y ?? true);
     return true;
   });
 }

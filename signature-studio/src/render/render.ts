@@ -14,11 +14,27 @@ import { frameLayout, framePath, isPlainLook, lookKey, lookMatrix, matrixValues,
 import { clampScale, scaleDoc } from "../core/scale";
 import { fontDef, fontStack, isCustomFont } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
-import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Design, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import type {
+  Block,
+  BlockStyle,
+  ButtonStyle,
+  BlockType,
+  Box,
+  Column,
+  ContactIcons,
+  ContactSeparator,
+  Design,
+  Hotspot,
+  ImageShape,
+  ImageSlot,
+  SignatureDoc,
+  Variant,
+} from "../core/types";
 import { parseRich, plainRich, type RichNode } from "../core/richtext";
 import { resolveBlockStyle } from "../core/textStyles";
 import { pickBanner } from "../core/liveBanner";
 import { getTemplate, type LayoutId } from "../core/templates";
+import { iconModeOf, SEPARATOR_GLYPH } from "../core/contactLayout";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
 // ---------------------------------------------------------------------------
@@ -326,11 +342,44 @@ function glyphImg(c: Ctx, name: string, size: number, color: string, bg?: string
   return src ?? "";
 }
 
-function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: boolean; color?: string } = {}): string {
+/**
+ * What sits between contacts on one line. With nothing customised it is the
+ * original two spaces, a pale bar, two spaces. A custom gap keeps a space
+ * either side where it fits (Outlook ignores padding on inline text, so the
+ * spaces are what it shows) and pads the rest.
+ */
+function inlineSeparator(c: Ctx, o: ContactOpts): string {
+  const design = c.doc.design;
+  const color = esc(o.sepColor ?? mix(design.muted, "#ffffff", 0.45));
+  const kind = o.separator ?? "bar";
+  const glyph = SEPARATOR_GLYPH[kind] || "&#8203;";
+  const plain = `&nbsp;&nbsp;<span style="color:${color};">${glyph}</span>&nbsp;&nbsp;`;
+  if (o.colGap === undefined && kind === "bar") return plain;
+  // Lines may break after a bar but not after a dot or a non-breaking space,
+  // so a zero-width space keeps a long line of contacts wrapping.
+  const wrap = "&#8203;";
+  if (o.colGap === undefined) return plain + wrap;
+  const half = o.colGap / 2;
+  const space = design.fontSize * 0.28;
+  if (half < space) return `<span style="color:${color};padding:0 ${Math.round(half)}px;">${glyph}</span>${wrap}`;
+  const pad = Math.round(half - space);
+  return `&nbsp;<span style="color:${color};${pad ? `padding:0 ${pad}px;` : ""}">${glyph}</span>&nbsp;${wrap}`;
+}
+
+interface ContactOpts {
+  /** Icon style for this block (defaults to the Design setting). */
+  mode?: ContactIcons;
+  rowGap?: number;
+  colGap?: number;
+  separator?: ContactSeparator;
+  sepColor?: string;
+}
+
+function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: boolean; color?: string } & ContactOpts = {}): string {
   const items = contactItems(c);
   if (!items.length) return "";
   const design = c.doc.design;
-  const mode = design.contactIcons;
+  const mode = o.mode ?? design.contactIcons;
   const color = o.color ?? design.text;
   const iconSize = Math.max(12, design.fontSize);
   const label = (it: ContactItem) => {
@@ -345,10 +394,10 @@ function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: bo
   };
   const value = (it: ContactItem) => link(it.href, escText(it.text), color);
   if (o.inline ?? design.contactInline) {
-    const sep = `&nbsp;&nbsp;<span style="color:${esc(mix(design.muted, "#ffffff", 0.45))};">|</span>&nbsp;&nbsp;`;
+    const sep = inlineSeparator(c, o);
     return text(c, items.map((it) => `<span style="white-space:nowrap;">${label(it)}${value(it)}</span>`).join(sep), { align: o.align, color });
   }
-  const gap = sp(c, 3);
+  const gap = o.rowGap ?? sp(c, 3);
   return table(
     items.map((it, i) => row(cell(text(c, `${label(it)}${value(it)}`, { color, nowrap: true }), i ? `padding-top:${gap}px;` : ""))).join(""),
     "",
@@ -547,22 +596,23 @@ function stack(c: Ctx, blocks: string[], gap = 6, align?: string): string {
   );
 }
 
-function contactsGrid(c: Ctx): string {
+function contactsGrid(c: Ctx, o: ContactOpts = {}): string {
   const items = contactItems(c);
   const d = c.doc.design;
+  const mode = o.mode ?? d.contactIcons;
   const gridRows: string[] = [];
   // Two contacts per row (reuse contactsHtml styling by rendering each item alone).
   for (let i = 0; i < items.length; i += 2) {
     const pair = items.slice(i, i + 2).map((it) => {
-      const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
+      const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
       const lab = icon
         ? `${inlineImg(icon, d.fontSize, d.fontSize, it.word)}&nbsp;&nbsp;`
-        : d.contactIcons === "none"
+        : mode === "none"
           ? ""
-          : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(d.contactIcons === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
+          : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(mode === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
       return cell(
         text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }),
-        `padding:${i ? sp(c, 4) : 0}px ${sp(c, 18)}px 0 0;vertical-align:top;`,
+        `padding:${i ? (o.rowGap ?? sp(c, 4)) : 0}px ${o.colGap ?? sp(c, 18)}px 0 0;vertical-align:top;`,
       );
     });
     gridRows.push(row(pair.join("") + (pair.length < 2 ? cell("") : "")));
@@ -570,11 +620,12 @@ function contactsGrid(c: Ctx): string {
   return gridRows.length ? table(gridRows.join("")) : "";
 }
 
-function contactsChips(c: Ctx): string {
+function contactsChips(c: Ctx, o: ContactOpts = {}): string {
   const d = c.doc.design;
   const items = contactItems(c);
+  const mode = o.mode ?? d.contactIcons;
   const chip = (it: ContactItem) => {
-    const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
+    const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
     const lab = icon ? `${inlineImg(icon, d.fontSize - 1, d.fontSize - 1, it.word)}&nbsp;` : "";
     return table(
       row(
@@ -592,7 +643,7 @@ function contactsChips(c: Ctx): string {
       row(
         items
           .slice(i, i + 2)
-          .map((it) => cell(chip(it), `padding:0 ${sp(c, 6)}px ${sp(c, 6)}px 0;`))
+          .map((it) => cell(chip(it), `padding:0 ${o.colGap ?? sp(c, 6)}px ${o.rowGap ?? sp(c, 6)}px 0;`))
           .join(""),
       ),
     );
@@ -1412,12 +1463,19 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         },
       );
     case "contacts": {
+      const o: ContactOpts = {
+        mode: iconModeOf(b, c.doc.design),
+        rowGap: b.rowGap,
+        colGap: b.colGap,
+        separator: b.separator,
+        sepColor: b.sepColor,
+      };
       const html =
         b.layout === "grid"
-          ? contactsGrid(c)
+          ? contactsGrid(c, o)
           : b.layout === "chips"
-            ? contactsChips(c)
-            : contactsHtml(c, { inline: b.layout === "inline", align, iconBg: b.iconBg });
+            ? contactsChips(c, o)
+            : contactsHtml(c, { ...o, inline: b.layout === "inline", align, iconBg: b.iconBg });
       return html || empty("Contact details");
     }
     case "socials":

@@ -351,6 +351,8 @@ interface BlockBase {
   hover?: string;
 }
 
+export type ContactSeparator = "bar" | "dot" | "slash" | "dash" | "none";
+
 export type ButtonStyle = "solid" | "outline" | "pill" | "link" | "square" | "squareOutline";
 
 export type Block = BlockBase &
@@ -360,7 +362,21 @@ export type Block = BlockBase &
     | { type: "title"; upper?: boolean; italic?: boolean; titleOnly?: boolean; link?: string }
     | { type: "field"; field: DetailKey; upper?: boolean; link?: string }
     | { type: "text"; text: string; size?: number; bold?: boolean; italic?: boolean; muted?: boolean; upper?: boolean; link?: string }
-    | { type: "contacts"; layout: "stacked" | "inline" | "grid" | "chips"; iconBg?: boolean }
+    | {
+        type: "contacts";
+        layout: "stacked" | "inline" | "grid" | "chips";
+        iconBg?: boolean;
+        /** false hides the icons (or letters/words) for this block; true shows them even when Design says none. */
+        icons?: boolean;
+        /** What sits between fields on one line. Unset: a bar. */
+        separator?: ContactSeparator;
+        /** Separator colour. Unset: a pale tint of the muted colour. */
+        sepColor?: string;
+        /** Space between rows, px (list, grid, chips). Unset: the layout's default. */
+        rowGap?: number;
+        /** Space between fields side by side, px (one line, grid, chips). Unset: the layout's default. */
+        colGap?: number;
+      }
     | { type: "socials"; size?: number }
     | { type: "photo"; size?: number }
     | { type: "logo"; size?: number }

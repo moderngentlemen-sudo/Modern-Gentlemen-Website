@@ -8,6 +8,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Signature Studio: contact block handles, icons toggle, dividers and spacing
+
+From the owner's testing of the contact block:
+- **Handle fixes:**
+  - **The selection frame now covers every contact line.** Contact lines don't wrap, so a long email ran past its column and the frame, which measured the column cell, stopped short. The right-hand handle sat on top of the email address. The frame now includes the text's own extent.
+  - **Edges change spacing, corners scale the text.** Before, every handle scaled the text.
+    - The bottom and top edges change the space between rows (list, grid, chips).
+    - The side edges change the space between fields side by side (one line, grid, chips).
+    - A list has no side handles, because it has no side-by-side gap.
+    - Shift on an edge still scales the text.
+- **New controls:**
+  - **Show icons:** a per-block switch. It overrides the Design setting either way and also covers letters and words. "Filled icon badges" now appears only where it has an effect.
+  - **Dividers (one line):** a choice of bar, dot, slash, dash or none, plus a divider colour.
+  - **Spacing:** "Space between" and "Space between rows" (or "Space across" for grid and chips), with Reset spacing. They follow the whole-signature scale, and zero stays zero.
+- **One-line contacts with a dot, dash or no divider still wrap.** A line can break after a bar but not after a dot, so a zero-width space follows each custom divider.
+- **Outlook:** custom spacing keeps a real space either side of a divider where it fits, because Outlook ignores padding on inline text.
+- **Existing contact blocks render exactly as before.** Hashes of all 16 layout × icon-style combinations match the previous code.
+- **Shared code:** defaults and gaps live in `core/contactLayout.ts`, shared by the renderer, the inspector and the canvas handles.
+- **Gates:** `npm test` (145), `npm run e2e` (62), `npm run build`. An older handle test in `qol.spec.ts` meant to drag the photo but clicked the second `<img>`, which is a contact icon. It now drags the logo.
+
 ### 2026-10-11 — Signature Studio: divider spacing, padding, direction, style; divider colour fixed
 
 From the owner's testing:

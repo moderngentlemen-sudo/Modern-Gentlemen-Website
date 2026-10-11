@@ -144,7 +144,10 @@ export function Stage({ html, className }: { html: string; className?: string })
     sr.querySelectorAll<HTMLElement>("[data-block]").forEach((el) => {
       // Frame the block's own content: its wrapper fills the column, so a logo
       // narrower than the column would otherwise get handles out at the column edge.
-      const kids = [...el.children].map((k) => k.getBoundingClientRect()).filter((k) => k.width || k.height);
+      // Text set not to wrap (a contact line) can run past its cell, so the content's own extent counts too.
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const kids = [...[...el.children].map((k) => k.getBoundingClientRect()), range.getBoundingClientRect()].filter((k) => k.width || k.height);
       const r = kids.length
         ? kids.reduce((a, k) => {
             const left = Math.min(a.left, k.left);
@@ -492,7 +495,11 @@ export function Stage({ html, className }: { html: string; className?: string })
                             if (h) r.patch(d, h.block);
                           }, `resize.${id}`);
                           const st = stageRef.current!.getBoundingClientRect();
-                          setTip({ x: ev.clientX - st.left + 14, y: ev.clientY - st.top + 14, label: `${r.label} · Shift keeps proportions` });
+                          setTip({
+                            x: ev.clientX - st.left + 14,
+                            y: ev.clientY - st.top + 14,
+                            label: `${r.label} · Shift ${sel.block.type === "contacts" ? "scales the text" : "keeps proportions"}`,
+                          });
                           return;
                         }
                         const raw = resizeValue(spec, dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);

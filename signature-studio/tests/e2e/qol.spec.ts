@@ -51,14 +51,15 @@ test("handles on every side and corner scale the block, growing outward and shri
   await drag("nw", -40, -40); // top-left corner, outward
   expect(await size()).toBeGreaterThan(smaller);
 
-  // A taller block (the photo) gets all eight, and its left edge works too.
-  await preview(page).locator("img").nth(1).click();
+  // A taller block (the logo) gets all eight, and its left edge works too.
+  const logo = preview(page).getByText("Logo", { exact: true });
+  await logo.click();
   for (const dir of ["n", "ne", "e", "se", "s", "sw", "w", "nw"])
     await expect(page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`)).toBeVisible();
-  const photo = async () => (await preview(page).locator("img").nth(1).boundingBox())!.width;
-  const p0 = await photo();
+  const width = async () => (await logo.boundingBox())!.width;
+  const p0 = await width();
   await drag("w", -30, 0);
-  expect(await photo()).toBeGreaterThan(p0);
+  expect(await width()).toBeGreaterThan(p0);
 });
 
 test("new blocks, palette search, hide from layers, copy/paste", async ({ page }) => {

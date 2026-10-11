@@ -1,0 +1,77 @@
+import { describe, expect, it } from "vitest";
+import { renderSignature } from "./render";
+import { block, col } from "../core/blocks";
+import { newDoc } from "../core/defaults";
+import { TEMPLATES } from "../core/templates";
+import { scaleDoc } from "../core/scale";
+import { handlesFor, resizeSpec } from "../builder/resize";
+import { validateEmailHtml } from "./validate";
+import type { Block } from "../core/types";
+
+function render(b: Block, icons: "icons" | "letters" | "none" = "icons") {
+  const d = newDoc(TEMPLATES[0].id, TEMPLATES[0].design);
+  d.mode = "builder";
+  d.design.contactIcons = icons;
+  Object.assign(d.details, { name: "Jordan", phone: "+1 416 555 0182", email: "j@x.co", website: "x.co", address: "" });
+  d.blocks = col([b]);
+  return { doc: d, out: renderSignature(d, { variant: "full", mode: "email", resolve: () => "https://img.example.com/x.png" }).html };
+}
+
+const iconCount = (html: string) => (html.match(/alt="(Phone|Email|Web)"/g) ?? []).length;
+
+describe("contacts block", () => {
+  it("can turn its icons off, or on when the design has none", () => {
+    expect(iconCount(render(block("contacts")).out)).toBe(3);
+    expect(iconCount(render(block("contacts", { icons: false })).out)).toBe(0);
+    for (const layout of ["inline", "grid", "chips"] as const) expect(iconCount(render(block("contacts", { layout, icons: false })).out)).toBe(0);
+    expect(iconCount(render(block("contacts", { icons: true }), "none").out)).toBe(3);
+    // Letters turned off too.
+    expect(render(block("contacts", { icons: false }), "letters").out).not.toContain('font-weight:700;">T</span>');
+  });
+
+  it("sets the space between rows and across", () => {
+    expect(render(block("contacts", { rowGap: 11 })).out).toContain("padding-top:11px;");
+    const grid = render(block("contacts", { layout: "grid", rowGap: 9, colGap: 30 })).out;
+    expect(grid).toContain("padding:9px 30px 0 0;");
+    expect(render(block("contacts", { layout: "chips", rowGap: 2, colGap: 12 })).out).toContain("padding:0 12px 2px 0;");
+  });
+
+  it("one line: pick the divider, its colour and the space either side", () => {
+    const out = render(block("contacts", { layout: "inline", separator: "dot", sepColor: "#c8102e", colGap: 30 })).out;
+    // A space either side (all Outlook shows) plus padding up to the gap.
+    expect(out).toMatch(/&nbsp;<span style="color:#c8102e;padding:0 \d+px;">·<\/span>&nbsp;/);
+    expect(out).not.toContain(">|</span>");
+    const none = render(block("contacts", { layout: "inline", separator: "none" })).out;
+    expect(none).toContain("&#8203;");
+    const tight = render(block("contacts", { layout: "inline", colGap: 0 })).out;
+    expect(tight).toContain('padding:0 0px;">|</span>');
+    expect(validateEmailHtml(out).filter((p) => p.level === "error")).toEqual([]);
+  });
+
+  it("canvas edges change the spacing: rows from the bottom, across from the side; corners scale the text", () => {
+    const { doc } = render(block("contacts"));
+    const list = resizeSpec(doc.blocks!.blocks[0], doc, 200)!;
+    // A list has no side-by-side gap, so no side handles.
+    expect(handlesFor(list)).toEqual(["nw", "n", "ne", "se", "s", "sw"]);
+    const rows = list.stretch!("s", 0, 20, { w: 200, h: 60 });
+    const x = structuredClone(doc.blocks!.blocks[0]);
+    rows.patch(doc, x);
+    // Three lines, two gaps: 20px more spread across them.
+    expect(x.type === "contacts" && x.rowGap).toBe(13);
+    expect(rows.label).toBe("13px between rows");
+
+    const inline = render(block("contacts", { layout: "inline" }));
+    const spec = resizeSpec(inline.doc.blocks!.blocks[0], inline.doc, 400)!;
+    expect(handlesFor(spec)).toEqual(["nw", "ne", "e", "se", "sw", "w"]);
+    const y = structuredClone(inline.doc.blocks!.blocks[0]);
+    spec.stretch!("w", -20, 0, { w: 400, h: 20 }).patch(inline.doc, y);
+    expect(y.type === "contacts" && y.colGap).toBe(24);
+    expect(spec.label(spec.start)).toMatch(/px text$/);
+  });
+
+  it("gaps scale with the signature, and zero stays zero", () => {
+    const { doc } = render(block("contacts", { rowGap: 10, colGap: 0 }));
+    const s = scaleDoc(doc, 1.5).blocks!.blocks[0];
+    expect(s.type === "contacts" && [s.rowGap, s.colGap]).toEqual([15, 0]);
+  });
+});

@@ -13,6 +13,7 @@ import { ImageDrop } from "../ui/ImageDrop";
 import { ImageStudio } from "./ImageStudio";
 import { LiveBannerEditor } from "./LiveBannerEditor";
 import { LinkableText } from "../ui/LinkableText";
+import { colGapOf, hasColGap, hasRowGap, iconModeOf, rowGapOf } from "../core/contactLayout";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
 import { duplicateSelected, removeSelected, resizeSelection, updateBlock, updateColumn, updateSelected, wrapSelected } from "./actions";
@@ -275,6 +276,81 @@ function columnIndex(root: Column, id: string): number {
   return row?.kind === "row" && row.block.type === "row" ? row.block.columns.findIndex((c) => c.id === id) : 0;
 }
 
+/** A symbol on a button, read out by name. */
+const glyph = (g: string, name: string) => (
+  <>
+    <span aria-hidden="true">{g}</span>
+    <span className="sr-only">{name}</span>
+  </>
+);
+
+/** Icons, separators and spacing for a contacts block. */
+function ContactSpacing({ b }: { b: Extract<Block, { type: "contacts" }> }) {
+  const design = useStudio((s) => s.doc!.design);
+  const set = (patch: Partial<typeof b>, key?: string) => updateBlock(b.id, patch as Partial<Block>, key);
+  const showIcons = iconModeOf(b, design) !== "none";
+  return (
+    <>
+      <Toggle
+        label="Show icons"
+        hint={design.contactIcons === "icons" || design.contactIcons === "none" ? "Phone, email and web icons" : `Shows ${design.contactIcons} (set in Design)`}
+        checked={showIcons}
+        onChange={(v) => set({ icons: v === (design.contactIcons !== "none") ? undefined : v })}
+        testId="contact-icons"
+      />
+      {showIcons && b.layout !== "grid" && b.layout !== "chips" && design.contactIcons !== "letters" && design.contactIcons !== "words" && (
+        <Toggle label="Filled icon badges" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
+      )}
+      {b.layout === "inline" && (
+        <>
+          <Field label="Dividers">
+            <Segmented
+              label="Contact dividers"
+              value={b.separator ?? "bar"}
+              onChange={(v) => set({ separator: v === "bar" ? undefined : v })}
+              options={[
+                { value: "bar", label: glyph("|", "Bar"), title: "Bar" },
+                { value: "dot", label: glyph("·", "Dot"), title: "Dot" },
+                { value: "slash", label: glyph("/", "Slash"), title: "Slash" },
+                { value: "dash", label: glyph("–", "Dash"), title: "Dash" },
+                { value: "none", label: "None" },
+              ]}
+            />
+          </Field>
+          {b.separator !== "none" && (
+            <ColorField
+              label="Divider colour"
+              value={b.sepColor ?? mix(design.muted, "#ffffff", 0.45)}
+              onChange={(c) => set({ sepColor: c }, "sepColor")}
+              extra={[design.accent, design.muted]}
+            />
+          )}
+        </>
+      )}
+      {hasColGap(b.layout) && (
+        <Slider
+          label={b.layout === "inline" ? "Space between" : "Space across"}
+          hint={b.layout === "inline" ? "either side of the divider" : "between the two columns"}
+          unit="px"
+          min={0}
+          max={60}
+          value={colGapOf(b, design)}
+          onChange={(v) => set({ colGap: v }, "colGap")}
+        />
+      )}
+      {hasRowGap(b.layout) && (
+        <Slider label="Space between rows" unit="px" min={0} max={40} value={rowGapOf(b, design)} onChange={(v) => set({ rowGap: v }, "rowGap")} />
+      )}
+      {(b.rowGap !== undefined || b.colGap !== undefined) && (
+        <button className="btn sm ghost" onClick={() => set({ rowGap: undefined, colGap: undefined })}>
+          Reset spacing
+        </button>
+      )}
+      <p className="hint">On the canvas, drag the side or bottom edge to change the spacing; drag a corner to resize the text.</p>
+    </>
+  );
+}
+
 const SHOW_IN: Record<string, string> = { both: "New emails & replies", full: "New emails only", reply: "Replies only", hidden: "Hidden" };
 
 function Content({ b }: { b: Block }) {
@@ -387,14 +463,14 @@ function Content({ b }: { b: Block }) {
               ]}
             />
           </Field>
-          <Toggle label="Filled icon badges" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
+          <ContactSpacing b={b} />
           <DetailField k="phone" label="Phone" />
           <DetailField k="mobile" label="Mobile" hint="optional" />
           <DetailField k="email" label="Email" />
           <DetailField k="website" label="Website" />
           <DetailField k="address" label="Address" hint="optional" />
           <p className="hint">
-            Shared with your saved profile. Icon style is set in Design. <GoTo tab="details">All details</GoTo>
+            Shared with your saved profile. <GoTo tab="details">All details</GoTo>
           </p>
         </>
       );
