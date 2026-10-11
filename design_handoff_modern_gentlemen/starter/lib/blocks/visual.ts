@@ -644,8 +644,11 @@ function rulesForSelector(selector: string, design: VisualElementDesign): string
     // a plain rule, and the point of a hover colour is to change what you see.
     // Text that is transparent on purpose stays transparent: the knockout's
     // layout copy under its mask, and outlined countdown numerals.
+    // A row of social links is the exception: there the colour belongs to the
+    // one icon under the pointer, not to the whole row.
     rules.push(
-      `${selector}:hover,${selector}:hover :not([data-knockout] p):not([data-outline="true"]){color:${hoverColor}!important}`
+      `${selector}:hover:not(:has([data-social])),${selector}:hover :not([data-knockout] p):not([data-outline="true"]):not([data-social]):not([data-social] *){color:${hoverColor}!important}`,
+      `${selector} [data-social] a:hover,${selector} [data-social] a:focus-visible{color:${hoverColor}!important}`
     );
   }
   if (hover && hover !== "none" && hover !== "fade")

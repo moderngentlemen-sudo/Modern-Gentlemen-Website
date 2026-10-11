@@ -434,6 +434,45 @@ From the editor audit (https://claude.ai/artifact/2Ah4jUeZcrgc9rmtLGE2oM), items
   (`signature-studio/worker/`). **That Worker is not deployed yet**, so live
   Gmail acceptance has not been performed.
 
+### 2026-10-11 — More social networks and per-icon hover (branch `claude/social-icons`)
+
+- Asked by the owner: more networks in the social icons, and hover colour or
+  animation per icon rather than for the whole row.
+- **One network list for every social element**
+  (`lib/blocks/socialNetworks.ts`): 28 networks — the original five plus
+  Facebook, Threads, Pinterest, Snapchat, WhatsApp, Telegram, Discord,
+  Twitch, Spotify, Apple Music, SoundCloud, Vimeo, Bluesky, Mastodon, Reddit,
+  GitHub, Behance, Dribbble, Medium, Substack, Tumblr, Email and Website. The
+  Stage's Social links and Coming Soon Studio (and through it the reel and
+  After Hours designs) read the same list.
+- **Marks come from Simple Icons** (`simple-icons`, CC0, pinned exact at
+  16.32.0; only the named marks are imported, so the bundle carries 25 paths,
+  not 3,000). ⚠️ The original five keep their hand-drawn marks in
+  `SocialIcon` — pages built before are pixel-verified with them. Solid marks
+  are drawn at 80% of the 24-unit box so they sit at the line icons' visual
+  weight. LinkedIn is not in Simple Icons (removed at LinkedIn's request), so
+  it keeps the hand-drawn one; Email and Website are line icons in the same
+  style.
+- **Hover per icon:** each profile can set its own hover colour and animation
+  (fade, nothing, lift, grow, spin, pulse, wiggle, glow); the row sets the
+  default, and "Use each network's own colour on hover" picks the brand
+  colour. Precedence: the icon's colour, then the brand's, then the row's.
+  Brands whose colour is black (X, Threads, TikTok, GitHub, Medium) carry
+  `brand: null` and fall back to the row colour, since black vanishes on the
+  dark grounds these sit on. Keyboard focus gets the same treatment as hover;
+  reduced motion keeps only colour and opacity. The default stays "fade",
+  exactly the old 75% opacity, so existing pages are unchanged.
+- **Follow-up: "only the icon I hover should turn red."** The element's own
+  hover colour already did that, but the general Hover panel's text colour
+  treated the whole row as one element and turned every icon red. Social rows
+  are now marked `data-social`, and the general rule skips them and colours
+  `[data-social] a:hover` instead — so either setting changes only the icon
+  under the pointer (verified in Chromium: X red, the others unchanged). The
+  Hover panel says so for Social links.
+- Verified in Chromium: every network draws, the row reads as one family,
+  Spotify turns its brand green on hover. Gates: format, lint, typecheck,
+  4,110 unit tests.
+
 ### 2026-10-09 — Safari bars, phone dragging on stages, hover options (branch `claude/stage-mobile-hover`)
 
 - **White bars on iPhone Safari.** Safari tints the status-bar and toolbar

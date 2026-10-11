@@ -1,5 +1,6 @@
 import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
+import { SOCIAL_NETWORK_OPTIONS } from "../socialNetworks";
 
 /**
  * Elements for launch and coming-soon layouts, transcribed from
@@ -181,27 +182,49 @@ export const nativeSignup = defineBlock({
   },
 });
 
+const SOCIAL_HOVERS = [
+  { value: "fade", label: "Fade" },
+  { value: "none", label: "Nothing" },
+  { value: "lift", label: "Lift" },
+  { value: "grow", label: "Grow" },
+  { value: "spin", label: "Spin" },
+  { value: "pulse", label: "Pulse" },
+  { value: "wiggle", label: "Wiggle" },
+  { value: "glow", label: "Glow" },
+];
+
 export const nativeSocial = defineBlock({
   type: "nativeSocial",
   label: "Social links",
   category: "layout",
-  description: "Icons or names linking to the brand's profiles.",
+  description:
+    "Icons or names linking to the brand's profiles, with hover colours and animations for the whole row or for each icon.",
   fields: {
     links: field.list({
       label: "Profiles",
       itemLabel: "profile",
-      max: 8,
+      max: 12,
       of: {
         network: field.select({
           label: "Network",
           default: "instagram",
-          options: ["instagram", "x", "youtube", "tiktok", "linkedin"].map((value) => ({
-            value,
-            label: value,
-          })),
+          options: SOCIAL_NETWORK_OPTIONS,
         }),
-        href: field.url({ label: "Profile URL", required: true }),
+        href: field.url({
+          label: "Profile URL",
+          required: true,
+          help: "For Email, use mailto:hello@example.com.",
+        }),
         label: field.text({ label: "Name for screen readers", required: true }),
+        hoverColor: field.color({
+          label: "Hover colour for this icon",
+          help: "Optional; overrides the row's hover colour and brand colour.",
+        }),
+        hoverEffect: field.select({
+          label: "Hover animation for this icon",
+          default: "",
+          options: [{ value: "", label: "Same as the row" }, ...SOCIAL_HOVERS],
+        }),
       },
     }),
     style: field.select({
@@ -216,6 +239,18 @@ export const nativeSocial = defineBlock({
     size: field.number({ label: "Icon size (px)", default: 22, min: 10, max: 120 }),
     gap: field.number({ label: "Spacing (px)", default: 24, min: 0, max: 160 }),
     color: field.color({ label: "Colour" }),
+    hoverEffect: field.select({
+      label: "Hover animation",
+      default: "fade",
+      options: SOCIAL_HOVERS,
+      help: "For every icon, unless an icon sets its own. Still for visitors who ask for reduced motion.",
+    }),
+    hoverColor: field.color({ label: "Hover colour", help: "Optional; for every icon." }),
+    hoverBrand: field.boolean({
+      label: "Use each network's own colour on hover",
+      default: false,
+      help: "Instagram pink, Spotify green and so on. Networks whose colour is black use the hover colour above instead.",
+    }),
     font: field.font({
       label: "Font",
       help: "For profile names. Leave unset to follow the theme's label font.",

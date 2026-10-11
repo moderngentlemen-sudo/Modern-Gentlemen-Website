@@ -2,6 +2,7 @@ import { useId, type CSSProperties } from "react";
 
 import { studyHref } from "@/lib/blocks/sectionStudies";
 import { libraryFontStack } from "@/lib/domain/fontLibrary";
+import { socialNetwork } from "@/lib/blocks/socialNetworks";
 import { SocialIcon } from "../sections/AfterHoursLanding";
 import { MgMonogram } from "../sections/MgMonogram";
 import { FontStylesheet } from "../ui/FontStylesheet";
@@ -23,6 +24,15 @@ const fontVar = (font: string | undefined): Record<string, string> => {
 const within = (n: unknown, min: number, max: number, fallback: number) =>
   typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 
+const SOCIAL_HOVERS = ["fade", "none", "lift", "grow", "spin", "pulse", "wiggle", "glow"];
+type SocialLink = {
+  network: string;
+  href: string;
+  label: string;
+  hoverColor?: string;
+  hoverEffect?: string;
+};
+
 export function LaunchSocial({
   links = [],
   style = "icons",
@@ -31,20 +41,28 @@ export function LaunchSocial({
   color,
   align = "center",
   font,
+  hoverEffect = "fade",
+  hoverColor,
+  hoverBrand = false,
 }: {
-  links?: { network: string; href: string; label: string }[];
+  links?: SocialLink[];
   style?: "icons" | "text" | "both";
   size?: number;
   gap?: number;
   color?: string;
   align?: "left" | "center" | "right";
   font?: string;
+  hoverEffect?: string;
+  hoverColor?: string;
+  hoverBrand?: boolean;
 }) {
   const safe = links.filter((link) => studyHref(link.href));
   if (safe.length === 0) return null;
+  const rowEffect = SOCIAL_HOVERS.includes(hoverEffect) ? hoverEffect : "fade";
   return (
     <nav
       aria-label="Social media"
+      data-social=""
       className={styles.social}
       style={
         {
@@ -57,16 +75,30 @@ export function LaunchSocial({
       }
     >
       <FontStylesheet font={font} />
-      {safe.map((link, index) => (
-        <a
-          key={`${link.network}-${index}`}
-          href={studyHref(link.href)}
-          aria-label={style === "text" ? undefined : link.label || link.network}
-        >
-          {style !== "text" && <SocialIcon network={link.network} />}
-          {style !== "icons" && <span>{link.label || link.network}</span>}
-        </a>
-      ))}
+      {safe.map((link, index) => {
+        // This icon's colour, then the brand's (when asked for), then the row's.
+        const hover =
+          (link.hoverColor && HEX.test(link.hoverColor) && link.hoverColor) ||
+          (hoverBrand && socialNetwork(link.network)?.brand) ||
+          (hoverColor && HEX.test(hoverColor) && hoverColor) ||
+          undefined;
+        const effect =
+          link.hoverEffect && SOCIAL_HOVERS.includes(link.hoverEffect)
+            ? link.hoverEffect
+            : rowEffect;
+        return (
+          <a
+            key={`${link.network}-${index}`}
+            href={studyHref(link.href)}
+            aria-label={style === "text" ? undefined : link.label || link.network}
+            data-hover={effect}
+            style={hover ? ({ "--so-hover": hover } as CSSProperties) : undefined}
+          >
+            {style !== "text" && <SocialIcon network={link.network} />}
+            {style !== "icons" && <span>{link.label || link.network}</span>}
+          </a>
+        );
+      })}
     </nav>
   );
 }
