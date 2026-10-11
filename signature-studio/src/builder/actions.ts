@@ -50,7 +50,11 @@ export function enterQuick() {
 
 /** Rebuild the layout from the current template (undoable). */
 export function resetLayout() {
-  edit((d) => void (d.blocks = blocksFromDoc(d)));
+  edit((d) => {
+    d.blocks = blocksFromDoc(d);
+    // A new layout starts without a phone layout of its own.
+    d.phoneBlocks = undefined;
+  });
   ui({ selected: null });
   toast("Layout rebuilt from the template", "success", { label: "Undo", run: undo });
 }

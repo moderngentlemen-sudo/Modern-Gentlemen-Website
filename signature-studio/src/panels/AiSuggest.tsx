@@ -95,6 +95,7 @@ export function AiSuggest() {
                 edit((d) => {
                   applySuggestion(d, s);
                   if (d.mode === "builder") d.blocks = blocksFromDoc(d);
+                  d.phoneBlocks = undefined;
                 });
                 toast(`Applied “${s.title}”`, "success", { label: "Undo", run: undo });
               }}

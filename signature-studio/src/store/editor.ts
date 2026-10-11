@@ -3,7 +3,8 @@
  * editor UI state and preferences. Saving is automatic.
  */
 import { create } from "zustand";
-import { produce, type Draft } from "immer";
+import { current, produce, type Draft } from "immer";
+import { samePhone, syncPhone } from "../core/phoneLayout";
 import type { SignatureDoc, Variant } from "../core/types";
 import { defaultCard } from "../core/defaults";
 import { go } from "../router";
@@ -88,12 +89,31 @@ const set = (p: Partial<State>) => useStudio.setState(p);
 export function edit(recipe: (d: Draft<SignatureDoc>) => void, key?: string) {
   const { doc, past, lastKey, lastTime } = get();
   if (!doc) return;
-  const next = produce(doc, recipe);
+  const phone = editsPhone(get());
+  let next = produce(doc, (d) => {
+    // The first change in phone view makes the phone layout, as a copy of desktop.
+    if (phone && d.blocks && !d.phoneBlocks) d.phoneBlocks = structuredClone(current(d.blocks));
+    recipe(d);
+  });
   if (next === doc) return;
+  next = keepPhoneInStep(doc, next, phone);
   const now = Date.now();
   const coalesce = !!key && key === lastKey && now - lastTime < COALESCE;
   set({ doc: next, past: coalesce ? past : [...past.slice(-LIMIT + 1), doc], future: [], lastKey: key ?? null, lastTime: now });
   scheduleSave();
+}
+
+/**
+ * After a desktop edit, carry it into the phone layout wherever the phone
+ * hasn't changed that thing itself; and drop a phone layout that no longer
+ * differs from desktop, so the email isn't sent twice over for nothing.
+ */
+function keepPhoneInStep(prev: SignatureDoc, next: SignatureDoc, phoneEdit: boolean): SignatureDoc {
+  let out = next;
+  if (!phoneEdit && prev.phoneBlocks && next.phoneBlocks && prev.blocks && next.blocks && prev.blocks !== next.blocks)
+    out = { ...out, phoneBlocks: syncPhone(prev.blocks, next.blocks, next.phoneBlocks) };
+  if (out.phoneBlocks && samePhone(out.blocks, out.phoneBlocks)) out = { ...out, phoneBlocks: undefined };
+  return out;
 }
 
 /** Change without an undo step (e.g. the verified-image cache). */
@@ -239,13 +259,21 @@ export function editsReply(s: { variant: Variant; doc: SignatureDoc | null }): b
   return s.variant === "reply" && s.doc?.mode === "builder" && !!s.doc.reply.custom && !!s.doc.replyBlocks;
 }
 
-/** The block tree being edited: the main layout, or the reply layout. */
-export function tree<D extends { blocks?: unknown; replyBlocks?: unknown }>(d: D): D["blocks"] {
-  return (editsReply(get()) ? d.replyBlocks : d.blocks) as D["blocks"];
+/** Phone view of a new-email builder signature: edits go to the phone layout. */
+export function editsPhone(s: { variant: Variant; device?: "desktop" | "mobile"; doc: SignatureDoc | null }): boolean {
+  return s.device === "mobile" && s.variant === "full" && s.doc?.mode === "builder" && !!s.doc.blocks;
+}
+
+/** The block tree being edited: the main layout, the reply layout, or the phone layout. */
+export function tree<D extends { blocks?: unknown; replyBlocks?: unknown; phoneBlocks?: unknown }>(d: D): D["blocks"] {
+  const s = get();
+  if (editsReply(s)) return d.replyBlocks as D["blocks"];
+  return (editsPhone(s) ? (d.phoneBlocks ?? d.blocks) : d.blocks) as D["blocks"];
 }
 
 /** Selector form of `tree` for components. */
-export const treeOf = (s: { variant: Variant; doc: SignatureDoc | null }) => (editsReply(s) ? s.doc!.replyBlocks : s.doc?.blocks);
+export const treeOf = (s: { variant: Variant; device?: "desktop" | "mobile"; doc: SignatureDoc | null }) =>
+  editsReply(s) ? s.doc!.replyBlocks : editsPhone(s) ? (s.doc!.phoneBlocks ?? s.doc!.blocks) : s.doc?.blocks;
 
 export function ui(patch: Partial<State>) {
   // Picking a single block ends a multi-selection unless the patch says otherwise.

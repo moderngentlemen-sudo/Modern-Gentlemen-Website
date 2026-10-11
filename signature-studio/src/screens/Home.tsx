@@ -80,6 +80,7 @@ export async function createFromTemplate(templateId: string, opts: CreateOptions
     doc.mode = "builder";
     doc.blocks = col([], { gap: 8 });
     doc.replyBlocks = undefined;
+    doc.phoneBlocks = undefined;
     for (const k of Object.keys(doc.addons) as (keyof typeof doc.addons)[]) (doc.addons[k] as { enabled: boolean }).enabled = false;
   }
   await createDoc(doc);

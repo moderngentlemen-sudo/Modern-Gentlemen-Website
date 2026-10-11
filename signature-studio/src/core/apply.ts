@@ -20,6 +20,8 @@ export function applyTemplate(doc: SignatureDoc, templateId: string, opts: { kee
     doc.mode = "builder";
     doc.blocks = blocksFromDoc(doc);
   } else if (doc.mode === "builder") doc.blocks = blocksFromDoc(doc);
+  // A new layout starts without a phone layout of its own.
+  doc.phoneBlocks = undefined;
 }
 
 /** Restyle a signature with a brand kit (colours, fonts, logo, company). */

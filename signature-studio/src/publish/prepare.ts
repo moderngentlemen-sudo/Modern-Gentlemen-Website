@@ -36,8 +36,9 @@ export function liveBase(): string | undefined {
   return cloud && useAccount.getState().user ? cloud.liveBase() : undefined;
 }
 
-export function emailHtml(doc: SignatureDoc, variant: Variant) {
-  const r = renderSignature(doc, { variant, mode: "email", resolve: (req) => doc.published[req.key]?.url ?? null, liveBase: liveBase() });
+/** The HTML to install. `phoneLayout`: include the phone layout (not for Gmail, which strips what it needs). */
+export function emailHtml(doc: SignatureDoc, variant: Variant, phoneLayout = false) {
+  const r = renderSignature(doc, { variant, mode: "email", resolve: (req) => doc.published[req.key]?.url ?? null, liveBase: liveBase(), phoneLayout });
   const problems = [...r.errors.map((m) => ({ level: "error" as const, message: m })), ...validateEmailHtml(r.html, { allowTestHost: TEST_HOST_ENABLED })];
   return { html: r.html, images: r.images, problems, ready: !problems.some((p) => p.level === "error") };
 }
@@ -159,9 +160,9 @@ async function publishLiveBanners() {
   const doc = useStudio.getState().doc!;
   // Every tagged request, undeduplicated (two items may share a picture).
   const reqs = (["full", "reply"] as Variant[]).flatMap((v) =>
-    renderSignature(doc, { variant: v, mode: "email", resolve: () => null }).images.filter((r) => r.live),
+    renderSignature(doc, { variant: v, mode: "email", resolve: () => null, phoneLayout: true }).images.filter((r) => r.live),
   );
-  const trees = [doc.blocks, doc.replyBlocks].filter((t): t is NonNullable<typeof t> => !!t);
+  const trees = [doc.blocks, doc.replyBlocks, doc.phoneBlocks].filter((t): t is NonNullable<typeof t> => !!t);
   const seen = new Set<string>();
   for (const t of trees)
     for (const { block: b } of walk(t)) {
@@ -190,7 +191,7 @@ async function publishLiveBanners() {
         });
         if (!b.live.slug)
           editSilently((d) => {
-            for (const tr of [d.blocks, d.replyBlocks]) {
+            for (const tr of [d.blocks, d.replyBlocks, d.phoneBlocks]) {
               const h = tr ? findBlock(tr, b.id) : null;
               if (h && h.block.type === "image" && h.block.live) h.block.live.slug = slug;
             }
@@ -212,7 +213,8 @@ export async function prepareAll(variants: Variant[], force = false) {
     await prepareDigitalCard(force);
     const doc = useStudio.getState().doc!;
     const reqs = new Map<string, ImageRequest>();
-    for (const v of variants) for (const r of renderSignature(doc, { variant: v, mode: "email", resolve: () => null }).images) reqs.set(r.key, r);
+    // Every picture either layout uses, so the phone layout's are hosted too.
+    for (const v of variants) for (const r of renderSignature(doc, { variant: v, mode: "email", resolve: () => null, phoneLayout: true }).images) reqs.set(r.key, r);
     await pool([...reqs.values()], 3, (r) => publishOne(r, force));
     await publishLiveBanners();
   } finally {

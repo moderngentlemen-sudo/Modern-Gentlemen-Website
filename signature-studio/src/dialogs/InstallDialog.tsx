@@ -136,9 +136,12 @@ function StatusIcon({ s }: { s: ImageStatus }) {
   return <Loader2 size={18} className="spin" color="var(--brand)" />;
 }
 
-function CopyBox({ variant, title, testId }: { variant: Variant; title: string; testId: string }) {
+function CopyBox({ variant, title, testId, client }: { variant: Variant; title: string; testId: string; client: Client }) {
   const doc = useStudio((s) => s.doc!);
-  const out = useMemo(() => emailHtml(doc, variant), [doc, variant]);
+  // Gmail strips the <style> a phone layout needs (and counts every character), so it gets the desktop layout only.
+  const gmail = client === "gmail" || client === "gmail-app";
+  const phone = variant === "full" && doc.mode === "builder" && !!doc.phoneBlocks;
+  const out = useMemo(() => emailHtml(doc, variant, phone && !gmail), [doc, variant, phone, gmail]);
   const [copied, setCopied] = useState(false);
   const warnings = out.problems.filter((p) => p.level !== "error");
   const copy = async () => {
@@ -162,6 +165,13 @@ function CopyBox({ variant, title, testId }: { variant: Variant; title: string; 
       <div className="pv">
         <SigHtml html={out.html} />
       </div>
+      {phone && (
+        <p className="hint" data-testid="phone-layout-note">
+          {gmail
+            ? "Gmail can't switch to your phone layout, so phones show the desktop one (side-by-side columns stack to fit)."
+            : "Includes your phone layout: Apple Mail, iPhone Mail and Outlook switch to it on phones when they keep the signature's styles. The HTML file always keeps them."}
+        </p>
+      )}
       {!out.ready && (
         <div className="callout err">
           <XCircle size={16} />
@@ -354,8 +364,8 @@ export function InstallDialog() {
       {step === 2 && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr)", gap: 20 }} className="install-grid">
           <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
-            <CopyBox variant="full" title="New emails" testId="copy-full" />
-            {hasReply && <CopyBox variant="reply" title="Replies & forwards" testId="copy-reply" />}
+            <CopyBox variant="full" title="New emails" testId="copy-full" client={client} />
+            {hasReply && <CopyBox variant="reply" title="Replies & forwards" testId="copy-reply" client={client} />}
           </div>
           <div>
             <strong style={{ display: "block", marginBottom: 10 }}>{CLIENTS.find((c) => c.id === client)!.name} steps</strong>

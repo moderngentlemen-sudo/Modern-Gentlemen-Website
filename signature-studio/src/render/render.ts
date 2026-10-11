@@ -101,7 +101,19 @@ export interface RenderOptions {
   liveBase?: string;
   /** Clock for live banners in the preview (tests). */
   now?: number;
+  /** Render the phone layout instead of the desktop one (the editor's phone view). */
+  layout?: "phone";
+  /**
+   * email mode: when the signature has a phone layout, send both, with a media
+   * query that swaps them on narrow screens. Off for Gmail, which strips the
+   * <style> a swap needs (and counts every character).
+   */
+  phoneLayout?: boolean;
 }
+
+/** Shows the phone layout instead of the desktop one on screens up to 480px wide, where the email app honours <style>. */
+export const PHONE_STYLE =
+  "<style>@media only screen and (max-width:480px){.sg-d{display:none!important;}.sg-m{display:block!important;max-height:none!important;overflow:visible!important;}}</style>";
 
 export interface RenderResult {
   html: string;
@@ -1782,6 +1794,23 @@ export function mirrorRtl(html: string): string {
 const RTL_CHARS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 
 export function renderSignature(input: SignatureDoc, opts: RenderOptions): RenderResult {
+  const phone = !!input.phoneBlocks && input.mode === "builder" && opts.variant === "full";
+  if (!phone) return renderOne(input, opts);
+  if (opts.layout === "phone") return renderOne({ ...input, blocks: input.phoneBlocks }, opts);
+  if (!opts.phoneLayout || opts.mode !== "email") return renderOne(input, opts);
+  // Both layouts: desktop shows by default (and wherever <style> is stripped); phones swap in their own.
+  const desk = renderOne(input, opts);
+  const mob = renderOne({ ...input, blocks: input.phoneBlocks }, opts);
+  if (!desk.html || !mob.html) return desk;
+  const seen = new Set<string>();
+  return {
+    html: `${PHONE_STYLE}<div class="sg-d">${desk.html}</div><div class="sg-m" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${mob.html}</div>`,
+    images: [...desk.images, ...mob.images].filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true))),
+    errors: [...new Set([...desk.errors, ...mob.errors])],
+  };
+}
+
+function renderOne(input: SignatureDoc, opts: RenderOptions): RenderResult {
   const k = clampScale(input.design.scale);
   const doc = scaleDoc(input, k);
   const reply = opts.variant === "reply";

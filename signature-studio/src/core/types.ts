@@ -273,6 +273,12 @@ export interface SignatureDoc {
   blocks?: Column;
   /** Builder: the reply layout, used when `reply.custom` is on. */
   replyBlocks?: Column;
+  /**
+   * Builder: the phone layout (new emails). Made the first time something is
+   * changed in phone view, and kept in step with desktop where it hasn't been
+   * changed on the phone (core/phoneLayout.ts). Unset: phones get the desktop layout.
+   */
+  phoneBlocks?: Column;
   /** Show the small "Made with …" link under new-email signatures (default on). */
   madeWith?: boolean;
   /** Share details, social links and photo with your saved profile (default on). */

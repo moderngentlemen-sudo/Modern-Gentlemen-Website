@@ -300,3 +300,41 @@ test("text and button edges reshape instead of scaling", async ({ page }) => {
   expect(Math.round(box1.height - box0.height)).toBeGreaterThanOrEqual(9);
   await expect(chip).toHaveText(size0);
 });
+
+test("phone view: changes apply to the phone layout only, and desktop changes still reach it", async ({ page }) => {
+  await builder(page);
+  const device = async (name: "Phone" | "Desktop") => {
+    await page.getByTestId("view-menu").click();
+    await page.getByRole("group", { name: "Device" }).getByRole("button", { name: name }).click();
+    await page.keyboard.press("Escape");
+  };
+  // A text block made on desktop.
+  await page.getByTestId("palette-text").scrollIntoViewIfNeeded();
+  await page.getByTestId("palette-text").click();
+  await page.getByTestId("inspector-text").fill("Hello from desktop");
+  await expect(preview(page)).toContainText("Hello from desktop");
+
+  await device("Phone");
+  await expect(page.getByTestId("phone-bar")).toContainText("phones only");
+  // On the phone: delete the job title and centre the name.
+  await preview(page).getByText("Creative Director").click();
+  await page.getByTestId("delete-block").click();
+  await expect(preview(page)).not.toContainText("Creative Director");
+  await expect(page.getByTestId("phone-bar")).toContainText("Phone layout");
+
+  // Desktop still has it.
+  await device("Desktop");
+  await expect(preview(page)).toContainText("Creative Director");
+  // A desktop edit to the text block flows to the phone layout.
+  await preview(page).getByText("Hello from desktop").click();
+  await page.getByTestId("inspector-text").fill("Hello everywhere");
+  await device("Phone");
+  await expect(preview(page)).toContainText("Hello everywhere");
+  await expect(preview(page)).not.toContainText("Creative Director");
+  await shot(page, "107-phone-layout");
+
+  // Match desktop: phones go back to the desktop layout.
+  await page.getByTestId("phone-reset").click();
+  await expect(preview(page)).toContainText("Creative Director");
+  await expect(page.getByTestId("phone-bar")).not.toContainText("Phone layout");
+});
