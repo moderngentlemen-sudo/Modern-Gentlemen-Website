@@ -753,6 +753,13 @@ function SortableBlock({
       : "stack";
   });
   const inStage = stageMode !== null;
+  /**
+   * Free move/resize handles are for loose blocks. Grid and Stage children
+   * have their own placement controls, and a Stage itself is the full-bleed
+   * page surface, sized by its Height field: one stray handle drag on a phone
+   * pinned a Coming Soon stage to 390 × 1537px, leaving a long band below it.
+   */
+  const loose = !inGrid && !inStage && node._type !== "stageLayout";
   const stageIndex = useBuilder((s) => (inStage ? (locate(s.tree, node._key)?.index ?? 0) : 0));
   const [stagePreview, setStagePreview] = useState<StagePlacement | null>(null);
   const selectedKeys = useBuilder((s) => s.selectedKeys);
@@ -1005,10 +1012,10 @@ function SortableBlock({
           onPreview={setStagePreview}
         />
       )}
-      {modern && selected && selectedKeys.length === 1 && !locked && !inGrid && !inStage && (
+      {modern && selected && selectedKeys.length === 1 && !locked && loose && (
         <FreeCanvasControls node={node} onPreview={setFreePreview} />
       )}
-      {!modern && selected && selectedKeys.length === 1 && !locked && !inGrid && !inStage && (
+      {!modern && selected && selectedKeys.length === 1 && !locked && loose && (
         <>
           <div
             aria-hidden="true"
