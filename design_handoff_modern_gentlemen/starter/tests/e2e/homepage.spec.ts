@@ -61,7 +61,9 @@ test("Pages: choose a published homepage and refresh its live content", async ({
     await page.screenshot({ path: testInfo.outputPath("page-settings-homepage-phone.png") });
     if (desktopViewport) await page.setViewportSize(desktopViewport);
     await page.goto("/");
-    await expect(page.getByText("Published homepage fixture", { exact: true })).toBeVisible();
+    await expect(
+      page.locator("blockquote").filter({ hasText: "Published homepage fixture" })
+    ).toBeVisible();
     await page.goto(`/${slug}`);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
@@ -78,7 +80,9 @@ test("Pages: choose a published homepage and refresh its live content", async ({
       .click();
     await expect(originalHome.getByText("Homepage", { exact: true })).toBeVisible();
     await page.goto("/");
-    await expect(page.getByText("Published homepage fixture", { exact: true })).toHaveCount(0);
+    await expect(
+      page.locator("blockquote").filter({ hasText: "Published homepage fixture" })
+    ).toHaveCount(0);
   } finally {
     // Restore through the real action before database cleanup, so Next's cache
     // also returns to the seeded content used by the later visual suite.

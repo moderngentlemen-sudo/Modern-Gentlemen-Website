@@ -33,13 +33,22 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
   Page-target menu links, builder sharing/publishing URLs and Appearance
   Studio's initial page also follow the selection. Template publishing
   refreshes the root when it affects pages.
-- Apply `20261011065606_default_homepage.sql` before deploying this feature.
-  It changes no existing homepage selection or published page content.
+- `20261011065606_default_homepage.sql` is applied to the live Supabase project
+  and recorded in migration history. Verification confirms the legacy homepage
+  is preserved, RLS is enabled, visitors cannot choose a page and editors cannot
+  delete the singleton. No page selection or content was changed. Advisor review
+  finds no security warning for the new objects; its informational unindexed
+  foreign key scans a table constrained to at most one row.
 - Formatting, lint, typecheck and all 4,137 unit/component tests pass (176
   files; bounded local rerun: 443 seconds). Next's production compilation and
   build-time lint/types pass; page-data collection needs Supabase credentials
-  absent from this isolated checkout. Hosted migration/integration, seeded
-  build and browser verification are in progress. Homepage integration and
+  absent from this isolated checkout. Hosted migration replay, all 13 integration
+  files (including five homepage tests), the seeded build, 16 visual baselines,
+  29 accessibility and 14 performance checks pass. The first browser run passed
+  120 tests, with four recovered retries; the new homepage test reached the live
+  quote check but used an exact match omitting its rendered quotation marks.
+  Its assertion is corrected for both selection and restoration, and hosted
+  browser verification is rerunning on PR #143. Homepage integration and
   browser tests run only against a local throwaway database. The browser test
   restores the original selection through the real action before teardown so
   later visual checks see the seeded site.
