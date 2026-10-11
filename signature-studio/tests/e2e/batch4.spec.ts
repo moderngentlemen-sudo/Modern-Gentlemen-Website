@@ -263,3 +263,40 @@ test("contacts: dividers in a list and a grid, a wide space across, and a link p
   expect(await shadowHtml(page)).not.toContain('href="tel:');
   await shot(page, "106-contacts-links");
 });
+
+test("text and button edges reshape instead of scaling", async ({ page }) => {
+  await builder(page);
+  const drag = async (dir: string, dx: number, dy: number) => {
+    const h = (await page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`).boundingBox())!;
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h.x + h.width / 2 + dx, h.y + h.height / 2 + dy, { steps: 5 });
+    await page.mouse.up();
+  };
+  // A one-line job title: side handles, no top or bottom ones.
+  await preview(page).getByText("Creative Director").click();
+  await expect(page.getByTestId("resize-handle-e")).toBeVisible();
+  await expect(page.getByTestId("resize-handle-n")).toHaveCount(0);
+  const chip = page.getByTestId("size-chip");
+  const size0 = await chip.innerText();
+  await drag("e", 60, 0);
+  // The text keeps its size; the box got wider.
+  await expect(chip).toHaveText(size0);
+  await expect.poll(() => shadowHtml(page)).toMatch(/width="\d+"/);
+  await expect(page.getByTestId("inspector").getByLabel("Text box width value")).not.toHaveValue("0");
+
+  // A button: wider from the side, taller from the bottom.
+  await page.getByTestId("palette-button").scrollIntoViewIfNeeded();
+  await page.getByTestId("palette-button").click();
+  const insp = page.getByTestId("inspector");
+  await insp.getByLabel("Button text").fill("Book a call");
+  await insp.getByLabel("Link", { exact: true }).fill("cal.com/jordan");
+  const box0 = (await page.locator(".ov-select").boundingBox())!;
+  await drag("e", 40, 0);
+  await drag("s", 0, 10);
+  const box1 = (await page.locator(".ov-select").boundingBox())!;
+  expect(Math.round(box1.width - box0.width)).toBeGreaterThanOrEqual(38);
+  // The bottom edge follows the pointer: 10px down, 10px taller.
+  expect(Math.round(box1.height - box0.height)).toBeGreaterThanOrEqual(9);
+  await expect(chip).toHaveText(size0);
+});

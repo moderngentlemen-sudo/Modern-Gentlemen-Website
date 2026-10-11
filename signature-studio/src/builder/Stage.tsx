@@ -468,11 +468,12 @@ export function Stage({ html, className }: { html: string; className?: string })
                 const cy = dir.includes("n") ? selRect.y : dir.includes("s") ? selRect.y + selRect.h : selRect.y + selRect.h / 2;
                 const corner = dir.length === 2;
                 // On a short or narrow frame the side handles get shorter so they clear the corners.
-                const compact = (dir === "e" || dir === "w" ? selRect.h : selRect.w) < 48;
+                const side = dir === "e" || dir === "w" ? selRect.h : selRect.w;
+                const compact = side < 48;
                 return (
                   <button
                     key={dir}
-                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}${!corner && compact ? " compact" : ""}`}
+                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}${!corner && compact ? " compact" : ""}${!corner && side < 24 ? " tiny" : ""}`}
                     style={{ left: cx, top: cy, cursor: HANDLE_CURSOR[dir] }}
                     title="Drag to resize · Alt for free sizing"
                     aria-label={`Resize from the ${DIR_NAME[dir]}`}
@@ -498,7 +499,7 @@ export function Stage({ html, className }: { html: string; className?: string })
                           setTip({
                             x: ev.clientX - st.left + 14,
                             y: ev.clientY - st.top + 14,
-                            label: `${r.label} · Shift ${sel.block.type === "contacts" ? "scales the text" : "keeps proportions"}`,
+                            label: `${r.label} · Shift ${["image", "logo", "photo"].includes(sel.block.type) ? "keeps proportions" : "scales instead"}`,
                           });
                           return;
                         }

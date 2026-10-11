@@ -3880,3 +3880,10 @@ body.is-col-resizing * {
 .contact-link .field:last-child {
   margin-bottom: 0;
 }
+/* A single line of text: a slimmer side handle that clears the corners. */
+.ov-resize.edge-v.tiny {
+  height: 8px;
+}
+.ov-resize.edge-h.tiny {
+  width: 8px;
+}

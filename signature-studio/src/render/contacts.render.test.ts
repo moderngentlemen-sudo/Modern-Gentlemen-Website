@@ -110,3 +110,29 @@ describe("contacts block: dividers in every layout, and links per field", () => 
     expect(render(block("contacts", { links: { phone: "javascript:alert(1)" } })).out).not.toContain("javascript:");
   });
 });
+
+describe("sizes set from the canvas edges", () => {
+  it("a text box width wraps the text, and scales with the signature", () => {
+    const { doc, out } = render(block("text", { text: "Hello there", style: { width: 180, align: "center" } }));
+    expect(out).toContain('width="180" align="center"');
+    expect(out).toContain("width:180px;");
+    const s = scaleDoc(doc, 1.5).blocks!.blocks[0];
+    expect(s.style?.width).toBe(270);
+  });
+
+  it("buttons take a width (padding included) and a height; icons a gap; badges a height", () => {
+    const btn = render(block("button", { text: "Book", url: "x.co", width: 200, padY: 14 })).out;
+    expect(btn).toMatch(/padding:14px \d+px;width:\d+px;text-align:center;/);
+    const pad = Number(/padding:14px (\d+)px;width:(\d+)px/.exec(btn)![1]);
+    expect(Number(/padding:14px \d+px;width:(\d+)px/.exec(btn)![1]) + 2 * pad).toBe(200);
+    const doc = render(block("socials", { gap: 30 })).doc;
+    doc.socials = [
+      { platform: "linkedin", url: "linkedin.com/in/x" },
+      { platform: "x", url: "x.com/x" },
+    ] as typeof doc.socials;
+    const socials = renderSignature(doc, { variant: "full", mode: "email", resolve: () => "https://img.example.com/x.png" }).html;
+    expect(socials).toContain("padding-right:30px;");
+    const apps = render(block("apps", { appStore: "apps.apple.com/x", height: 50 })).out;
+    expect(apps).toContain('height="50"');
+  });
+});

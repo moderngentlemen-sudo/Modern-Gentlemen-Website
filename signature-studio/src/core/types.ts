@@ -330,6 +330,8 @@ export interface BlockStyle {
   fontSize?: number;
   align?: Align;
   box?: Box;
+  /** Text box width in px: text wraps inside it (dragged from a text block's side edges). Unset: as wide as the text. */
+  width?: number;
 }
 
 export interface Column {
@@ -384,7 +386,12 @@ export type Block = BlockBase &
         /** Per-field links: a link of your own, or false for none. Unset: automatic (call, email, website). */
         links?: Partial<Record<ContactLinkKey, string | false>>;
       }
-    | { type: "socials"; size?: number }
+    | {
+        type: "socials";
+        size?: number;
+        /** Space between icons, px. Unset: the Design setting. */
+        gap?: number;
+      }
     | { type: "photo"; size?: number }
     | { type: "logo"; size?: number }
     | {
@@ -421,12 +428,28 @@ export type Block = BlockBase &
         lineStyle?: "solid" | "dashed" | "dotted";
       }
     | { type: "spacer"; height: number }
-    | { type: "button"; text: string; url: string; buttonStyle: ButtonStyle; icon?: "calendar" | "" }
+    | {
+        type: "button";
+        text: string;
+        url: string;
+        buttonStyle: ButtonStyle;
+        icon?: "calendar" | "";
+        /** Button width in px (the label stays centred). Unset: fits the label. */
+        width?: number;
+        /** Padding above and below the label, px. Unset: the design's default. */
+        padY?: number;
+      }
     | { type: "signOff"; text: string; script: boolean }
     | { type: "quote"; text: string; author: string }
     | { type: "reviews"; rating: number; text: string; url: string }
     | { type: "video"; assetId?: string; url: string; title: string }
-    | { type: "apps"; appStore: string; googlePlay: string }
+    | {
+        type: "apps";
+        appStore: string;
+        googlePlay: string;
+        /** Badge height, px. Unset: 34. */
+        height?: number;
+      }
     | { type: "digitalCard" }
     | { type: "canva" }
   );

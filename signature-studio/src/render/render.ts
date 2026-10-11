@@ -435,7 +435,7 @@ function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: bo
   );
 }
 
-function socialsHtml(c: Ctx, o: { align?: string; size?: number } = {}): string {
+function socialsHtml(c: Ctx, o: { align?: string; size?: number; gap?: number } = {}): string {
   if (!c.show.social) return "";
   const links = c.doc.socials.filter((s) => s.url.trim());
   if (!links.length) return "";
@@ -455,7 +455,7 @@ function socialsHtml(c: Ctx, o: { align?: string; size?: number } = {}): string 
     };
     const src = source(c, req, () => svgDataUrl(socialSvg(s.platform, st.shape, size, color)));
     if (!src) return "";
-    const pad = i < links.length - 1 ? `padding-right:${st.gap}px;` : "";
+    const pad = i < links.length - 1 ? `padding-right:${o.gap ?? st.gap}px;` : "";
     return cell(link(socialUrl(s.url), imgTag(src, size, size, def.label), c.doc.design.accent), pad);
   });
   return table(row(cells.join("")), "", o.align === "center" ? 'align="center"' : "");
@@ -879,7 +879,7 @@ const L: Record<LayoutId, Layout> = {
 // Add-ons
 // ---------------------------------------------------------------------------
 
-function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, iconName?: string): string {
+function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, iconName?: string, size: { width?: number; padY?: number } = {}): string {
   const d = c.doc.design;
   const safe = safeHref(href);
   if (!safe) {
@@ -900,9 +900,12 @@ function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, 
           "background-color": solid ? d.accent : undefined,
           border: solid ? undefined : `1.5px solid ${d.accent}`,
           "border-radius": style === "pill" ? "999px" : style === "square" || style === "squareOutline" ? undefined : "6px",
-          padding: `${sp(c, 8)}px ${sp(c, 16)}px`,
+          padding: `${size.padY ?? sp(c, 8)}px ${sp(c, 16)}px`,
+          // The width is the whole button's; the cell's CSS width excludes its side padding.
+          width: size.width ? `${Math.max(0, size.width - 2 * sp(c, 16))}px` : undefined,
+          "text-align": size.width ? "center" : undefined,
         }),
-        solid ? `bgcolor="${esc(d.accent)}"` : "",
+        [solid ? `bgcolor="${esc(d.accent)}"` : "", size.width ? `width="${size.width}" align="center"` : ""].filter(Boolean).join(" "),
       ),
     ),
     "border-collapse:separate;",
@@ -999,14 +1002,15 @@ function videoHtml(c: Ctx, assetId: string | undefined, url: string, title: stri
   );
 }
 
-function appsHtml(c: Ctx, appStore: string, googlePlay: string): string {
+function appsHtml(c: Ctx, appStore: string, googlePlay: string, badge?: number): string {
   const cells: string[] = [];
   for (const [store, url] of [
     ["apple", appStore],
     ["google", googlePlay],
   ] as const) {
     if (!url.trim()) continue;
-    const height = z(c, 34);
+    // A set height is already scaled with the signature; the default scales here.
+    const height = badge ?? z(c, 34);
     const req: ImageRequest = {
       kind: "badge",
       key: `badge|${store}|${height}`,
@@ -1527,7 +1531,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     }
     case "socials":
       if (!c.show.social) return "";
-      return socialsHtml(c, { align, size: b.size }) || empty("Social icons");
+      return socialsHtml(c, { align, size: b.size, gap: b.gap }) || empty("Social icons");
     case "photo":
       if (!c.show.photo) return "";
       return photoHtml(c, b.size) || empty("Photo", b.size ?? c.doc.images.photo.size, 0, c.doc.images.photo.shape === "circle");
@@ -1630,7 +1634,8 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
       }
       const line = table(
         row(cell("&nbsp;", `border-top:${t}px ${style} ${color};font-size:1px;line-height:1px;height:1px;`)),
-        b.width ? `width:${b.width}px;` : "width:100%;",
+        // A full-width line in a column sized by its content would be 0px wide when it stands alone; the editor keeps it visible.
+        b.width ? `width:${b.width}px;` : c.preview ? "width:100%;min-width:120px;" : "width:100%;",
         b.width ? `width="${b.width}"` : 'width="100%"',
       );
       if (!space && !inset) return line;
@@ -1640,7 +1645,10 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
       return `<div style="height:${b.height}px;line-height:${b.height}px;font-size:1px;">&nbsp;</div>`;
     case "button":
       if (!b.text.trim()) return empty("Button");
-      return button(c, b.text, b.url ? normalizeWebUrl(b.url) : websiteHref(c.doc.details.website), b.buttonStyle, b.icon || undefined);
+      return button(c, b.text, b.url ? normalizeWebUrl(b.url) : websiteHref(c.doc.details.website), b.buttonStyle, b.icon || undefined, {
+        width: b.width,
+        padY: b.padY,
+      });
     case "signOff":
       return signOffHtml(c, b.text, b.script) || empty("Sign-off");
     case "quote":
@@ -1650,7 +1658,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     case "video":
       return videoHtml(c, b.assetId, b.url, b.title) || empty("Video thumbnail", 240, 135);
     case "apps":
-      return appsHtml(c, b.appStore, b.googlePlay) || empty("App store badges");
+      return appsHtml(c, b.appStore, b.googlePlay, b.height) || empty("App store badges");
     case "digitalCard":
       return c.doc.card.assetId ? digitalCardLinkHtml(c, digitalUrl) : empty("Digital card (add a card design first)");
     case "canva": {
@@ -1667,7 +1675,7 @@ function blockHtml(c: Ctx, b0: Block, digitalUrl: string | null, align?: string)
   const shown = showsIn(b, c.opts.variant);
   // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
   if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
-  const html = boxed(withHover(withTypography(leafHtml(c, b, digitalUrl), b.type === "row" ? undefined : b.style), b.hover), b.style?.box);
+  const html = boxed(withHover(withTypography(sized(leafHtml(c, b, digitalUrl), b), b.type === "row" ? undefined : b.style), b.hover), b.style?.box);
   if (!c.preview) return html;
   // The editor's wrapper must not stop centred/right-aligned columns from aligning their blocks.
   const place = align === "center" ? "display:table;margin-left:auto;margin-right:auto;" : align === "right" ? "display:table;margin-left:auto;" : "";
@@ -1675,6 +1683,18 @@ function blockHtml(c: Ctx, b0: Block, digitalUrl: string | null, align?: string)
   const inner =
     align && align !== "left" && html.startsWith("<table ") && !html.startsWith("<table align") ? html.replace("<table ", `<table align="${align}" `) : html;
   return `<div data-block="${esc(b.id)}"${style ? ` style="${style}"` : ""}>${inner}</div>`;
+}
+
+/** A text block with a set width: its text wraps inside a box that wide. */
+function sized(html: string, b: Block): string {
+  const w = b.style?.width;
+  if (!html || !w || b.type === "row") return html;
+  const align = b.style?.align;
+  return table(
+    row(cell(html, css({ width: `${w}px`, "text-align": align }), `width="${w}"${align ? ` align="${align}"` : ""}`)),
+    `width:${w}px;`,
+    `width="${w}"${align && align !== "left" ? ` align="${align}"` : ""}`,
+  );
 }
 
 function columnHtml(c: Ctx, col: Column, digitalUrl: string | null): string {

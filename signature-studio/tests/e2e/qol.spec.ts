@@ -30,8 +30,9 @@ test("resize handle scales the selected block", async ({ page }) => {
 test("handles on every side and corner scale the block, growing outward and shrinking inward", async ({ page }) => {
   await builderFrom(page);
   await preview(page).getByText("Jordan Ellis").click();
-  // A one-line name is short: corners plus top and bottom (side handles would cover the corners).
-  for (const dir of ["n", "ne", "se", "s", "sw", "nw"]) await expect(page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`)).toBeVisible();
+  // A name is text: corners scale it, sides set its box width; there are no top or bottom handles.
+  for (const dir of ["nw", "ne", "e", "se", "sw", "w"]) await expect(page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`)).toBeVisible();
+  await expect(page.getByTestId("resize-handle-n")).toHaveCount(0);
   await shot(page, "53-handles");
   const size = async () => Number(/font-size:(\d+)px;[^"]*">Jordan Ellis/.exec(await html(page))![1]);
   const drag = async (dir: string, dx: number, dy: number) => {
@@ -45,7 +46,7 @@ test("handles on every side and corner scale the block, growing outward and shri
   await drag("sw", -60, 0); // bottom-left corner, outward
   const wider = await size();
   expect(wider).toBeGreaterThan(start);
-  await drag("n", 0, 6); // top edge, inward
+  await drag("ne", -30, 30); // top-right corner, inward
   const smaller = await size();
   expect(smaller).toBeLessThan(wider);
   await drag("nw", -40, -40); // top-left corner, outward

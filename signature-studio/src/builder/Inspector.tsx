@@ -141,6 +141,9 @@ function ColumnEditor({ column, index }: { column: Column; index: number }) {
   );
 }
 
+/** Blocks whose side handles set a text box width. */
+const TEXT_BOX = ["name", "title", "field", "text", "iconText", "tag", "quote", "reviews", "signOff"];
+
 function StyleEditor({ b }: { b: Block }) {
   const st = b.style ?? {};
   const setStyle = (patch: Partial<BlockStyle>, key?: string) => updateBlock(b.id, (x) => void (x.style = { ...x.style, ...patch }), key);
@@ -154,6 +157,18 @@ function StyleEditor({ b }: { b: Block }) {
         </Field>
       )}
       {textual && <TextFormatBar b={b} />}
+      {(TEXT_BOX.includes(b.type) || (b.type === "button" && b.buttonStyle === "link")) && (
+        <Slider
+          label="Text box width"
+          hint={st.width ? "text wraps inside it" : "auto"}
+          unit="px"
+          min={0}
+          max={640}
+          step={10}
+          value={st.width ?? 0}
+          onChange={(v) => setStyle({ width: v || undefined }, "width")}
+        />
+      )}
       {["contacts", "socials", "button", "monogram", "divider", "reviews", "quote", "name"].includes(b.type) && (
         <ColorField
           label={b.type === "divider" ? "Line colour" : "Accent colour"}
@@ -421,6 +436,7 @@ const SHOW_IN: Record<string, string> = { both: "New emails & replies", full: "N
 function Content({ b }: { b: Block }) {
   const set = (patch: Record<string, unknown>, key?: string) => updateBlock(b.id, patch as Partial<Block>, key);
   const details = useStudio((s) => s.doc!.details);
+  const design = useStudio((s) => s.doc!.design);
   switch (b.type) {
     case "row":
       return (
@@ -544,6 +560,7 @@ function Content({ b }: { b: Block }) {
       return (
         <>
           <Slider label="Icon size" unit="px" min={14} max={40} value={b.size ?? 22} onChange={(v) => set({ size: v }, "size")} />
+          <Slider label="Space between icons" unit="px" min={0} max={80} value={b.gap ?? design.social.gap} onChange={(v) => set({ gap: v }, "gap")} />
           <GoTo tab="social">Edit social links</GoTo>
         </>
       );
@@ -752,6 +769,29 @@ function Content({ b }: { b: Block }) {
             />
           </Field>
           <Toggle label="Calendar icon" checked={b.icon === "calendar"} onChange={(v) => set({ icon: v ? "calendar" : "" })} />
+          {b.buttonStyle !== "link" && (
+            <>
+              <Slider
+                label="Button width"
+                hint={b.width ? undefined : "fits the text"}
+                unit="px"
+                min={0}
+                max={480}
+                step={4}
+                value={b.width ?? 0}
+                onChange={(v) => set({ width: v || undefined }, "width")}
+              />
+              <Slider
+                label="Button height"
+                hint="space above and below the text"
+                unit="px"
+                min={0}
+                max={40}
+                value={b.padY ?? Math.round(8 * design.spacing)}
+                onChange={(v) => set({ padY: v }, "padY")}
+              />
+            </>
+          )}
         </>
       );
     case "signOff":
@@ -808,6 +848,7 @@ function Content({ b }: { b: Block }) {
         <>
           <TextField label="App Store link" placeholder="apps.apple.com/app/…" value={b.appStore} onChange={(v) => set({ appStore: v }, "as")} />
           <TextField label="Google Play link" placeholder="play.google.com/store/apps/…" value={b.googlePlay} onChange={(v) => set({ googlePlay: v }, "gp")} />
+          <Slider label="Badge height" unit="px" min={20} max={64} value={b.height ?? 34} onChange={(v) => set({ height: v }, "height")} />
         </>
       );
     case "canva":
