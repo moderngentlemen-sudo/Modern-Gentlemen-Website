@@ -249,9 +249,75 @@
   width: var(--so-size, 22px);
   height: var(--so-size, 22px);
 }
+/*
+ * Hover, per icon: each link carries its own effect (data-hover) and colour
+ * (--so-hover), so one icon can turn Spotify green while the next lifts.
+ * Keyboard focus gets the same treatment as the pointer.
+ */
+.social a {
+  transition:
+    color 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.3s ease;
+}
 .social a:hover,
 .social a:focus-visible {
+  color: var(--so-hover, inherit);
+}
+.social a[data-hover="fade"]:hover,
+.social a[data-hover="fade"]:focus-visible {
   opacity: 0.75;
+}
+.social a[data-hover="lift"]:hover,
+.social a[data-hover="lift"]:focus-visible {
+  transform: translateY(-3px);
+}
+.social a[data-hover="grow"]:hover,
+.social a[data-hover="grow"]:focus-visible {
+  transform: scale(1.18);
+}
+.social a[data-hover="spin"] svg {
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.social a[data-hover="spin"]:hover svg,
+.social a[data-hover="spin"]:focus-visible svg {
+  transform: rotate(360deg);
+}
+.social a[data-hover="pulse"]:hover svg,
+.social a[data-hover="pulse"]:focus-visible svg {
+  animation: socialPulse 0.9s ease-in-out infinite;
+}
+.social a[data-hover="wiggle"]:hover svg,
+.social a[data-hover="wiggle"]:focus-visible svg {
+  animation: socialWiggle 0.5s ease-in-out;
+}
+.social a[data-hover="glow"]:hover,
+.social a[data-hover="glow"]:focus-visible {
+  filter: drop-shadow(0 0 8px var(--so-hover, currentColor));
+}
+@keyframes socialPulse {
+  50% {
+    transform: scale(1.15);
+  }
+}
+@keyframes socialWiggle {
+  25% {
+    transform: rotate(-12deg);
+  }
+  75% {
+    transform: rotate(12deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .social a,
+  .social a svg {
+    transition:
+      color 0.25s ease,
+      opacity 0.25s ease;
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 /* Logo */

@@ -3,6 +3,7 @@ import { defineBlock } from "../defineBlock";
 import { field } from "../fields";
 import { COMING_SOON_DESIGNS } from "../comingSoon";
 import { reelFields } from "../comingSoonReel";
+import { SOCIAL_NETWORK_OPTIONS } from "../socialNetworks";
 
 export const comingSoonStudio = defineBlock({
   type: "comingSoonStudio",
@@ -43,10 +44,7 @@ export const comingSoonStudio = defineBlock({
         network: field.select({
           label: "Network",
           default: "instagram",
-          options: ["instagram", "linkedin", "x", "youtube", "tiktok"].map((value) => ({
-            value,
-            label: value,
-          })),
+          options: SOCIAL_NETWORK_OPTIONS,
         }),
         label: field.text({ label: "Accessible label", required: true }),
         href: field.url({ label: "Profile URL", required: true }),
