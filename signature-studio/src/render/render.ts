@@ -9,7 +9,7 @@ import { BRAND } from "../brand";
 import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
 import { linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
-import { cropRect } from "../core/crop";
+import { cropPlacement, cropRect } from "../core/crop";
 import { frameLayout, framePath, isPlainLook, lookKey, lookMatrix, matrixValues, shortHash, type FrameShape, type ImageLook } from "../core/imageLook";
 import { clampScale, scaleDoc } from "../core/scale";
 import { fontDef, fontStack, isCustomFont } from "../core/fonts";
@@ -42,6 +42,8 @@ export type ImageRequest = Base &
         rect: { sx: number; sy: number; sw: number; sh: number };
         shape: ImageShape;
         radius: number;
+        /** Zoomed out: where the picture sits inside the frame (frame px); the rest is transparent. */
+        dst?: { x: number; y: number; w: number; h: number };
         /** Frame, border, shadow and colour (absent for a plain crop). `w`/`h` are then the whole output, shadow included. */
         look?: { look: ImageLook; frame: FrameShape; accent: string; fw: number; fh: number };
       }
@@ -397,12 +399,21 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
 
 type Meta = SignatureDoc["assets"][string];
 
+/** Zoomed out below 1×: the picture sits inside its frame. At 1× and above, null (the frame is filled and cropped as before). */
+function zoomedOut(meta: Meta, w: number, h: number, crop: ImageSlot["crop"]) {
+  return (crop.zoom || 1) < 1 ? cropPlacement(meta.width, meta.height, w, h, crop) : null;
+}
+
+const dstKey = (d?: { x: number; y: number; w: number; h: number }) => (d ? `|in${d.x.toFixed(1)},${d.y.toFixed(1)},${d.w.toFixed(1)},${d.h.toFixed(1)}` : "");
+
 function plainImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: number, h: number, aspect: number, shape: ImageShape): string {
-  const rect = cropRect(meta.width, meta.height, aspect, slot.crop);
+  const out = zoomedOut(meta, w, h, slot.crop);
+  const rect = out?.src ?? cropRect(meta.width, meta.height, aspect, slot.crop);
+  const dst = out?.inset ? out.dst : undefined;
   const radius = shape === "rounded" ? Math.round(w * 0.12) : 0;
   const req: ImageRequest = {
     kind: "crop",
-    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${shape}`,
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${shape}${dstKey(dst)}`,
     label,
     assetId: slot.assetId!,
     w,
@@ -410,13 +421,15 @@ function plainImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numbe
     rect,
     shape,
     radius,
+    dst,
   };
   if (c.preview) {
     c.images.push(req);
     const src = c.opts.sourceUrl?.(slot.assetId!) ?? "";
-    const k = w / rect.sw;
+    const d = dst ?? { x: 0, y: 0, w, h };
+    const k = d.w / rect.sw;
     const br = shape === "circle" ? "50%" : `${radius}px`;
-    return `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(-rect.sx * k).toFixed(1)}px;top:${(-rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
+    return `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(d.x - rect.sx * k).toFixed(1)}px;top:${(d.y - rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
   }
   const src = source(c, req, () => null);
   return src ? imgTag(src, w, h, label) : "";
@@ -427,10 +440,12 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
   const look = slot.look!;
   const accent = c.doc.design.accent;
   const L = frameLayout(look, frame, w, h);
-  const rect = cropRect(meta.width, meta.height, L.inner.w / L.inner.h, slot.crop);
+  const out = zoomedOut(meta, L.inner.w, L.inner.h, slot.crop);
+  const rect = out?.src ?? cropRect(meta.width, meta.height, L.inner.w / L.inner.h, slot.crop);
+  const dst = out?.inset ? out.dst : undefined;
   const req: ImageRequest = {
     kind: "crop",
-    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${frame}|${shortHash(lookKey(look, accent))}`,
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${frame}|${shortHash(lookKey(look, accent))}${dstKey(dst)}`,
     label,
     assetId: slot.assetId!,
     w: L.W,
@@ -439,6 +454,7 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
     shape: "square",
     radius: 0,
     look: { look, frame, accent, fw: w, fh: h },
+    dst,
   };
   if (!c.preview) {
     const src = source(c, req, () => null);
@@ -451,7 +467,8 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
   const i = L.inner;
   const outer = framePath(frame, f.x, f.y, f.w, f.h, f.r);
   const inner = framePath(frame, i.x, i.y, i.w, i.h, i.r);
-  const k = i.w / rect.sw;
+  const d = dst ?? { x: 0, y: 0, w: i.w, h: i.h };
+  const k = d.w / rect.sw;
   const m = lookMatrix(look, accent);
   const defs = [
     `<clipPath id="${id}o"><path d="${outer}"/></clipPath>`,
@@ -464,7 +481,7 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
   const parts = [
     look.shadow ? `<path d="${outer}" fill="${esc(look.backing ?? "#ffffff")}" filter="url(#${id}s)"/>` : "",
     look.backing ? `<path d="${outer}" fill="${esc(look.backing)}"/>` : "",
-    `<g clip-path="url(#${id}i)"><image href="${esc(src)}" x="${(i.x - rect.sx * k).toFixed(1)}" y="${(i.y - rect.sy * k).toFixed(1)}" width="${(meta.width * k).toFixed(1)}" height="${(meta.height * k).toFixed(1)}" preserveAspectRatio="none"${m ? ` filter="url(#${id}f)"` : ""}/></g>`,
+    `<g clip-path="url(#${id}i)"><image href="${esc(src)}" x="${(i.x + d.x - rect.sx * k).toFixed(1)}" y="${(i.y + d.y - rect.sy * k).toFixed(1)}" width="${(meta.width * k).toFixed(1)}" height="${(meta.height * k).toFixed(1)}" preserveAspectRatio="none"${m ? ` filter="url(#${id}f)"` : ""}/></g>`,
     look.border
       ? `<path d="${outer}" fill="none" stroke="${esc(look.borderColor ?? accent)}" stroke-width="${look.border * 2}" clip-path="url(#${id}o)"/>`
       : "",

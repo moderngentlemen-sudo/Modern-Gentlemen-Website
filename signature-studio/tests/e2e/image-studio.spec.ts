@@ -155,3 +155,66 @@ test("logo tools: trim empty edges and make a white version", async ({ page }) =
   await page.getByTestId("logo-white").click();
   await expect(page.getByTestId("preset-recolor")).toHaveAttribute("aria-pressed", "true");
 });
+
+test("zoom out: the whole picture fits with room around it, and publishes with clear margins", async ({ page }) => {
+  await page.goto("/app");
+  await page.getByTestId("template-corporate-classic").click();
+  await page.getByTestId("tab-images").click();
+  const png = await canvaPng(page, { width: 600, height: 200, margin: 0 });
+  await page.getByTestId("upload-logo").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await page.getByTestId("adjust-logo").click();
+  const dialog = page.getByTestId("crop-dialog");
+  const stage = page.getByTestId("crop-stage");
+  // A square crop of a wide logo cuts its ends off; "Fit whole picture" zooms out until it all shows.
+  await dialog.getByRole("group", { name: "Crop shape" }).getByRole("button", { name: "Square" }).click();
+  await page.getByTestId("fit-picture").click();
+  await expect(dialog.getByLabel("Zoom value")).toHaveValue("0.33×");
+  const s = (await stage.boundingBox())!;
+  const img = (await stage.locator("img").boundingBox())!;
+  expect(Math.abs(img.width - s.width)).toBeLessThanOrEqual(1);
+  expect(img.height).toBeLessThan(s.height / 2);
+  // Drag it to the top of the frame.
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(s.x + s.width / 2, s.y, { steps: 5 });
+  await page.mouse.up();
+  expect(Math.abs((await stage.locator("img").boundingBox())!.y - s.y)).toBeLessThanOrEqual(2);
+  await shot(page, "103-zoom-out");
+  await dialog.getByRole("button", { name: "Done" }).click();
+
+  // Published: one square PNG, clear below the logo.
+  await page.getByTestId("open-install").click();
+  await page.getByTestId("install-next").click();
+  await page.getByRole("button", { name: "Open Settings" }).click();
+  await configureTestHost(page);
+  await page.getByTestId("settings-dialog").getByRole("button", { name: "Done" }).click();
+  await page.getByTestId("install-next").click();
+  await page.getByTestId("consent").click();
+  await expect(page.getByTestId("copy-full")).toBeEnabled({ timeout: 30_000 });
+  await page.getByTestId("copy-full").click();
+  const readHtml = () =>
+    page.evaluate(async () => {
+      const items = await navigator.clipboard.read();
+      const item = items.find((i) => i.types.includes("text/html"));
+      return item ? await (await item.getType("text/html")).text() : "";
+    });
+  await expect.poll(readHtml, { timeout: 10_000 }).toMatch(/alt="[^"]*logo"/);
+  const px = await page.evaluate(async () => {
+    const items = await navigator.clipboard.read();
+    const text = await (await items.find((i) => i.types.includes("text/html"))!.getType("text/html")).text();
+    const m = /<img src="([^"]+\.png)" width="(\d+)" height="(\d+)" alt="[^"]*logo"/.exec(text)!;
+    const bmp = await createImageBitmap(await (await fetch(m[1])).blob());
+    const c = new OffscreenCanvas(bmp.width, bmp.height);
+    const g = c.getContext("2d")!;
+    g.drawImage(bmp, 0, 0);
+    return {
+      w: bmp.width,
+      h: bmp.height,
+      top: g.getImageData(bmp.width / 2, 2, 1, 1).data[3],
+      bottom: g.getImageData(bmp.width / 2, bmp.height - 3, 1, 1).data[3],
+    };
+  });
+  expect(px.w).toBe(px.h);
+  expect(px.top).toBe(255);
+  expect(px.bottom).toBe(0);
+});

@@ -8,6 +8,17 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Signature Studio: zoom out in the image editor
+
+The owner asked to be able to zoom out when editing an image or logo:
+- **Zoom now goes from 0.25× to 4×.** Below 1× the picture shrinks inside its frame and the rest stays clear, with the backing colour if one is set. Dragging or the arrow keys move it within the free space; on an axis where it is still larger than the frame, it is cropped as before.
+- **"Fit whole picture"** zooms out just enough to show all of it, e.g. a wide logo in a square frame.
+- **One pure placement function** (`cropPlacement` in `core/crop.ts`, unit-tested) is shared by the editor stage, the canvas preview (plain and styled frames) and the published PNG (`derive.ts`).
+- **Nothing already published changes:** at 1× and above it returns exactly the old crop, and the image request key changes only when zoomed out.
+- **Zoomed-out pictures always publish as PNG** (a JPEG would fill the margins with black) and are never sent as an animated GIF; the GIF check explains why.
+- **The sharpness check** measures the picture's drawn size, not its frame.
+- **Gates:** `npm test` (135), `npm run e2e` (60, incl. a test that zooms a logo out, publishes it and checks the PNG is clear below the logo), `npm run build`.
+
 ### 2026-10-11 — Signature Studio: edge handles reshape logos and photos; Start from scratch is empty
 
 Fixes from the owner's testing:

@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { FlipHorizontal2, FlipVertical2, Grid3x3, Loader2, RotateCcw, RotateCw, ScanFace, Scissors, Undo2, Eraser, UserRound } from "lucide-react";
-import { cropRect } from "../core/crop";
+import { cropPlacement, cropRect, MIN_ZOOM } from "../core/crop";
 import { framePath, lookMatrix, matrixValues, PRESETS, shapeRadius, straightenScale, type ImageLook, type LookPreset } from "../core/imageLook";
 import type { AssetOrigin } from "../core/types";
 import { readImage, writeImage } from "../builder/imageTarget";
@@ -142,13 +142,17 @@ export function CropDialog() {
       h = 300;
       w = h * aspect;
     }
-    const rect = cropRect(meta.width, meta.height, aspect, t.crop);
-    const k = w / rect.sw;
-    const maxX = (meta.width - rect.sw) / 2;
-    const maxY = (meta.height - rect.sh) / 2;
+    // Where the picture sits on the stage: filling and cropped at 1× and above, smaller with room around it when zoomed out.
+    const place = cropPlacement(meta.width, meta.height, w, h, t.crop);
+    const rect = place.src;
+    const d = place.dst;
+    const k = d.w / rect.sw;
+    // How far one unit of pan moves on each axis, in stage pixels: across the crop, or across the free space.
+    const travelX = d.w < w - 0.5 ? (w - d.w) / 2 : ((meta.width - rect.sw) / 2) * k;
+    const travelY = d.h < h - 0.5 ? (h - d.h) / 2 : ((meta.height - rect.sh) / 2) * k;
     const pan = (dx: number, dy: number, key = "pan") =>
-      set({ crop: { x: maxX > 0 ? round2(clamp(t.crop.x + dx)) : 0, y: maxY > 0 ? round2(clamp(t.crop.y + dy)) : 0 } }, key);
-    const zoomTo = (z: number) => set({ crop: { zoom: round2(clamp(z, 1, 4)) } }, "zoom");
+      set({ crop: { x: travelX > 0.5 ? round2(clamp(t.crop.x + dx)) : 0, y: travelY > 0.5 ? round2(clamp(t.crop.y + dy)) : 0 } }, key);
+    const zoomTo = (z: number) => set({ crop: { zoom: round2(clamp(z, MIN_ZOOM, 4)) } }, "zoom");
     const m = lookMatrix(look, accent);
     const outline = framePath(t.frame, 0, 0, w, h, shapeRadius(t.frame, w, h, look.radius === undefined ? undefined : (look.radius * w) / t.width));
     const pending = tilt === null ? 0 : tilt - (ops.straighten ?? 0);
@@ -183,9 +187,10 @@ export function CropDialog() {
         onPointerMove={(e) => {
           const g = drag.current;
           if (!g) return;
-          const dx = (e.clientX - g.x) / k;
-          const dy = (e.clientY - g.y) / k;
-          set({ crop: { x: maxX > 0 ? clamp(g.crop.x - dx / maxX) : 0, y: maxY > 0 ? clamp(g.crop.y - dy / maxY) : 0 } }, "pan");
+          // Dragging moves the picture with the pointer, whether it is cropped or floating in its frame.
+          const dx = e.clientX - g.x;
+          const dy = e.clientY - g.y;
+          set({ crop: { x: travelX > 0.5 ? clamp(g.crop.x - dx / travelX) : 0, y: travelY > 0.5 ? clamp(g.crop.y - dy / travelY) : 0 } }, "pan");
         }}
         onPointerUp={() => {
           drag.current = null;
@@ -210,13 +215,13 @@ export function CropDialog() {
           alt=""
           draggable={false}
           style={{
-            left: -rect.sx * k,
-            top: -rect.sy * k,
+            left: d.x - rect.sx * k,
+            top: d.y - rect.sy * k,
             width: meta.width * k,
             height: meta.height * k,
             filter: m ? "url(#ed-look)" : undefined,
             transform: pending ? `rotate(${pending}deg) scale(${straightenScale(w, h, pending)})` : undefined,
-            transformOrigin: `${rect.sx * k + w / 2}px ${rect.sy * k + h / 2}px`,
+            transformOrigin: `${rect.sx * k - d.x + w / 2}px ${rect.sy * k - d.y + h / 2}px`,
           }}
         />
         <div className="crop-grid" aria-hidden="true" />
@@ -258,7 +263,11 @@ export function CropDialog() {
       open={open}
       onClose={close}
       title={t?.title ?? "Edit image"}
-      subtitle={tab === "crop" ? "Drag to reposition. Scroll, pinch or use the slider to zoom." : "Colour changes are saved as settings — reset any time."}
+      subtitle={
+        tab === "crop"
+          ? "Drag to reposition. Scroll or use the slider to zoom; below 1× zooms out, leaving space around the picture."
+          : "Colour changes are saved as settings — reset any time."
+      }
       testId="crop-dialog"
       wide
       footer={
@@ -330,7 +339,7 @@ export function CropDialog() {
               />
             </Field>
           )}
-          <Slider label="Zoom" unit="×" min={1} max={4} step={0.05} value={t.crop.zoom} onChange={(v) => set({ crop: { zoom: v } }, "zoom")} />
+          <Slider label="Zoom" unit="×" min={MIN_ZOOM} max={4} step={0.05} value={t.crop.zoom} onChange={(v) => set({ crop: { zoom: v } }, "zoom")} />
           <Slider
             label="Straighten"
             unit="°"
@@ -345,6 +354,19 @@ export function CropDialog() {
             }}
           />
           <div className="row">
+            <button
+              className="btn sm"
+              onClick={() => {
+                // Zoom out just enough to show the whole picture, centred.
+                const a = t.fixedAspect ?? t.aspect ?? meta.width / meta.height;
+                const pic = meta.width / meta.height;
+                set({ crop: { x: 0, y: 0, zoom: Math.round(Math.max(MIN_ZOOM, Math.min(pic / a, a / pic)) * 1000) / 1000 } }, "fit");
+              }}
+              title="Zoom out until the whole picture shows"
+              data-testid="fit-picture"
+            >
+              Fit whole picture
+            </button>
             <button className="btn sm ghost" onClick={() => set({ crop: { x: 0, y: 0, zoom: 1 } })}>
               Reset crop
             </button>

@@ -67,6 +67,33 @@ describe("framed images", () => {
   });
 });
 
+describe("zooming out", () => {
+  it("draws the whole picture smaller inside its frame, publishes it with clear margins, and leaves 1× untouched", () => {
+    const d = doc();
+    const before = crop(d).key;
+    d.images.photo.crop = { x: 0, y: 0, zoom: 0.5 };
+    const r = crop(d);
+    if (r.kind !== "crop") throw new Error("expected a crop");
+    expect(r.key).not.toBe(before);
+    expect(r.dst).toEqual({ x: 20, y: 20, w: 40, h: 40 });
+    expect(r.rect).toEqual({ sx: 0, sy: 0, sw: 800, sh: 800 });
+    const preview = renderSignature(d, { variant: "full", mode: "preview", sourceUrl: () => "blob:x" }).html;
+    expect(preview).toContain("left:20.0px;top:20.0px;width:40.0px;height:40.0px");
+    // Back at 1× the request is exactly what it was.
+    d.images.photo.crop = { x: 0, y: 0, zoom: 1 };
+    expect(crop(d).key).toBe(before);
+    expect((crop(d) as { dst?: unknown }).dst).toBeUndefined();
+  });
+
+  it("works inside a styled frame too", () => {
+    const d = doc();
+    d.images.photo.look = { frame: "squircle", border: 2 };
+    d.images.photo.crop = { x: 0, y: 0, zoom: 0.5 };
+    const r = crop(d);
+    expect(r.kind === "crop" && r.dst && r.dst.w).toBeCloseTo(38);
+  });
+});
+
 describe("image checks", () => {
   it("rates sharpness against the 2× publish size", () => {
     expect(imageSharpness(100, 120)).toBe("blurry");
