@@ -97,13 +97,21 @@ export function PhoneFit() {
   const w = useStudio((s) => s.sigWidth);
   const scale = useStudio((s) => s.doc?.design.scale ?? 1);
   const guide = useStudio((s) => s.phoneGuide);
+  // In phone view the overall size would shrink desktop too; resizing blocks there changes the phone layout only.
+  const phoneView = useStudio((s) => s.device === "mobile");
   if (!w) return null;
   const over = w > PHONE_WIDTH;
   const fit = clampScale(Math.floor((scale * PHONE_WIDTH * 100) / w) / 100);
   return (
     <div className={`phone-fit${over ? " over" : ""}`} data-testid="phone-fit">
-      <span>{over ? `${w}px wide — phones will shrink it to fit.` : `${w}px wide · fits phones.`}</span>
-      {over && fit < scale && (
+      <span>
+        {over
+          ? phoneView
+            ? `${w}px wide — make blocks smaller here to fit phones.`
+            : `${w}px wide — phones will shrink it to fit.`
+          : `${w}px wide · fits phones.`}
+      </span>
+      {over && fit < scale && !phoneView && (
         <button className="btn sm" onClick={() => edit((d) => void (d.design.scale = fit))} data-testid="fit-phone">
           Fit to phone
         </button>
@@ -468,11 +476,12 @@ export function Stage({ html, className }: { html: string; className?: string })
                 const cy = dir.includes("n") ? selRect.y : dir.includes("s") ? selRect.y + selRect.h : selRect.y + selRect.h / 2;
                 const corner = dir.length === 2;
                 // On a short or narrow frame the side handles get shorter so they clear the corners.
-                const compact = (dir === "e" || dir === "w" ? selRect.h : selRect.w) < 48;
+                const side = dir === "e" || dir === "w" ? selRect.h : selRect.w;
+                const compact = side < 48;
                 return (
                   <button
                     key={dir}
-                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}${!corner && compact ? " compact" : ""}`}
+                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}${!corner && compact ? " compact" : ""}${!corner && side < 24 ? " tiny" : ""}`}
                     style={{ left: cx, top: cy, cursor: HANDLE_CURSOR[dir] }}
                     title="Drag to resize · Alt for free sizing"
                     aria-label={`Resize from the ${DIR_NAME[dir]}`}
@@ -498,7 +507,7 @@ export function Stage({ html, className }: { html: string; className?: string })
                           setTip({
                             x: ev.clientX - st.left + 14,
                             y: ev.clientY - st.top + 14,
-                            label: `${r.label} · Shift ${sel.block.type === "contacts" ? "scales the text" : "keeps proportions"}`,
+                            label: `${r.label} · Shift ${["image", "logo", "photo"].includes(sel.block.type) ? "keeps proportions" : "scales instead"}`,
                           });
                           return;
                         }

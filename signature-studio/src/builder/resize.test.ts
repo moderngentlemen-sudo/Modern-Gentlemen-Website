@@ -99,3 +99,55 @@ describe("precise scaling", () => {
     expect(stepValue(name, 1)).toBeCloseTo(1.05);
   });
 });
+
+describe("edge handles on every block reshape it rather than scale it", () => {
+  const doc = () => {
+    const d = newDoc(TEMPLATES[0].id, TEMPLATES[0].design);
+    d.socials = [
+      { platform: "linkedin", url: "linkedin.com/in/x" },
+      { platform: "x", url: "x.com/x" },
+      { platform: "instagram", url: "instagram.com/x" },
+    ] as typeof d.socials;
+    return d;
+  };
+  const tall = { w: 200, h: 60 };
+
+  it("text blocks: side edges set the text box width; no top or bottom edges; corners still scale the text", () => {
+    for (const type of ["name", "title", "text", "quote", "reviews", "tag", "iconText", "signOff"] as const) {
+      const b = block(type);
+      const s = resizeSpec(b, doc(), 300)!;
+      expect(handlesFor(s, tall), type).toEqual(["nw", "ne", "e", "se", "sw", "w"]);
+      const x = structuredClone(b);
+      const r = s.stretch!("e", 40, 0, { w: 200, h: 20 });
+      r.patch(doc(), x);
+      expect(x.style?.width, type).toBe(240);
+      expect(r.label).toBe("240px wide");
+    }
+    // A single line of text still gets its side handles.
+    expect(handlesFor(resizeSpec(block("title"), doc(), 300)!, { w: 200, h: 18 }, 30)).toContain("e");
+  });
+
+  it("buttons: sides set the width, top and bottom the height", () => {
+    const b = block("button");
+    const s = resizeSpec(b, doc(), 300)!;
+    expect(handlesFor(s, tall)).toHaveLength(8);
+    const x = structuredClone(b);
+    s.stretch!("w", -30, 0, { w: 120, h: 34 }).patch(doc(), x);
+    expect(x.type === "button" && x.width).toBe(150);
+    const r = s.stretch!("s", 0, 10, { w: 120, h: 34 });
+    r.patch(doc(), x);
+    expect(x.type === "button" && x.padY).toBe(13);
+    expect(r.label).toBe("44px tall");
+  });
+
+  it("social icons: side edges spread them apart; square blocks only get corners", () => {
+    const b = block("socials");
+    const s = resizeSpec(b, doc(), 300)!;
+    expect(handlesFor(s, tall)).toEqual(["nw", "ne", "e", "se", "sw", "w"]);
+    const x = structuredClone(b);
+    s.stretch!("e", 20, 0, tall).patch(doc(), x);
+    expect(x.type === "socials" && x.gap).toBe(doc().design.social.gap + 10);
+    for (const type of ["qr", "monogram", "apps"] as const)
+      expect(handlesFor(resizeSpec(block(type), doc(), 300)!, tall), type).toEqual(["nw", "ne", "se", "sw"]);
+  });
+});

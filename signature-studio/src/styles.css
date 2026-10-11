@@ -3864,3 +3864,48 @@ body.is-col-resizing * {
 .ai-error {
   color: #b45309;
 }
+
+/* Contacts inspector: each field's link sits under it, tucked in. */
+.contact-field > .field:first-child {
+  margin-bottom: 6px;
+}
+.contact-link {
+  margin: 0 0 14px 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.contact-link .field {
+  margin-bottom: 8px;
+}
+.contact-link .field:last-child {
+  margin-bottom: 0;
+}
+/* A single line of text: a slimmer side handle that clears the corners. */
+.ov-resize.edge-v.tiny {
+  height: 8px;
+}
+.ov-resize.edge-h.tiny {
+  width: 8px;
+}
+
+/* Phone view: edits go to the phone layout. */
+.phone-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 390px;
+  margin: 0 auto 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.phone-bar > span {
+  flex: 1;
+}
+.phone-bar .btn {
+  white-space: nowrap;
+}

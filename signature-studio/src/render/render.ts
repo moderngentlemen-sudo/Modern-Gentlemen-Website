@@ -22,6 +22,7 @@ import type {
   Box,
   Column,
   ContactIcons,
+  ContactLinkKey,
   ContactSeparator,
   Design,
   Hotspot,
@@ -34,7 +35,7 @@ import { parseRich, plainRich, type RichNode } from "../core/richtext";
 import { resolveBlockStyle } from "../core/textStyles";
 import { pickBanner } from "../core/liveBanner";
 import { getTemplate, type LayoutId } from "../core/templates";
-import { iconModeOf, SEPARATOR_GLYPH } from "../core/contactLayout";
+import { iconModeOf, separatorOf, SEPARATOR_GLYPH } from "../core/contactLayout";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
 // ---------------------------------------------------------------------------
@@ -100,7 +101,19 @@ export interface RenderOptions {
   liveBase?: string;
   /** Clock for live banners in the preview (tests). */
   now?: number;
+  /** Render the phone layout instead of the desktop one (the editor's phone view). */
+  layout?: "phone";
+  /**
+   * email mode: when the signature has a phone layout, send both, with a media
+   * query that swaps them on narrow screens. Off for Gmail, which strips the
+   * <style> a swap needs (and counts every character).
+   */
+  phoneLayout?: boolean;
 }
+
+/** Shows the phone layout instead of the desktop one on screens up to 480px wide, where the email app honours <style>. */
+export const PHONE_STYLE =
+  "<style>@media only screen and (max-width:480px){.sg-d{display:none!important;}.sg-m{display:block!important;max-height:none!important;overflow:visible!important;}}</style>";
 
 export interface RenderResult {
   html: string;
@@ -308,6 +321,8 @@ function titleHtml(
 }
 
 interface ContactItem {
+  /** Set for the standard fields, whose link a contacts block can change. */
+  key?: ContactLinkKey;
   glyph: string;
   letter: string;
   word: string;
@@ -315,14 +330,22 @@ interface ContactItem {
   href: string | null;
 }
 
-function contactItems(c: Ctx): ContactItem[] {
+function contactItems(c: Ctx, links?: ContactOpts["links"]): ContactItem[] {
   const d = c.doc.details;
   const items: ContactItem[] = [];
-  if (d.phone.trim()) items.push({ glyph: "phone", letter: "T", word: "Phone", text: d.phone.trim(), href: telHref(d.phone) });
-  if (d.mobile.trim()) items.push({ glyph: "mobile", letter: "M", word: "Mobile", text: d.mobile.trim(), href: telHref(d.mobile) });
-  if (d.email.trim()) items.push({ glyph: "email", letter: "E", word: "Email", text: d.email.trim(), href: mailtoHref(d.email) });
-  if (d.website.trim()) items.push({ glyph: "website", letter: "W", word: "Web", text: displayWebUrl(d.website), href: websiteHref(d.website) });
-  if (d.address.trim() && !c.compact) items.push({ glyph: "address", letter: "A", word: "Address", text: d.address.trim(), href: null });
+  // A block's own link wins; false means no link at all.
+  const href = (key: ContactLinkKey, auto: string | null) => {
+    const own = links?.[key];
+    return own === false ? null : own?.trim() ? linkTarget(own) : auto;
+  };
+  if (d.phone.trim()) items.push({ key: "phone", glyph: "phone", letter: "T", word: "Phone", text: d.phone.trim(), href: href("phone", telHref(d.phone)) });
+  if (d.mobile.trim())
+    items.push({ key: "mobile", glyph: "mobile", letter: "M", word: "Mobile", text: d.mobile.trim(), href: href("mobile", telHref(d.mobile)) });
+  if (d.email.trim()) items.push({ key: "email", glyph: "email", letter: "E", word: "Email", text: d.email.trim(), href: href("email", mailtoHref(d.email)) });
+  if (d.website.trim())
+    items.push({ key: "website", glyph: "website", letter: "W", word: "Web", text: displayWebUrl(d.website), href: href("website", websiteHref(d.website)) });
+  if (d.address.trim() && !c.compact)
+    items.push({ key: "address", glyph: "address", letter: "A", word: "Address", text: d.address.trim(), href: href("address", null) });
   if (!c.compact)
     for (const cf of d.custom)
       if (cf.value.trim())
@@ -350,7 +373,7 @@ function glyphImg(c: Ctx, name: string, size: number, color: string, bg?: string
  */
 function inlineSeparator(c: Ctx, o: ContactOpts): string {
   const design = c.doc.design;
-  const color = esc(o.sepColor ?? mix(design.muted, "#ffffff", 0.45));
+  const color = esc(sepColorOf(c, o));
   const kind = o.separator ?? "bar";
   const glyph = SEPARATOR_GLYPH[kind] || "&#8203;";
   const plain = `&nbsp;&nbsp;<span style="color:${color};">${glyph}</span>&nbsp;&nbsp;`;
@@ -373,10 +396,29 @@ interface ContactOpts {
   colGap?: number;
   separator?: ContactSeparator;
   sepColor?: string;
+  rowRule?: "solid" | "dashed" | "dotted";
+  links?: Partial<Record<ContactLinkKey, string | false>>;
+}
+
+const sepColorOf = (c: Ctx, o: ContactOpts) => o.sepColor ?? mix(c.doc.design.muted, "#ffffff", 0.45);
+
+/** Padding for row `i` of `n` and, with a line between rows, the line itself: the gap then sits on both sides of it. */
+function rowEdge(c: Ctx, o: ContactOpts, i: number, n: number, gap: number): string {
+  if (!o.rowRule) return i ? `padding-top:${gap}px;` : "";
+  return css({
+    "border-top": i ? `1px ${o.rowRule} ${sepColorOf(c, o)}` : undefined,
+    "padding-top": i ? `${gap}px` : undefined,
+    "padding-bottom": i < n - 1 ? `${gap}px` : undefined,
+  });
+}
+
+/** A divider symbol in its own cell, between two fields side by side. */
+function sepCell(c: Ctx, o: ContactOpts, glyph: string, pad: string): string {
+  return cell(text(c, `<span style="color:${esc(sepColorOf(c, o))};">${glyph}</span>`, { nowrap: true }), pad);
 }
 
 function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: boolean; color?: string } & ContactOpts = {}): string {
-  const items = contactItems(c);
+  const items = contactItems(c, o.links);
   if (!items.length) return "";
   const design = c.doc.design;
   const mode = o.mode ?? design.contactIcons;
@@ -399,13 +441,13 @@ function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: bo
   }
   const gap = o.rowGap ?? sp(c, 3);
   return table(
-    items.map((it, i) => row(cell(text(c, `${label(it)}${value(it)}`, { color, nowrap: true }), i ? `padding-top:${gap}px;` : ""))).join(""),
+    items.map((it, i) => row(cell(text(c, `${label(it)}${value(it)}`, { color, nowrap: true }), rowEdge(c, o, i, items.length, gap)))).join(""),
     "",
     o.align === "center" ? 'align="center"' : "",
   );
 }
 
-function socialsHtml(c: Ctx, o: { align?: string; size?: number } = {}): string {
+function socialsHtml(c: Ctx, o: { align?: string; size?: number; gap?: number } = {}): string {
   if (!c.show.social) return "";
   const links = c.doc.socials.filter((s) => s.url.trim());
   if (!links.length) return "";
@@ -425,7 +467,7 @@ function socialsHtml(c: Ctx, o: { align?: string; size?: number } = {}): string 
     };
     const src = source(c, req, () => svgDataUrl(socialSvg(s.platform, st.shape, size, color)));
     if (!src) return "";
-    const pad = i < links.length - 1 ? `padding-right:${st.gap}px;` : "";
+    const pad = i < links.length - 1 ? `padding-right:${o.gap ?? st.gap}px;` : "";
     return cell(link(socialUrl(s.url), imgTag(src, size, size, def.label), c.doc.design.accent), pad);
   });
   return table(row(cells.join("")), "", o.align === "center" ? 'align="center"' : "");
@@ -597,33 +639,48 @@ function stack(c: Ctx, blocks: string[], gap = 6, align?: string): string {
 }
 
 function contactsGrid(c: Ctx, o: ContactOpts = {}): string {
-  const items = contactItems(c);
+  const items = contactItems(c, o.links);
   const d = c.doc.design;
   const mode = o.mode ?? d.contactIcons;
+  const glyph = SEPARATOR_GLYPH[o.separator ?? "none"];
+  const col = o.colGap ?? sp(c, 18);
+  const rowGap = o.rowGap ?? sp(c, 4);
+  const rows = Math.ceil(items.length / 2);
   const gridRows: string[] = [];
   // Two contacts per row (reuse contactsHtml styling by rendering each item alone).
   for (let i = 0; i < items.length; i += 2) {
-    const pair = items.slice(i, i + 2).map((it) => {
+    const r = i / 2;
+    // With a line between rows the gap goes on both sides of it; without, rows keep their original padding.
+    const edge = o.rowRule ? rowEdge(c, o, r, rows, rowGap) : "";
+    const top = o.rowRule ? 0 : i ? rowGap : 0;
+    const pair = items.slice(i, i + 2).map((it, k) => {
       const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
       const lab = icon
         ? `${inlineImg(icon, d.fontSize, d.fontSize, it.word)}&nbsp;&nbsp;`
         : mode === "none"
           ? ""
           : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(mode === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
-      return cell(
-        text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }),
-        `padding:${i ? (o.rowGap ?? sp(c, 4)) : 0}px ${o.colGap ?? sp(c, 18)}px 0 0;vertical-align:top;`,
-      );
+      // A divider symbol splits the space across in two, either side of it.
+      const right = glyph && k === 0 ? Math.round(col / 2) : col;
+      return cell(text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }), `padding:${top}px ${right}px 0 0;vertical-align:top;${edge}`);
     });
-    gridRows.push(row(pair.join("") + (pair.length < 2 ? cell("") : "")));
+    const cells = glyph
+      ? [
+          pair[0],
+          sepCell(c, o, pair.length > 1 ? glyph : "", `padding:${top}px ${Math.round(col / 2)}px 0 0;vertical-align:top;${edge}`),
+          pair[1] ?? cell("", edge),
+        ]
+      : [...pair, ...(pair.length < 2 ? [cell("")] : [])];
+    gridRows.push(row(cells.join("")));
   }
   return gridRows.length ? table(gridRows.join("")) : "";
 }
 
 function contactsChips(c: Ctx, o: ContactOpts = {}): string {
   const d = c.doc.design;
-  const items = contactItems(c);
+  const items = contactItems(c, o.links);
   const mode = o.mode ?? d.contactIcons;
+  const glyph = SEPARATOR_GLYPH[o.separator ?? "none"];
   const chip = (it: ContactItem) => {
     const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
     const lab = icon ? `${inlineImg(icon, d.fontSize - 1, d.fontSize - 1, it.word)}&nbsp;` : "";
@@ -637,16 +694,16 @@ function contactsChips(c: Ctx, o: ContactOpts = {}): string {
       ),
     );
   };
+  const col = o.colGap ?? sp(c, 6);
+  const below = o.rowGap ?? sp(c, 6);
   const rows: string[] = [];
-  for (let i = 0; i < items.length; i += 2)
-    rows.push(
-      row(
-        items
-          .slice(i, i + 2)
-          .map((it) => cell(chip(it), `padding:0 ${o.colGap ?? sp(c, 6)}px ${o.rowGap ?? sp(c, 6)}px 0;`))
-          .join(""),
-      ),
-    );
+  for (let i = 0; i < items.length; i += 2) {
+    const pair = items.slice(i, i + 2);
+    const cells = pair.map((it) => cell(chip(it), `padding:0 ${col}px ${below}px 0;`));
+    // A divider symbol sits between the two chips, with the space across before it.
+    if (glyph && cells.length === 2) cells.splice(1, 0, sepCell(c, o, glyph, `padding:0 ${col}px ${below}px 0;`));
+    rows.push(row(cells.join("")));
+  }
   return rows.length ? table(rows.join("")) : "";
 }
 
@@ -834,7 +891,7 @@ const L: Record<LayoutId, Layout> = {
 // Add-ons
 // ---------------------------------------------------------------------------
 
-function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, iconName?: string): string {
+function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, iconName?: string, size: { width?: number; padY?: number } = {}): string {
   const d = c.doc.design;
   const safe = safeHref(href);
   if (!safe) {
@@ -855,9 +912,12 @@ function button(c: Ctx, label: string, href: string | null, style: ButtonStyle, 
           "background-color": solid ? d.accent : undefined,
           border: solid ? undefined : `1.5px solid ${d.accent}`,
           "border-radius": style === "pill" ? "999px" : style === "square" || style === "squareOutline" ? undefined : "6px",
-          padding: `${sp(c, 8)}px ${sp(c, 16)}px`,
+          padding: `${size.padY ?? sp(c, 8)}px ${sp(c, 16)}px`,
+          // The width is the whole button's; the cell's CSS width excludes its side padding.
+          width: size.width ? `${Math.max(0, size.width - 2 * sp(c, 16))}px` : undefined,
+          "text-align": size.width ? "center" : undefined,
         }),
-        solid ? `bgcolor="${esc(d.accent)}"` : "",
+        [solid ? `bgcolor="${esc(d.accent)}"` : "", size.width ? `width="${size.width}" align="center"` : ""].filter(Boolean).join(" "),
       ),
     ),
     "border-collapse:separate;",
@@ -954,14 +1014,15 @@ function videoHtml(c: Ctx, assetId: string | undefined, url: string, title: stri
   );
 }
 
-function appsHtml(c: Ctx, appStore: string, googlePlay: string): string {
+function appsHtml(c: Ctx, appStore: string, googlePlay: string, badge?: number): string {
   const cells: string[] = [];
   for (const [store, url] of [
     ["apple", appStore],
     ["google", googlePlay],
   ] as const) {
     if (!url.trim()) continue;
-    const height = z(c, 34);
+    // A set height is already scaled with the signature; the default scales here.
+    const height = badge ?? z(c, 34);
     const req: ImageRequest = {
       kind: "badge",
       key: `badge|${store}|${height}`,
@@ -1467,8 +1528,10 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         mode: iconModeOf(b, c.doc.design),
         rowGap: b.rowGap,
         colGap: b.colGap,
-        separator: b.separator,
+        separator: separatorOf(b),
         sepColor: b.sepColor,
+        rowRule: b.rowRule,
+        links: b.links,
       };
       const html =
         b.layout === "grid"
@@ -1480,7 +1543,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     }
     case "socials":
       if (!c.show.social) return "";
-      return socialsHtml(c, { align, size: b.size }) || empty("Social icons");
+      return socialsHtml(c, { align, size: b.size, gap: b.gap }) || empty("Social icons");
     case "photo":
       if (!c.show.photo) return "";
       return photoHtml(c, b.size) || empty("Photo", b.size ?? c.doc.images.photo.size, 0, c.doc.images.photo.shape === "circle");
@@ -1583,7 +1646,8 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
       }
       const line = table(
         row(cell("&nbsp;", `border-top:${t}px ${style} ${color};font-size:1px;line-height:1px;height:1px;`)),
-        b.width ? `width:${b.width}px;` : "width:100%;",
+        // A full-width line in a column sized by its content would be 0px wide when it stands alone; the editor keeps it visible.
+        b.width ? `width:${b.width}px;` : c.preview ? "width:100%;min-width:120px;" : "width:100%;",
         b.width ? `width="${b.width}"` : 'width="100%"',
       );
       if (!space && !inset) return line;
@@ -1593,7 +1657,10 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
       return `<div style="height:${b.height}px;line-height:${b.height}px;font-size:1px;">&nbsp;</div>`;
     case "button":
       if (!b.text.trim()) return empty("Button");
-      return button(c, b.text, b.url ? normalizeWebUrl(b.url) : websiteHref(c.doc.details.website), b.buttonStyle, b.icon || undefined);
+      return button(c, b.text, b.url ? normalizeWebUrl(b.url) : websiteHref(c.doc.details.website), b.buttonStyle, b.icon || undefined, {
+        width: b.width,
+        padY: b.padY,
+      });
     case "signOff":
       return signOffHtml(c, b.text, b.script) || empty("Sign-off");
     case "quote":
@@ -1603,7 +1670,7 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     case "video":
       return videoHtml(c, b.assetId, b.url, b.title) || empty("Video thumbnail", 240, 135);
     case "apps":
-      return appsHtml(c, b.appStore, b.googlePlay) || empty("App store badges");
+      return appsHtml(c, b.appStore, b.googlePlay, b.height) || empty("App store badges");
     case "digitalCard":
       return c.doc.card.assetId ? digitalCardLinkHtml(c, digitalUrl) : empty("Digital card (add a card design first)");
     case "canva": {
@@ -1620,7 +1687,7 @@ function blockHtml(c: Ctx, b0: Block, digitalUrl: string | null, align?: string)
   const shown = showsIn(b, c.opts.variant);
   // While editing, hidden blocks stay on the canvas (faded) so they can be selected again.
   if (!shown && !(c.preview && c.opts.editing && b.visibility === "hidden")) return "";
-  const html = boxed(withHover(withTypography(leafHtml(c, b, digitalUrl), b.type === "row" ? undefined : b.style), b.hover), b.style?.box);
+  const html = boxed(withHover(withTypography(sized(leafHtml(c, b, digitalUrl), b), b.type === "row" ? undefined : b.style), b.hover), b.style?.box);
   if (!c.preview) return html;
   // The editor's wrapper must not stop centred/right-aligned columns from aligning their blocks.
   const place = align === "center" ? "display:table;margin-left:auto;margin-right:auto;" : align === "right" ? "display:table;margin-left:auto;" : "";
@@ -1628,6 +1695,18 @@ function blockHtml(c: Ctx, b0: Block, digitalUrl: string | null, align?: string)
   const inner =
     align && align !== "left" && html.startsWith("<table ") && !html.startsWith("<table align") ? html.replace("<table ", `<table align="${align}" `) : html;
   return `<div data-block="${esc(b.id)}"${style ? ` style="${style}"` : ""}>${inner}</div>`;
+}
+
+/** A text block with a set width: its text wraps inside a box that wide. */
+function sized(html: string, b: Block): string {
+  const w = b.style?.width;
+  if (!html || !w || b.type === "row") return html;
+  const align = b.style?.align;
+  return table(
+    row(cell(html, css({ width: `${w}px`, "text-align": align }), `width="${w}"${align ? ` align="${align}"` : ""}`)),
+    `width:${w}px;`,
+    `width="${w}"${align && align !== "left" ? ` align="${align}"` : ""}`,
+  );
 }
 
 function columnHtml(c: Ctx, col: Column, digitalUrl: string | null): string {
@@ -1647,6 +1726,7 @@ function rowHtml(c: Ctx, b: Extract<Block, { type: "row" }>, digitalUrl: string 
   const gap = sp(c, b.gap);
   const cols = b.columns.map((col) => ({ col, html: columnHtml(c, col, digitalUrl) })).filter((x) => x.html || c.preview);
   if (!cols.length) return "";
+  if (b.stack) return stackingRow(c, b, cols, gap);
   const cells: string[] = [];
   cols.forEach(({ col, html }, i) => {
     if (i) {
@@ -1660,6 +1740,32 @@ function rowHtml(c: Ctx, b: Extract<Block, { type: "row" }>, digitalUrl: string 
     cells.push(cell(html, css({ "vertical-align": b.valign, width: col.width ? `${col.width}px` : undefined }), col.width ? `width="${col.width}"` : ""));
   });
   return table(row(cells.join("")));
+}
+
+/**
+ * A row whose columns stack on narrow screens without a media query, so it
+ * works in Gmail: each column is a left-aligned table, which email apps
+ * (classic Outlook included) float side by side while there's room and wrap
+ * underneath when there isn't. Floats line up at the top. The space between
+ * columns sits to the right of each one and below it, so stacked columns
+ * don't touch.
+ */
+function stackingRow(c: Ctx, b: Extract<Block, { type: "row" }>, cols: { col: Column; html: string }[], gap: number): string {
+  const d = c.doc.design;
+  const line = `${d.divider === "accent" ? 2 : 1}px solid ${d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6)}`;
+  const floats = cols.map(({ col, html }, i) => {
+    const last = i === cols.length - 1;
+    const style = css({
+      "vertical-align": "top",
+      width: col.width ? `${col.width}px` : undefined,
+      "padding-right": last ? undefined : `${b.divider ? Math.round(gap / 2) : gap}px`,
+      "padding-bottom": last ? undefined : `${gap}px`,
+      "padding-left": b.divider && i ? `${Math.round(gap / 2)}px` : undefined,
+      "border-left": b.divider && i ? line : undefined,
+    });
+    return table(row(cell(html, style, col.width ? `width="${col.width}"` : "")), "", 'align="left"');
+  });
+  return table(row(cell(floats.join(""))));
 }
 
 /** True when a builder layout contains a block of the given type. */
@@ -1715,6 +1821,23 @@ export function mirrorRtl(html: string): string {
 const RTL_CHARS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 
 export function renderSignature(input: SignatureDoc, opts: RenderOptions): RenderResult {
+  const phone = !!input.phoneBlocks && input.mode === "builder" && opts.variant === "full";
+  if (!phone) return renderOne(input, opts);
+  if (opts.layout === "phone") return renderOne({ ...input, blocks: input.phoneBlocks }, opts);
+  if (!opts.phoneLayout || opts.mode !== "email") return renderOne(input, opts);
+  // Both layouts: desktop shows by default (and wherever <style> is stripped); phones swap in their own.
+  const desk = renderOne(input, opts);
+  const mob = renderOne({ ...input, blocks: input.phoneBlocks }, opts);
+  if (!desk.html || !mob.html) return desk;
+  const seen = new Set<string>();
+  return {
+    html: `${PHONE_STYLE}<div class="sg-d">${desk.html}</div><div class="sg-m" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${mob.html}</div>`,
+    images: [...desk.images, ...mob.images].filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true))),
+    errors: [...new Set([...desk.errors, ...mob.errors])],
+  };
+}
+
+function renderOne(input: SignatureDoc, opts: RenderOptions): RenderResult {
   const k = clampScale(input.design.scale);
   const doc = scaleDoc(input, k);
   const reply = opts.variant === "reply";

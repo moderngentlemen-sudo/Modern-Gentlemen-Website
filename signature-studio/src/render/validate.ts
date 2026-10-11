@@ -14,6 +14,9 @@ const FORBIDDEN_TAGS = ["script", "style", "iframe", "object", "embed", "form", 
  * Validate HTML intended for pasting into Gmail. Errors block copying and
  * installation; warnings are shown in the readiness panel.
  */
+/** The one <style> block and two classes a signature with a phone layout carries (see render.ts PHONE_STYLE). */
+const PHONE_CLASSES = new Set(["sg-d", "sg-m"]);
+
 export function validateEmailHtml(html: string, opts: { allowTestHost?: boolean } = {}): ValidationProblem[] {
   const problems: ValidationProblem[] = [];
   if (!html.trim()) {
@@ -21,6 +24,10 @@ export function validateEmailHtml(html: string, opts: { allowTestHost?: boolean 
     return problems;
   }
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  // A phone layout's own swap rule is allowed; any other <style> is not.
+  doc.body.querySelectorAll("style").forEach((el) => {
+    if (/^@media only screen and \(max-width:480px\)\{\.sg-d\{[^<{}]*\}\.sg-m\{[^<{}]*\}\}$/.test(el.textContent ?? "")) el.remove();
+  });
   for (const tag of FORBIDDEN_TAGS) {
     if (doc.body.querySelector(tag)) problems.push({ level: "error", message: `Contains a <${tag}> element, which email clients strip or block.` });
   }
@@ -28,6 +35,7 @@ export function validateEmailHtml(html: string, opts: { allowTestHost?: boolean 
     for (const attr of Array.from(el.attributes)) {
       if (attr.name.startsWith("on")) problems.push({ level: "error", message: `Contains an event handler attribute (${attr.name}).` });
       if (attr.name.startsWith("data-ss")) problems.push({ level: "error", message: "Contains editor annotations." });
+      if (attr.name === "class" && PHONE_CLASSES.has(attr.value)) continue;
       if (attr.name === "class" || attr.name === "id")
         problems.push({ level: "warning", message: `Contains a ${attr.name} attribute that email clients ignore.` });
     }
@@ -79,6 +87,8 @@ ${fragment}
 /** Plain-text version for the clipboard's text/plain flavour. */
 export function htmlToPlainText(html: string): string {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  // A phone layout repeats the signature; the plain text needs it once.
+  doc.body.querySelectorAll(".sg-m, style").forEach((el) => el.remove());
   const lines: string[] = [];
   const walk = (el: Element) => {
     if (el.tagName === "TR" || el.tagName === "DIV") {

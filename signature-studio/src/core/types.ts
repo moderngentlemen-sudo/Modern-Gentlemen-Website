@@ -273,6 +273,12 @@ export interface SignatureDoc {
   blocks?: Column;
   /** Builder: the reply layout, used when `reply.custom` is on. */
   replyBlocks?: Column;
+  /**
+   * Builder: the phone layout (new emails). Made the first time something is
+   * changed in phone view, and kept in step with desktop where it hasn't been
+   * changed on the phone (core/phoneLayout.ts). Unset: phones get the desktop layout.
+   */
+  phoneBlocks?: Column;
   /** Show the small "Made with …" link under new-email signatures (default on). */
   madeWith?: boolean;
   /** Share details, social links and photo with your saved profile (default on). */
@@ -330,6 +336,8 @@ export interface BlockStyle {
   fontSize?: number;
   align?: Align;
   box?: Box;
+  /** Text box width in px: text wraps inside it (dragged from a text block's side edges). Unset: as wide as the text. */
+  width?: number;
 }
 
 export interface Column {
@@ -351,13 +359,28 @@ interface BlockBase {
   hover?: string;
 }
 
+/** Contact fields whose link can be changed on a contacts block. */
+export type ContactLinkKey = "phone" | "mobile" | "email" | "website" | "address";
+
 export type ContactSeparator = "bar" | "dot" | "slash" | "dash" | "none";
 
 export type ButtonStyle = "solid" | "outline" | "pill" | "link" | "square" | "squareOutline";
 
 export type Block = BlockBase &
   (
-    | { type: "row"; columns: Column[]; gap: number; valign: VAlign; divider: boolean }
+    | {
+        type: "row";
+        columns: Column[];
+        gap: number;
+        valign: VAlign;
+        divider: boolean;
+        /**
+         * Columns stack when the screen is too narrow for them (phones, in any
+         * email app, Gmail included). Built from left-aligned tables, so the
+         * columns line up at the top. Off: always side by side.
+         */
+        stack?: boolean;
+      }
     | { type: "name"; scale?: number; upper?: boolean; underline?: boolean; link?: string }
     | { type: "title"; upper?: boolean; italic?: boolean; titleOnly?: boolean; link?: string }
     | { type: "field"; field: DetailKey; upper?: boolean; link?: string }
@@ -376,8 +399,17 @@ export type Block = BlockBase &
         rowGap?: number;
         /** Space between fields side by side, px (one line, grid, chips). Unset: the layout's default. */
         colGap?: number;
+        /** A line between rows (list and grid). Unset: none. */
+        rowRule?: "solid" | "dashed" | "dotted";
+        /** Per-field links: a link of your own, or false for none. Unset: automatic (call, email, website). */
+        links?: Partial<Record<ContactLinkKey, string | false>>;
       }
-    | { type: "socials"; size?: number }
+    | {
+        type: "socials";
+        size?: number;
+        /** Space between icons, px. Unset: the Design setting. */
+        gap?: number;
+      }
     | { type: "photo"; size?: number }
     | { type: "logo"; size?: number }
     | {
@@ -414,12 +446,28 @@ export type Block = BlockBase &
         lineStyle?: "solid" | "dashed" | "dotted";
       }
     | { type: "spacer"; height: number }
-    | { type: "button"; text: string; url: string; buttonStyle: ButtonStyle; icon?: "calendar" | "" }
+    | {
+        type: "button";
+        text: string;
+        url: string;
+        buttonStyle: ButtonStyle;
+        icon?: "calendar" | "";
+        /** Button width in px (the label stays centred). Unset: fits the label. */
+        width?: number;
+        /** Padding above and below the label, px. Unset: the design's default. */
+        padY?: number;
+      }
     | { type: "signOff"; text: string; script: boolean }
     | { type: "quote"; text: string; author: string }
     | { type: "reviews"; rating: number; text: string; url: string }
     | { type: "video"; assetId?: string; url: string; title: string }
-    | { type: "apps"; appStore: string; googlePlay: string }
+    | {
+        type: "apps";
+        appStore: string;
+        googlePlay: string;
+        /** Badge height, px. Unset: 34. */
+        height?: number;
+      }
     | { type: "digitalCard" }
     | { type: "canva" }
   );

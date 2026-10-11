@@ -242,3 +242,130 @@ test("contacts: the frame covers every line, edges change the spacing, icons and
   await expect.poll(() => shadowHtml(page)).toMatch(/color:#c8102e;padding:0 \d+px;">·<\/span>/);
   await shot(page, "105-contacts");
 });
+
+test("contacts: dividers in a list and a grid, a wide space across, and a link per field", async ({ page }) => {
+  await builder(page);
+  await preview(page).getByText("+1 416 555 0182").click();
+  const insp = page.getByTestId("inspector");
+  // A list: lines between rows.
+  await insp.getByRole("group", { name: "Lines between rows" }).getByRole("button", { name: "Dotted" }).click();
+  await expect.poll(() => shadowHtml(page)).toContain("border-top:1px dotted");
+  // A grid: a symbol between the two columns, and much more space across.
+  await insp.getByRole("group", { name: "Contacts layout" }).getByRole("button", { name: "Grid" }).click();
+  await insp.getByRole("group", { name: "Contact dividers" }).getByRole("button", { name: "Bar" }).click();
+  await insp.getByLabel("Space across value").fill("150");
+  await expect.poll(() => shadowHtml(page)).toContain("75px 0 0;");
+  // Links: the address goes to a map, the phone to nothing.
+  await insp.getByLabel("Address link", { exact: true }).selectOption("custom");
+  await insp.getByTestId("contact-link-address").fill("https://maps.google.com/?q=88+Yorkville");
+  await insp.getByLabel("Phone link", { exact: true }).selectOption("none");
+  await expect.poll(() => shadowHtml(page)).toContain('href="https://maps.google.com/?q=88+Yorkville"');
+  expect(await shadowHtml(page)).not.toContain('href="tel:');
+  await shot(page, "106-contacts-links");
+});
+
+test("text and button edges reshape instead of scaling", async ({ page }) => {
+  await builder(page);
+  const drag = async (dir: string, dx: number, dy: number) => {
+    const h = (await page.getByTestId(dir === "se" ? "resize-handle" : `resize-handle-${dir}`).boundingBox())!;
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h.x + h.width / 2 + dx, h.y + h.height / 2 + dy, { steps: 5 });
+    await page.mouse.up();
+  };
+  // A one-line job title: side handles, no top or bottom ones.
+  await preview(page).getByText("Creative Director").click();
+  await expect(page.getByTestId("resize-handle-e")).toBeVisible();
+  await expect(page.getByTestId("resize-handle-n")).toHaveCount(0);
+  const chip = page.getByTestId("size-chip");
+  const size0 = await chip.innerText();
+  await drag("e", 60, 0);
+  // The text keeps its size; the box got wider.
+  await expect(chip).toHaveText(size0);
+  await expect.poll(() => shadowHtml(page)).toMatch(/width="\d+"/);
+  await expect(page.getByTestId("inspector").getByLabel("Text box width value")).not.toHaveValue("0");
+
+  // A button: wider from the side, taller from the bottom.
+  await page.getByTestId("palette-button").scrollIntoViewIfNeeded();
+  await page.getByTestId("palette-button").click();
+  const insp = page.getByTestId("inspector");
+  await insp.getByLabel("Button text").fill("Book a call");
+  await insp.getByLabel("Link", { exact: true }).fill("cal.com/jordan");
+  const box0 = (await page.locator(".ov-select").boundingBox())!;
+  await drag("e", 40, 0);
+  await drag("s", 0, 10);
+  const box1 = (await page.locator(".ov-select").boundingBox())!;
+  expect(Math.round(box1.width - box0.width)).toBeGreaterThanOrEqual(38);
+  // The bottom edge follows the pointer: 10px down, 10px taller.
+  expect(Math.round(box1.height - box0.height)).toBeGreaterThanOrEqual(9);
+  await expect(chip).toHaveText(size0);
+});
+
+test("phone view: changes apply to the phone layout only, and desktop changes still reach it", async ({ page }) => {
+  await builder(page);
+  const device = async (name: "Phone" | "Desktop") => {
+    await page.getByTestId("view-menu").click();
+    await page.getByRole("group", { name: "Device" }).getByRole("button", { name: name }).click();
+    await page.keyboard.press("Escape");
+  };
+  // A text block made on desktop.
+  await page.getByTestId("palette-text").scrollIntoViewIfNeeded();
+  await page.getByTestId("palette-text").click();
+  await page.getByTestId("inspector-text").fill("Hello from desktop");
+  await expect(preview(page)).toContainText("Hello from desktop");
+
+  await device("Phone");
+  await expect(page.getByTestId("phone-bar")).toContainText("phones only");
+  // On the phone: delete the job title and centre the name.
+  await preview(page).getByText("Creative Director").click();
+  await page.getByTestId("delete-block").click();
+  await expect(preview(page)).not.toContainText("Creative Director");
+  await expect(page.getByTestId("phone-bar")).toContainText("Phone layout");
+
+  // Desktop still has it.
+  await device("Desktop");
+  await expect(preview(page)).toContainText("Creative Director");
+  // A desktop edit to the text block flows to the phone layout.
+  await preview(page).getByText("Hello from desktop").click();
+  await page.getByTestId("inspector-text").fill("Hello everywhere");
+  await device("Phone");
+  await expect(preview(page)).toContainText("Hello everywhere");
+  await expect(preview(page)).not.toContainText("Creative Director");
+  await shot(page, "107-phone-layout");
+
+  // Match desktop: phones go back to the desktop layout.
+  await page.getByTestId("phone-reset").click();
+  await expect(preview(page)).toContainText("Creative Director");
+  await expect(page.getByTestId("phone-bar")).not.toContainText("Phone layout");
+});
+
+test("stack on phones: side by side when there's room, stacked when there isn't", async ({ page, browser }) => {
+  await builder(page);
+  await preview(page).getByText("Creative Director").click();
+  await page.getByTestId("breadcrumb").getByRole("button", { name: "Columns" }).click();
+  const before = await shadowHtml(page);
+  await page.getByTestId("row-stack").click();
+  await expect.poll(() => shadowHtml(page)).not.toBe(before);
+  const html = await shadowHtml(page);
+  // Same signature at a desktop width and a phone width.
+  const tops = async (width: number) => {
+    const p = await browser.newPage({ viewport: { width, height: 800 } });
+    await p.setContent(`<body style="margin:0">${html}</body>`);
+    const r = await p.evaluate(() => {
+      const name = [...document.querySelectorAll("td")].find((td) => td.textContent?.trim().startsWith("Jordan Ellis") && !td.querySelector("td"))!;
+      const logo = [...document.querySelectorAll("div")].find((d) => d.textContent?.trim() === "Logo")!;
+      return { name: name.getBoundingClientRect().top, logoBottom: logo.getBoundingClientRect().bottom };
+    });
+    await p.close();
+    return r;
+  };
+  const wide = await tops(1000);
+  expect(wide.name).toBeLessThan(wide.logoBottom);
+  const narrow = await tops(260);
+  expect(narrow.name).toBeGreaterThanOrEqual(narrow.logoBottom);
+  // In phone view the switch belongs to desktop.
+  await page.getByTestId("view-menu").click();
+  await page.getByRole("group", { name: "Device" }).getByRole("button", { name: "Phone" }).click();
+  await page.getByTestId("view-menu").click();
+  await expect(page.getByTestId("stack-desktop-only")).toBeVisible();
+});

@@ -355,6 +355,32 @@ function ViewMenu() {
   );
 }
 
+/** In phone view: edits go to the phone layout only; say so, and offer to go back to the desktop layout. */
+function PhoneLayoutBar() {
+  const own = useStudio((s) => !!s.doc?.phoneBlocks);
+  return (
+    <div className="phone-bar" role="status" data-testid="phone-bar">
+      <Smartphone size={15} />
+      <span>
+        {own ? <strong>Phone layout. </strong> : null}
+        Changes here apply to phones only. Colours, fonts and overall size are shared.
+      </span>
+      {own && (
+        <button
+          className="btn sm ghost"
+          data-testid="phone-reset"
+          onClick={() => {
+            edit((d) => void (d.phoneBlocks = undefined));
+            toast("Phones show the desktop layout again", "success", { label: "Undo", run: undo });
+          }}
+        >
+          Match desktop
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Preview() {
   useSourcesVersion();
   const doc = useStudio((s) => s.doc!);
@@ -364,7 +390,7 @@ function Preview() {
   const fallbackFonts = useStudio((s) => s.fallbackFonts);
   const builder = doc.mode === "builder";
   const zoom = useStudio((s) => s.zoom);
-  const html = previewHtml(doc, variant, fallbackFonts, builder);
+  const html = previewHtml(doc, variant, fallbackFonts, builder, device === "mobile" ? "phone" : undefined);
   const setZoom = (z: number) => ui({ zoom: Math.round(Math.min(2, Math.max(0.5, z)) * 100) / 100 });
   const ownReply = builder && !!doc.reply.custom && !!doc.replyBlocks;
   const editable = builder && !(variant === "reply" && doc.reply.compact && !ownReply);
@@ -402,6 +428,7 @@ function Preview() {
         </div>
         <ViewMenu />
       </div>
+      {builder && device === "mobile" && variant === "full" && <PhoneLayoutBar />}
       <div className={`mail${device === "mobile" ? " mobile" : ""}${dark ? " dark" : ""}`}>
         <div className="mail-bar">
           <span className="dots">

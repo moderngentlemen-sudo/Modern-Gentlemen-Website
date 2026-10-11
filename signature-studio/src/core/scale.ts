@@ -35,7 +35,7 @@ function column(c: Column, s: number): Column {
 }
 
 function block(b: Block, s: number): Block {
-  const style = b.style ? { ...b.style, fontSize: opt(b.style.fontSize, s), box: box(b.style.box, s) } : undefined;
+  const style = b.style ? { ...b.style, fontSize: opt(b.style.fontSize, s), width: opt(b.style.width, s), box: box(b.style.box, s) } : undefined;
   const base = { ...b, style } as Block;
   switch (base.type) {
     case "row":
@@ -43,9 +43,14 @@ function block(b: Block, s: number): Block {
     case "text":
       return { ...base, size: opt(base.size, s) };
     case "socials":
+      return { ...base, size: opt(base.size, s), gap: base.gap ? r(base.gap, s) : base.gap };
     case "photo":
     case "logo":
       return { ...base, size: opt(base.size, s) };
+    case "button":
+      return { ...base, width: opt(base.width, s), padY: base.padY ? r(base.padY, s) : base.padY };
+    case "apps":
+      return { ...base, height: opt(base.height, s) };
     case "image":
       return { ...base, width: r(base.width, s), look: look(base.look, s) };
     case "monogram":
@@ -94,5 +99,6 @@ export function scaleDoc(doc: SignatureDoc, s: number): SignatureDoc {
     addons: { ...doc.addons, banner: { ...doc.addons.banner, width: r(doc.addons.banner.width, s) } },
     blocks: doc.blocks ? column(doc.blocks, s) : undefined,
     replyBlocks: doc.replyBlocks ? column(doc.replyBlocks, s) : undefined,
+    phoneBlocks: doc.phoneBlocks ? column(doc.phoneBlocks, s) : undefined,
   };
 }

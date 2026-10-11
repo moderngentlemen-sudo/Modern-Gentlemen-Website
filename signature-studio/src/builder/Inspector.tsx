@@ -7,13 +7,13 @@ import { mix } from "../render/render";
 import { uid } from "../lib/id";
 import { col, findBlock, findColumn, pathTo } from "../core/blocks";
 import { FONTS, fontDef } from "../core/fonts";
-import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, Design, DetailKey } from "../core/types";
+import type { Align, Block, BlockStyle, Box, ButtonStyle, Column, ContactLinkKey, Design, DetailKey } from "../core/types";
 import { edit, toast, ui, useStudio, type Tab, tree, treeOf } from "../store/editor";
 import { ImageDrop } from "../ui/ImageDrop";
 import { ImageStudio } from "./ImageStudio";
 import { LiveBannerEditor } from "./LiveBannerEditor";
 import { LinkableText } from "../ui/LinkableText";
-import { colGapOf, hasColGap, hasRowGap, iconModeOf, rowGapOf } from "../core/contactLayout";
+import { colGapOf, hasColGap, hasRowGap, hasRowRule, hasSeparator, iconModeOf, MAX_COL_GAP, MAX_ROW_GAP, rowGapOf, separatorOf } from "../core/contactLayout";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
 import { duplicateSelected, removeSelected, resizeSelection, updateBlock, updateColumn, updateSelected, wrapSelected } from "./actions";
@@ -141,6 +141,9 @@ function ColumnEditor({ column, index }: { column: Column; index: number }) {
   );
 }
 
+/** Blocks whose side handles set a text box width. */
+const TEXT_BOX = ["name", "title", "field", "text", "iconText", "tag", "quote", "reviews", "signOff"];
+
 function StyleEditor({ b }: { b: Block }) {
   const st = b.style ?? {};
   const setStyle = (patch: Partial<BlockStyle>, key?: string) => updateBlock(b.id, (x) => void (x.style = { ...x.style, ...patch }), key);
@@ -154,6 +157,18 @@ function StyleEditor({ b }: { b: Block }) {
         </Field>
       )}
       {textual && <TextFormatBar b={b} />}
+      {(TEXT_BOX.includes(b.type) || (b.type === "button" && b.buttonStyle === "link")) && (
+        <Slider
+          label="Text box width"
+          hint={st.width ? "text wraps inside it" : "auto"}
+          unit="px"
+          min={0}
+          max={640}
+          step={10}
+          value={st.width ?? 0}
+          onChange={(v) => setStyle({ width: v || undefined }, "width")}
+        />
+      )}
       {["contacts", "socials", "button", "monogram", "divider", "reviews", "quote", "name"].includes(b.type) && (
         <ColorField
           label={b.type === "divider" ? "Line colour" : "Accent colour"}
@@ -276,6 +291,58 @@ function columnIndex(root: Column, id: string): number {
   return row?.kind === "row" && row.block.type === "row" ? row.block.columns.findIndex((c) => c.id === id) : 0;
 }
 
+const CONTACT_FIELDS: { k: ContactLinkKey; label: string; optional?: boolean; auto: string }[] = [
+  { k: "phone", label: "Phone", auto: "Calls the number" },
+  { k: "mobile", label: "Mobile", optional: true, auto: "Calls the number" },
+  { k: "email", label: "Email", auto: "Starts an email" },
+  { k: "website", label: "Website", auto: "Opens the website" },
+  { k: "address", label: "Address", optional: true, auto: "No link" },
+];
+
+/** Where a contact field links to on this block: automatic, a link of your own (a map, a booking page…), or nothing. */
+function ContactLink({ b, k, auto }: { b: Extract<Block, { type: "contacts" }>; k: ContactLinkKey; auto: string }) {
+  const filled = useStudio((s) => !!s.doc!.details[k].trim());
+  const own = b.links?.[k];
+  const mode = own === false ? "none" : own !== undefined ? "custom" : "auto";
+  const setLink = (v: string | false | undefined, key?: string) =>
+    updateBlock(
+      b.id,
+      (x) => {
+        if (x.type !== "contacts") return;
+        const links = { ...x.links, [k]: v };
+        if (v === undefined) delete links[k];
+        x.links = Object.keys(links).length ? links : undefined;
+      },
+      key,
+    );
+  const label = CONTACT_FIELDS.find((f) => f.k === k)!.label;
+  // An empty field shows nothing, so there is nothing to link yet.
+  if (!filled) return null;
+  return (
+    <div className="contact-link">
+      <Select
+        label={`${label} link`}
+        value={mode}
+        onChange={(v) => setLink(v === "auto" ? undefined : v === "none" ? false : "")}
+        options={[
+          { value: "auto", label: `Automatic — ${auto.toLowerCase()}` },
+          { value: "custom", label: "My own link" },
+          { value: "none", label: "No link" },
+        ]}
+      />
+      {mode === "custom" && (
+        <TextField
+          label={`${label} link address`}
+          placeholder={k === "address" ? "e.g. a Google Maps link" : "Website, email or phone"}
+          value={typeof own === "string" ? own : ""}
+          onChange={(v) => setLink(v, `link.${k}`)}
+          testId={`contact-link-${k}`}
+        />
+      )}
+    </div>
+  );
+}
+
 /** A symbol on a button, read out by name. */
 const glyph = (g: string, name: string) => (
   <>
@@ -301,31 +368,44 @@ function ContactSpacing({ b }: { b: Extract<Block, { type: "contacts" }> }) {
       {showIcons && b.layout !== "grid" && b.layout !== "chips" && design.contactIcons !== "letters" && design.contactIcons !== "words" && (
         <Toggle label="Filled icon badges" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
       )}
-      {b.layout === "inline" && (
-        <>
-          <Field label="Dividers">
-            <Segmented
-              label="Contact dividers"
-              value={b.separator ?? "bar"}
-              onChange={(v) => set({ separator: v === "bar" ? undefined : v })}
-              options={[
-                { value: "bar", label: glyph("|", "Bar"), title: "Bar" },
-                { value: "dot", label: glyph("·", "Dot"), title: "Dot" },
-                { value: "slash", label: glyph("/", "Slash"), title: "Slash" },
-                { value: "dash", label: glyph("–", "Dash"), title: "Dash" },
-                { value: "none", label: "None" },
-              ]}
-            />
-          </Field>
-          {b.separator !== "none" && (
-            <ColorField
-              label="Divider colour"
-              value={b.sepColor ?? mix(design.muted, "#ffffff", 0.45)}
-              onChange={(c) => set({ sepColor: c }, "sepColor")}
-              extra={[design.accent, design.muted]}
-            />
-          )}
-        </>
+      {hasSeparator(b.layout) && (
+        <Field label="Dividers" hint={b.layout === "inline" ? undefined : "between fields side by side"}>
+          <Segmented
+            label="Contact dividers"
+            value={separatorOf(b)}
+            onChange={(v) => set({ separator: v })}
+            options={[
+              { value: "bar", label: glyph("|", "Bar"), title: "Bar" },
+              { value: "dot", label: glyph("·", "Dot"), title: "Dot" },
+              { value: "slash", label: glyph("/", "Slash"), title: "Slash" },
+              { value: "dash", label: glyph("–", "Dash"), title: "Dash" },
+              { value: "none", label: "None" },
+            ]}
+          />
+        </Field>
+      )}
+      {hasRowRule(b.layout) && (
+        <Field label="Lines between rows">
+          <Segmented
+            label="Lines between rows"
+            value={b.rowRule ?? "none"}
+            onChange={(v) => set({ rowRule: v === "none" ? undefined : v })}
+            options={[
+              { value: "none", label: "None" },
+              { value: "solid", label: "Solid" },
+              { value: "dashed", label: "Dashed" },
+              { value: "dotted", label: "Dotted" },
+            ]}
+          />
+        </Field>
+      )}
+      {((hasSeparator(b.layout) && separatorOf(b) !== "none") || (hasRowRule(b.layout) && b.rowRule)) && (
+        <ColorField
+          label="Divider colour"
+          value={b.sepColor ?? mix(design.muted, "#ffffff", 0.45)}
+          onChange={(c) => set({ sepColor: c }, "sepColor")}
+          extra={[design.accent, design.muted]}
+        />
       )}
       {hasColGap(b.layout) && (
         <Slider
@@ -333,13 +413,13 @@ function ContactSpacing({ b }: { b: Extract<Block, { type: "contacts" }> }) {
           hint={b.layout === "inline" ? "either side of the divider" : "between the two columns"}
           unit="px"
           min={0}
-          max={60}
+          max={MAX_COL_GAP}
           value={colGapOf(b, design)}
           onChange={(v) => set({ colGap: v }, "colGap")}
         />
       )}
       {hasRowGap(b.layout) && (
-        <Slider label="Space between rows" unit="px" min={0} max={40} value={rowGapOf(b, design)} onChange={(v) => set({ rowGap: v }, "rowGap")} />
+        <Slider label="Space between rows" unit="px" min={0} max={MAX_ROW_GAP} value={rowGapOf(b, design)} onChange={(v) => set({ rowGap: v }, "rowGap")} />
       )}
       {(b.rowGap !== undefined || b.colGap !== undefined) && (
         <button className="btn sm ghost" onClick={() => set({ rowGap: undefined, colGap: undefined })}>
@@ -351,11 +431,39 @@ function ContactSpacing({ b }: { b: Extract<Block, { type: "contacts" }> }) {
   );
 }
 
+/**
+ * Stacking is part of the desktop layout: it's what lets Gmail, which can't
+ * switch to a phone layout, fit side-by-side columns on a phone.
+ */
+function StackToggle({ b }: { b: Extract<Block, { type: "row" }> }) {
+  const phoneView = useStudio((s) => s.device === "mobile");
+  if (phoneView)
+    return (
+      <p className="hint" data-testid="stack-desktop-only">
+        Columns {b.stack ? "stack" : "stay side by side"} on narrow screens. Change this in desktop view: it also decides how Gmail shows the row on phones.
+      </p>
+    );
+  return (
+    <Toggle
+      label="Stack on phones"
+      hint={
+        b.stack
+          ? "Columns wrap underneath each other when there isn't room, in every email app (Gmail too). They line up at the top."
+          : "Columns stay side by side; phones shrink the signature to fit."
+      }
+      checked={!!b.stack}
+      onChange={(v) => updateBlock(b.id, { stack: v || undefined } as Partial<Block>)}
+      testId="row-stack"
+    />
+  );
+}
+
 const SHOW_IN: Record<string, string> = { both: "New emails & replies", full: "New emails only", reply: "Replies only", hidden: "Hidden" };
 
 function Content({ b }: { b: Block }) {
   const set = (patch: Record<string, unknown>, key?: string) => updateBlock(b.id, patch as Partial<Block>, key);
   const details = useStudio((s) => s.doc!.details);
+  const design = useStudio((s) => s.doc!.design);
   switch (b.type) {
     case "row":
       return (
@@ -394,6 +502,7 @@ function Content({ b }: { b: Block }) {
             />
           </Field>
           <Toggle label="Divider between columns" checked={b.divider} onChange={(v) => set({ divider: v })} />
+          <StackToggle b={b} />
           {b.columns.map((c, i) => (
             <ColumnEditor key={c.id} column={c} index={i} />
           ))}
@@ -464,11 +573,12 @@ function Content({ b }: { b: Block }) {
             />
           </Field>
           <ContactSpacing b={b} />
-          <DetailField k="phone" label="Phone" />
-          <DetailField k="mobile" label="Mobile" hint="optional" />
-          <DetailField k="email" label="Email" />
-          <DetailField k="website" label="Website" />
-          <DetailField k="address" label="Address" hint="optional" />
+          {CONTACT_FIELDS.map((f) => (
+            <div key={f.k} className="contact-field">
+              <DetailField k={f.k} label={f.label} hint={f.optional ? "optional" : undefined} />
+              <ContactLink b={b} k={f.k} auto={f.auto} />
+            </div>
+          ))}
           <p className="hint">
             Shared with your saved profile. <GoTo tab="details">All details</GoTo>
           </p>
@@ -478,6 +588,7 @@ function Content({ b }: { b: Block }) {
       return (
         <>
           <Slider label="Icon size" unit="px" min={14} max={40} value={b.size ?? 22} onChange={(v) => set({ size: v }, "size")} />
+          <Slider label="Space between icons" unit="px" min={0} max={80} value={b.gap ?? design.social.gap} onChange={(v) => set({ gap: v }, "gap")} />
           <GoTo tab="social">Edit social links</GoTo>
         </>
       );
@@ -686,6 +797,29 @@ function Content({ b }: { b: Block }) {
             />
           </Field>
           <Toggle label="Calendar icon" checked={b.icon === "calendar"} onChange={(v) => set({ icon: v ? "calendar" : "" })} />
+          {b.buttonStyle !== "link" && (
+            <>
+              <Slider
+                label="Button width"
+                hint={b.width ? undefined : "fits the text"}
+                unit="px"
+                min={0}
+                max={480}
+                step={4}
+                value={b.width ?? 0}
+                onChange={(v) => set({ width: v || undefined }, "width")}
+              />
+              <Slider
+                label="Button height"
+                hint="space above and below the text"
+                unit="px"
+                min={0}
+                max={40}
+                value={b.padY ?? Math.round(8 * design.spacing)}
+                onChange={(v) => set({ padY: v }, "padY")}
+              />
+            </>
+          )}
         </>
       );
     case "signOff":
@@ -742,6 +876,7 @@ function Content({ b }: { b: Block }) {
         <>
           <TextField label="App Store link" placeholder="apps.apple.com/app/…" value={b.appStore} onChange={(v) => set({ appStore: v }, "as")} />
           <TextField label="Google Play link" placeholder="play.google.com/store/apps/…" value={b.googlePlay} onChange={(v) => set({ googlePlay: v }, "gp")} />
+          <Slider label="Badge height" unit="px" min={20} max={64} value={b.height ?? 34} onChange={(v) => set({ height: v }, "height")} />
         </>
       );
     case "canva":

@@ -57,6 +57,7 @@ export function TemplatesPanel() {
                 applyTemplate(d, t.id, { keepColors });
                 // In the builder a template is a starting layout.
                 if (d.mode === "builder") d.blocks = blocksFromDoc(d);
+                d.phoneBlocks = undefined;
               });
               toast(doc.mode === "builder" ? `Layout replaced with ${t.name}` : `Template: ${t.name}`, "success", { label: "Undo", run: undo });
             }}
