@@ -25,6 +25,7 @@
 
 import { createPublicClient } from "@/lib/db/public";
 import * as repo from "@/lib/db/repositories/navigation";
+import { getPublishedHomepage } from "@/lib/services/publicContent";
 import {
   buildMenuTree,
   hrefForItem,
@@ -95,9 +96,9 @@ async function resolveSlugs(
   return slugs;
 }
 
-function toNavLinks(nodes: MenuItemNode[], slugs: SlugsById): NavLink[] {
+function toNavLinks(nodes: MenuItemNode[], slugs: SlugsById, homepageSlug?: string): NavLink[] {
   return nodes.flatMap((node) => {
-    const href = hrefForItem(node, slugs);
+    const href = hrefForItem(node, slugs, homepageSlug);
     if (href === null) return [];
 
     const link: NavLink = {
@@ -105,7 +106,7 @@ function toNavLinks(nodes: MenuItemNode[], slugs: SlugsById): NavLink[] {
       label: node.label,
       href,
       visibility: node.visibility,
-      children: toNavLinks(node.children, slugs),
+      children: toNavLinks(node.children, slugs, homepageSlug),
     };
     if (node.options.group) link.group = node.options.group;
     if (node.options.feature) link.feature = node.options.feature;
@@ -131,8 +132,9 @@ export async function getPublishedMenu(key: string): Promise<NavLink[]> {
   const rows = await repo.listMenuItems(db, menu.id);
   const items = rows.map(toDomainItem).filter((item): item is MenuItem => item !== null);
   const slugs = await resolveSlugs(db, items);
+  const homepage = slugs.page?.size ? await getPublishedHomepage() : null;
 
-  return toNavLinks(buildMenuTree(items), slugs);
+  return toNavLinks(buildMenuTree(items), slugs, homepage?.slug);
 }
 
 /**

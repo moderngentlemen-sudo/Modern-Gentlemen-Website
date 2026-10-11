@@ -81,7 +81,7 @@ export function PublishBar({
   const totalIssues = areaTotals.length === 0 ? issues : areaTotals.reduce((a, b) => a + b, 0);
 
   const [confirmPublish, setConfirmPublish] = useState(false);
-  const publicPath = publicPathForDocument(doc.type, doc.slug);
+  const publicPath = publicPathForDocument(doc.type, doc.slug, doc.isHomepage);
   const [preview, setPreview] = useState<{ path: string; expiresAt: string } | null>(null);
   const [previewContextId, setPreviewContextId] = useState("");
 

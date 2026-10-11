@@ -1,10 +1,11 @@
 import { PagePresentation } from "@/components/PagePresentation";
+import { cache } from "react";
 import { withPageMetadata } from "@/lib/render/pageMetadata";
 import type { Metadata } from "next";
 
 import { SectionRenderer } from "@/components/SectionRenderer";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { composePublishedPage, getPublishedPage } from "@/lib/services/publicContent";
+import { composePublishedPage, getPublishedHomepage } from "@/lib/services/publicContent";
 import { canonicalSiteUrl } from "@/lib/db/env";
 import { BRAND, canonicalUrl, organizationJsonLd } from "@/lib/domain/seo";
 
@@ -24,6 +25,7 @@ import { BRAND, canonicalUrl, organizationJsonLd } from "@/lib/domain/seo";
  * revalidation that never arrived.
  */
 export const revalidate = 3600;
+const readHomepage = cache(getPublishedHomepage);
 
 /**
  * The homepage keeps the bare brand as its title — no suffix, because
@@ -37,7 +39,7 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
   const base = canonicalSiteUrl();
 
-  const page = await getPublishedPage("home");
+  const page = await readHomepage();
   return withPageMetadata(
     {
       title: BRAND,
@@ -56,16 +58,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const page = await getPublishedPage("home");
+  const page = await readHomepage();
 
   // Deliberately a throw, not `notFound()`. At build time this fails the build,
   // which is the correct outcome — `notFound()` would quietly prerender the 404
-  // page as the site's homepage. A missing published "home" row is a broken
+  // page as the site's homepage. A missing published homepage is a broken
   // deployment, not a missing resource.
   if (!page) {
     throw new Error(
-      'No published page with slug "home". Seed it with `npx tsx scripts/seed.ts`, ' +
-        "or publish it from /admin/pages."
+      "No published homepage. Publish a page and set it as the homepage from /admin/pages, " +
+        'or seed the default page with slug "home".'
     );
   }
 

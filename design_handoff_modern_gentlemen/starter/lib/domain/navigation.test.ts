@@ -123,6 +123,20 @@ describe("flattenChildren", () => {
 });
 
 describe("hrefForItem", () => {
+  it("updates page-target links when a different homepage is chosen", () => {
+    const targets = {
+      page: new Map([
+        ["chosen", "welcome"],
+        ["old", "home"],
+      ]),
+    };
+    expect(
+      hrefForItem(item({ id: "x", linkType: "page", targetId: "chosen" }), targets, "welcome")
+    ).toBe("/");
+    expect(
+      hrefForItem(item({ id: "x", linkType: "page", targetId: "old" }), targets, "welcome")
+    ).toBe("/home");
+  });
   const slugs = {
     category: new Map([["cat-1", "style"]]),
     article: new Map([["art-1", "speed-considered"]]),

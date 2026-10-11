@@ -16,7 +16,12 @@ import type { DocumentStatus } from "@/lib/domain/documents";
 import { DuplicateDocumentDialog } from "@/components/admin/DuplicateDocumentDialog";
 
 import { StudioDesignPicker } from "@/components/admin/builder/StudioDesignPicker";
-import { createPageAction, deletePageAction, duplicatePageAction } from "./actions";
+import {
+  createPageAction,
+  deletePageAction,
+  duplicatePageAction,
+  setHomepageAction,
+} from "./actions";
 
 export interface PageRow {
   id: string;
@@ -40,10 +45,14 @@ export function PagesList({
   pages,
   canWrite,
   canDelete,
+  canSetHomepage = false,
+  homepageId = null,
 }: {
   pages: PageRow[];
   canWrite: boolean;
   canDelete: boolean;
+  canSetHomepage?: boolean;
+  homepageId?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -57,6 +66,20 @@ export function PagesList({
   const [error, setError] = useState<string>();
   const [confirmDelete, setConfirmDelete] = useState<PageRow | null>(null);
   const [duplicating, setDuplicating] = useState<PageRow | null>(null);
+  const [homepageChoice, setHomepageChoice] = useState<PageRow | null>(null);
+
+  function chooseHomepage(page: PageRow) {
+    startTransition(async () => {
+      const result = await setHomepageAction({ id: page.id });
+      if (!result.ok) {
+        toast.push(result.error, "error");
+        return;
+      }
+      setHomepageChoice(null);
+      toast.push(`“${page.title}” is now the homepage`, "success");
+      router.refresh();
+    });
+  }
 
   function create() {
     setError(undefined);
@@ -139,6 +162,11 @@ export function PagesList({
                       >
                         {page.title}
                       </Link>
+                      {page.id === homepageId && (
+                        <span className="ml-3 border border-mg-bd/20 px-2 py-1 text-[11px] font-medium">
+                          Homepage
+                        </span>
+                      )}
                     </Td>
                     <Td className="font-mono text-[12px] text-mg-fg/60">/{page.slug}</Td>
                     <Td>
@@ -146,6 +174,19 @@ export function PagesList({
                     </Td>
                     <Td className="font-mono text-[12px] text-mg-fg/60">v{page.version}</Td>
                     <Td className="text-right">
+                      {canSetHomepage && page.id !== homepageId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setHomepageChoice(page)}
+                          disabled={pending || page.status !== "published"}
+                          title={
+                            page.status !== "published" ? "Publish this page first" : undefined
+                          }
+                        >
+                          Set as homepage
+                        </Button>
+                      )}
                       {canWrite && (
                         <Button
                           size="sm"
@@ -161,7 +202,12 @@ export function PagesList({
                           size="sm"
                           variant="ghost"
                           onClick={() => setConfirmDelete(page)}
-                          disabled={pending}
+                          disabled={pending || page.id === homepageId}
+                          title={
+                            page.id === homepageId
+                              ? "Set another homepage before deleting this page"
+                              : undefined
+                          }
                         >
                           Delete
                         </Button>
@@ -220,6 +266,32 @@ export function PagesList({
             required
           />
         </div>
+      </Dialog>
+
+      <Dialog
+        open={homepageChoice !== null}
+        onClose={() => !pending && setHomepageChoice(null)}
+        title={`Set “${homepageChoice?.title ?? ""}” as homepage?`}
+        description="Its published version will appear at the main website address. This changes the live homepage immediately."
+        footer={
+          <>
+            <Button variant="ghost" disabled={pending} onClick={() => setHomepageChoice(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              loading={pending}
+              onClick={() => homepageChoice && chooseHomepage(homepageChoice)}
+            >
+              Set homepage
+            </Button>
+          </>
+        }
+      >
+        <p className="text-[13px] text-mg-fg/60">
+          The page title, slug and saved drafts stay intact. Publish a page first to make it
+          available as a homepage.
+        </p>
       </Dialog>
 
       {duplicating && (

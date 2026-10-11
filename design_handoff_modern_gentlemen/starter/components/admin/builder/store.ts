@@ -84,6 +84,8 @@ export interface BuilderDocument {
   slug: string;
   status: DocumentStatus;
   version: number;
+  /** Server-resolved page identity; independent of editable slug and draft payload. */
+  isHomepage?: boolean;
   /** When a `scheduled` page or article will publish itself, as an ISO instant. */
   scheduledFor?: string | null;
   /**
