@@ -10,7 +10,6 @@ import {
   LaunchSocial,
 } from "./LaunchElements";
 import { StageCell, StageLayout } from "../sections/StageLayout";
-import { StageRunway } from "../sections/StageRunway";
 import { SOCIAL_NETWORKS } from "@/lib/blocks/socialNetworks";
 
 afterEach(() => {
@@ -378,67 +377,5 @@ describe("StageLayout", () => {
     expect(
       container.querySelector<HTMLElement>("[data-stage-cell]")!.style.getPropertyValue("--cell-i")
     ).toBe("2");
-  });
-
-  it("runs the background behind the phone's bars only on a standalone page", () => {
-    const { container, rerender } = render(<StageLayout image="/x.jpg" edges="both" />);
-    const stage = () => container.querySelector<HTMLElement>("[data-stage-layout]")!;
-    expect(stage().hasAttribute("data-bleed")).toBe(false);
-    expect(container.querySelector("style")).toBeNull();
-
-    rerender(<StageLayout image="/x.jpg" color="#101010" standalone edges="bottom" />);
-    expect(stage().dataset.bleed).toBe("bottom");
-    expect(container.querySelector("style")!.textContent).toBe(
-      ":root{--mg-standalone-canvas:#101010}"
-    );
-
-    rerender(<StageLayout image="/x.jpg" standalone edges="both" edgeColor="#2a1f14" />);
-    expect(stage().dataset.bleed).toBe("both");
-    expect(container.querySelector("style")!.textContent).toBe(
-      ":root{--mg-standalone-canvas:#2a1f14}"
-    );
-
-    // An invalid colour can never reach the stylesheet.
-    rerender(<StageLayout standalone edgeColor="red;}body{x:y" />);
-    expect(container.querySelector("style")!.textContent).toBe(
-      ":root{--mg-standalone-canvas:#0d0d0d}"
-    );
-    expect(stage().hasAttribute("data-bleed")).toBe(false);
-  });
-});
-
-describe("StageRunway", () => {
-  const coarse = (matches: boolean) =>
-    vi
-      .spyOn(window, "matchMedia")
-      .mockImplementation((query: string) => ({ matches, media: query }) as MediaQueryList);
-  const page = (inSite: boolean) => {
-    const stage = (
-      <section data-stage-layout="" style={{ paddingTop: "64px" }}>
-        <StageRunway />
-      </section>
-    );
-    return render(inSite ? <main data-site-main="">{stage}</main> : stage);
-  };
-
-  afterEach(() => vi.restoreAllMocks());
-
-  it("scrolls past the runway once on a touch screen", () => {
-    window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia;
-    coarse(true);
-    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-    page(true);
-    expect(scroll).toHaveBeenCalledWith({ top: 64, behavior: "instant" });
-  });
-
-  it("never scrolls in the editor or with a mouse", () => {
-    window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia;
-    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-    coarse(true);
-    page(false);
-    cleanup();
-    coarse(false);
-    page(true);
-    expect(scroll).not.toHaveBeenCalled();
   });
 });

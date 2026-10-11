@@ -255,31 +255,6 @@
   }
 }
 
-/*
- * A standalone stage can run its background behind the phone's toolbars.
- * The layer (and every placed element) keeps its size and position; only the
- * stage grows, and the video, photograph and shade cover the stage.
- *
- * Bottom: the stage reaches the large viewport, so the background continues
- * behind Safari's bottom toolbar instead of stopping at the small viewport
- * with the canvas colour below it. Zero on desktop, where the two agree.
- *
- * Both: a runway of background above the layer too, which StageRunway scrolls
- * past on load — Safari only shows page pixels behind the status bar once the
- * page has scrolled. Touch screens only. Scoped to the public page, so the
- * editor canvas never grows.
- */
-:global([data-site-main]) .stage[data-bleed] {
-  --stage-bleed: calc(100lvh - 100svh);
-  padding-bottom: var(--stage-bleed);
-}
-@media (pointer: coarse) {
-  :global([data-site-main]) .stage[data-bleed="both"] {
-    --stage-runway: 64px;
-    padding-top: var(--stage-runway);
-  }
-}
-
 /* Letterbox bars: cinematic black above and below, over everything. */
 .stage[data-bars]::before,
 .stage[data-bars]::after {
@@ -293,10 +268,10 @@
   pointer-events: none;
 }
 .stage[data-bars]::before {
-  top: var(--stage-runway, 0px);
+  top: 0;
 }
 .stage[data-bars]::after {
-  bottom: var(--stage-bleed, 0px);
+  bottom: 0;
 }
 
 /* A slow push in or pull out on the video or photograph. */

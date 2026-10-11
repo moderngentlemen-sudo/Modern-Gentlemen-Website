@@ -8,18 +8,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
-### 2026-10-11 — Stage: background behind Safari's status bar and toolbar (branch `claude/safari-edge-to-edge`)
+### 2026-10-11 — Reverted: Stage background behind Safari's toolbars (PR #144)
 
-Two new Stage fields, both standalone-only (no effect while the site header/footer show):
-
-- **`edges`** — `solid` (default, unchanged), `bottom`, `both`.
-  - `bottom`: the stage gets `padding-bottom: calc(100lvh - 100svh)`, so the video/photo/shade (all `inset: 0` on the stage) continue behind Safari's bottom toolbar. The layer, and so every placed element, keeps its size and position. Zero on desktop.
-  - `both` (experimental): on `pointer: coarse` the stage also gets a 64px runway of background above the layer, and `StageRunway` scrolls past it once on load. Safari (iOS 26+) paints the status bar a solid sampled colour at scroll 0 and only composites page pixels behind it after a scroll — undocumented behaviour, tune or drop it after real-device testing. Scrolling back up shows more background, not a band.
-- **`edgeColor`** — the colour any bar left solid takes (it becomes `--mg-standalone-canvas`); unset = the stage colour.
-
-Both paddings are scoped to `[data-site-main]`, so the editor canvas never grows and `StageRunway` returns early outside it. Letterbox bars now sit on the layer (`--stage-runway`/`--stage-bleed` offsets), not behind the toolbars.
-
-Verified in Chromium with iPhone emulation: scrolled to 64, layer exactly fills the view, media covers the runway; desktop untouched. **Not verified on Safari** (none in the container) — the owner is on iOS 27, which may behave differently again.
+PR #144 added a Stage `edges` field (`solid`/`bottom`/`both`) and `edgeColor`; `both` scrolled the page 64px on load (`StageRunway`) so Safari would composite the background behind its status bar. **The owner rejected it because the page now scrolls**, and it was reverted in full. Decision: a standalone Coming Soon page must not scroll; the bars stay the solid stage colour. Don't reintroduce a scroll runway. Three old `revisions` rows still carry `edges`/`edgeColor` — restoring one of those would bring back keys the manifest no longer declares.
 
 ### 2026-10-11 — Signature Studio: contact block handles, icons toggle, dividers and spacing
 
