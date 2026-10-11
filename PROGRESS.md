@@ -8,6 +8,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Stage gets no free move/resize handles (branch `claude/stage-no-free-resize`)
+
+After the #144 revert the Coming Soon page still scrolled on phones, over a long black band. Cause: the page's Stage carried `visual.styles.mobile = {widthPx: 390, heightPx: 1537.33, position: relative, top: 0, left: 0}`, saved at 15:28 — the shape `FreeCanvasControls` writes when a resize handle is dragged (it seeds width/height from the measured box). The Stage is the full-bleed page surface sized by its Height field, so a stray handle drag on the phone canvas pinned it to a fixed box. Fixes:
+
+- **Data:** removed `visual.styles` from that stage in both `draft_data` and `published_data` (they were identical, so no unpublished work was touched). The page is ISR with an hourly backstop, so the live page refreshes on the next revalidation or deploy.
+- **Editor:** `Canvas.tsx` no longer renders `FreeCanvasControls` (or the legacy width handle) on a `stageLayout`; a test asserts it. The Precise size panel still exists for deliberate values.
+
 ### 2026-10-11 — Reverted: Stage background behind Safari's toolbars (PR #144)
 
 PR #144 added a Stage `edges` field (`solid`/`bottom`/`both`) and `edgeColor`; `both` scrolled the page 64px on load (`StageRunway`) so Safari would composite the background behind its status bar. **The owner rejected it because the page now scrolls**, and it was reverted in full. Decision: a standalone Coming Soon page must not scroll; the bars stay the solid stage colour. Don't reintroduce a scroll runway. Three old `revisions` rows still carry `edges`/`edgeColor` — restoring one of those would bring back keys the manifest no longer declares.
