@@ -527,6 +527,12 @@ function BlockProperties({
             })
           }
         />
+        {node._type === "nativeSocial" && (
+          <p className={HELP_TEXT}>
+            On social links the hover colour changes only the icon under the pointer. Each
+            icon&apos;s own colour, animation and brand colour are in Content, under each profile.
+          </p>
+        )}
         <HoverColour
           label="Text colour on hover"
           value={node.visual?.effects?.hoverColor}

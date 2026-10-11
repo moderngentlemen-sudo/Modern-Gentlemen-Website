@@ -10,6 +10,7 @@ import {
   LaunchSocial,
 } from "./LaunchElements";
 import { StageCell, StageLayout } from "../sections/StageLayout";
+import { SOCIAL_NETWORKS } from "@/lib/blocks/socialNetworks";
 
 afterEach(() => {
   cleanup();
@@ -72,6 +73,68 @@ describe("Launch elements", () => {
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(1);
     expect(links[0].getAttribute("aria-label")).toBe("Instagram");
+  });
+
+  it("draws an icon for every network", () => {
+    const { container } = render(
+      <LaunchSocial
+        links={SOCIAL_NETWORKS.map((n) => ({
+          network: n.id,
+          label: n.label,
+          href: n.id === "email" ? "mailto:hello@example.com" : "https://example.com",
+        }))}
+      />
+    );
+    const links = container.querySelectorAll("a");
+    expect(links).toHaveLength(SOCIAL_NETWORKS.length);
+    for (const link of links) expect(link.querySelector("svg"), link.ariaLabel ?? "").toBeTruthy();
+  });
+
+  it("lets each icon have its own hover colour and animation", () => {
+    const { container } = render(
+      <LaunchSocial
+        hoverEffect="lift"
+        hoverColor="#d4af37"
+        hoverBrand
+        links={[
+          { network: "spotify", label: "Spotify", href: "https://open.spotify.com" },
+          { network: "x", label: "X", href: "https://x.com" },
+          {
+            network: "instagram",
+            label: "Instagram",
+            href: "https://instagram.com",
+            hoverColor: "#ffffff",
+            hoverEffect: "spin",
+          },
+          {
+            network: "youtube",
+            label: "YouTube",
+            href: "https://youtube.com",
+            hoverEffect: "nope",
+          },
+        ]}
+      />
+    );
+    const [spotify, x, instagram, youtube] = [...container.querySelectorAll<HTMLElement>("a")];
+    // Brand colour where the brand has a usable one…
+    expect(spotify.style.getPropertyValue("--so-hover")).toBe("#1ed760");
+    expect(spotify.dataset.hover).toBe("lift");
+    // …the row's colour where it does not (X is black)…
+    expect(x.style.getPropertyValue("--so-hover")).toBe("#d4af37");
+    // …and the icon's own settings over both.
+    expect(instagram.style.getPropertyValue("--so-hover")).toBe("#ffffff");
+    expect(instagram.dataset.hover).toBe("spin");
+    // An unknown animation falls back to the row's.
+    expect(youtube.dataset.hover).toBe("lift");
+  });
+
+  it("keeps the original fade when nothing is set", () => {
+    const { container } = render(
+      <LaunchSocial links={[{ network: "x", label: "X", href: "https://x.com" }]} />
+    );
+    const link = container.querySelector<HTMLElement>("a")!;
+    expect(link.dataset.hover).toBe("fade");
+    expect(link.getAttribute("style")).toBeNull();
   });
 
   it("logo has an accessible name in every style", () => {
