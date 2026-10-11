@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { shot } from "./helpers";
+import { canvaPng, shot } from "./helpers";
 
 const preview = (page: Page) => page.locator('[data-testid="preview"]');
 const shadowHtml = (page: Page) => preview(page).evaluate((el) => el.shadowRoot!.innerHTML);
@@ -136,4 +136,109 @@ test("phone: the inspector is a bottom sheet that folds down", async ({ page }) 
   await expect(insp).toHaveClass(/sheet-peek/);
   await expect.poll(async () => (await insp.boundingBox())!.height).toBeLessThan(tall);
   await shot(page, "99-phone-sheet");
+});
+
+test("a logo's side edge changes only its width, and the top edge only its height", async ({ page }) => {
+  await builder(page);
+  await page.getByTestId("tab-content").click();
+  await page.getByTestId("tab-images").click();
+  const png = await canvaPng(page, { width: 600, height: 200, margin: 0 });
+  await page.getByTestId("upload-logo").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await preview(page).locator('img[alt$="logo"]').first().click();
+  const chip = page.getByTestId("size-chip");
+  await expect(chip).toHaveText(/^\d+ × \d+$/);
+  const size = async () => (await chip.innerText()).split(" × ").map(Number);
+  const drag = async (dir: string, dx: number, dy: number) => {
+    const h = (await page.getByTestId(`resize-handle-${dir}`).boundingBox())!;
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h.x + h.width / 2 + dx, h.y + h.height / 2 + dy, { steps: 5 });
+    await page.mouse.up();
+  };
+  const [w0, h0] = await size();
+  await drag("e", 40, 0);
+  const [w1, h1] = await size();
+  expect(w1).toBeGreaterThan(w0);
+  expect(Math.abs(h1 - h0)).toBeLessThanOrEqual(1);
+  await drag("n", 0, -20);
+  const [w2, h2] = await size();
+  expect(Math.abs(w2 - w1)).toBeLessThanOrEqual(1);
+  expect(h2).toBeGreaterThan(h1);
+  // The rendered logo's frame really has that shape; the picture is cropped to fill it, never squashed.
+  const frame = preview(page).locator('img[alt$="logo"]').first().locator("xpath=..");
+  const box = (await frame.boundingBox())!;
+  expect(Math.abs(box.width / box.height - w2 / h2)).toBeLessThan(0.05);
+  const img = (await preview(page).locator('img[alt$="logo"]').first().boundingBox())!;
+  expect(Math.abs(img.width / img.height - 3)).toBeLessThan(0.05);
+});
+
+test("start from scratch opens an empty canvas, with no template or sample details", async ({ page }) => {
+  await page.goto("/app");
+  await page.getByTestId("start-blank").click();
+  await expect(page.getByTestId("mode-builder")).toHaveAttribute("aria-pressed", "true");
+  await expect(preview(page)).toContainText("Drop blocks here");
+  await expect(preview(page).locator("[data-block]")).toHaveCount(0);
+  // Adding a block shows the person's own (here: empty) details, not a sample name.
+  await page.getByTestId("palette-name").click();
+  await expect(preview(page).locator("[data-block]")).toHaveCount(1);
+  await expect(preview(page)).not.toContainText("Jordan Ellis");
+});
+
+test("dividers: colour, line style, spacing, padding and a vertical direction", async ({ page }) => {
+  await builder(page);
+  await page.getByTestId("palette-divider").scrollIntoViewIfNeeded();
+  await page.getByTestId("palette-divider").click();
+  const insp = page.getByTestId("inspector");
+  // Colour now changes the line.
+  await insp.getByRole("button", { name: /^Line colour:/ }).click();
+  await insp.getByLabel("Line colour hex").fill("#c8102e");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => shadowHtml(page)).toContain("#c8102e");
+  await insp.getByRole("group", { name: "Line style" }).getByRole("button", { name: "Dashed" }).click();
+  await insp.getByLabel("Spacing value").fill("14");
+  await insp.getByLabel("Padding value").fill("24");
+  await expect.poll(() => shadowHtml(page)).toContain("padding:14px 24px;");
+  expect(await shadowHtml(page)).toContain("border-top:1px dashed #c8102e");
+  // Vertical: the handles grow it up and down.
+  await insp.getByRole("group", { name: "Divider direction" }).getByRole("button", { name: "Vertical" }).click();
+  await expect.poll(() => shadowHtml(page)).toContain("border-left:1px dashed #c8102e");
+  await expect(page.getByTestId("size-chip")).toHaveText("48px tall");
+  await expect(page.getByTestId("resize-handle-s")).toBeVisible();
+  await shot(page, "104-divider");
+});
+
+test("contacts: the frame covers every line, edges change the spacing, icons and dividers can be changed", async ({ page }) => {
+  await builder(page);
+  await preview(page).getByText("+1 416 555 0182").click();
+  // The selection reaches past the longest line (the email), so the side handle isn't on top of it.
+  const email = (await preview(page).getByText("jordan@moderngentlemen.co").first().boundingBox())!;
+  const se = (await page.getByTestId("resize-handle").boundingBox())!;
+  expect(se.x + se.width / 2).toBeGreaterThanOrEqual(email.x + email.width - 1);
+  // A list has no side handles; its bottom edge spreads the rows.
+  await expect(page.getByTestId("resize-handle-e")).toHaveCount(0);
+  const before = await shadowHtml(page);
+  const s = (await page.getByTestId("resize-handle-s").boundingBox())!;
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2 + 30, { steps: 5 });
+  await page.mouse.up();
+  const insp = page.getByTestId("inspector");
+  await expect(insp.getByLabel("Space between rows value")).not.toHaveValue("3");
+  await expect(page.getByTestId("size-chip")).toContainText("px text");
+  expect(await shadowHtml(page)).not.toBe(before);
+
+  // Icons off.
+  await expect(preview(page).locator('img[alt="Phone"]')).toHaveCount(1);
+  await insp.getByTestId("contact-icons").click();
+  await expect(preview(page).locator('img[alt="Phone"]')).toHaveCount(0);
+
+  // One line: a dot divider in red, more space.
+  await insp.getByRole("group", { name: "Contacts layout" }).getByRole("button", { name: "One line" }).click();
+  await insp.getByRole("group", { name: "Contact dividers" }).getByRole("button", { name: "Dot" }).click();
+  await insp.getByRole("button", { name: /^Divider colour:/ }).click();
+  await insp.getByLabel("Divider colour hex").fill("#c8102e");
+  await page.keyboard.press("Enter");
+  await insp.getByLabel("Space between value").fill("30");
+  await expect.poll(() => shadowHtml(page)).toMatch(/color:#c8102e;padding:0 \d+px;">·<\/span>/);
+  await shot(page, "105-contacts");
 });

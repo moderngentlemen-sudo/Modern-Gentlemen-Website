@@ -8,6 +8,64 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Signature Studio: contact block handles, icons toggle, dividers and spacing
+
+From the owner's testing of the contact block:
+- **Handle fixes:**
+  - **The selection frame now covers every contact line.** Contact lines don't wrap, so a long email ran past its column and the frame, which measured the column cell, stopped short. The right-hand handle sat on top of the email address. The frame now includes the text's own extent.
+  - **Edges change spacing, corners scale the text.** Before, every handle scaled the text.
+    - The bottom and top edges change the space between rows (list, grid, chips).
+    - The side edges change the space between fields side by side (one line, grid, chips).
+    - A list has no side handles, because it has no side-by-side gap.
+    - Shift on an edge still scales the text.
+- **New controls:**
+  - **Show icons:** a per-block switch. It overrides the Design setting either way and also covers letters and words. "Filled icon badges" now appears only where it has an effect.
+  - **Dividers (one line):** a choice of bar, dot, slash, dash or none, plus a divider colour.
+  - **Spacing:** "Space between" and "Space between rows" (or "Space across" for grid and chips), with Reset spacing. They follow the whole-signature scale, and zero stays zero.
+- **One-line contacts with a dot, dash or no divider still wrap.** A line can break after a bar but not after a dot, so a zero-width space follows each custom divider.
+- **Outlook:** custom spacing keeps a real space either side of a divider where it fits, because Outlook ignores padding on inline text.
+- **Existing contact blocks render exactly as before.** Hashes of all 16 layout × icon-style combinations match the previous code.
+- **Shared code:** defaults and gaps live in `core/contactLayout.ts`, shared by the renderer, the inspector and the canvas handles.
+- **Gates:** `npm test` (145), `npm run e2e` (62), `npm run build`. An older handle test in `qol.spec.ts` meant to drag the photo but clicked the second `<img>`, which is a contact icon. It now drags the logo.
+
+### 2026-10-11 — Signature Studio: divider spacing, padding, direction, style; divider colour fixed
+
+From the owner's testing:
+- **Divider colour now works.** The inspector's colour picker wrote the block's accent, but the divider only ever followed the signature-wide divider setting. It now uses the colour picked on the block. The control is labelled "Line colour" and shows the line's real current colour.
+- **New divider options:**
+  - **Direction:** horizontal or vertical. A vertical divider has its own length (default 48px) and resizes up and down from its handles.
+  - **Line style:** Auto (as the design sets it), solid, dashed or dotted.
+  - **Spacing:** space on either side of the line (above and below, or left and right when vertical).
+  - **Padding:** an inset at the line's ends.
+  - All Gmail-safe table markup. Sizes follow the whole-signature scale, and zero stays zero.
+- **Existing dividers render exactly as before** (a test compares the markup against the previous version).
+- **Gates:** `npm test` (140), `npm run e2e` (61), `npm run build`.
+
+### 2026-10-11 — Signature Studio: zoom out in the image editor
+
+The owner asked to be able to zoom out when editing an image or logo:
+- **Zoom now goes from 0.25× to 4×.** Below 1× the picture shrinks inside its frame and the rest stays clear, with the backing colour if one is set. Dragging or the arrow keys move it within the free space; on an axis where it is still larger than the frame, it is cropped as before.
+- **"Fit whole picture"** zooms out just enough to show all of it, e.g. a wide logo in a square frame.
+- **One pure placement function** (`cropPlacement` in `core/crop.ts`, unit-tested) is shared by the editor stage, the canvas preview (plain and styled frames) and the published PNG (`derive.ts`).
+- **Nothing already published changes:** at 1× and above it returns exactly the old crop, and the image request key changes only when zoomed out.
+- **Zoomed-out pictures always publish as PNG** (a JPEG would fill the margins with black) and are never sent as an animated GIF; the GIF check explains why.
+- **The sharpness check** measures the picture's drawn size, not its frame.
+- **Gates:** `npm test` (135), `npm run e2e` (60, incl. a test that zooms a logo out, publishes it and checks the PNG is clear below the logo), `npm run build`.
+
+### 2026-10-11 — Signature Studio: edge handles reshape logos and photos; Start from scratch is empty
+
+Fixes from the owner's testing:
+- **Edge handles reshape, corners scale — now for logos and photos too.**
+  - Before, only image blocks reshaped from their top, bottom, left and right handles; logo and photo blocks scaled as a whole from every handle.
+  - Now a side edge changes only the width and top/bottom only the height, for images, logos and photos (except circular photos, which keep their proportions). The crop fills the new shape, so the picture is never squashed.
+  - A logo or photo's shape is stored on its shared slot (`images.logo/photo.aspect`); photos stay square until reshaped (`render.ts`).
+  - In the crop editor, a non-circular photo can use any crop shape, and "Original" keeps the photo's own proportions.
+- **Side handles appear on short logos.** They used to be hidden below 48px so they didn't overlap the corners; a typical 37px-tall logo had none. They now shrink to a compact size and fit from 30px (touch screens keep 48px).
+- **The selection frame hugs the block's own content.** It used to measure the wrapper, which spans the column, so handles sat at the column edge instead of on the logo or image.
+- **Edge drags follow the whole-signature scale.** Screen pixels are converted to stored sizes, as corner drags already were.
+- **"Start from scratch" / "Blank signature" is truly empty:** an empty builder canvas, no starter layout, no sample details and no add-ons. Your saved profile still fills blocks you add.
+- **Gates:** `npm test` (129), `npm run e2e` (incl. new logo-edge and empty-canvas tests), `npm run build`.
+
 ### 2026-10-11 — Selectable default homepage (branch `feat/default-homepage`)
 
 - Pages now identifies the current homepage and offers **Set as homepage** to

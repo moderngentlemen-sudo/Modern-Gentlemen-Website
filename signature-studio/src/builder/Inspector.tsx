@@ -3,6 +3,7 @@ import { ChevronRight, Copy, Minus, Plus, Sparkles, Trash2, X } from "lucide-rea
 import { SIGN_OFFS } from "../core/seasonal";
 import { ICON_CHOICES } from "../core/iconPaths";
 import { glyphSvg, svgDataUrl } from "../render/icons";
+import { mix } from "../render/render";
 import { uid } from "../lib/id";
 import { col, findBlock, findColumn, pathTo } from "../core/blocks";
 import { FONTS, fontDef } from "../core/fonts";
@@ -12,6 +13,7 @@ import { ImageDrop } from "../ui/ImageDrop";
 import { ImageStudio } from "./ImageStudio";
 import { LiveBannerEditor } from "./LiveBannerEditor";
 import { LinkableText } from "../ui/LinkableText";
+import { colGapOf, hasColGap, hasRowGap, iconModeOf, rowGapOf } from "../core/contactLayout";
 import { ColorField, Field, Segmented, SectionTitle, Select, Slider, TextField, Toggle } from "../ui/kit";
 import { DirectionControl, MadeWithToggle, ReplyControl, ScaleControl } from "../panels/DesignPanel";
 import { duplicateSelected, removeSelected, resizeSelection, updateBlock, updateColumn, updateSelected, wrapSelected } from "./actions";
@@ -153,7 +155,12 @@ function StyleEditor({ b }: { b: Block }) {
       )}
       {textual && <TextFormatBar b={b} />}
       {["contacts", "socials", "button", "monogram", "divider", "reviews", "quote", "name"].includes(b.type) && (
-        <ColorField label="Accent colour" value={st.accent ?? design.accent} onChange={(c) => setStyle({ accent: c }, "accent")} extra={[design.accent]} />
+        <ColorField
+          label={b.type === "divider" ? "Line colour" : "Accent colour"}
+          value={st.accent ?? (b.type === "divider" && design.divider !== "accent" ? mix(design.muted, "#ffffff", 0.6) : design.accent)}
+          onChange={(c) => setStyle({ accent: c }, "accent")}
+          extra={[design.accent]}
+        />
       )}
       {(st.color ||
         st.colorRole ||
@@ -269,6 +276,81 @@ function columnIndex(root: Column, id: string): number {
   return row?.kind === "row" && row.block.type === "row" ? row.block.columns.findIndex((c) => c.id === id) : 0;
 }
 
+/** A symbol on a button, read out by name. */
+const glyph = (g: string, name: string) => (
+  <>
+    <span aria-hidden="true">{g}</span>
+    <span className="sr-only">{name}</span>
+  </>
+);
+
+/** Icons, separators and spacing for a contacts block. */
+function ContactSpacing({ b }: { b: Extract<Block, { type: "contacts" }> }) {
+  const design = useStudio((s) => s.doc!.design);
+  const set = (patch: Partial<typeof b>, key?: string) => updateBlock(b.id, patch as Partial<Block>, key);
+  const showIcons = iconModeOf(b, design) !== "none";
+  return (
+    <>
+      <Toggle
+        label="Show icons"
+        hint={design.contactIcons === "icons" || design.contactIcons === "none" ? "Phone, email and web icons" : `Shows ${design.contactIcons} (set in Design)`}
+        checked={showIcons}
+        onChange={(v) => set({ icons: v === (design.contactIcons !== "none") ? undefined : v })}
+        testId="contact-icons"
+      />
+      {showIcons && b.layout !== "grid" && b.layout !== "chips" && design.contactIcons !== "letters" && design.contactIcons !== "words" && (
+        <Toggle label="Filled icon badges" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
+      )}
+      {b.layout === "inline" && (
+        <>
+          <Field label="Dividers">
+            <Segmented
+              label="Contact dividers"
+              value={b.separator ?? "bar"}
+              onChange={(v) => set({ separator: v === "bar" ? undefined : v })}
+              options={[
+                { value: "bar", label: glyph("|", "Bar"), title: "Bar" },
+                { value: "dot", label: glyph("·", "Dot"), title: "Dot" },
+                { value: "slash", label: glyph("/", "Slash"), title: "Slash" },
+                { value: "dash", label: glyph("–", "Dash"), title: "Dash" },
+                { value: "none", label: "None" },
+              ]}
+            />
+          </Field>
+          {b.separator !== "none" && (
+            <ColorField
+              label="Divider colour"
+              value={b.sepColor ?? mix(design.muted, "#ffffff", 0.45)}
+              onChange={(c) => set({ sepColor: c }, "sepColor")}
+              extra={[design.accent, design.muted]}
+            />
+          )}
+        </>
+      )}
+      {hasColGap(b.layout) && (
+        <Slider
+          label={b.layout === "inline" ? "Space between" : "Space across"}
+          hint={b.layout === "inline" ? "either side of the divider" : "between the two columns"}
+          unit="px"
+          min={0}
+          max={60}
+          value={colGapOf(b, design)}
+          onChange={(v) => set({ colGap: v }, "colGap")}
+        />
+      )}
+      {hasRowGap(b.layout) && (
+        <Slider label="Space between rows" unit="px" min={0} max={40} value={rowGapOf(b, design)} onChange={(v) => set({ rowGap: v }, "rowGap")} />
+      )}
+      {(b.rowGap !== undefined || b.colGap !== undefined) && (
+        <button className="btn sm ghost" onClick={() => set({ rowGap: undefined, colGap: undefined })}>
+          Reset spacing
+        </button>
+      )}
+      <p className="hint">On the canvas, drag the side or bottom edge to change the spacing; drag a corner to resize the text.</p>
+    </>
+  );
+}
+
 const SHOW_IN: Record<string, string> = { both: "New emails & replies", full: "New emails only", reply: "Replies only", hidden: "Hidden" };
 
 function Content({ b }: { b: Block }) {
@@ -381,14 +463,14 @@ function Content({ b }: { b: Block }) {
               ]}
             />
           </Field>
-          <Toggle label="Filled icon badges" checked={!!b.iconBg} onChange={(v) => set({ iconBg: v })} />
+          <ContactSpacing b={b} />
           <DetailField k="phone" label="Phone" />
           <DetailField k="mobile" label="Mobile" hint="optional" />
           <DetailField k="email" label="Email" />
           <DetailField k="website" label="Website" />
           <DetailField k="address" label="Address" hint="optional" />
           <p className="hint">
-            Shared with your saved profile. Icon style is set in Design. <GoTo tab="details">All details</GoTo>
+            Shared with your saved profile. <GoTo tab="details">All details</GoTo>
           </p>
         </>
       );
@@ -524,17 +606,63 @@ function Content({ b }: { b: Block }) {
     case "divider":
       return (
         <>
+          <Field label="Direction">
+            <Segmented
+              label="Divider direction"
+              value={b.vertical ? "vertical" : "horizontal"}
+              onChange={(v) => set({ vertical: v === "vertical" || undefined })}
+              options={[
+                { value: "horizontal", label: "Horizontal" },
+                { value: "vertical", label: "Vertical" },
+              ]}
+            />
+          </Field>
+          {b.vertical ? (
+            <Slider label="Length" unit="px" min={8} max={240} value={b.height ?? 48} onChange={(v) => set({ height: v }, "height")} />
+          ) : (
+            <Slider
+              label="Length"
+              hint={b.width ? undefined : "full width"}
+              unit="px"
+              min={0}
+              max={600}
+              step={10}
+              value={b.width ?? 0}
+              onChange={(v) => set({ width: v || undefined }, "width")}
+            />
+          )}
+          <Slider label="Thickness" unit="px" min={1} max={6} value={b.thickness ?? 1} onChange={(v) => set({ thickness: v }, "thick")} />
+          <Field label="Line">
+            <Segmented
+              label="Line style"
+              value={b.lineStyle ?? "default"}
+              onChange={(v) => set({ lineStyle: v === "default" ? undefined : v })}
+              options={[
+                { value: "default", label: "Auto", title: "As the signature's design sets it" },
+                { value: "solid", label: "Solid" },
+                { value: "dashed", label: "Dashed" },
+                { value: "dotted", label: "Dotted" },
+              ]}
+            />
+          </Field>
           <Slider
-            label="Length"
-            hint={b.width ? undefined : "full width"}
+            label="Spacing"
+            hint={b.vertical ? "left and right" : "above and below"}
             unit="px"
             min={0}
-            max={600}
-            step={10}
-            value={b.width ?? 0}
-            onChange={(v) => set({ width: v || undefined }, "width")}
+            max={40}
+            value={b.spacing ?? 0}
+            onChange={(v) => set({ spacing: v || undefined }, "spacing")}
           />
-          <Slider label="Thickness" unit="px" min={1} max={6} value={b.thickness ?? 1} onChange={(v) => set({ thickness: v }, "thick")} />
+          <Slider
+            label="Padding"
+            hint={b.vertical ? "top and bottom" : "at each end"}
+            unit="px"
+            min={0}
+            max={60}
+            value={b.padding ?? 0}
+            onChange={(v) => set({ padding: v || undefined }, "padding")}
+          />
         </>
       );
     case "spacer":

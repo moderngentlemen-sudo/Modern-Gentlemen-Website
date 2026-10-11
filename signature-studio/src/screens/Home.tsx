@@ -3,7 +3,7 @@ import { Blocks, Copy, Wand2, CreditCard, Download, Palette, Plus, Search, Setti
 import { BRAND } from "../brand";
 import { applyBrand, applyTemplate } from "../core/apply";
 import { applyProfile } from "../core/profile";
-import { block, col } from "../core/blocks";
+import { col } from "../core/blocks";
 import { newDoc, SAMPLE_DETAILS, SAMPLE_SOCIALS } from "../core/defaults";
 import { ARTISTIC_CATEGORIES, BUSINESS_CATEGORIES, MODERN_CATEGORIES, DEFAULT_TEMPLATE, getTemplate, TEMPLATES, type TemplateGroup } from "../core/templates";
 import type { BrandKit, SignatureDoc } from "../core/types";
@@ -56,16 +56,17 @@ export async function createFromTemplate(templateId: string, opts: CreateOptions
         doc.images[slot] = { ...doc.images[slot], assetId: id, crop: last.images[slot].crop, link: last.images[slot].link };
       }
     }
-  } else if (!opts.canva) {
+  } else if (!opts.canva && !opts.blank) {
     // Sample content so the template looks finished; a Canva import starts
-    // empty because its links must point at the user's real details.
+    // empty because its links must point at the user's real details, and a
+    // blank signature starts with nothing at all.
     doc.details = { ...SAMPLE_DETAILS, custom: [] };
     doc.socials = SAMPLE_SOCIALS();
   }
   if (opts.brand) {
     applyBrand(doc, opts.brand, { fillEmpty: true });
     // Sample content isn't the user's: their brand's company and website win.
-    if (!profile && !last && !opts.canva) {
+    if (!profile && !last && !opts.canva && !opts.blank) {
       if (opts.brand.company) doc.details.company = opts.brand.company;
       if (opts.brand.website) doc.details.website = opts.brand.website;
     }
@@ -75,8 +76,11 @@ export async function createFromTemplate(templateId: string, opts: CreateOptions
     if (opts.canva === "signature") Object.assign(doc.card, { digitalLink: false, inReplies: true, radius: 0, width: 600 });
   }
   if (opts.blank) {
+    // Truly from scratch: an empty canvas, no layout, no template frame or add-ons.
     doc.mode = "builder";
-    doc.blocks = col([block("name"), block("title"), block("divider", { width: 220 }), block("contacts"), block("socials")], { gap: 8 });
+    doc.blocks = col([], { gap: 8 });
+    doc.replyBlocks = undefined;
+    for (const k of Object.keys(doc.addons) as (keyof typeof doc.addons)[]) (doc.addons[k] as { enabled: boolean }).enabled = false;
   }
   await createDoc(doc);
   if (opts.canva) ui({ tab: "card" });

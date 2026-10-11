@@ -51,7 +51,17 @@ function block(b: Block, s: number): Block {
     case "monogram":
       return { ...base, size: r(base.size, s) };
     case "divider":
-      return { ...base, width: opt(base.width, s) };
+      return {
+        ...base,
+        width: opt(base.width, s),
+        height: opt(base.height, s),
+        spacing: base.spacing ? r(base.spacing, s) : base.spacing,
+        padding: base.padding ? r(base.padding, s) : base.padding,
+      };
+    case "contacts": {
+      const z = (n: number | undefined) => (n ? r(n, s) : n);
+      return { ...base, rowGap: z(base.rowGap), colGap: z(base.colGap) };
+    }
     case "spacer":
       return { ...base, height: r(base.height, s) };
     case "logos":

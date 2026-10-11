@@ -9,16 +9,32 @@ import { BRAND } from "../brand";
 import { GMAIL_SIGNATURE_LIMIT } from "./validate";
 import { esc, escText } from "../lib/escape";
 import { linkTarget, mailtoHref, normalizeWebUrl, safeHref, telHref, displayWebUrl } from "../lib/url";
-import { cropRect } from "../core/crop";
+import { cropPlacement, cropRect } from "../core/crop";
 import { frameLayout, framePath, isPlainLook, lookKey, lookMatrix, matrixValues, shortHash, type FrameShape, type ImageLook } from "../core/imageLook";
 import { clampScale, scaleDoc } from "../core/scale";
 import { fontDef, fontStack, isCustomFont } from "../core/fonts";
 import { PLATFORM_MAP } from "../core/social";
-import type { Block, BlockStyle, ButtonStyle, BlockType, Box, Column, Design, Hotspot, ImageShape, ImageSlot, SignatureDoc, Variant } from "../core/types";
+import type {
+  Block,
+  BlockStyle,
+  ButtonStyle,
+  BlockType,
+  Box,
+  Column,
+  ContactIcons,
+  ContactSeparator,
+  Design,
+  Hotspot,
+  ImageShape,
+  ImageSlot,
+  SignatureDoc,
+  Variant,
+} from "../core/types";
 import { parseRich, plainRich, type RichNode } from "../core/richtext";
 import { resolveBlockStyle } from "../core/textStyles";
 import { pickBanner } from "../core/liveBanner";
 import { getTemplate, type LayoutId } from "../core/templates";
+import { iconModeOf, SEPARATOR_GLYPH } from "../core/contactLayout";
 import { badgeSvg, glyphSvg, qrSvg, socialSvg, svgDataUrl } from "./icons";
 
 // ---------------------------------------------------------------------------
@@ -42,6 +58,8 @@ export type ImageRequest = Base &
         rect: { sx: number; sy: number; sw: number; sh: number };
         shape: ImageShape;
         radius: number;
+        /** Zoomed out: where the picture sits inside the frame (frame px); the rest is transparent. */
+        dst?: { x: number; y: number; w: number; h: number };
         /** Frame, border, shadow and colour (absent for a plain crop). `w`/`h` are then the whole output, shadow included. */
         look?: { look: ImageLook; frame: FrameShape; accent: string; fw: number; fh: number };
       }
@@ -324,11 +342,44 @@ function glyphImg(c: Ctx, name: string, size: number, color: string, bg?: string
   return src ?? "";
 }
 
-function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: boolean; color?: string } = {}): string {
+/**
+ * What sits between contacts on one line. With nothing customised it is the
+ * original two spaces, a pale bar, two spaces. A custom gap keeps a space
+ * either side where it fits (Outlook ignores padding on inline text, so the
+ * spaces are what it shows) and pads the rest.
+ */
+function inlineSeparator(c: Ctx, o: ContactOpts): string {
+  const design = c.doc.design;
+  const color = esc(o.sepColor ?? mix(design.muted, "#ffffff", 0.45));
+  const kind = o.separator ?? "bar";
+  const glyph = SEPARATOR_GLYPH[kind] || "&#8203;";
+  const plain = `&nbsp;&nbsp;<span style="color:${color};">${glyph}</span>&nbsp;&nbsp;`;
+  if (o.colGap === undefined && kind === "bar") return plain;
+  // Lines may break after a bar but not after a dot or a non-breaking space,
+  // so a zero-width space keeps a long line of contacts wrapping.
+  const wrap = "&#8203;";
+  if (o.colGap === undefined) return plain + wrap;
+  const half = o.colGap / 2;
+  const space = design.fontSize * 0.28;
+  if (half < space) return `<span style="color:${color};padding:0 ${Math.round(half)}px;">${glyph}</span>${wrap}`;
+  const pad = Math.round(half - space);
+  return `&nbsp;<span style="color:${color};${pad ? `padding:0 ${pad}px;` : ""}">${glyph}</span>&nbsp;${wrap}`;
+}
+
+interface ContactOpts {
+  /** Icon style for this block (defaults to the Design setting). */
+  mode?: ContactIcons;
+  rowGap?: number;
+  colGap?: number;
+  separator?: ContactSeparator;
+  sepColor?: string;
+}
+
+function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: boolean; color?: string } & ContactOpts = {}): string {
   const items = contactItems(c);
   if (!items.length) return "";
   const design = c.doc.design;
-  const mode = design.contactIcons;
+  const mode = o.mode ?? design.contactIcons;
   const color = o.color ?? design.text;
   const iconSize = Math.max(12, design.fontSize);
   const label = (it: ContactItem) => {
@@ -343,10 +394,10 @@ function contactsHtml(c: Ctx, o: { inline?: boolean; align?: string; iconBg?: bo
   };
   const value = (it: ContactItem) => link(it.href, escText(it.text), color);
   if (o.inline ?? design.contactInline) {
-    const sep = `&nbsp;&nbsp;<span style="color:${esc(mix(design.muted, "#ffffff", 0.45))};">|</span>&nbsp;&nbsp;`;
+    const sep = inlineSeparator(c, o);
     return text(c, items.map((it) => `<span style="white-space:nowrap;">${label(it)}${value(it)}</span>`).join(sep), { align: o.align, color });
   }
-  const gap = sp(c, 3);
+  const gap = o.rowGap ?? sp(c, 3);
   return table(
     items.map((it, i) => row(cell(text(c, `${label(it)}${value(it)}`, { color, nowrap: true }), i ? `padding-top:${gap}px;` : ""))).join(""),
     "",
@@ -386,7 +437,8 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
   if (!meta) return "";
   const w = o.size ?? slot.size;
   const frame: FrameShape = slot.look?.frame ?? slot.shape;
-  const square = frame === "circle" || label === "Photo";
+  // Photos are square until reshaped (never as a circle).
+  const square = frame === "circle" || (label === "Photo" && !slot.aspect);
   const aspect = square ? 1 : (slot.aspect ?? meta.width / meta.height);
   const h = Math.max(1, Math.round(w / aspect));
   const html = isPlainLook(slot.look) ? plainImage(c, slot, meta, label, w, h, aspect, frame as ImageShape) : styledImage(c, slot, meta, label, w, h, frame);
@@ -396,12 +448,21 @@ function slotImage(c: Ctx, slot: ImageSlot, label: string, o: { size?: number } 
 
 type Meta = SignatureDoc["assets"][string];
 
+/** Zoomed out below 1×: the picture sits inside its frame. At 1× and above, null (the frame is filled and cropped as before). */
+function zoomedOut(meta: Meta, w: number, h: number, crop: ImageSlot["crop"]) {
+  return (crop.zoom || 1) < 1 ? cropPlacement(meta.width, meta.height, w, h, crop) : null;
+}
+
+const dstKey = (d?: { x: number; y: number; w: number; h: number }) => (d ? `|in${d.x.toFixed(1)},${d.y.toFixed(1)},${d.w.toFixed(1)},${d.h.toFixed(1)}` : "");
+
 function plainImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: number, h: number, aspect: number, shape: ImageShape): string {
-  const rect = cropRect(meta.width, meta.height, aspect, slot.crop);
+  const out = zoomedOut(meta, w, h, slot.crop);
+  const rect = out?.src ?? cropRect(meta.width, meta.height, aspect, slot.crop);
+  const dst = out?.inset ? out.dst : undefined;
   const radius = shape === "rounded" ? Math.round(w * 0.12) : 0;
   const req: ImageRequest = {
     kind: "crop",
-    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${shape}`,
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${shape}${dstKey(dst)}`,
     label,
     assetId: slot.assetId!,
     w,
@@ -409,13 +470,15 @@ function plainImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numbe
     rect,
     shape,
     radius,
+    dst,
   };
   if (c.preview) {
     c.images.push(req);
     const src = c.opts.sourceUrl?.(slot.assetId!) ?? "";
-    const k = w / rect.sw;
+    const d = dst ?? { x: 0, y: 0, w, h };
+    const k = d.w / rect.sw;
     const br = shape === "circle" ? "50%" : `${radius}px`;
-    return `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(-rect.sx * k).toFixed(1)}px;top:${(-rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
+    return `<div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:${br};"><img src="${esc(src)}" alt="${esc(label)}" style="position:absolute;max-width:none;left:${(d.x - rect.sx * k).toFixed(1)}px;top:${(d.y - rect.sy * k).toFixed(1)}px;width:${(meta.width * k).toFixed(1)}px;height:${(meta.height * k).toFixed(1)}px;"></div>`;
   }
   const src = source(c, req, () => null);
   return src ? imgTag(src, w, h, label) : "";
@@ -426,10 +489,12 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
   const look = slot.look!;
   const accent = c.doc.design.accent;
   const L = frameLayout(look, frame, w, h);
-  const rect = cropRect(meta.width, meta.height, L.inner.w / L.inner.h, slot.crop);
+  const out = zoomedOut(meta, L.inner.w, L.inner.h, slot.crop);
+  const rect = out?.src ?? cropRect(meta.width, meta.height, L.inner.w / L.inner.h, slot.crop);
+  const dst = out?.inset ? out.dst : undefined;
   const req: ImageRequest = {
     kind: "crop",
-    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${frame}|${shortHash(lookKey(look, accent))}`,
+    key: `crop|${meta.hash}|${w}x${h}|${rect.sx.toFixed(1)},${rect.sy.toFixed(1)},${rect.sw.toFixed(1)}|${frame}|${shortHash(lookKey(look, accent))}${dstKey(dst)}`,
     label,
     assetId: slot.assetId!,
     w: L.W,
@@ -438,6 +503,7 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
     shape: "square",
     radius: 0,
     look: { look, frame, accent, fw: w, fh: h },
+    dst,
   };
   if (!c.preview) {
     const src = source(c, req, () => null);
@@ -450,7 +516,8 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
   const i = L.inner;
   const outer = framePath(frame, f.x, f.y, f.w, f.h, f.r);
   const inner = framePath(frame, i.x, i.y, i.w, i.h, i.r);
-  const k = i.w / rect.sw;
+  const d = dst ?? { x: 0, y: 0, w: i.w, h: i.h };
+  const k = d.w / rect.sw;
   const m = lookMatrix(look, accent);
   const defs = [
     `<clipPath id="${id}o"><path d="${outer}"/></clipPath>`,
@@ -463,7 +530,7 @@ function styledImage(c: Ctx, slot: ImageSlot, meta: Meta, label: string, w: numb
   const parts = [
     look.shadow ? `<path d="${outer}" fill="${esc(look.backing ?? "#ffffff")}" filter="url(#${id}s)"/>` : "",
     look.backing ? `<path d="${outer}" fill="${esc(look.backing)}"/>` : "",
-    `<g clip-path="url(#${id}i)"><image href="${esc(src)}" x="${(i.x - rect.sx * k).toFixed(1)}" y="${(i.y - rect.sy * k).toFixed(1)}" width="${(meta.width * k).toFixed(1)}" height="${(meta.height * k).toFixed(1)}" preserveAspectRatio="none"${m ? ` filter="url(#${id}f)"` : ""}/></g>`,
+    `<g clip-path="url(#${id}i)"><image href="${esc(src)}" x="${(i.x + d.x - rect.sx * k).toFixed(1)}" y="${(i.y + d.y - rect.sy * k).toFixed(1)}" width="${(meta.width * k).toFixed(1)}" height="${(meta.height * k).toFixed(1)}" preserveAspectRatio="none"${m ? ` filter="url(#${id}f)"` : ""}/></g>`,
     look.border
       ? `<path d="${outer}" fill="none" stroke="${esc(look.borderColor ?? accent)}" stroke-width="${look.border * 2}" clip-path="url(#${id}o)"/>`
       : "",
@@ -529,22 +596,23 @@ function stack(c: Ctx, blocks: string[], gap = 6, align?: string): string {
   );
 }
 
-function contactsGrid(c: Ctx): string {
+function contactsGrid(c: Ctx, o: ContactOpts = {}): string {
   const items = contactItems(c);
   const d = c.doc.design;
+  const mode = o.mode ?? d.contactIcons;
   const gridRows: string[] = [];
   // Two contacts per row (reuse contactsHtml styling by rendering each item alone).
   for (let i = 0; i < items.length; i += 2) {
     const pair = items.slice(i, i + 2).map((it) => {
-      const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
+      const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize, d.accent) : "";
       const lab = icon
         ? `${inlineImg(icon, d.fontSize, d.fontSize, it.word)}&nbsp;&nbsp;`
-        : d.contactIcons === "none"
+        : mode === "none"
           ? ""
-          : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(d.contactIcons === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
+          : `<span style="color:${esc(d.accent)};font-weight:700;">${esc(mode === "words" ? it.word : it.letter)}</span>&nbsp;&nbsp;`;
       return cell(
         text(c, `${lab}${link(it.href, escText(it.text), d.text)}`, { nowrap: true }),
-        `padding:${i ? sp(c, 4) : 0}px ${sp(c, 18)}px 0 0;vertical-align:top;`,
+        `padding:${i ? (o.rowGap ?? sp(c, 4)) : 0}px ${o.colGap ?? sp(c, 18)}px 0 0;vertical-align:top;`,
       );
     });
     gridRows.push(row(pair.join("") + (pair.length < 2 ? cell("") : "")));
@@ -552,11 +620,12 @@ function contactsGrid(c: Ctx): string {
   return gridRows.length ? table(gridRows.join("")) : "";
 }
 
-function contactsChips(c: Ctx): string {
+function contactsChips(c: Ctx, o: ContactOpts = {}): string {
   const d = c.doc.design;
   const items = contactItems(c);
+  const mode = o.mode ?? d.contactIcons;
   const chip = (it: ContactItem) => {
-    const icon = d.contactIcons === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
+    const icon = mode === "icons" ? glyphImg(c, it.glyph, d.fontSize - 1, d.accent) : "";
     const lab = icon ? `${inlineImg(icon, d.fontSize - 1, d.fontSize - 1, it.word)}&nbsp;` : "";
     return table(
       row(
@@ -574,7 +643,7 @@ function contactsChips(c: Ctx): string {
       row(
         items
           .slice(i, i + 2)
-          .map((it) => cell(chip(it), `padding:0 ${sp(c, 6)}px ${sp(c, 6)}px 0;`))
+          .map((it) => cell(chip(it), `padding:0 ${o.colGap ?? sp(c, 6)}px ${o.rowGap ?? sp(c, 6)}px 0;`))
           .join(""),
       ),
     );
@@ -1394,12 +1463,19 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
         },
       );
     case "contacts": {
+      const o: ContactOpts = {
+        mode: iconModeOf(b, c.doc.design),
+        rowGap: b.rowGap,
+        colGap: b.colGap,
+        separator: b.separator,
+        sepColor: b.sepColor,
+      };
       const html =
         b.layout === "grid"
-          ? contactsGrid(c)
+          ? contactsGrid(c, o)
           : b.layout === "chips"
-            ? contactsChips(c)
-            : contactsHtml(c, { inline: b.layout === "inline", align, iconBg: b.iconBg });
+            ? contactsChips(c, o)
+            : contactsHtml(c, { ...o, inline: b.layout === "inline", align, iconBg: b.iconBg });
       return html || empty("Contact details");
     }
     case "socials":
@@ -1492,14 +1568,26 @@ function leafHtml(c0: Ctx, b: Block, digitalUrl: string | null): string {
     case "monogram":
       return monogramTile(c, b.size);
     case "divider": {
-      const color = d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6);
+      // A colour picked on the block wins; otherwise the signature's divider style decides.
+      const color = b.style?.accent ?? (d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6));
       const t = b.thickness ?? (d.divider === "accent" ? 2 : 1);
-      const style = d.divider === "dots" ? "dotted" : "solid";
-      return table(
+      const style = b.lineStyle ?? (d.divider === "dots" ? "dotted" : "solid");
+      const space = b.spacing ?? 0;
+      const inset = b.padding ?? 0;
+      if (b.vertical) {
+        const len = b.height ?? 48;
+        const line = table(
+          row(cell("&nbsp;", `border-left:${t}px ${style} ${color};font-size:1px;line-height:1px;width:1px;height:${len}px;`, `height="${len}"`)),
+        );
+        return space || inset ? table(row(cell(line, `padding:${inset}px ${space}px;`))) : line;
+      }
+      const line = table(
         row(cell("&nbsp;", `border-top:${t}px ${style} ${color};font-size:1px;line-height:1px;height:1px;`)),
         b.width ? `width:${b.width}px;` : "width:100%;",
         b.width ? `width="${b.width}"` : 'width="100%"',
       );
+      if (!space && !inset) return line;
+      return table(row(cell(line, `padding:${space}px ${inset}px;`)), b.width ? "" : "width:100%;", b.width ? "" : 'width="100%"');
     }
     case "spacer":
       return `<div style="height:${b.height}px;line-height:${b.height}px;font-size:1px;">&nbsp;</div>`;

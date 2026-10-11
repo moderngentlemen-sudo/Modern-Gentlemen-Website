@@ -91,7 +91,9 @@ export function styled(img: CanvasImageSource, req: CropReq & { look: NonNullabl
   }
   // The picture, colour-adjusted on its own canvas first.
   const pic = canvas(i.w * D, i.h * D);
-  pic.ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, 0, 0, pic.c.width, pic.c.height);
+  // Zoomed out, the picture covers only part of the inner box; the rest stays clear (or shows the backing).
+  const d = req.dst ?? { x: 0, y: 0, w: i.w, h: i.h };
+  pic.ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, d.x * D, d.y * D, d.w * D, d.h * D);
   const m = lookMatrix(look, accent);
   if (m) {
     const data = pic.ctx.getImageData(0, 0, pic.c.width, pic.c.height);
@@ -121,14 +123,14 @@ export async function derive(
   switch (req.kind) {
     case "crop": {
       // Animated GIFs go out untouched when nothing needs baking in, so they keep moving.
-      if (mimeOf(req.assetId) === "image/gif" && !req.look && gifStillReason(metaOf(req.assetId), req) === null) {
+      if (mimeOf(req.assetId) === "image/gif" && !req.look && !req.dst && gifStillReason(metaOf(req.assetId), req) === null) {
         const blob = await (await fetch(asset(req.assetId))).blob();
         return { blob, mime: "image/gif", ext: "gif" };
       }
       const img = await load(asset(req.assetId));
       if (req.look) {
         // Square, shadowless photos stay JPEG (smaller); anything with transparent corners is PNG.
-        const opaque = req.look.frame === "square" && !req.look.look.shadow && mimeOf(req.assetId) === "image/jpeg";
+        const opaque = req.look.frame === "square" && !req.look.look.shadow && !req.dst && mimeOf(req.assetId) === "image/jpeg";
         return encode(styled(img, req as CropReq & { look: NonNullable<CropReq["look"]> }), opaque);
       }
       const { c, ctx } = canvas(req.w * DENSITY, req.h * DENSITY);
@@ -137,8 +139,12 @@ export async function derive(
       else if (req.shape === "rounded") ctx.roundRect(0, 0, c.width, c.height, req.radius * DENSITY);
       else ctx.rect(0, 0, c.width, c.height);
       ctx.clip();
-      ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, 0, 0, c.width, c.height);
-      return encode(c, req.shape === "square" && mimeOf(req.assetId) === "image/jpeg");
+      const d = req.dst
+        ? { x: req.dst.x * DENSITY, y: req.dst.y * DENSITY, w: req.dst.w * DENSITY, h: req.dst.h * DENSITY }
+        : { x: 0, y: 0, w: c.width, h: c.height };
+      ctx.drawImage(img, req.rect.sx, req.rect.sy, req.rect.sw, req.rect.sh, d.x, d.y, d.w, d.h);
+      // Transparent margins (zoomed out) need PNG; a JPEG would fill them with black.
+      return encode(c, req.shape === "square" && !req.dst && mimeOf(req.assetId) === "image/jpeg");
     }
     case "slice": {
       // Draw the whole card (with rounded corners) then cut the slice out, so

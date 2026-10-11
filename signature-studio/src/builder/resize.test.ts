@@ -32,6 +32,9 @@ describe("resize handles in every direction", () => {
     expect(handlesFor(spec("x"))).toHaveLength(8);
     // A short block (a one-line name) keeps its corners and top/bottom, not side edges that would cover the corners.
     expect(handlesFor(spec("x"), { w: 200, h: 24 })).toEqual(["nw", "n", "ne", "se", "s", "sw"]);
+    // A 40px-tall logo keeps its side handles when there is room for compact ones.
+    expect(handlesFor(spec("x"), { w: 120, h: 40 }, 30)).toHaveLength(8);
+    expect(handlesFor(spec("x"), { w: 120, h: 40 })).toHaveLength(6);
     expect(resizeValue(spec("y", 20), "s", 0, 30, box)).toBe(50);
     expect(resizeValue(spec("y", 20), "n", 0, -30, box)).toBe(50);
   });
@@ -58,6 +61,33 @@ describe("precise scaling", () => {
     expect(img.type === "image" && img.aspect).toBe(3.6);
     const h = s.stretch!("s", 0, 50, { w: 300, h: 100 });
     expect(h.label).toBe("300 × 150");
+  });
+
+  it("logo and photo edges reshape too; a circular photo keeps its proportions", () => {
+    const d = structuredClone(doc);
+    d.images.logo.assetId = "a";
+    d.images.logo.size = 120;
+    const logo = block("logo");
+    const s = resizeSpec(logo, d, 120)!;
+    expect(s.dims).toBe("120 × 40");
+    const r = s.stretch!("e", 30, 0, { w: 999, h: 999 });
+    expect(r.label).toBe("150 × 40");
+    r.patch(d, logo);
+    expect(logo.type === "logo" && logo.size).toBe(150);
+    expect(d.images.logo.aspect).toBe(3.75);
+    expect(s.stretch!("s", 0, 20, { w: 0, h: 0 }).label).toBe("120 × 60");
+
+    d.images.photo.assetId = "a";
+    d.images.photo.size = 84;
+    d.images.photo.shape = "circle";
+    expect(resizeSpec(block("photo"), d, 84)!.stretch).toBeUndefined();
+    d.images.photo.shape = "rounded";
+    const p = resizeSpec(block("photo"), d, 84)!;
+    expect(p.dims).toBe("84 × 84");
+    expect(p.stretch!("n", 0, -16, { w: 0, h: 0 }).label).toBe("84 × 100");
+    // At 1.5× whole-signature scale, 30 screen pixels are 20 stored ones.
+    d.design.scale = 1.5;
+    expect(resizeSpec(logo, d, 150)!.stretch!("e", 30, 0, { w: 0, h: 0 }).label).toBe("170 × 40");
   });
 
   it("steps by one, or ten with Shift, within limits", () => {

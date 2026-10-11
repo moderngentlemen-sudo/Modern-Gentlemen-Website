@@ -25,6 +25,7 @@ export function gifIssue(
   if (!meta || meta.mime !== "image/gif") return null;
   if (look?.frame && look.frame !== "square") return "A frame shape stops a GIF from animating. Choose Square to keep it moving.";
   if (!isPlainLook(look)) return "Borders, shadows and colour changes stop a GIF from animating. Remove them to keep it moving.";
+  if ((crop.zoom || 1) < 1) return "Zooming out stops a GIF from animating. Reset the crop to keep it moving.";
   const rect = cropRect(meta.width, meta.height, aspect ?? meta.width / meta.height, crop);
   switch (gifStillReason(meta, { rect, shape })) {
     case "shaped":
@@ -178,7 +179,8 @@ function checkImages(doc: SignatureDoc, add: (i: CheckIssue) => void) {
     bytes += estimateImageBytes(r.w, r.h, meta, r.kind === "crop" && meta?.mime === "image/gif" && !r.look && !gifStillReason(meta, r));
     if (r.kind !== "crop" || !meta || seen.has(r.key)) continue;
     seen.add(r.key);
-    const shown = r.look ? r.look.fw : r.w;
+    // Zoomed out, the picture is drawn smaller than its frame.
+    const shown = Math.round(r.dst ? r.dst.w : r.look ? r.look.fw : r.w);
     const sharp = imageSharpness(r.rect.sw, shown);
     const what = r.label === "Photo" ? "Your photo" : /logo$/i.test(r.label) ? "Your logo" : `“${r.label}”`;
     if (sharp === "blurry")

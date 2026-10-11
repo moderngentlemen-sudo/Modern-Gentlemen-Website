@@ -89,6 +89,9 @@ function allColumns(root: Column): Column[] {
 /** Most phones show about this much of an email's width without shrinking it. */
 export const PHONE_WIDTH = 360;
 
+/** Touch screens get bigger handles, so the side handles need more room. */
+const COARSE = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
+
 /** Under the canvas: does the signature fit a phone, and a one-click fix when it doesn't. */
 export function PhoneFit() {
   const w = useStudio((s) => s.sigWidth);
@@ -139,7 +142,19 @@ export function Stage({ html, className }: { html: string; className?: string })
     const base = stage.getBoundingClientRect();
     const next: Record<string, Rect> = {};
     sr.querySelectorAll<HTMLElement>("[data-block]").forEach((el) => {
-      const r = el.getBoundingClientRect();
+      // Frame the block's own content: its wrapper fills the column, so a logo
+      // narrower than the column would otherwise get handles out at the column edge.
+      // Text set not to wrap (a contact line) can run past its cell, so the content's own extent counts too.
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const kids = [...[...el.children].map((k) => k.getBoundingClientRect()), range.getBoundingClientRect()].filter((k) => k.width || k.height);
+      const r = kids.length
+        ? kids.reduce((a, k) => {
+            const left = Math.min(a.left, k.left);
+            const top = Math.min(a.top, k.top);
+            return new DOMRect(left, top, Math.max(a.right, k.right) - left, Math.max(a.bottom, k.bottom) - top);
+          })
+        : el.getBoundingClientRect();
       next[el.dataset.block!] = { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
     });
     setRects(next);
@@ -448,14 +463,16 @@ export function Stage({ html, className }: { html: string; className?: string })
               <GripVertical size={14} />
             </button>
             {spec &&
-              handlesFor(spec, selRect).map((dir) => {
+              handlesFor(spec, selRect, COARSE ? 48 : 30).map((dir) => {
                 const cx = dir.includes("w") ? selRect.x : dir.includes("e") ? selRect.x + selRect.w : selRect.x + selRect.w / 2;
                 const cy = dir.includes("n") ? selRect.y : dir.includes("s") ? selRect.y + selRect.h : selRect.y + selRect.h / 2;
                 const corner = dir.length === 2;
+                // On a short or narrow frame the side handles get shorter so they clear the corners.
+                const compact = (dir === "e" || dir === "w" ? selRect.h : selRect.w) < 48;
                 return (
                   <button
                     key={dir}
-                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}`}
+                    className={`ov-resize ${corner ? "corner" : dir === "n" || dir === "s" ? "edge-h" : "edge-v"}${!corner && compact ? " compact" : ""}`}
                     style={{ left: cx, top: cy, cursor: HANDLE_CURSOR[dir] }}
                     title="Drag to resize · Alt for free sizing"
                     aria-label={`Resize from the ${DIR_NAME[dir]}`}
@@ -478,7 +495,11 @@ export function Stage({ html, className }: { html: string; className?: string })
                             if (h) r.patch(d, h.block);
                           }, `resize.${id}`);
                           const st = stageRef.current!.getBoundingClientRect();
-                          setTip({ x: ev.clientX - st.left + 14, y: ev.clientY - st.top + 14, label: `${r.label} · Shift keeps proportions` });
+                          setTip({
+                            x: ev.clientX - st.left + 14,
+                            y: ev.clientY - st.top + 14,
+                            label: `${r.label} · Shift ${sel.block.type === "contacts" ? "scales the text" : "keeps proportions"}`,
+                          });
                           return;
                         }
                         const raw = resizeValue(spec, dir, (ev.clientX - x0) / zoom, (ev.clientY - y0) / zoom, box);

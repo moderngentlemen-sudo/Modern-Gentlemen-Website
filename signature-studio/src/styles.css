@@ -2271,6 +2271,15 @@ body.is-dragging * {
   border-radius: 5px;
 }
 
+/* Short frames: side handles shrink so they clear the corners (fits from 30px). */
+.ov-resize.edge-h.compact {
+  width: 12px;
+}
+
+.ov-resize.edge-v.compact {
+  height: 12px;
+}
+
 .ov-resize:hover {
   background: var(--violet);
 }
