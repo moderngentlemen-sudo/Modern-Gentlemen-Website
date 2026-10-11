@@ -431,6 +431,33 @@ function ContactSpacing({ b }: { b: Extract<Block, { type: "contacts" }> }) {
   );
 }
 
+/**
+ * Stacking is part of the desktop layout: it's what lets Gmail, which can't
+ * switch to a phone layout, fit side-by-side columns on a phone.
+ */
+function StackToggle({ b }: { b: Extract<Block, { type: "row" }> }) {
+  const phoneView = useStudio((s) => s.device === "mobile");
+  if (phoneView)
+    return (
+      <p className="hint" data-testid="stack-desktop-only">
+        Columns {b.stack ? "stack" : "stay side by side"} on narrow screens. Change this in desktop view: it also decides how Gmail shows the row on phones.
+      </p>
+    );
+  return (
+    <Toggle
+      label="Stack on phones"
+      hint={
+        b.stack
+          ? "Columns wrap underneath each other when there isn't room, in every email app (Gmail too). They line up at the top."
+          : "Columns stay side by side; phones shrink the signature to fit."
+      }
+      checked={!!b.stack}
+      onChange={(v) => updateBlock(b.id, { stack: v || undefined } as Partial<Block>)}
+      testId="row-stack"
+    />
+  );
+}
+
 const SHOW_IN: Record<string, string> = { both: "New emails & replies", full: "New emails only", reply: "Replies only", hidden: "Hidden" };
 
 function Content({ b }: { b: Block }) {
@@ -475,6 +502,7 @@ function Content({ b }: { b: Block }) {
             />
           </Field>
           <Toggle label="Divider between columns" checked={b.divider} onChange={(v) => set({ divider: v })} />
+          <StackToggle b={b} />
           {b.columns.map((c, i) => (
             <ColumnEditor key={c.id} column={c} index={i} />
           ))}

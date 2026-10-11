@@ -54,3 +54,23 @@ describe("phone layout", () => {
     expect(html).not.toContain("sg-m");
   });
 });
+
+describe("stacking rows (the Gmail fallback)", () => {
+  it("off: the row is the usual table, exactly as before; on: left-aligned tables that wrap", async () => {
+    const { rowOf } = await import("../core/blocks");
+    const d = newDoc(TEMPLATES[0].id, TEMPLATES[0].design);
+    d.mode = "builder";
+    d.details.name = "Jordan";
+    d.details.title = "Director";
+    const r = rowOf([col([block("name")]), col([block("title")], { width: 180 })], { gap: 20 });
+    d.blocks = col([r]);
+    const off = renderSignature(d, { variant: "full", mode: "email", resolve: () => "https://img.example.com/x.png" }).html;
+    expect(off).not.toContain('align="left"');
+    (r as { stack?: boolean }).stack = true;
+    const on = renderSignature(d, { variant: "full", mode: "email", resolve: () => "https://img.example.com/x.png" }).html;
+    expect(on.match(/<table [^>]*align="left"/g)).toHaveLength(2);
+    expect(on).toContain("padding-right:20px;padding-bottom:20px;");
+    expect(on).toContain('width="180"');
+    expect(validateEmailHtml(on).filter((p) => p.level === "error")).toEqual([]);
+  });
+});

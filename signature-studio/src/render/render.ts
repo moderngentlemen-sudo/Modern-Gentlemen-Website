@@ -1726,6 +1726,7 @@ function rowHtml(c: Ctx, b: Extract<Block, { type: "row" }>, digitalUrl: string 
   const gap = sp(c, b.gap);
   const cols = b.columns.map((col) => ({ col, html: columnHtml(c, col, digitalUrl) })).filter((x) => x.html || c.preview);
   if (!cols.length) return "";
+  if (b.stack) return stackingRow(c, b, cols, gap);
   const cells: string[] = [];
   cols.forEach(({ col, html }, i) => {
     if (i) {
@@ -1739,6 +1740,32 @@ function rowHtml(c: Ctx, b: Extract<Block, { type: "row" }>, digitalUrl: string 
     cells.push(cell(html, css({ "vertical-align": b.valign, width: col.width ? `${col.width}px` : undefined }), col.width ? `width="${col.width}"` : ""));
   });
   return table(row(cells.join("")));
+}
+
+/**
+ * A row whose columns stack on narrow screens without a media query, so it
+ * works in Gmail: each column is a left-aligned table, which email apps
+ * (classic Outlook included) float side by side while there's room and wrap
+ * underneath when there isn't. Floats line up at the top. The space between
+ * columns sits to the right of each one and below it, so stacked columns
+ * don't touch.
+ */
+function stackingRow(c: Ctx, b: Extract<Block, { type: "row" }>, cols: { col: Column; html: string }[], gap: number): string {
+  const d = c.doc.design;
+  const line = `${d.divider === "accent" ? 2 : 1}px solid ${d.divider === "accent" ? d.accent : mix(d.muted, "#ffffff", 0.6)}`;
+  const floats = cols.map(({ col, html }, i) => {
+    const last = i === cols.length - 1;
+    const style = css({
+      "vertical-align": "top",
+      width: col.width ? `${col.width}px` : undefined,
+      "padding-right": last ? undefined : `${b.divider ? Math.round(gap / 2) : gap}px`,
+      "padding-bottom": last ? undefined : `${gap}px`,
+      "padding-left": b.divider && i ? `${Math.round(gap / 2)}px` : undefined,
+      "border-left": b.divider && i ? line : undefined,
+    });
+    return table(row(cell(html, style, col.width ? `width="${col.width}"` : "")), "", 'align="left"');
+  });
+  return table(row(cell(floats.join(""))));
 }
 
 /** True when a builder layout contains a block of the given type. */

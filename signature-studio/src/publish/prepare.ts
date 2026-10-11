@@ -214,7 +214,8 @@ export async function prepareAll(variants: Variant[], force = false) {
     const doc = useStudio.getState().doc!;
     const reqs = new Map<string, ImageRequest>();
     // Every picture either layout uses, so the phone layout's are hosted too.
-    for (const v of variants) for (const r of renderSignature(doc, { variant: v, mode: "email", resolve: () => null, phoneLayout: true }).images) reqs.set(r.key, r);
+    for (const v of variants)
+      for (const r of renderSignature(doc, { variant: v, mode: "email", resolve: () => null, phoneLayout: true }).images) reqs.set(r.key, r);
     await pool([...reqs.values()], 3, (r) => publishOne(r, force));
     await publishLiveBanners();
   } finally {

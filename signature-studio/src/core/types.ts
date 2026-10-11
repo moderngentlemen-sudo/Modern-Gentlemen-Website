@@ -368,7 +368,19 @@ export type ButtonStyle = "solid" | "outline" | "pill" | "link" | "square" | "sq
 
 export type Block = BlockBase &
   (
-    | { type: "row"; columns: Column[]; gap: number; valign: VAlign; divider: boolean }
+    | {
+        type: "row";
+        columns: Column[];
+        gap: number;
+        valign: VAlign;
+        divider: boolean;
+        /**
+         * Columns stack when the screen is too narrow for them (phones, in any
+         * email app, Gmail included). Built from left-aligned tables, so the
+         * columns line up at the top. Off: always side by side.
+         */
+        stack?: boolean;
+      }
     | { type: "name"; scale?: number; upper?: boolean; underline?: boolean; link?: string }
     | { type: "title"; upper?: boolean; italic?: boolean; titleOnly?: boolean; link?: string }
     | { type: "field"; field: DetailKey; upper?: boolean; link?: string }

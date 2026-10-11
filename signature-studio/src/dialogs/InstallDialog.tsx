@@ -168,7 +168,7 @@ function CopyBox({ variant, title, testId, client }: { variant: Variant; title: 
       {phone && (
         <p className="hint" data-testid="phone-layout-note">
           {gmail
-            ? "Gmail can't switch to your phone layout, so phones show the desktop one (side-by-side columns stack to fit)."
+            ? "Gmail can't switch to your phone layout, so phones show the desktop one. Rows set to Stack on phones still wrap to fit."
             : "Includes your phone layout: Apple Mail, iPhone Mail and Outlook switch to it on phones when they keep the signature's styles. The HTML file always keeps them."}
         </p>
       )}

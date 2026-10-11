@@ -8,6 +8,37 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Signature Studio: phone layout, edge handles on every block, contact dividers and links
+
+From the owner's testing:
+- **Phone view edits only the phone layout** (`doc.phoneBlocks`, `core/phoneLayout.ts`).
+  - The first change in phone view copies the layout. Later phone-view edits change only that copy, never desktop.
+  - Desktop edits still reach the phone copy wherever the phone hasn't changed the same thing. This is a per-field three-way merge; blocks added or deleted on desktop follow, but desktop moves don't reorder the phone copy.
+  - A phone copy that ends up identical to desktop is dropped. "Match desktop" in the phone-view bar resets it, and applying a template clears it.
+  - Colours, fonts and overall size are signature-wide, so they stay shared. "Fit to phone" is hidden in phone view, because it would shrink desktop too.
+- **How phones get the phone layout:**
+  - Email for Apple Mail, Outlook and the HTML download carries both layouts. A `<style>` media query (≤480px) swaps them: classes `sg-d`/`sg-m`, with the phone copy hidden inline by default. The validator allows exactly that rule and those classes.
+  - Gmail strips `<style>`, so Gmail output carries only the desktop layout. The install dialog says so per app.
+  - Plain-text copies include the signature once.
+- **Gmail fallback: "Stack on phones" per row (opt-in).** The row is built from `align="left"` tables, which wrap underneath each other when there's no room, in any app, Gmail included, with no media query.
+  - **Why opt-in rather than automatic:** the inline-block alternative needs conditional comments to stay side by side in classic Outlook for Windows. Gmail's signature editor strips them, so every Gmail multi-column signature would arrive stacked there.
+  - **Alignment:** floats line up at the top, and 12 built-in templates use middle alignment.
+  - **Desktop:** looks the same, apart from top alignment and a gap below the row's tallest non-last column.
+  - The switch is part of the desktop layout, so phone view shows it read-only.
+- **Edge handles reshape every block instead of scaling it:**
+  - **Text blocks** (name, title, field, text, quote, reviews, tag, icon + text, sign-off): side edges set a text box width (`style.width`), and the text wraps inside it. There are no top or bottom edges, and single lines get slim side handles.
+  - **Buttons:** sides set the width (padding included), top and bottom the height (`padY`).
+  - **Social icons and logos:** sides set the gap.
+  - **QR, monogram and app badges:** corners only. Sign-off and app badges now have handles.
+  - Each new size has a matching inspector slider.
+  - A lone divider stays visible in the editor; it had collapsed to 0px.
+- **Contacts:**
+  - **Dividers in every layout:** a symbol (bar, dot, slash, dash) between fields side by side for one line, grid and chips, and lines between rows (solid, dashed, dotted) for list and grid, with a shared colour.
+  - **Space across** goes to 200px and rows to 80px, on the canvas and in the inspector.
+  - **Per-field links:** automatic, a link of your own (e.g. a map for the address), or no link. They're per block and pass through `linkTarget`, so unsafe schemes are dropped.
+- **Existing signatures unchanged:** a hash of all 82 built-in templates plus 16 contact layout × icon combinations matched the previous code after each step.
+- **Gates:** `npm test` (164), `npm run e2e` (66), `npm run test:db`, `npm run build`.
+
 ### 2026-10-11 — Signature Studio: contact block handles, icons toggle, dividers and spacing
 
 From the owner's testing of the contact block:

@@ -338,3 +338,34 @@ test("phone view: changes apply to the phone layout only, and desktop changes st
   await expect(preview(page)).toContainText("Creative Director");
   await expect(page.getByTestId("phone-bar")).not.toContainText("Phone layout");
 });
+
+test("stack on phones: side by side when there's room, stacked when there isn't", async ({ page, browser }) => {
+  await builder(page);
+  await preview(page).getByText("Creative Director").click();
+  await page.getByTestId("breadcrumb").getByRole("button", { name: "Columns" }).click();
+  const before = await shadowHtml(page);
+  await page.getByTestId("row-stack").click();
+  await expect.poll(() => shadowHtml(page)).not.toBe(before);
+  const html = await shadowHtml(page);
+  // Same signature at a desktop width and a phone width.
+  const tops = async (width: number) => {
+    const p = await browser.newPage({ viewport: { width, height: 800 } });
+    await p.setContent(`<body style="margin:0">${html}</body>`);
+    const r = await p.evaluate(() => {
+      const name = [...document.querySelectorAll("td")].find((td) => td.textContent?.trim().startsWith("Jordan Ellis") && !td.querySelector("td"))!;
+      const logo = [...document.querySelectorAll("div")].find((d) => d.textContent?.trim() === "Logo")!;
+      return { name: name.getBoundingClientRect().top, logoBottom: logo.getBoundingClientRect().bottom };
+    });
+    await p.close();
+    return r;
+  };
+  const wide = await tops(1000);
+  expect(wide.name).toBeLessThan(wide.logoBottom);
+  const narrow = await tops(260);
+  expect(narrow.name).toBeGreaterThanOrEqual(narrow.logoBottom);
+  // In phone view the switch belongs to desktop.
+  await page.getByTestId("view-menu").click();
+  await page.getByRole("group", { name: "Device" }).getByRole("button", { name: "Phone" }).click();
+  await page.getByTestId("view-menu").click();
+  await expect(page.getByTestId("stack-desktop-only")).toBeVisible();
+});
