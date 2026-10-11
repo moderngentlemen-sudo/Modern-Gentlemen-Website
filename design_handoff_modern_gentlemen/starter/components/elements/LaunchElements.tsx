@@ -62,6 +62,7 @@ export function LaunchSocial({
   return (
     <nav
       aria-label="Social media"
+      data-social=""
       className={styles.social}
       style={
         {

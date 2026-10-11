@@ -424,6 +424,13 @@ From the editor audit (https://claude.ai/artifact/2Ah4jUeZcrgc9rmtLGE2oM), items
   dark grounds these sit on. Keyboard focus gets the same treatment as hover;
   reduced motion keeps only colour and opacity. The default stays "fade",
   exactly the old 75% opacity, so existing pages are unchanged.
+- **Follow-up: "only the icon I hover should turn red."** The element's own
+  hover colour already did that, but the general Hover panel's text colour
+  treated the whole row as one element and turned every icon red. Social rows
+  are now marked `data-social`, and the general rule skips them and colours
+  `[data-social] a:hover` instead — so either setting changes only the icon
+  under the pointer (verified in Chromium: X red, the others unchanged). The
+  Hover panel says so for Social links.
 - Verified in Chromium: every network draws, the row reads as one family,
   Spotify turns its brand green on hover. Gates: format, lint, typecheck,
   4,110 unit tests.

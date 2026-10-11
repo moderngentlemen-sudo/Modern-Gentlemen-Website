@@ -177,7 +177,7 @@ describe("visual element design", () => {
     expect(css).toContain(":hover{background-color:#1b2a4a}");
     expect(css).toContain(":hover{outline:1px solid #ffffff;outline-offset:0}");
     expect(css).toMatch(
-      /:hover :not\(\[data-knockout\] p\):not\(\[data-outline="true"\]\)\{color:#d4af37!important\}/
+      /:hover :not\(\[data-knockout\] p\):not\(\[data-outline="true"\]\)[^{]*\{color:#d4af37!important\}/
     );
     expect(css).toContain("color .3s");
     for (const [hover, fragment] of [
@@ -193,6 +193,13 @@ describe("visual element design", () => {
     expect(visualCss("x", { effects: { hover: "tilt" } }).css).toContain(
       "prefers-reduced-motion:reduce"
     );
+  });
+
+  it("colours only the hovered icon in a row of social links", () => {
+    const css = visualCss("social", { effects: { hoverColor: "#c8102e" } }).css;
+    expect(css).toContain(":hover:not(:has([data-social]))");
+    expect(css).toContain(":not([data-social]):not([data-social] *)");
+    expect(css).toContain(" [data-social] a:hover,");
   });
 
   it("leaves elements without hover colours exactly as they were", () => {
