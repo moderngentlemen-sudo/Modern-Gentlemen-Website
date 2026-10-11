@@ -88,8 +88,13 @@ function revalidatePage(id: string): void {
  */
 async function revalidatePublicPage(id: string): Promise<void> {
   try {
+    // Any page may now be selected as the homepage.
+    revalidatePath("/");
     const page = await getDocument("page", id);
-    if (page) revalidatePath(publicPathForPage(page.slug));
+    if (page) {
+      revalidatePath(publicPathForPage(page.slug));
+      if (page.slug === "home") revalidatePath("/home");
+    }
     revalidatePath("/sitemap.xml");
   } catch (error) {
     // A publish that succeeded has succeeded. Failing the action because the

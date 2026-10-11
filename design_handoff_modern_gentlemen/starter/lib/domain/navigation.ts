@@ -316,7 +316,11 @@ export type SlugsById = Partial<Record<MenuLinkType, ReadonlyMap<string, string>
  * route exists). The renderer drops the item rather than emitting a link to
  * nowhere: a nav entry that 404s is worse than one that is absent.
  */
-export function hrefForItem(item: MenuItem, slugs: SlugsById): string | null {
+export function hrefForItem(
+  item: MenuItem,
+  slugs: SlugsById,
+  homepageSlug = "home"
+): string | null {
   if (item.linkType === "url") return item.url ?? null;
   if (!item.targetId) return null;
 
@@ -325,7 +329,7 @@ export function hrefForItem(item: MenuItem, slugs: SlugsById): string | null {
 
   switch (item.linkType) {
     case "page":
-      return publicPathForPage(slug);
+      return publicPathForPage(slug, homepageSlug);
     case "article":
       return publicPathForArticle(slug);
     case "category":

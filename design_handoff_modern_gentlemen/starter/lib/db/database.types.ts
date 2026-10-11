@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      homepage_settings: {
+        Row: { singleton: boolean; page_id: string | null; updated_at: string }
+        Insert: { singleton?: boolean; page_id?: string | null; updated_at?: string }
+        Update: { singleton?: boolean; page_id?: string | null; updated_at?: string }
+        Relationships: [{
+          foreignKeyName: "homepage_settings_page_id_fkey"
+          columns: ["page_id"]
+          isOneToOne: false
+          referencedRelation: "pages"
+          referencedColumns: ["id"]
+        }]
+      }
       article_relations: {
         Row: {
           article_id: string

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/services/auth";
 import { getDocument } from "@/lib/services/documents";
+import { getPublishedHomepage } from "@/lib/services/publicContent";
 import { listInsertablePatterns } from "@/lib/services/patterns";
 import { BLOCK_TREE_KEY } from "@/lib/domain/documents";
 import type { BlockTree } from "@/lib/blocks/types";
@@ -52,6 +53,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
     : null;
 
   const treeKey = BLOCK_TREE_KEY.page;
+  const homepage = await getPublishedHomepage();
   const draft = (page.draft_data ?? {}) as Record<string, unknown>;
   const rawTree = draft[treeKey];
   const tree: BlockTree = Array.isArray(rawTree) ? (rawTree as BlockTree) : [];
@@ -70,6 +72,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
           slug: page.slug,
           status: page.status,
           version: page.version,
+          isHomepage: homepage?.id === page.id,
           scheduledFor: page.scheduled_for,
           treeKey,
           rest,

@@ -289,7 +289,9 @@ export async function publicPathsForTemplate(id: string): Promise<string[]> {
       if (!wholeType) query = query.in("id", entryIds);
       const { data, error: readError } = await query;
       if (readError) throw new Error(`Could not read framed pages: ${readError.message}`);
-      paths.push(...(data ?? []).map((row) => publicPathForPage(row.slug)));
+      paths.push(
+        ...(data ?? []).flatMap((row) => [publicPathForPage(row.slug), `/${row.slug}`, "/"])
+      );
     } else if (contentType === "category") {
       let query = db.from("categories").select("slug").eq("status", "published");
       if (!wholeType) query = query.in("id", entryIds);

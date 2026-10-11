@@ -12,6 +12,7 @@ import {
   setDocumentStatus,
 } from "@/lib/services/documents";
 import { DOCUMENT_STATUSES } from "@/lib/domain/documents";
+import { setHomepage } from "@/lib/services/homepage";
 import { ok, type ActionResult } from "../_lib/action-result";
 import { toActionResult } from "../_lib/errors";
 
@@ -28,6 +29,20 @@ const Slug = z
   .min(1, "Enter a slug")
   .max(120)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case words separated by hyphens");
+
+export async function setHomepageAction(input: unknown): Promise<ActionResult> {
+  const parsed = z.object({ id: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Choose a valid page." };
+  try {
+    await setHomepage(parsed.data.id);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/pages");
+    revalidatePath("/sitemap.xml");
+    return ok(undefined);
+  } catch (error) {
+    return toActionResult(error);
+  }
+}
 
 const CreateInput = z.object({
   title: z.string().trim().min(1, "Enter a title").max(200),

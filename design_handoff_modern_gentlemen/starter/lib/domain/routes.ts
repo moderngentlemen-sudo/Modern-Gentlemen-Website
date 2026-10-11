@@ -13,14 +13,15 @@ import type { DocumentType } from "./documents";
 /**
  * The homepage is the one page whose slug is not its path.
  *
- * `pages.slug` is `"home"` because a slug column that allowed `""` would make
+ * The legacy `pages.slug` is `"home"` because a slug column that allowed `""` would make
  * every uniqueness and lookup question awkward, and because `/admin/pages`
- * needs something to print. The site still serves it at `/`.
+ * needs something to print. Callers can pass the selected homepage's slug;
+ * the default preserves the legacy route mapping for existing callers.
  */
 export const HOME_PAGE_SLUG = "home";
 
-export function publicPathForPage(slug: string): string {
-  return slug === HOME_PAGE_SLUG ? "/" : `/${slug}`;
+export function publicPathForPage(slug: string, homepageSlug = HOME_PAGE_SLUG): string {
+  return slug === homepageSlug ? "/" : `/${slug}`;
 }
 
 export function publicPathForArticle(slug: string): string {
@@ -102,10 +103,14 @@ export const DOCUMENT_NOUN = {
  * both reach this dialog — a category through the builder, a product through
  * the same shared bar.
  */
-export function publicPathForDocument(type: DocumentType, slug: string): string | null {
+export function publicPathForDocument(
+  type: DocumentType,
+  slug: string,
+  isHomepage?: boolean
+): string | null {
   switch (type) {
     case "page":
-      return publicPathForPage(slug);
+      return isHomepage === undefined ? publicPathForPage(slug) : isHomepage ? "/" : `/${slug}`;
     case "article":
       return publicPathForArticle(slug);
     case "category":

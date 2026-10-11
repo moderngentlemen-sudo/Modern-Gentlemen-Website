@@ -93,7 +93,7 @@ function sha256Width(bytes: Uint8Array): Buffer {
 export function pathsToRevalidate(published: PublishedOnSchedule[]): string[] {
   const paths = published.flatMap((row) =>
     row.entityType === "page"
-      ? [publicPathForPage(row.slug)]
+      ? [publicPathForPage(row.slug), `/${row.slug}`, "/"]
       : [
           publicPathForArticle(row.slug),
           "/articles",

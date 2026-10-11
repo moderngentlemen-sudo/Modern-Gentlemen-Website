@@ -6,7 +6,7 @@ import { GradientEditor } from "./GradientEditor";
 import { useState } from "react";
 import { pageSettingsSchema, readPageSettings } from "@/lib/domain/pageSettings";
 import { pageTitle } from "@/lib/domain/seo";
-import { publicPathForPage } from "@/lib/domain/routes";
+import { publicPathForDocument } from "@/lib/domain/routes";
 import { TextInput, TextArea } from "@/components/admin/ui/Input";
 import { Select } from "@/components/admin/ui/Select";
 import { Toggle } from "@/components/admin/ui/Toggle";
@@ -62,11 +62,13 @@ export function PageSettingsPanel({
           disabled={busy || doc.slug === "home"}
           help={
             doc.slug === "home"
-              ? "The homepage remains at /."
+              ? "The default home slug is reserved."
               : "Lowercase words separated by hyphens. Changing this moves the public URL; no redirect is created."
           }
         />
-        <p className="break-all text-xs">Public path: {publicPathForPage(slug)}</p>
+        <p className="break-all text-xs">
+          Public path: {publicPathForDocument("page", slug, doc.isHomepage)}
+        </p>
         <p className="text-xs">
           Title and URL changes take effect immediately. Other settings below are drafts until
           published.
@@ -143,7 +145,7 @@ export function PageSettingsPanel({
           socialTitle={settings.socialTitle || pageTitle(settings.seoTitle || doc.title)}
           socialDescription={settings.socialDescription || settings.description || ""}
           socialImage={settings.socialImage ?? ""}
-          path={publicPathForPage(doc.slug)}
+          path={publicPathForDocument("page", doc.slug, doc.isHomepage) ?? `/${doc.slug}`}
           noIndex={settings.noIndex ?? false}
         />
       </PanelSection>

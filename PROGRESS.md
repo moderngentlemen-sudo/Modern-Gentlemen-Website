@@ -8,6 +8,46 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Selectable default homepage (branch `feat/default-homepage`)
+
+- Pages now identifies the current homepage and offers **Set as homepage** to
+  page editors with publishing rights. A confirmation explains that the change
+  is immediate. Draft/scheduled/archived pages cannot be selected; the current
+  homepage cannot be deleted or unpublished until a replacement is selected.
+- `homepage_settings` stores one page id, independently of slugs, titles and
+  draft content. Its initial null selection preserves the existing published
+  `home` page. The root route composes the selected page's published payload,
+  presentation settings, patterns and assigned template. Selection never
+  publishes a draft or changes a slug. The migration preserves the existing
+  live homepage until an editor chooses a replacement.
+- The anonymous reader remains cookie-free. Choosing a homepage uses the
+  editor's session and requires `page.write` plus `page.publish` in both the
+  service and RLS. Database triggers validate/lock the published target and
+  guard removal/status changes, including direct API calls and concurrent
+  selection/unpublishing. No service-role client or security-definer RPC is
+  introduced for admin writes.
+- Selection invalidates the public layout, page list and sitemap. Subsequent
+  manual or scheduled page publication refreshes `/`. The selected page's
+  slug alias canonicalises to `/`; sitemap URLs and no-index filtering follow
+  the selection, and a replaced legacy home page is available at `/home`.
+  Page-target menu links, builder sharing/publishing URLs and Appearance
+  Studio's initial page also follow the selection. Template publishing
+  refreshes the root when it affects pages.
+- Apply `20261011065606_default_homepage.sql` before deploying this feature.
+  It changes no existing homepage selection or published page content.
+- Formatting, lint, typecheck and all 4,137 unit/component tests pass (176
+  files; bounded local rerun: 443 seconds). Next's production compilation and
+  build-time lint/types pass; page-data collection needs Supabase credentials
+  absent from this isolated checkout. Hosted migration/integration, seeded
+  build and browser verification are in progress. Homepage integration and
+  browser tests run only against a local throwaway database. The browser test
+  restores the original selection through the real action before teardown so
+  later visual checks see the seeded site.
+- Expected cost: a page-list control, a singleton selection and route read.
+  Actual scope also includes deletion/unpublishing guards, cache invalidation
+  and SEO consistency needed for a safe switch. No dependency or visual design
+  baseline change.
+
 ### 2026-10-08 — Custom font upload (branch `feat/custom-font-upload`)
 
 - `/admin/theme` → Webfonts now accepts WOFF, WOFF2, TTF and OTF uploads up to

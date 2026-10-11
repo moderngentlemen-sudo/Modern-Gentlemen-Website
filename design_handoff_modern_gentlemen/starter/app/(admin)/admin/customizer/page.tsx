@@ -6,6 +6,7 @@ import {
   listAppearancePages,
 } from "@/lib/services/appearanceCustomizer";
 import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
+import { getPublishedHomepage } from "@/lib/services/publicContent";
 import { AppearanceStudio } from "@/components/admin/AppearanceStudio";
 export default async function CustomizerPage({
   searchParams,
@@ -13,14 +14,15 @@ export default async function CustomizerPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const user = await requirePermission("page.read");
-  const [query, pages, theme] = await Promise.all([
+  const [query, pages, theme, homepage] = await Promise.all([
     searchParams,
     listAppearancePages(),
     user.permissions.has("theme.read")
       ? loadAppearanceTheme()
       : getPublishedThemeSettings().then((settings) => ({ settings, updatedAt: "" })),
+    getPublishedHomepage(),
   ]);
-  const id = query.id || pages.find((p) => p.slug === "home")?.id || pages[0]?.id;
+  const id = query.id || homepage?.id || pages[0]?.id;
   const [page, articleChoices] = await Promise.all([
     id ? loadAppearancePage(id) : null,
     listArticleDesignPreviews(),
