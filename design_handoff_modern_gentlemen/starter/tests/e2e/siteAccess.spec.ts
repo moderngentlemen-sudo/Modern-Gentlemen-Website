@@ -29,7 +29,11 @@ test.describe("homepage-only prelaunch", () => {
     ]) {
       const response = await request.get(path, { maxRedirects: 0 });
       expect(response.status(), path).toBe(307);
-      expect(new URL(response.headers().location).pathname, path).toBe("/");
+      // Next's middleware emits a valid *relative* Location ("/"). The
+      // Response has its own URL base; new URL("/") without a base is invalid.
+      const location = await response.headerValue("location");
+      expect(location, `${path} must include a redirect destination`).toBeTruthy();
+      expect(new URL(location!, response.url()).pathname, path).toBe("/");
       expect(response.headers()["cache-control"], path).toContain("no-store");
     }
     const api = await request.get("/api/search/articles?q=test");
