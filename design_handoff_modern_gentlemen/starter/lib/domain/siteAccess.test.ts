@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  isAdminPath,
-  isAllowedWithoutStaff,
-  isApiPath,
-  isHomepageOnlyMode,
-} from "./siteAccess";
+import { isAdminPath, isAllowedWithoutStaff, isApiPath, isHomepageOnlyMode } from "./siteAccess";
 
 const originalMode = process.env.SITE_ACCESS_MODE;
 afterEach(() => {
