@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
@@ -37,6 +38,22 @@ export const revalidate = 3600;
 export const viewport: Viewport = { viewportFit: "cover" };
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  // Prelaunch: no public chrome is rendered at all (not merely hidden by CSS).
+  // This also covers sign-in/recovery, which share the (site) route group.
+  // No navigation, product catalogue or footer data is shipped to visitors.
+  // Admin pages render through their separate layout and remain editable.
+  if (isHomepageOnlyMode()) {
+    return (
+      <CatalogProvider products={[]}>
+        <CartProvider>
+          <main data-site-main style={{ paddingTop: 0 }}>
+            {children}
+          </main>
+        </CartProvider>
+      </CatalogProvider>
+    );
+  }
+
   const [products, nav, design, headerTemplate, footerTemplate] = await Promise.all([
     listPublishedProducts(),
     getChromeNavigation(CHROME_MENU_KEYS),
