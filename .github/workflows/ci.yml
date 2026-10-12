@@ -432,6 +432,25 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:perf
 
+      # Verify the actual restricted production build after the open-site
+      # screenshot suite. Changing mode requires a rebuild; one set of build
+      # artifacts cannot reliably test both versions of the static layout.
+      - name: Homepage-only build
+        env:
+          SITE_ACCESS_MODE: homepage-only
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run build
+
+      - name: Homepage-only access-control tests
+        env:
+          SITE_ACCESS_MODE: homepage-only
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e -- tests/e2e/siteAccess.spec.ts
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
