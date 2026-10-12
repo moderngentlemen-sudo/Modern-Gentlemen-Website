@@ -8,6 +8,15 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-11 — Homepage-only launch access (branch `feat/homepage-only-admin-access`)
+
+- **Requested behavior:** keep `/` public; require a validated Supabase session **and a staff role** for other website URLs and non-homepage APIs. Preserve the existing server-gated `/admin` and authenticated CMS editing.
+- **Default private:** `SITE_ACCESS_MODE` is server-only and defaults to `homepage-only`. Only explicit `public` restores the old open site. Middleware checks `user_roles` for protected public routes, redirects signed-out/roleless visitors home and returns JSON 403 for gated APIs. Cron, newsletter/forms and recovery/callback URLs retain their intended access.
+- **No public chrome:** the locked `(site)` layout never renders the public Header/Footer or queries its navigation/product catalogue. The admin uses its own separate chrome and an **Edit homepage** shortcut; Page Settings already has independent desktop/mobile header/footer controls, which remain editable and publishable.
+- **Discovery:** locked `robots.txt` disallows nonroot paths, and the sitemap only lists `/`.
+- **Verification:** unit gate/sitemap tests and a separate closed-site Next build + Playwright smoke suite were added to CI. The normal public visual suites explicitly run with `SITE_ACCESS_MODE=public`. No live deploy or Supabase migration was performed in this branch.
+- **Explicit limitation:** existing anonymous RLS policies still expose published rows via the Supabase Data API, and public media remains public. Middleware makes *website routes* inaccessible; full unpublished-data confidentiality needs separately designed RLS/storage + dynamic-auth reads before publication. Mode changes need a **rebuild**, not only a runtime environment toggle.
+
 ### 2026-10-11 — Signature Studio: phone layout, edge handles on every block, contact dividers and links
 
 From the owner's testing:
