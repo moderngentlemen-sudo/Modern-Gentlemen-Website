@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
 
 import { canonicalUrl } from "@/lib/domain/seo";
 import { canonicalSiteUrl } from "@/lib/db/env";
@@ -36,6 +37,16 @@ import { canonicalSiteUrl } from "@/lib/db/env";
  */
 export default function robots(): MetadataRoute.Robots {
   const base = canonicalSiteUrl();
+
+  if (isHomepageOnlyMode()) {
+    return {
+      // The $ anchor allows the homepage itself, but not /shop or /articles.
+      // Crawlers' compliance is voluntary; middleware enforces actual access.
+      rules: [{ userAgent: "*", allow: "/$", disallow: "/" }],
+      sitemap: canonicalUrl(base, "/sitemap.xml"),
+      host: canonicalUrl(base, "/"),
+    };
+  }
 
   return {
     rules: [
