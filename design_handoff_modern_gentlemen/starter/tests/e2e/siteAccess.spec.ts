@@ -31,7 +31,11 @@ test.describe("homepage-only prelaunch", () => {
       expect(response.status(), path).toBe(307);
       // Next's middleware emits a valid *relative* Location ("/"). The
       // Response has its own URL base; new URL("/") without a base is invalid.
-      const location = await response.headerValue("location");
+      // APIResponse.headers() preserves the server's header-name casing in
+      // Playwright 1.56; unlike browser Response it has no headerValue().
+      const location = Object.entries(response.headers()).find(
+        ([name]) => name.toLowerCase() === "location"
+      )?.[1];
       expect(location, `${path} must include a redirect destination`).toBeTruthy();
       expect(new URL(location!, response.url()).pathname, path).toBe("/");
       expect(response.headers()["cache-control"], path).toContain("no-store");
