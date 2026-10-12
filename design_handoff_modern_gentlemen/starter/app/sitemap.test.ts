@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ homepage: vi.fn(), pages: vi.fn(), noIndex: vi.fn() }));
 vi.mock("@/lib/db/env", () => ({ canonicalSiteUrl: () => "https://example.com" }));
 vi.mock("@/lib/services/publicContent", () => ({
@@ -13,11 +13,22 @@ vi.mock("@/lib/services/publicEditorial", () => ({
 }));
 import sitemap from "./sitemap";
 beforeEach(() => {
+  vi.stubEnv("SITE_ACCESS_MODE", "public");
   vi.resetAllMocks();
   mocks.homepage.mockResolvedValue({ slug: "launch" });
   mocks.pages.mockResolvedValue(["home", "contact"]);
   mocks.noIndex.mockResolvedValue([]);
 });
+afterEach(() => vi.unstubAllEnvs());
+
+it("advertises only the homepage in prelaunch mode", async () => {
+  vi.stubEnv("SITE_ACCESS_MODE", "homepage-only");
+  const urls = (await sitemap()).map((entry) => entry.url);
+  expect(urls).toEqual(["https://example.com"]);
+  expect(mocks.homepage).not.toHaveBeenCalled();
+  expect(mocks.pages).not.toHaveBeenCalled();
+});
+
 it("keeps a single root URL and gives the previous home page its own URL", async () => {
   const urls = (await sitemap()).map((entry) => entry.url);
   expect(urls.filter((url) => url === "https://example.com")).toHaveLength(1);
