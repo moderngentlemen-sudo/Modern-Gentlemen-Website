@@ -25,6 +25,10 @@ env:
   # forgets this one would fail in a way whose message points at Railway.
   NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
+  # Existing E2E / screenshot baselines verify the fully public site. The
+  # homepage-only gate is tested independently with unit and launch-mode tests.
+  SITE_ACCESS_MODE: public
+
   # The Supabase CLI, pinned rather than `latest`.
   #
   # `supabase/setup-cli@v1` with `version: latest` resolves through the GitHub
