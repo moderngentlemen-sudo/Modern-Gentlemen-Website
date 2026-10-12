@@ -60,8 +60,8 @@ export default async function AdminHome() {
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-mg-fg/60">
               Visitors can see only the homepage. Staff can access other site pages after signing
-              in. Edit the homepage under Pages, then use Page Settings → Header and footer to
-              hide the desktop and mobile chrome for your published launch design.
+              in. Edit the homepage under Pages, then use Page Settings → Header and footer to hide
+              the desktop and mobile chrome for your published launch design.
             </p>
           </section>
         )}
