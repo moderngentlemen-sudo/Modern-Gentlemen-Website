@@ -25,6 +25,10 @@ env:
   # forgets this one would fail in a way whose message points at Railway.
   NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
+  # Existing E2E / screenshot baselines verify the fully public site. The
+  # homepage-only gate is tested independently with unit and launch-mode tests.
+  SITE_ACCESS_MODE: public
+
   # The Supabase CLI, pinned rather than `latest`.
   #
   # `supabase/setup-cli@v1` with `version: latest` resolves through the GitHub
@@ -427,6 +431,28 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:perf
+
+      # Verify the actual restricted production build after the open-site
+      # screenshot suite. Changing mode requires a rebuild; one set of build
+      # artifacts cannot reliably test both versions of the static layout.
+      - name: Homepage-only build
+        id: homepage_only_build
+        if: always()
+        env:
+          SITE_ACCESS_MODE: homepage-only
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run build
+
+      - name: Homepage-only access-control tests
+        if: always() && steps.homepage_only_build.outcome == 'success'
+        env:
+          SITE_ACCESS_MODE: homepage-only
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e -- tests/e2e/siteAccess.spec.ts
 
       - name: Upload Playwright report
         if: failure()

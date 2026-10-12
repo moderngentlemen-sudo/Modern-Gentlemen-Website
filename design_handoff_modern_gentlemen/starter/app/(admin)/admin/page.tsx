@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/services/auth";
 import { listDocuments } from "@/lib/services/documents";
+import { getPublishedHomepage } from "@/lib/services/publicContent";
+import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
 import { PERMISSIONS } from "@/lib/domain/permissions";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Panel } from "@/components/admin/ui/Panel";
@@ -23,6 +25,7 @@ export default async function AdminHome() {
 
   const canReadPages = user.permissions.has("page.read");
   const recent = canReadPages ? await listDocuments("page", { limit: 8 }) : [];
+  const homepage = user.permissions.has("page.write") ? await getPublishedHomepage() : null;
 
   const byResource = new Map<string, string[]>();
   for (const permission of PERMISSIONS) {
@@ -33,13 +36,35 @@ export default async function AdminHome() {
 
   return (
     <>
-      <AdminPageHeader eyebrow="Overview" title={user.fullName ?? user.email}>
+      <AdminPageHeader
+        eyebrow="Overview"
+        title={user.fullName ?? user.email}
+        actions={
+          homepage ? (
+            <Button href={`/admin/pages/${homepage.id}`} size="sm">
+              Edit homepage
+            </Button>
+          ) : undefined
+        }
+      >
         <p className="mt-2 text-[13px] text-mg-fg/60">
           Signed in as {user.email} · {user.roles.join(", ") || "no role"}
         </p>
       </AdminPageHeader>
 
       <div className="space-y-8 px-8 py-8">
+        {isHomepageOnlyMode() && (
+          <section aria-label="Site access">
+            <h2 className="font-grotesk text-[16px] font-semibold tracking-[-0.02em]">
+              Site access: Homepage only
+            </h2>
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-mg-fg/60">
+              Visitors can see only the homepage. Staff can access other site pages after signing
+              in. Edit the homepage under Pages, then use Page Settings → Header and footer to hide
+              the desktop and mobile chrome for your published launch design.
+            </p>
+          </section>
+        )}
         <section>
           <div className="mb-3 flex items-end justify-between">
             <h2 className="font-grotesk text-[16px] font-semibold tracking-[-0.02em]">

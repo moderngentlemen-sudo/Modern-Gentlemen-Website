@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
 
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
 import {
@@ -42,6 +43,12 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = canonicalSiteUrl();
   const now = new Date();
+  if (isHomepageOnlyMode()) {
+    // Do not advertise unreleased site URLs or query their content.
+    return [
+      { url: canonicalUrl(base, "/"), lastModified: now, changeFrequency: "daily", priority: 1 },
+    ];
+  }
   const homepage = await getPublishedHomepage();
 
   const [pageSlugs, categorySlugs, articleSlugs, products, noIndexSlugs] = await Promise.all([

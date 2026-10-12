@@ -73,11 +73,17 @@ test("mobile bottom canvas respects theme and footer overrides", async ({ page }
 test("canvas separation preserves custom headers, standalone pages and desktop backgrounds", async ({
   page,
 }) => {
+  // The boot script and ThemeProvider read localStorage on navigation/hydration.
+  // Seeding it BEFORE the visit avoids a race with setting only the DOM attribute.
+  await page.addInitScript(() => localStorage.setItem("mg-theme", "light"));
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto("/");
-  await page.locator("html").evaluate((node) => node.setAttribute("data-mgtheme", "light"));
+  const html = page.locator("html");
+  await expect(html).toHaveAttribute("data-mgtheme", "light");
   const body = page.locator("body");
   const header = page.locator('[data-site-chrome="header"]');
+  await expect(header).toHaveAttribute("data-default-header", "true");
+  await expect(body).toHaveCSS("background-color", "rgb(13, 13, 13)");
   await header.evaluate((node) => node.removeAttribute("data-default-header"));
   await expect(body).toHaveCSS("background-color", "rgb(244, 244, 244)");
   await header.evaluate((node) => node.setAttribute("data-default-header", "true"));

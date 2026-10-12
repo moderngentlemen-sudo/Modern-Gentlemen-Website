@@ -2,33 +2,31 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { fetchForKey } from "@/lib/db/apiKey";
+import {
+  isAdminPath,
+  isAllowedWithoutStaff,
+  isApiPath,
+  isHomepageOnlyMode,
+} from "@/lib/domain/siteAccess";
 
 /**
- * Refreshes the Supabase session cookie on every matched request, and keeps
- * signed-out visitors out of /admin.
+ * Refreshes Supabase auth cookies and enforces the application route gate.
  *
- * The cookie dance matters: @supabase/ssr may rotate the auth token during
- * getUser(), and the refreshed cookie has to be written onto the response that
- * is actually returned. Building `response` first and mutating it in `setAll`
- * is what makes that work — constructing a fresh NextResponse afterwards would
- * silently discard the rotation and log users out roughly every hour.
+ * In homepage-only mode, every website page and non-homepage API requires an
+ * authenticated staff account (at least one user_roles grant). Hiding links
+ * in the UI is not authorization: direct navigation, RSC prefetch requests,
+ * draft previews and API routes all pass through this gate.
  *
- * This is a convenience gate, not the security boundary. Row Level Security is
- * the real one; a request that slips past here still cannot read or write
- * anything the user lacks permission for.
+ * Admin renders are guarded again in the admin layout and admin mutations by
+ * permission checks and RLS. Published data and public storage in Supabase are
+ * a *separate* exposure surface; this middleware cannot make those private.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
-  // ⚠️ **The fifth Supabase client, and the one that is easy to forget.** It is
-  // built here rather than through `lib/db/server.ts` because middleware has its
-  // own cookie plumbing, which means it does not inherit anything that file
-  // does — including the modern-key header rule. `lib/db/apiKey.ts` explains
-  // why a `sb_publishable_…` key must not travel as a Bearer token; this runs on
-  // every matched request and calls `auth.getUser()`, so it is the last place
-  // that should be relying on getting away with it.
+  // Middleware has its own cookie plumbing. Keep the modern publishable-key
+  // fetch wrapper, otherwise getUser() sends an invalid Bearer header.
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
     global: { fetch: fetchForKey(key) },
     cookies: {
@@ -49,23 +47,71 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  /**
+   * Supabase can rotate a session during getUser(). A redirect constructed
+   * afterwards must retain *all* rotated cookies, not just a successful
+   * NextResponse.next(), or the editor is signed out on the next request.
+   */
+  function withCookies(target: NextResponse): NextResponse {
+    for (const cookie of response.cookies.getAll()) target.cookies.set(cookie);
+    return target;
+  }
 
-  if (pathname.startsWith("/admin") && !user) {
+  const { pathname } = request.nextUrl;
+  const adminRoute = isAdminPath(pathname);
+
+  if (adminRoute && !user) {
     const signIn = request.nextUrl.clone();
     signIn.pathname = "/sign-in";
     signIn.search = "";
-    // Preserve where they were heading so sign-in can return them there.
     signIn.searchParams.set("next", pathname);
-    return NextResponse.redirect(signIn);
+    return withCookies(NextResponse.redirect(signIn));
   }
 
-  // Someone already signed in has no reason to see the sign-in form.
   if (pathname === "/sign-in" && user) {
     const admin = request.nextUrl.clone();
     admin.pathname = "/admin";
     admin.search = "";
-    return NextResponse.redirect(admin);
+    return withCookies(NextResponse.redirect(admin));
+  }
+
+  if (isHomepageOnlyMode() && !adminRoute && !isAllowedWithoutStaff(pathname)) {
+    // Neither an authenticated member without an admin role nor a signed-out
+    // user may access private published pages or the search/API endpoints.
+    let staff = false;
+    if (user) {
+      const { data: roles, error } = await supabase
+        .from("user_roles")
+        .select("role_key")
+        .eq("user_id", user.id)
+        .limit(1);
+      if (error) console.error("Site access role lookup failed:", error.message);
+      staff = !error && (roles?.length ?? 0) > 0;
+    }
+
+    if (!staff) {
+      if (isApiPath(pathname)) {
+        return withCookies(
+          NextResponse.json(
+            { error: "Forbidden" },
+            { status: 403, headers: { "Cache-Control": "private, no-store" } }
+          )
+        );
+      }
+      const homepage = request.nextUrl.clone();
+      homepage.pathname = "/";
+      homepage.search = "";
+      return withCookies(
+        NextResponse.redirect(homepage, {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "X-Robots-Tag": "noindex, nofollow",
+          },
+        })
+      );
+    }
+
+    response.headers.set("Cache-Control", "private, no-store");
   }
 
   return response;
@@ -73,11 +119,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /**
-     * Everything except static assets and image files. The public site is
-     * included deliberately: it is how the session cookie stays fresh while a
-     * member browses, and it costs one already-cached token check.
-     */
+    // Includes page/RSC requests and /api; omits only static binaries.
     "/((?!_next/static|_next/image|favicon.ico|images/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|mp4|webm|woff|woff2)$).*)",
   ],
 };
