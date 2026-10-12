@@ -59,3 +59,43 @@ starter/
   supabase/       config.toml · migrations/
   public/images/  demo photography
 ```
+
+---
+
+## Prelaunch access: homepage only
+
+The site is **homepage-only by default**. Set the server-side `SITE_ACCESS_MODE`
+to `homepage-only` (or leave it unset) before building and deploying. The only
+value that reopens the full public site is `SITE_ACCESS_MODE=public`.
+
+- Signed-out visitors can load `/` and the admin sign-in/recovery flow. Other
+  page URLs, category pages, product pages and draft preview URLs redirect to
+  `/`. Protected API requests return 403.
+- Authenticated accounts must also hold a role in `user_roles` to access the
+  other site pages. Merely having a Supabase account is insufficient.
+- `/admin` is separately protected by its server-side layout and existing
+  permission checks; staff sign in at `/sign-in`. The admin UI has its own
+  layout, with no public header or footer.
+- In homepage-only mode, the **public header and footer are never rendered**,
+  even on the sign-in pages; the anonymous site does not ship the navigation
+  catalogue or product catalogue through its layout. The homepage remains
+  editable at **Admin → Pages → [homepage] → Page Settings → Header and footer**.
+  Set the four desktop/mobile controls to Hide and publish if the design should
+  also remain chrome-free after the full site is reopened.
+- `/api/newsletter` and `/api/forms` remain public for homepage sign-ups.
+  The two `/api/jobs` endpoints remain reachable by the scheduler but continue
+  to require their independent secret. `sitemap.xml` advertises only the
+  homepage, and `robots.txt` discourages crawling non-home URLs.
+
+**Build-time requirement:** Set `SITE_ACCESS_MODE` consistently for the
+production build and the running server. The public layout and sitemap can be
+prerendered, so a Railway variable change without a new build is not sufficient.
+CI exercises the full-site visual baselines in public mode and then creates a
+second, homepage-only build for access-control browser tests.
+
+**Security boundary:** The HTTP route gate is not data-at-rest confidentiality.
+Existing Supabase RLS policies still expose some **published** content to the
+anonymous Supabase Data API, and public media URLs remain public. Restricting
+those bytes would require a separate, coordinated RLS/storage change and moving
+restricted pages away from anonymous static rendering. Do not publish private
+content to public tables/storage until that work is completed.
