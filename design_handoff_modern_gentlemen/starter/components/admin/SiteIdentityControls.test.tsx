@@ -9,7 +9,7 @@ vi.mock("@/app/(admin)/admin/media/actions", () => ({
 
 describe("Appearance Studio favicon and identity controls", () => {
   it("previews the official MG favicon with no additional media records", () => {
-    render(
+    const { container } = render(
       <SiteIdentityControls
         value={DEFAULT_SITE_IDENTITY}
         onChange={() => {}}
@@ -19,7 +19,7 @@ describe("Appearance Studio favicon and identity controls", () => {
     );
     expect(screen.getByLabelText("Browser tab favicon preview")).toBeInTheDocument();
     expect(screen.getByLabelText("Favicon image URL")).toHaveValue("/site-icon.svg");
-    expect(screen.getAllByRole("img", { hidden: true }).length).toBeGreaterThan(0);
+    expect(container.querySelector('img[src="/site-icon.svg"]')).not.toBeNull();
     expect(screen.getByRole("button", { name: "Browse library" })).toBeDisabled();
   });
 
