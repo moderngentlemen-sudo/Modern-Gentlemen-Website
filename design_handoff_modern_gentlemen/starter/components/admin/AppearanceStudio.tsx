@@ -43,6 +43,8 @@ import styles from "./AppearanceStudio.module.css";
 import { SearchAppearanceControls } from "./SearchAppearanceControls";
 import { ArticleDesignControls } from "./articles/ArticleDesignControls";
 import { SiteIdentityControls } from "./SiteIdentityControls";
+import { SiteAccessControls } from "./SiteAccessControls";
+import type { SiteAccessState } from "@/lib/domain/siteAccessState";
 
 type Page = Awaited<ReturnType<typeof loadAppearancePage>>;
 type Theme = Awaited<ReturnType<typeof loadAppearanceTheme>>;
@@ -55,12 +57,16 @@ export function AppearanceStudio({
   initialPage,
   articleChoices = [],
   initialTheme,
+  initialAccess,
+  initialArea,
   pages,
   permissions,
 }: {
   initialPage: Page | null;
   articleChoices?: { slug: string; title: string }[];
   initialTheme: Theme;
+  initialAccess: SiteAccessState | null;
+  initialArea?: "access";
   pages: Awaited<ReturnType<typeof listAppearancePages>>;
   permissions: {
     pageWrite: boolean;
@@ -69,6 +75,8 @@ export function AppearanceStudio({
     themePublish: boolean;
     mediaRead: boolean;
     mediaWrite: boolean;
+    settingsRead: boolean;
+    settingsWrite: boolean;
   };
 }) {
   const [page, setPage] = useState(initialPage);
@@ -78,7 +86,7 @@ export function AppearanceStudio({
   ]);
   const [cursor, setCursor] = useState(0);
   const state = history[cursor];
-  const [area, setArea] = useState("header");
+  const [area, setArea] = useState(initialArea ?? "header");
   const [articleSlug, setArticleSlug] = useState(articleChoices[0]?.slug || "");
   const [articlePreview, setArticlePreview] = useState<AppearancePreviewState["article"]>();
   useEffect(() => {
@@ -122,8 +130,18 @@ export function AppearanceStudio({
   const pageDirty = !!state.changes.page || state.changes.targets.length > 0;
   const themeDirty = !same(state.theme, savedTheme.settings);
   const dirty = pageDirty || themeDirty;
-  const global = area === "header" || area === "site" || area === "articles" || area === "identity";
-  const canWrite = global ? permissions.themeWrite : permissions.pageWrite;
+  const global =
+    area === "header" ||
+    area === "site" ||
+    area === "articles" ||
+    area === "identity" ||
+    area === "access";
+  const canWrite =
+    area === "access"
+      ? permissions.settingsWrite
+      : global
+        ? permissions.themeWrite
+        : permissions.pageWrite;
   const width = Number(device),
     scale = Math.min(1, Math.max(0.1, (stageSize.width - 40) / width));
   const computed = useMemo(() => {
@@ -392,7 +410,7 @@ export function AppearanceStudio({
         </button>
         <button
           className={styles.primary}
-          disabled={busy || !canWrite || (global ? !themeDirty : !pageDirty) || !!computed.error}
+          disabled={busy || area === "access" || !canWrite || (global ? !themeDirty : !pageDirty) || !!computed.error}
           onClick={() => void save(global ? "theme" : "page")}
         >
           Save {global ? "theme" : "page"} draft
@@ -476,6 +494,9 @@ export function AppearanceStudio({
           {[
             ["site", "Site styles", "Colors & typography"],
             ["identity", "Favicon & Site Identity", "Browser tab & app icon"],
+            ...(permissions.settingsRead
+              ? ([["access", "Site Access & Launch", "Visibility & scheduled launch"]] as const)
+              : []),
             ["header", "Header", "Surface & motion"],
             ["articles", "Articles", "Designs & featured media"],
             ["page", "Page appearance", "Background & chrome"],
@@ -483,7 +504,7 @@ export function AppearanceStudio({
             ["media", "Media overlays", "Color & gradients"],
           ].map(([id, title, sub], i) => (
             <div key={id}>
-              {i === 4 && <small>THIS PAGE</small>}
+              {id === "page" && <small>THIS PAGE</small>}
               <button
                 aria-current={area === id ? "page" : undefined}
                 onClick={() => {
@@ -570,6 +591,7 @@ export function AppearanceStudio({
               {
                 site: "Site styles",
                 identity: "Favicon & Site Identity",
+                access: "Site Access & Launch",
                 header: "Header",
                 articles: "Article designs",
                 page: "Page appearance",
@@ -579,9 +601,16 @@ export function AppearanceStudio({
             }
           </h1>
           <p className={styles.hint}>
-            {global ? "One shared design across the site." : "Appearance settings for this page."}
+            {area === "access"
+              ? "Launch visibility, staff previews and scheduling."
+              : global
+                ? "One shared design across the site."
+                : "Appearance settings for this page."}
           </p>
           <fieldset disabled={busy || !canWrite || (!global && !page)} className={styles.fields}>
+            {area === "access" && initialAccess && (
+              <SiteAccessControls initial={initialAccess} canWrite={permissions.settingsWrite} />
+            )}
             {area === "identity" && (
               <SiteIdentityControls
                 value={state.theme.siteIdentity ?? DEFAULT_SITE_IDENTITY}
