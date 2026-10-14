@@ -62,40 +62,52 @@ starter/
 
 ---
 
-## Prelaunch access: homepage only
+## Site Access & Launch Controls
 
-The site is **homepage-only by default**. Set the server-side `SITE_ACCESS_MODE`
-to `homepage-only` (or leave it unset) before building and deploying. The only
-value that reopens the full public site is `SITE_ACCESS_MODE=public`.
+Modern Gentlemen provides **three live access modes**, managed under
+**Admin → Appearance Studio → Site Access & Launch** (also linked from the
+admin overview).
 
-- Signed-out visitors can load `/` and the admin sign-in/recovery flow. Other
-  page URLs, category pages, product pages and draft preview URLs redirect to
-  `/`. Protected API requests return 403.
-- Authenticated accounts must also hold a role in `user_roles` to access the
-  other site pages. Merely having a Supabase account is insufficient.
-- `/admin` is separately protected by its server-side layout and existing
-  permission checks; staff sign in at `/sign-in`. The admin UI has its own
-  layout, with no public header or footer.
-- In homepage-only mode, the **public header and footer are never rendered**,
-  even on the sign-in pages; the anonymous site does not ship the navigation
-  catalogue or product catalogue through its layout. The homepage remains
-  editable at **Admin → Pages → [homepage] → Page Settings → Header and footer**.
-  Set the four desktop/mobile controls to Hide and publish if the design should
-  also remain chrome-free after the full site is reopened.
-- `/api/newsletter` and `/api/forms` remain public for homepage sign-ups.
-  The two `/api/jobs` endpoints remain reachable by the scheduler but continue
-  to require their independent secret. `sitemap.xml` advertises only the
-  homepage, and `robots.txt` discourages crawling non-home URLs.
+| Mode | Signed-out visitors | Staff with a valid Supabase role |
+| --- | --- | --- |
+| Homepage Only | Homepage and allowed auth/forms only; other pages redirect home, protected APIs return 403 | May open published deep links, but public chrome is suppressed |
+| Private Preview | Same homepage-only visitor experience | Published site, header, footer, navigation and catalog render normally |
+| Public Launch | All published website pages | Normal site and admin access |
 
-**Build-time requirement:** Set `SITE_ACCESS_MODE` consistently for the
-production build and the running server. The public layout and sitemap can be
-prerendered, so a Railway variable change without a new build is not sufficient.
-CI exercises the full-site visual baselines in public mode and then creates a
-second, homepage-only build for access-control browser tests.
+Unlike the previous build-time flag, the **site's current mode is checked on
+each request**. `site_settings` holds the mode and an optional scheduled public
+launch time under the unique key `site-access-control`; migration
+`20261014101500_site_access_controls.sql` initializes it. The `inherit`
+bootstrap value preserves the existing `SITE_ACCESS_MODE` variable and its
+fail-closed homepage-only default, so upgrading this code does not open the site.
 
-**Security boundary:** The HTTP route gate is not data-at-rest confidentiality.
-Existing Supabase RLS policies still expose some **published** content to the
-anonymous Supabase Data API, and public media URLs remain public. Restricting
-those bytes would require a separate, coordinated RLS/storage change and moving
-restricted pages away from anonymous static rendering. Do not publish private
-content to public tables/storage until that work is completed.
+Only a user with `settings.write` may change access mode. A confirmation
+dialog demands `CONFIRM` for restricted changes, `LAUNCH` for immediately
+opening the entire site, or `SCHEDULE` for scheduling an opening. Every
+mutation uses the editor's own Supabase session, timestamp conflict checking,
+and the existing RLS policy. Scheduling is evaluated **at request time**;
+there is no cron requirement. All visitor routes and SEO metadata respond
+to the effective mode, including the scheduled transition. Admin pages
+remain separately protected. The public path allowlist includes the homepage,
+sign-in/recovery, newsletter and forms; scheduler endpoints retain their own
+secret checks.
+
+For a full-chrome staff preview: select **Private Preview**, apply the
+confirmation, then open a public URL while signed in. A page whose own
+**Page Settings → Header and footer** deliberately says **Hide** will still
+hide that element. Set desktop/mobile to **Use site default** and publish
+when you want it visible.
+
+**Important:** This protects HTTP website routes and dynamically chooses
+the layout according to a server-validated staff role. It does **not** make
+existing Supabase public published rows or public storage assets confidential.
+A separate coordinated RLS, private storage and authenticated content-query
+migration is required before storing embargoed or secret material. Never
+assume the public Data API is protected by Next.js middleware.
+
+All modes serve Next.js pages dynamically to prevent caching a staff-facing
+header into an anonymous response. Restricted responses carry `no-store`,
+and previewable staff responses `noindex`. `robots.txt` and `sitemap.xml`
+are dynamic so their allowed content changes without a redeploy. The site
+does not require an app rebuild for an in-product mode change, although
+installing **this feature** still requires a normal production deployment.
