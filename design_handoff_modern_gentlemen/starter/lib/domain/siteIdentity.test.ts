@@ -10,13 +10,17 @@ import {
 describe("site identity", () => {
   it("preserves the original MG brand for old themes", () => {
     expect(readSiteIdentity(null)).toEqual(DEFAULT_SITE_IDENTITY);
-    expect(siteIdentityMetadata(readSiteIdentity(undefined)).icons.icon[0].url).toBe("/site-icon.svg");
+    expect(siteIdentityMetadata(readSiteIdentity(undefined)).icons.icon[0].url).toBe(
+      "/site-icon.svg"
+    );
   });
 
   it("allows a library asset, safe external HTTPS and site-local icon", () => {
     expect(safeIdentityImageUrl("/site-icon.svg")).toBe(true);
     expect(safeIdentityImageUrl("/images/favicon.webp")).toBe(true);
-    expect(safeIdentityImageUrl("https://example.supabase.co/storage/v1/object/public/media/mg.png")).toBe(true);
+    expect(
+      safeIdentityImageUrl("https://example.supabase.co/storage/v1/object/public/media/mg.png")
+    ).toBe(true);
     expect(siteIdentitySchema.safeParse({
       ...DEFAULT_SITE_IDENTITY,
       faviconUrl: "https://example.supabase.co/favicon.png",
@@ -34,7 +38,9 @@ describe("site identity", () => {
       "http://example.com/a.png",
     ]) {
       expect(safeIdentityImageUrl(value), value).toBe(false);
-      expect(siteIdentitySchema.safeParse({ ...DEFAULT_SITE_IDENTITY, faviconUrl: value }).success).toBe(false);
+      expect(
+        siteIdentitySchema.safeParse({ ...DEFAULT_SITE_IDENTITY, faviconUrl: value }).success
+      ).toBe(false);
     }
   });
 
@@ -54,7 +60,11 @@ describe("site identity", () => {
   });
 
   it("emits metadata for published icons and never invents an Apple image", () => {
-    const identity = { ...DEFAULT_SITE_IDENTITY, faviconUrl: "/selected.png", appleTouchIconUrl: "/touch.png" };
+    const identity = {
+      ...DEFAULT_SITE_IDENTITY,
+      faviconUrl: "/selected.png",
+      appleTouchIconUrl: "/touch.png",
+    };
     const meta = siteIdentityMetadata(identity);
     expect(meta.icons.icon).toEqual([{ url: "/selected.png" }]);
     expect(meta.icons.apple).toEqual([{ url: "/touch.png" }]);
