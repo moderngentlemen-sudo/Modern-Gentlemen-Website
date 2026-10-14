@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ homepage: vi.fn(), pages: vi.fn(), noIndex: vi.fn() }));
 vi.mock("@/lib/db/env", () => ({ canonicalSiteUrl: () => "https://example.com" }));
+vi.mock("@/lib/services/siteAccess", () => ({
+  getSiteAccess: async () => ({
+    effectiveMode: process.env.SITE_ACCESS_MODE === "public" ? "public" : "homepage-only",
+  }),
+}));
 vi.mock("@/lib/services/publicContent", () => ({
   getPublishedHomepage: mocks.homepage,
   listPublishedPageSlugs: mocks.pages,
