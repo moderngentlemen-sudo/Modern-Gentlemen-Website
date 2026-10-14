@@ -37,8 +37,10 @@ export async function getAdminSiteAccess(): Promise<SiteAccessState> {
     .select("value, updated_at")
     .eq("key", SITE_ACCESS_KEY)
     .maybeSingle();
-  if (error) throw new Error("Unable to load site access settings.");
-  if (!data) throw new Error("Site access settings are not initialized. Apply the migration.");
+  if (error || !data) {
+    console.error("Admin site access settings are unavailable:", error?.message);
+    return lockedSiteAccess();
+  }
   return resolveSiteAccess(data.value, data.updated_at);
 }
 
