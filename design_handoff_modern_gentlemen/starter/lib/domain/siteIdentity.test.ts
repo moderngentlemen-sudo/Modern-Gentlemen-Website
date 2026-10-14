@@ -21,10 +21,12 @@ describe("site identity", () => {
     expect(
       safeIdentityImageUrl("https://example.supabase.co/storage/v1/object/public/media/mg.png")
     ).toBe(true);
-    expect(siteIdentitySchema.safeParse({
-      ...DEFAULT_SITE_IDENTITY,
-      faviconUrl: "https://example.supabase.co/favicon.png",
-    }).success).toBe(true);
+    expect(
+      siteIdentitySchema.safeParse({
+        ...DEFAULT_SITE_IDENTITY,
+        faviconUrl: "https://example.supabase.co/favicon.png",
+      }).success
+    ).toBe(true);
   });
 
   it("rejects executable, protocol-relative and credentialed icon destinations", () => {

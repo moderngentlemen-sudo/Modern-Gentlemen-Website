@@ -40,9 +40,7 @@ test("Appearance Studio edits favicon and identity as a draft, not a live publis
     await page.getByRole("button", { name: "Save theme draft", exact: true }).first().click();
     await expect(
       page.getByRole("region", { name: "Appearance Studio" }).getByRole("status")
-    ).toContainText(
-      "Site theme draft saved"
-    );
+    ).toContainText("Site theme draft saved");
 
     const updated = await db
       .from("theme_settings")

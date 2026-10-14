@@ -113,7 +113,9 @@ export function SiteIdentityControls({
             {/* eslint-disable-next-line @next/next/no-img-element -- editor-selected icon URL */}
             <img src={iconUrl} width={16} height={16} alt="" className="h-4 w-4 object-contain" />
             <span className="min-w-0 truncate">{value.siteName}</span>
-            <span className="ml-auto" aria-hidden="true">×</span>
+            <span className="ml-auto" aria-hidden="true">
+              ×
+            </span>
           </div>
           <div className="truncate rounded-b-lg bg-white px-2 py-2 text-[10px] text-gray-500">
             moderngentlemen.co
@@ -179,8 +181,8 @@ export function SiteIdentityControls({
             size={72}
           />
           <p className="max-w-[160px] text-[11px] leading-relaxed text-mg-fg/70">
-            Use a separate 180 × 180 px PNG for optimal home-screen appearance.
-            This preview uses the favicon until you choose one.
+            Use a separate 180 × 180 px PNG for optimal home-screen appearance. This preview uses
+            the favicon until you choose one.
           </p>
         </div>
         <TextInput
@@ -233,8 +235,8 @@ export function SiteIdentityControls({
         </p>
       )}
       <p className="text-xs leading-relaxed text-mg-fg/60">
-        Changes are drafts until you select Save theme draft and Publish site theme.
-        Browser favicon caches may need a hard refresh after publication.
+        Changes are drafts until you select Save theme draft and Publish site theme. Browser favicon
+        caches may need a hard refresh after publication.
       </p>
       {picker && (
         <MediaPickerDialog
