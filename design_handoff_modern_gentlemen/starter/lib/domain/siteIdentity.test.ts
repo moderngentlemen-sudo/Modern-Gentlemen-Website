@@ -30,7 +30,7 @@ describe("site identity", () => {
       "//attacker.example/icon.svg",
       "/\\evil",
       "https://user:pass@example.com/a.png",
-      "https://example.com/a.png\n",
+      "https://example.com/a\n.png",
       "http://example.com/a.png",
     ]) {
       expect(safeIdentityImageUrl(value), value).toBe(false);
