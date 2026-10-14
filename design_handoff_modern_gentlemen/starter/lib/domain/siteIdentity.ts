@@ -21,8 +21,16 @@ export function safeIdentityImageUrl(value: string): boolean {
 export const siteIdentitySchema = z.object({
   siteName: z.string().trim().min(1).max(90),
   description: z.string().trim().max(500),
-  faviconUrl: z.string().trim().max(2048).refine(safeIdentityImageUrl, "Use an HTTPS image URL or a site-relative path."),
-  appleTouchIconUrl: z.string().trim().max(2048).refine(safeIdentityImageUrl, "Use an HTTPS image URL or a site-relative path."),
+  faviconUrl: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(safeIdentityImageUrl, "Use an HTTPS image URL or a site-relative path."),
+  appleTouchIconUrl: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(safeIdentityImageUrl, "Use an HTTPS image URL or a site-relative path."),
 });
 
 export type SiteIdentity = z.infer<typeof siteIdentitySchema>;
