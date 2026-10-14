@@ -27,6 +27,7 @@
  * passes the literal below to the RPC instead.
  */
 
+import { readSiteIdentity, siteIdentitySchema, type SiteIdentity } from "./siteIdentity";
 import { z } from "zod";
 import { searchAppearanceSchema, type SearchAppearance } from "./searchPresets";
 import { articleDesignSchema, readArticleDesign, type ArticleDesign } from "./articleDesign";
@@ -583,6 +584,8 @@ export const DEFAULT_THEME_COMPONENTS: ThemeComponentDefaults = {
 };
 
 export interface ThemeSettings {
+  /** Draft/published identity; optional so old themes remain byte-identical. */
+  siteIdentity?: SiteIdentity;
   articles?: ArticleDesign;
   colors: ThemeColors;
   typography: ThemeTypography;
@@ -1063,6 +1066,7 @@ export const themeTokenAliasesSchema = z
   });
 
 export const themeSettingsSchema = z.object({
+  siteIdentity: siteIdentitySchema.optional(),
   articles: articleDesignSchema.optional(),
   colors: themeColorsSchema,
   typography: themeTypographySchema,
@@ -1075,6 +1079,7 @@ export const themeSettingsSchema = z.object({
 });
 
 export const themePayloadSchema = z.object({
+  siteIdentity: siteIdentitySchema.optional(),
   articles: articleDesignSchema.optional(),
   version: z.number().int().optional(),
   colors: themeColorsSchema.optional(),
@@ -1465,9 +1470,12 @@ export function parseThemeComponentDefaults(value: unknown): ThemeComponentDefau
 }
 
 export function parseThemeSettings(value: unknown): ThemeSettings {
+  const storedIdentity = asRecord(value)?.siteIdentity;
+  const identity = storedIdentity === undefined ? undefined : readSiteIdentity(storedIdentity);
   const articles = readArticleDesign(asRecord(value)?.articles);
   return {
     ...(articles ? { articles } : {}),
+    ...(identity ? { siteIdentity: identity } : {}),
     colors: parseThemeColors(value),
     typography: parseThemeTypography(value),
     header: parseThemeHeader(value),
