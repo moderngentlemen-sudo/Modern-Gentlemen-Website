@@ -8,6 +8,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-14 — Favicon & Site Identity inside Appearance Studio (branch `feat/appearance-studio-site-identity`)
+
+- **UI:** A site-wide Favicon & Site Identity area in Appearance Studio includes site title, default description, favicon, optional Apple touch icon, browser-tab and 16/32/64px previews, revert-to-MG icon, Media Library selection and permission-checked PNG/JPEG/WebP uploads (2 MB limit).
+- **Default:** `public/site-icon.svg` adapts the exact existing white MG monogram into a charcoal square. Previous themes without `siteIdentity` retain their original site name and description. No data migration, no changes to verified page sections.
+- **Publication:** Stored under the theme's existing draft/published payload. Save/undo/redo/review/publish are unchanged. Next's root metadata reads **only published** identity; page-level SEO overrides remain authoritative. Both draft/theme and icon URLs are validated with allowlisted same-origin or HTTPS links (no protocol-relative/javascript/data/control/credentialed URLs).
+- **Access:** Staff with `theme.write` can edit; media browsing needs `media.read` and uploading needs `media.write`. Existing media upload action/service and RLS are reused. Static icons in browsers may remain cached after publication.
+- **Verification:** domain/preview unit tests and an isolated-stack browser test for draft persistence and published-data isolation were added. CI should be checked before merge. No production deploy performed.
+
 ### 2026-10-11 — Homepage-only launch access (branch `feat/homepage-only-admin-access`)
 
 - **Requested behavior:** keep `/` public; require a validated Supabase session **and a staff role** for other website URLs and non-homepage APIs. Preserve the existing server-gated `/admin` and authenticated CMS editing.
