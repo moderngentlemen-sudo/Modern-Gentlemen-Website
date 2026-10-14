@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { DEFAULT_SITE_IDENTITY, siteIdentityMetadata } from "@/lib/domain/siteIdentity";
 import { Space_Grotesk, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
 import { canonicalSiteUrl } from "@/lib/db/env";
-import { BRAND } from "@/lib/domain/seo";
 import { getPublishedThemeSettings } from "@/lib/services/publicTheme";
 import { themeDesignCssText, themeWebfontStylesheets } from "@/lib/domain/theme";
 import { RevealObserver } from "@/components/RevealObserver";
@@ -40,11 +40,16 @@ const mono = IBM_Plex_Mono({
  * a malformed origin, and `canonicalSiteUrl()` has already refused an unset
  * `NEXT_PUBLIC_SITE_URL` in production before this line runs.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(canonicalSiteUrl()),
-  title: BRAND,
-  description: "Style, grooming, watches, culture and film — for the considered man.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // The published identity, never the draft, controls browser icons and site
+  // metadata. Theme publishing revalidates the root layout for all site routes.
+  const theme = await getPublishedThemeSettings();
+  const identity = theme.siteIdentity ?? DEFAULT_SITE_IDENTITY;
+  return {
+    metadataBase: new URL(canonicalSiteUrl()),
+    ...siteIdentityMetadata(identity),
+  };
+}
 
 /**
  * The document shell, and nothing else.

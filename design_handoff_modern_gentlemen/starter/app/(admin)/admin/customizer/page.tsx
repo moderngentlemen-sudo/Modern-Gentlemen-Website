@@ -38,6 +38,8 @@ export default async function CustomizerPage({
         pagePublish: user.permissions.has("page.publish"),
         themeWrite: user.permissions.has("theme.write") && user.permissions.has("theme.read"),
         themePublish: user.permissions.has("theme.publish") && user.permissions.has("theme.read"),
+        mediaWrite: user.permissions.has("media.write"),
+        mediaRead: user.permissions.has("media.read"),
       }}
     />
   );
