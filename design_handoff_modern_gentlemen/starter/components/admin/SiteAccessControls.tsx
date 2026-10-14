@@ -52,7 +52,7 @@ export function SiteAccessControls({
     mode !== current.mode ||
     scheduled !== !!current.scheduledPublicAt ||
     (scheduled &&
-      !!scheduleLocal &&
+      Number.isFinite(Date.parse(scheduleLocal)) &&
       new Date(scheduleLocal).toISOString() !== current.scheduledPublicAt);
 
   function chooseMode(next: SiteAccessMode) {
