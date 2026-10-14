@@ -20,7 +20,9 @@ describe("Appearance Studio favicon and identity controls", () => {
     expect(screen.getByLabelText("Browser tab favicon preview")).toBeInTheDocument();
     expect(screen.getByLabelText("Favicon image URL")).toHaveValue("/site-icon.svg");
     expect(container.querySelector('img[src="/site-icon.svg"]')).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Browse library" })).toBeDisabled();
+    for (const button of screen.getAllByRole("button", { name: "Browse library" })) {
+      expect(button).toBeDisabled();
+    }
   });
 
   it("edits the site name without publishing and can restore the approved favicon", () => {
