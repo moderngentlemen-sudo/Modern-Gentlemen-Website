@@ -508,7 +508,7 @@ export function AppearanceStudio({
             ["page", "Page appearance", "Background & chrome"],
             ["mega", "Mega menu", "Categories & stories"],
             ["media", "Media overlays", "Color & gradients"],
-          ].map(([id, title, sub], i) => (
+          ].map(([id, title, sub]) => (
             <div key={id}>
               {id === "page" && <small>THIS PAGE</small>}
               <button
