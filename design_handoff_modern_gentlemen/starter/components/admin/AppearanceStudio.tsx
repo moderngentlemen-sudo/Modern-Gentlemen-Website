@@ -410,7 +410,13 @@ export function AppearanceStudio({
         </button>
         <button
           className={styles.primary}
-          disabled={busy || area === "access" || !canWrite || (global ? !themeDirty : !pageDirty) || !!computed.error}
+          disabled={
+            busy ||
+            area === "access" ||
+            !canWrite ||
+            (global ? !themeDirty : !pageDirty) ||
+            !!computed.error
+          }
           onClick={() => void save(global ? "theme" : "page")}
         >
           Save {global ? "theme" : "page"} draft

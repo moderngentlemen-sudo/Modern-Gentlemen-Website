@@ -8,11 +8,7 @@ import {
   resolveSiteAccess,
   staffCanBrowse,
 } from "@/lib/domain/siteAccessState";
-import {
-  isAdminPath,
-  isAllowedWithoutStaff,
-  isApiPath,
-} from "@/lib/domain/siteAccess";
+import { isAdminPath, isAllowedWithoutStaff, isApiPath } from "@/lib/domain/siteAccess";
 
 /**
  * Refreshes Supabase auth cookies and enforces the application route gate.

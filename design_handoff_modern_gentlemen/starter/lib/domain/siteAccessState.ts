@@ -62,7 +62,8 @@ export function resolveSiteAccess(
   if (!parsed.success) return lockedSiteAccess();
   const entry = parsed.data;
   const mode = entry.mode === "inherit" ? environmentSiteAccessMode() : entry.mode;
-  const launched = entry.scheduledPublicAt !== null && Date.parse(entry.scheduledPublicAt) <= now.getTime();
+  const launched =
+    entry.scheduledPublicAt !== null && Date.parse(entry.scheduledPublicAt) <= now.getTime();
   return {
     mode,
     effectiveMode: launched ? "public" : mode,
@@ -108,7 +109,9 @@ export function validateSiteAccessChange(
 ) {
   const { mode, scheduledPublicAt, confirmation } = input;
   if (scheduledPublicAt && mode === "public") {
-    throw new Error("The public mode is already live; choose a restricted mode to schedule launch.");
+    throw new Error(
+      "The public mode is already live; choose a restricted mode to schedule launch."
+    );
   }
   if (scheduledPublicAt) {
     if (confirmation !== "SCHEDULE") throw new Error("Scheduling requires confirmation.");

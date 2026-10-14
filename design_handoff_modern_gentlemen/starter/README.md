@@ -68,11 +68,11 @@ Modern Gentlemen provides **three live access modes**, managed under
 **Admin → Appearance Studio → Site Access & Launch** (also linked from the
 admin overview).
 
-| Mode | Signed-out visitors | Staff with a valid Supabase role |
-| --- | --- | --- |
-| Homepage Only | Homepage and allowed auth/forms only; other pages redirect home, protected APIs return 403 | May open published deep links, but public chrome is suppressed |
-| Private Preview | Same homepage-only visitor experience | Published site, header, footer, navigation and catalog render normally |
-| Public Launch | All published website pages | Normal site and admin access |
+| Mode            | Signed-out visitors                                                                        | Staff with a valid Supabase role                                       |
+| --------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Homepage Only   | Homepage and allowed auth/forms only; other pages redirect home, protected APIs return 403 | May open published deep links, but public chrome is suppressed         |
+| Private Preview | Same homepage-only visitor experience                                                      | Published site, header, footer, navigation and catalog render normally |
+| Public Launch   | All published website pages                                                                | Normal site and admin access                                           |
 
 Unlike the previous build-time flag, the **site's current mode is checked on
 each request**. `site_settings` holds the mode and an optional scheduled public

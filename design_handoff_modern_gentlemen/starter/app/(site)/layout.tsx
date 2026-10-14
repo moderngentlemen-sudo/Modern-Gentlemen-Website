@@ -34,7 +34,7 @@ import { getPublishedGlobalTemplate } from "@/lib/services/publicContent";
  * no auth request at all.
  */
 // Site chrome must depend on the current request and current launch mode.
-  // Static HTML would leak signed-in navigation to anonymous requests.
+// Static HTML would leak signed-in navigation to anonymous requests.
 export const dynamic = "force-dynamic";
 
 // Public chrome paints edge-to-edge; its controls reserve the device safe area.

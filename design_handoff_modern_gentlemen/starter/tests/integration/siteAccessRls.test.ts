@@ -21,10 +21,7 @@ describe("site access control database boundary", () => {
       .insert({ key: secretKey, value: { private: true } });
     if (inserted.error) throw inserted.error;
     try {
-      const hidden = await visitor
-        .from("site_settings")
-        .select("value")
-        .eq("key", secretKey);
+      const hidden = await visitor.from("site_settings").select("value").eq("key", secretKey);
       expect(hidden.error).toBeNull();
       expect(hidden.data).toHaveLength(0);
     } finally {

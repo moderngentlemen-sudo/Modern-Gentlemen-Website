@@ -32,7 +32,9 @@ export const getSiteAccess = cache(async (): Promise<SiteAccessState> => {
 
 export async function getAdminSiteAccess(): Promise<SiteAccessState> {
   await requirePermission("settings.read");
-  const { data, error } = await (await createClient())
+  const { data, error } = await (
+    await createClient()
+  )
     .from("site_settings")
     .select("value, updated_at")
     .eq("key", SITE_ACCESS_KEY)
@@ -88,7 +90,9 @@ export async function setSiteAccess(input: unknown): Promise<SiteAccessState> {
 
   if (result.error) throw new Error("Site access could not be updated.");
   if (!result.data) {
-    throw new Error("Site access changed during the update. Refresh and review before trying again.");
+    throw new Error(
+      "Site access changed during the update. Refresh and review before trying again."
+    );
   }
   return resolveSiteAccess(result.data.value, result.data.updated_at);
 }

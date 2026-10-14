@@ -114,7 +114,9 @@ export function SiteAccessControls({
       <div className="rounded-md border border-mg-bd/20 p-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em]">Currently active</p>
         <p className="mt-1 text-base font-semibold">{SITE_ACCESS_LABELS[current.effectiveMode]}</p>
-        <p className="mt-2 text-[11px] leading-relaxed">{MODE_DESCRIPTIONS[current.effectiveMode]}</p>
+        <p className="mt-2 text-[11px] leading-relaxed">
+          {MODE_DESCRIPTIONS[current.effectiveMode]}
+        </p>
         {current.scheduledPublicAt && (
           <p className="mt-2 text-[11px]">
             Scheduled public launch:{" "}
@@ -125,8 +127,8 @@ export function SiteAccessControls({
         )}
         {current.source === "fail-closed" && (
           <p className="mt-2 text-[11px] text-red-700">
-            The access setting could not be verified. Site access is locked until the database
-            is available.
+            The access setting could not be verified. Site access is locked until the database is
+            available.
           </p>
         )}
       </div>
@@ -178,8 +180,8 @@ export function SiteAccessControls({
             </label>
           )}
           <p className="text-[11px] leading-relaxed">
-            Scheduling opens the published website at the specified time. This is checked on
-            each request; it does not require a deployment or background task.
+            Scheduling opens the published website at the specified time. This is checked on each
+            request; it does not require a deployment or background task.
           </p>
         </div>
 
@@ -205,9 +207,8 @@ export function SiteAccessControls({
         </p>
       )}
       <p className="text-[11px] leading-relaxed">
-        Changing access is an immediate operational action, separate from saving or
-        publishing a site theme. Public-mode confirmation is required to prevent accidental
-        exposure.
+        Changing access is an immediate operational action, separate from saving or publishing a
+        site theme. Public-mode confirmation is required to prevent accidental exposure.
       </p>
       {error && (
         <p role="alert" className="text-[11px] text-red-700">
@@ -253,7 +254,9 @@ export function SiteAccessControls({
               <span className="block">Public launch: {scheduleLocal} (your local timezone)</span>
             )}
           </p>
-          <p>To continue, type <strong>{expectedPhrase}</strong> exactly.</p>
+          <p>
+            To continue, type <strong>{expectedPhrase}</strong> exactly.
+          </p>
           <input
             aria-label="Access change confirmation"
             type="text"

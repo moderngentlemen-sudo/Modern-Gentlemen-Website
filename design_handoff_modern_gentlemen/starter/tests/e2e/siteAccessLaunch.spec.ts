@@ -24,11 +24,23 @@ test("private staff preview, public launch and scheduled access use one live pol
 
   async function applyMode(mode: "homepage-only" | "private-preview" | "public") {
     await page.goto("/admin/customizer?area=access");
-    await page.getByRole("radio", { name: new RegExp(mode === "public" ? "Public Launch" : mode === "private-preview" ? "Private Preview" : "Homepage Only") }).check();
+    await page
+      .getByRole("radio", {
+        name: new RegExp(
+          mode === "public"
+            ? "Public Launch"
+            : mode === "private-preview"
+              ? "Private Preview"
+              : "Homepage Only"
+        ),
+      })
+      .check();
     await page.getByRole("button", { name: "Review access change" }).click();
     const confirmation = page.getByRole("dialog", { name: "Confirm site access change" });
     await expect(confirmation).toBeVisible();
-    await confirmation.getByLabel("Access change confirmation").fill(mode === "public" ? "LAUNCH" : "CONFIRM");
+    await confirmation
+      .getByLabel("Access change confirmation")
+      .fill(mode === "public" ? "LAUNCH" : "CONFIRM");
     await confirmation.getByRole("button", { name: "Apply access mode" }).click();
     await expect(confirmation).toBeHidden();
     await expect(page.getByRole("status").filter({ hasText: "Access mode updated" })).toBeVisible();
@@ -61,7 +73,10 @@ test("private staff preview, public launch and scheduled access use one live pol
     await page.goto("/admin/customizer?area=access");
     await page.getByRole("radio", { name: /Public Launch/ }).check();
     await page.getByRole("button", { name: "Review access change" }).click();
-    await page.getByRole("dialog", { name: "Confirm site access change" }).getByRole("button", { name: "Cancel" }).click();
+    await page
+      .getByRole("dialog", { name: "Confirm site access change" })
+      .getByRole("button", { name: "Cancel" })
+      .click();
     expect((await request.get("/shop", { maxRedirects: 0 })).status()).toBe(307);
 
     await applyMode("public");
