@@ -3,11 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { fetchForKey } from "@/lib/db/apiKey";
 import {
-  isAdminPath,
-  isAllowedWithoutStaff,
-  isApiPath,
-  isHomepageOnlyMode,
-} from "@/lib/domain/siteAccess";
+  SITE_ACCESS_KEY,
+  lockedSiteAccess,
+  resolveSiteAccess,
+  staffCanBrowse,
+} from "@/lib/domain/siteAccessState";
+import { isAdminPath, isAllowedWithoutStaff, isApiPath } from "@/lib/domain/siteAccess";
 
 /**
  * Refreshes Supabase auth cookies and enforces the application route gate.
@@ -75,43 +76,61 @@ export async function middleware(request: NextRequest) {
     return withCookies(NextResponse.redirect(admin));
   }
 
-  if (isHomepageOnlyMode() && !adminRoute && !isAllowedWithoutStaff(pathname)) {
-    // Neither an authenticated member without an admin role nor a signed-out
-    // user may access private published pages or the search/API endpoints.
-    let staff = false;
-    if (user) {
-      const { data: roles, error } = await supabase
-        .from("user_roles")
-        .select("role_key")
-        .eq("user_id", user.id)
-        .limit(1);
-      if (error) console.error("Site access role lookup failed:", error.message);
-      staff = !error && (roles?.length ?? 0) > 0;
-    }
+  if (adminRoute) return response;
 
-    if (!staff) {
-      if (isApiPath(pathname)) {
-        return withCookies(
-          NextResponse.json(
-            { error: "Forbidden" },
-            { status: 403, headers: { "Cache-Control": "private, no-store" } }
-          )
-        );
-      }
-      const homepage = request.nextUrl.clone();
-      homepage.pathname = "/";
-      homepage.search = "";
+  // One authoritative operational record, checked on every request. A missing
+  // legacy row inherits SITE_ACCESS_MODE; a failed or invalid read closes site
+  // access rather than letting a stale public flag keep private pages open.
+  const settings = await supabase
+    .from("site_settings")
+    .select("value, updated_at")
+    .eq("key", SITE_ACCESS_KEY)
+    .maybeSingle();
+  if (settings.error) console.error("Site access lookup failed:", settings.error.message);
+  const access = settings.error
+    ? lockedSiteAccess()
+    : resolveSiteAccess(settings.data?.value, settings.data?.updated_at ?? null);
+  const mode = access.effectiveMode;
+
+  const protectedPath = !isAllowedWithoutStaff(pathname);
+  let staff = false;
+  if (user && mode !== "public" && (protectedPath || mode === "private-preview")) {
+    const { data: roles, error } = await supabase
+      .from("user_roles")
+      .select("role_key")
+      .eq("user_id", user.id)
+      .limit(1);
+    if (error) console.error("Site access role lookup failed:", error.message);
+    staff = !error && (roles?.length ?? 0) > 0;
+  }
+
+  if (protectedPath && !staffCanBrowse(mode, staff)) {
+    if (isApiPath(pathname)) {
       return withCookies(
-        NextResponse.redirect(homepage, {
-          headers: {
-            "Cache-Control": "private, no-store",
-            "X-Robots-Tag": "noindex, nofollow",
-          },
-        })
+        NextResponse.json(
+          { error: "Forbidden" },
+          { status: 403, headers: { "Cache-Control": "private, no-store" } }
+        )
       );
     }
+    const homepage = request.nextUrl.clone();
+    homepage.pathname = "/";
+    homepage.search = "";
+    return withCookies(
+      NextResponse.redirect(homepage, {
+        headers: {
+          "Cache-Control": "private, no-store",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+      })
+    );
+  }
 
+  // All restricted-mode pages vary by session; never cache staff chrome for an
+  // anonymous visitor, even at "/" where both experiences share one URL.
+  if (mode !== "public") {
     response.headers.set("Cache-Control", "private, no-store");
+    if (staff) response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 
   return response;

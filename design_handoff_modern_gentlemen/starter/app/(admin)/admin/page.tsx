@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/services/auth";
 import { listDocuments } from "@/lib/services/documents";
 import { getPublishedHomepage } from "@/lib/services/publicContent";
-import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
+import { getAdminSiteAccess } from "@/lib/services/siteAccess";
+import { SITE_ACCESS_LABELS } from "@/lib/domain/siteAccessState";
 import { PERMISSIONS } from "@/lib/domain/permissions";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { Panel } from "@/components/admin/ui/Panel";
@@ -26,6 +27,7 @@ export default async function AdminHome() {
   const canReadPages = user.permissions.has("page.read");
   const recent = canReadPages ? await listDocuments("page", { limit: 8 }) : [];
   const homepage = user.permissions.has("page.write") ? await getPublishedHomepage() : null;
+  const access = user.permissions.has("settings.read") ? await getAdminSiteAccess() : null;
 
   const byResource = new Map<string, string[]>();
   for (const permission of PERMISSIONS) {
@@ -53,16 +55,29 @@ export default async function AdminHome() {
       </AdminPageHeader>
 
       <div className="space-y-8 px-8 py-8">
-        {isHomepageOnlyMode() && (
+        {access && (
           <section aria-label="Site access">
-            <h2 className="font-grotesk text-[16px] font-semibold tracking-[-0.02em]">
-              Site access: Homepage only
-            </h2>
-            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-mg-fg/60">
-              Visitors can see only the homepage. Staff can access other site pages after signing
-              in. Edit the homepage under Pages, then use Page Settings → Header and footer to hide
-              the desktop and mobile chrome for your published launch design.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-grotesk text-[16px] font-semibold tracking-[-0.02em]">
+                  Site access: {SITE_ACCESS_LABELS[access.effectiveMode]}
+                </h2>
+                <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-mg-fg/60">
+                  {access.effectiveMode === "public"
+                    ? "All published pages are currently open to visitors."
+                    : access.effectiveMode === "private-preview"
+                      ? "Visitors see the homepage. Authorized staff can browse the full website."
+                      : "Visitors see only the homepage. Staff may edit the rest in admin."}
+                  {access.scheduledPublicAt &&
+                    ` A public launch is scheduled for ${new Date(access.scheduledPublicAt).toLocaleString()}.`}
+                </p>
+              </div>
+              {user.permissions.has("page.read") && (
+                <Button href="/admin/customizer?area=access" size="sm" variant="outline">
+                  Manage site access
+                </Button>
+              )}
+            </div>
           </section>
         )}
         <section>

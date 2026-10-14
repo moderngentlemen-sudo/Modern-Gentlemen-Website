@@ -8,6 +8,16 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified · `[!]`
 
 ## 📍 Current Status & Session Handoff — READ FIRST
 
+### 2026-10-14 — Site Access & Launch Controls (branch `feat/site-access-launch-controls`)
+
+- **Three modes:** Homepage Only (existing chrome-free prelaunch behavior), Private Preview (full published site chrome/catalog/navigation for valid staff sessions, visitors still homepage-only), and Public Launch. Admin overview displays effective mode and links to Appearance Studio's new **Site Access & Launch** section.
+- **Request-aware architecture:** The `(site)` layout is force-dynamic to avoid staff HTML leaking into public cache; both middleware and layout read one versioned operational key (`site_settings.site-access-control`) via real Supabase sessions/RLS. Absent/legacy settings inherit `SITE_ACCESS_MODE` (home-only default); lookup errors or corrupt settings fail closed.
+- **Live updates with explicit confirmation:** Only `settings.write` may change modes. Strong LAUNCH confirmation for public opening, CONFIRM for restricted changes, SCHEDULE for an optional future public launch (validated, one year maximum). Writes use the caller's own session and an optimistic `updated_at` check; no service role, no public bypass. `settings.read` is required to see the panel.
+- **Scheduling:** Stored UTC in the single row and evaluated on each request. Dynamic robots/sitemap are homepage-only until the effective public launch instant; no independent scheduler or redeploy is needed for an in-product toggle.
+- **Migration:** `20261014101500_site_access_controls.sql` seeds an `inherit` row and adds a narrowly keyed anonymous SELECT policy. Other site settings stay staff-only. CI must validate idempotent migration, middleware, unit, browser, SEO and no-store tests.
+- **Security boundary:** Supabase published rows and public Storage URLs remain directly reachable; this changes route and layout privacy, not data-at-rest confidentiality. Embargoed materials need a separate RLS/private-storage plan.
+- **Visual exceptions:** Any page's explicit Header/Footer = Hide and standalone-mode chrome suppression still applies within Private Preview; set those four page controls to Use site default to see chrome on that page. No production deployment was authorized in this branch.
+
 ### 2026-10-14 — Favicon & Site Identity inside Appearance Studio (branch `feat/appearance-studio-site-identity`)
 
 - **UI:** A site-wide Favicon & Site Identity area in Appearance Studio includes site title, default description, favicon, optional Apple touch icon, browser-tab and 16/32/64px previews, revert-to-MG icon, Media Library selection and permission-checked PNG/JPEG/WebP uploads (2 MB limit).

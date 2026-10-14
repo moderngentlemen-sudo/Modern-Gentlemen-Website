@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
+import { getSiteAccess } from "@/lib/services/siteAccess";
 
 import { canonicalUrl } from "@/lib/domain/seo";
 import { canonicalSiteUrl } from "@/lib/db/env";
@@ -35,10 +35,12 @@ import { canonicalSiteUrl } from "@/lib/db/env";
  * as well as a disallow here: the disallow is the cheap first line, the meta tag
  * is the one that survives being linked to from outside.
  */
-export default function robots(): MetadataRoute.Robots {
+export const dynamic = "force-dynamic";
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
   const base = canonicalSiteUrl();
 
-  if (isHomepageOnlyMode()) {
+  if ((await getSiteAccess()).effectiveMode !== "public") {
     return {
       // The $ anchor allows the homepage itself, but not /shop or /articles.
       // Crawlers' compliance is voluntary; middleware enforces actual access.

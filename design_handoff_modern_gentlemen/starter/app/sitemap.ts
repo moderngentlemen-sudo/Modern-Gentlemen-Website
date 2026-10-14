@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
+import { getSiteAccess } from "@/lib/services/siteAccess";
 
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
 import {
@@ -38,12 +38,13 @@ import { canonicalSiteUrl } from "@/lib/db/env";
  * disallows the last three as well — a sitemap omission is a hint, a robots
  * disallow is an instruction, and the admin deserves both.
  */
-export const revalidate = 3600;
+// A scheduled launch must change the sitemap without waiting for an ISR TTL.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = canonicalSiteUrl();
   const now = new Date();
-  if (isHomepageOnlyMode()) {
+  if ((await getSiteAccess()).effectiveMode !== "public") {
     // Do not advertise unreleased site URLs or query their content.
     return [
       { url: canonicalUrl(base, "/"), lastModified: now, changeFrequency: "daily", priority: 1 },
