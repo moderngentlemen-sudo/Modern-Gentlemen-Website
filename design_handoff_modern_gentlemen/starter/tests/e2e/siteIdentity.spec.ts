@@ -7,7 +7,9 @@ const email = process.env.E2E_ADMIN_EMAIL;
 const password = process.env.E2E_ADMIN_PASSWORD;
 const local = !!url && ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname);
 
-test("Appearance Studio edits favicon and identity as a draft, not a live publish", async ({ page }) => {
+test("Appearance Studio edits favicon and identity as a draft, not a live publish", async ({
+  page,
+}) => {
   test.skip(!local || !key || !email || !password, "Requires isolated CI Supabase and editor");
   const db = createClient(url!, key!, { auth: { persistSession: false } });
   const baseline = await db
@@ -36,7 +38,9 @@ test("Appearance Studio edits favicon and identity as a draft, not a live publis
       "Modern Gentlemen Preview"
     );
     await page.getByRole("button", { name: "Save theme draft", exact: true }).first().click();
-    await expect(page.getByRole("region", { name: "Appearance Studio" }).getByRole("status")).toContainText(
+    await expect(
+      page.getByRole("region", { name: "Appearance Studio" }).getByRole("status")
+    ).toContainText(
       "Site theme draft saved"
     );
 
