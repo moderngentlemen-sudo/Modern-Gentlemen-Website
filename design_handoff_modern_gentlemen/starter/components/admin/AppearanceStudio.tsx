@@ -425,7 +425,8 @@ export function AppearanceStudio({
                     !same(state.theme.colors, savedTheme.settings.colors) && "Colors",
                     !same(state.theme.articles, savedTheme.settings.articles) && "Article designs",
                     !same(state.theme.typography, savedTheme.settings.typography) && "Typography",
-                    !same(state.theme.siteIdentity, savedTheme.settings.siteIdentity) && "Site identity",
+                    !same(state.theme.siteIdentity, savedTheme.settings.siteIdentity) &&
+                      "Site identity",
                   ]
                     .filter(Boolean)
                     .join(", ")
