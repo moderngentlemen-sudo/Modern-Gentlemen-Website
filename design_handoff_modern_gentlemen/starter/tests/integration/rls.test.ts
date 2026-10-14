@@ -383,17 +383,15 @@ async function makeCollectionItem(
  * reads, empty, and world-readable since `0001`. The mappings half is a real
  * data-loss bug that had been showing up as E2E flakiness.
  */
-describe("0025: site_settings is not world-readable", () => {
-  it("refuses anon the settings table", async () => {
-    // `for select using (true)` since `0001`. A table named "settings" is the
-    // kind that acquires an operational value nobody meant to publish, and the
-    // policy was written before anyone knew what would go in it.
-    const { data, error } = await anon.from("site_settings").select("*");
+describe("0025/20261014: only the public access mode is readable anonymously", () => {
+  it("exposes one explicit operational key but nothing else in site_settings", async () => {
+    // 0025 made settings staff-only. Site Access & Launch introduces ONE
+    // nonsecret, specifically allowlisted key; leaving any other settings
+    // publicly readable would be a regression to the old unsafe policy.
+    const { data, error } = await anon.from("site_settings").select("key");
 
-    // Empty rather than 42501: the grant is intact, the policy now returns no
-    // rows. Both are a refusal; asserting emptiness is what survives either.
     expect(error, "the read itself is not a privilege error").toBeNull();
-    expect(data ?? [], "anon must see no settings").toHaveLength(0);
+    expect((data ?? []).map((row) => row.key)).toEqual(["site-access-control"]);
   });
 });
 
