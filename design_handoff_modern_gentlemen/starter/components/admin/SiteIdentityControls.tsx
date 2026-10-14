@@ -19,7 +19,7 @@ function IconPreview({ url, label, size }: { url: string; label: string; size: n
         className="flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0d0d0d]"
         style={{ width: size, height: size }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- media-library URLs can be external */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- media library URLs can be external */}
         <img src={url} alt="" width={size} height={size} className="h-full w-full object-contain" />
       </div>
     </div>
@@ -57,7 +57,9 @@ export function SiteIdentityControls({
   async function upload(key: IconField, file?: File) {
     if (!file) return;
     if (!ICON_MIME_TYPES.has(file.type)) {
-      setError("Upload a PNG, JPEG or WebP image. SVG files can be selected from the media library.");
+      setError(
+        "Upload a PNG, JPEG or WebP image. SVG files can be selected from the media library."
+      );
       return;
     }
     if (file.size === 0 || file.size > MAX_ICON_UPLOAD_BYTES) {
@@ -87,7 +89,10 @@ export function SiteIdentityControls({
           label="Site name"
           value={value.siteName}
           onChange={(name) => change("siteName", name)}
-          help="Used for the default document title and the browser application name. Existing page-level SEO titles remain in control."
+          help={
+            "Used for the default document title and browser application name. " +
+            "Existing page-level SEO titles remain in control."
+          }
         />
         <TextArea
           label="Default site description"
@@ -105,7 +110,7 @@ export function SiteIdentityControls({
           aria-label="Browser tab favicon preview"
         >
           <div className="flex items-center gap-2 rounded-t-lg bg-[#dededb] px-2 py-2 text-xs">
-            {/* eslint-disable-next-line @next/next/no-img-element -- previewing an editor-selected URL */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- editor-selected icon URL */}
             <img src={iconUrl} width={16} height={16} alt="" className="h-4 w-4 object-contain" />
             <span className="min-w-0 truncate">{value.siteName}</span>
             <span className="ml-auto" aria-hidden="true">×</span>
@@ -125,10 +130,17 @@ export function SiteIdentityControls({
           value={value.faviconUrl}
           onChange={(url) => change("faviconUrl", url)}
           placeholder="/site-icon.svg"
-          help="PNG, SVG or WebP from your media library. Use a square design with generous padding."
+          help={
+            "PNG, SVG or WebP from your media library. " +
+            "Use a square design with generous padding."
+          }
         />
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={!canBrowse || !picker} onClick={() => setBrowseField("faviconUrl")}>
+          <button
+            type="button"
+            disabled={!canBrowse || !picker}
+            onClick={() => setBrowseField("faviconUrl")}
+          >
             Browse library
           </button>
           <button
@@ -180,7 +192,11 @@ export function SiteIdentityControls({
           help="Only included in live page metadata when set. Best size: 180 × 180 PNG."
         />
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={!canBrowse || !picker} onClick={() => setBrowseField("appleTouchIconUrl")}>
+          <button
+            type="button"
+            disabled={!canBrowse || !picker}
+            onClick={() => setBrowseField("appleTouchIconUrl")}
+          >
             Browse library
           </button>
           {value.appleTouchIconUrl && (
@@ -206,8 +222,16 @@ export function SiteIdentityControls({
           </label>
         )}
       </div>
-      {uploading && <p role="status" className="text-xs">Uploading image to the media library…</p>}
-      {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+      {uploading && (
+        <p role="status" className="text-xs">
+          Uploading image to the media library…
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-xs text-red-700">
+          {error}
+        </p>
+      )}
       <p className="text-xs leading-relaxed text-mg-fg/60">
         Changes are drafts until you select Save theme draft and Publish site theme.
         Browser favicon caches may need a hard refresh after publication.
