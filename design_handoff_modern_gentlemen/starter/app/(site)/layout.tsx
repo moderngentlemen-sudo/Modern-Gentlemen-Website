@@ -1,5 +1,7 @@
 import type { Viewport } from "next";
-import { isHomepageOnlyMode } from "@/lib/domain/siteAccess";
+import { getSiteAccess } from "@/lib/services/siteAccess";
+import { getCurrentUser } from "@/lib/services/auth";
+import { showPublicChrome } from "@/lib/domain/siteAccessState";
 import { CatalogProvider } from "@/lib/catalog/CatalogProvider";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { listPublishedProducts } from "@/lib/services/publicCatalog";
@@ -31,18 +33,24 @@ import { getPublishedGlobalTemplate } from "@/lib/services/publicContent";
  * by the client chrome after this static tree arrives; unconditional menus make
  * no auth request at all.
  */
-export const revalidate = 3600;
+// Site chrome must depend on the current request and current launch mode.
+  // Static HTML would leak signed-in navigation to anonymous requests.
+export const dynamic = "force-dynamic";
 
 // Public chrome paints edge-to-edge; its controls reserve the device safe area.
 // Keep browser zoom available and leave the admin viewport unchanged.
 export const viewport: Viewport = { viewportFit: "cover" };
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  // Prelaunch: no public chrome is rendered at all (not merely hidden by CSS).
-  // This also covers sign-in/recovery, which share the (site) route group.
-  // No navigation, product catalogue or footer data is shipped to visitors.
-  // Admin pages render through their separate layout and remain editable.
-  if (isHomepageOnlyMode()) {
+  const access = await getSiteAccess();
+  const mode = access.effectiveMode;
+  const user = mode === "private-preview" ? await getCurrentUser() : null;
+  const staff = !!user?.roles.length;
+
+  // Public mode shows full chrome to everyone. Private Preview does so only
+  // after server-validated Supabase auth and a staff role. Homepage Only keeps
+  // the former chrome-free behavior, even for staff using direct page URLs.
+  if (!showPublicChrome(mode, staff)) {
     return (
       <CatalogProvider products={[]}>
         <CartProvider>
