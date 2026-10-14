@@ -18,6 +18,7 @@ import {
   type FontSelection,
 } from "@/lib/domain/theme";
 import { readPageSettings } from "@/lib/domain/pageSettings";
+import { DEFAULT_SITE_IDENTITY } from "@/lib/domain/siteIdentity";
 import type {
   loadAppearancePage,
   loadAppearanceTheme,
@@ -41,6 +42,7 @@ import type { AppearancePreviewState } from "./AppearancePreview";
 import styles from "./AppearanceStudio.module.css";
 import { SearchAppearanceControls } from "./SearchAppearanceControls";
 import { ArticleDesignControls } from "./articles/ArticleDesignControls";
+import { SiteIdentityControls } from "./SiteIdentityControls";
 
 type Page = Awaited<ReturnType<typeof loadAppearancePage>>;
 type Theme = Awaited<ReturnType<typeof loadAppearanceTheme>>;
@@ -65,6 +67,8 @@ export function AppearanceStudio({
     themeWrite: boolean;
     pagePublish: boolean;
     themePublish: boolean;
+    mediaRead: boolean;
+    mediaWrite: boolean;
   };
 }) {
   const [page, setPage] = useState(initialPage);
@@ -118,7 +122,7 @@ export function AppearanceStudio({
   const pageDirty = !!state.changes.page || state.changes.targets.length > 0;
   const themeDirty = !same(state.theme, savedTheme.settings);
   const dirty = pageDirty || themeDirty;
-  const global = area === "header" || area === "site" || area === "articles";
+  const global = area === "header" || area === "site" || area === "articles" || area === "identity";
   const canWrite = global ? permissions.themeWrite : permissions.pageWrite;
   const width = Number(device),
     scale = Math.min(1, Math.max(0.1, (stageSize.width - 40) / width));
@@ -421,6 +425,7 @@ export function AppearanceStudio({
                     !same(state.theme.colors, savedTheme.settings.colors) && "Colors",
                     !same(state.theme.articles, savedTheme.settings.articles) && "Article designs",
                     !same(state.theme.typography, savedTheme.settings.typography) && "Typography",
+                    !same(state.theme.siteIdentity, savedTheme.settings.siteIdentity) && "Site identity",
                   ]
                     .filter(Boolean)
                     .join(", ")
@@ -469,6 +474,7 @@ export function AppearanceStudio({
           <small>SITE-WIDE</small>
           {[
             ["site", "Site styles", "Colors & typography"],
+            ["identity", "Favicon & Site Identity", "Browser tab & app icon"],
             ["header", "Header", "Surface & motion"],
             ["articles", "Articles", "Designs & featured media"],
             ["page", "Page appearance", "Background & chrome"],
@@ -476,7 +482,7 @@ export function AppearanceStudio({
             ["media", "Media overlays", "Color & gradients"],
           ].map(([id, title, sub], i) => (
             <div key={id}>
-              {i === 3 && <small>THIS PAGE</small>}
+              {i === 4 && <small>THIS PAGE</small>}
               <button
                 aria-current={area === id ? "page" : undefined}
                 onClick={() => {
@@ -562,6 +568,7 @@ export function AppearanceStudio({
             {
               {
                 site: "Site styles",
+                identity: "Favicon & Site Identity",
                 header: "Header",
                 articles: "Article designs",
                 page: "Page appearance",
@@ -574,6 +581,16 @@ export function AppearanceStudio({
             {global ? "One shared design across the site." : "Appearance settings for this page."}
           </p>
           <fieldset disabled={busy || !canWrite || (!global && !page)} className={styles.fields}>
+            {area === "identity" && (
+              <SiteIdentityControls
+                value={state.theme.siteIdentity ?? DEFAULT_SITE_IDENTITY}
+                canBrowse={permissions.mediaRead}
+                canUpload={permissions.mediaWrite}
+                onChange={(siteIdentity) =>
+                  patch({ ...state, theme: { ...state.theme, siteIdentity } })
+                }
+              />
+            )}
             {area === "site" && (
               <>
                 <ColorInput
